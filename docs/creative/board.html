@@ -1,0 +1,40 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>몽망이 디렉션 비교</title>
+<style>
+:root{--bg:#f4efe6;--ink:#2a2622;--sub:#6b625a;--line:#ddd3c4}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1916;--ink:#eee6da;--sub:#a99f93;--line:#3a352f}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,"Apple SD Gothic Neo",sans-serif}
+main{max-width:1400px;margin:0 auto;padding:32px 16px}
+h1{font-weight:500;font-size:22px;margin:0 0 4px}p.lead{color:var(--sub);margin:0 0 32px}
+section{border-top:1px solid var(--line);padding:28px 0}
+h2{font-weight:500;font-size:19px;margin:0}h2 small{color:var(--sub);font-weight:400;font-size:14px;margin-left:8px}
+.one{color:var(--sub);margin:6px 0 14px}
+.imgs{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+.imgs img{height:420px;border-radius:6px;flex:none;cursor:zoom-in}
+.pros{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;font-size:14px}
+.pros div b{display:block;font-weight:600;margin-bottom:2px}
+@media (max-width:700px){.imgs img{height:300px}.pros{grid-template-columns:1fr}}
+</style></head><body><main>
+<h1>몽망이 크리에이티브 디렉션 — 후보 4안</h1>
+<p class="lead">AI 이미지는 방향 탐색용입니다. 각 안의 마지막 이미지가 "실제 앱 렌더"에 가까운 것입니다(없는 안은 아직 격차가 큼).</p>
+
+<section><h2>① 하루 한 획 <small>경쟁 디렉터 · 팀 1순위 후보</small></h2>
+<p class="one">한지 위 먹점 하나에서 시작. 하루 한 획을 그으면 몸이 되고, 오래된 획은 바랜다. 몽(夢)·망(忘). 이름의 E 가로획 세 개 = 'E 빗' 종 표식.</p>
+<div class="imgs"><img src="rival/img/A1-day0-day30.png"><img src="rival/img/A2-home.png"><img src="rival/img/A3-variants.png"><img src="rival/img/A4-in-engine.png"></div>
+<div class="pros"><div><b>강점</b>이름과 메커닉과 그림이 한 줄로 묶임. 벡터 획 + 비백 셰이더라 실제 구현이 시안에 가장 가까움. 매일 한 획 = "하루하루 키운다"를 문자 그대로.</div><div><b>위험</b>해마·카멜레온·새로 읽힘. 하루 한 획은 하루 플레이가 짧아 3개월 지속성이 약할 수 있음. 먹 = 무채색이라 감정 폭.</div></div></section>
+
+<section><h2>② 분청 꼬집 <small>첫 디렉터 1순위</small></h2>
+<p class="one">꿈 흙 한 줌을 꼬집고 쓰다듬어 빚는다. 손자국이 분청 무늬로 남고 밤마다 가마가 굳힌다.</p>
+<div class="imgs"><img src="img/A1-buncheong-creature.png"><img src="img/A2-buncheong-home.png"><img src="img/A3-buncheong-variants.png"><img src="img/A4-pinch-rig-code.png"></div>
+<div class="pros"><div><b>강점</b>만지는 손맛과 애착. 공방 사물 UI가 가장 세련됨. 분청 기법 = 파츠 카탈로그.</div><div><b>위험</b>실제 렌더가 시안의 20~30%(마지막 이미지). 오브제로 읽혀 애착 약함, 💩·아이스크림 실루엣.</div></div></section>
+
+<section><h2>③ 입김 창 <small>경쟁 디렉터 2안</small></h2>
+<p class="one">김 서린 밤 창문에서 혼자 서리지 않는 빈자리가 몽망이. 입김과 손가락 닦기로 키우고, 몸 안으로 보이는 바깥 풍경이 성향.</p>
+<div class="imgs"><img src="rival/img/B1-day0-day30.png"><img src="rival/img/B2-home.png"><img src="rival/img/B3-variants.png"><img src="rival/img/B4-in-engine.png"></div>
+<div class="pros"><div><b>강점</b>가장 본 적 없음. "부재로 존재하는 몸"이라는 발상.</div><div><b>위험</b>사진풍 격차 큼, 마이크 입력은 권한·공공장소 부담, 늘 밤.</div></div></section>
+
+<section><h2>④ 먹 한 방울 <small>첫 디렉터 3안</small></h2>
+<p class="one">잠의 수면에 떨어진 먹 한 방울. 아침마다 한지에 꿈을 찍어 낸다.</p>
+<div class="imgs"><img src="img/C1-ink-creature.png"><img src="img/C2-ink-home.png"></div>
+<div class="pros"><div><b>강점</b>가장 아름다움. 아침 인화 카드 = 공유력.</div><div><b>위험</b>검댕·올챙이·유령으로 읽힘, 늘 밤.</div></div></section>
+</main><script>document.querySelectorAll('img').forEach(i=>i.onclick=()=>open(i.src))</script></body></html>
