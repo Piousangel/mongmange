@@ -1,5 +1,5 @@
 // @mong/core — 순수 TS. React·RN import 금지.
-// 스파이크 단계: 틱 함수 자리만 잡아 둔다. 실제 상태 모델은 SPEC 확정 후.
+// 기하 함수는 UI 스레드 worklet에서도 돌도록 'worklet' 지시어 + 배열 연산만 쓴다(D-13).
 
 export interface CoreState {
   readonly version: 1;
@@ -12,3 +12,15 @@ export function tick(state: CoreState, dtMs: number): CoreState {
   if (!Number.isFinite(dtMs) || dtMs <= 0) return state;
   return { ...state, lastSimAt: state.lastSimAt + dtMs };
 }
+
+export * from './visual/bodySpec';
+export * from './visual/pose';
+export * from './visual/selectVisual';
+export * from './geometry/types';
+export * from './geometry/core';
+export * from './geometry/simplify';
+export * from './geometry/attach';
+export * from './geometry/ribbon';
+export * from './geometry/comb';
+export * from './geometry/eyes';
+export * from './save/envelope';

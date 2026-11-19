@@ -1,0 +1,26 @@
+{
+  "base": "http://localhost:8082",
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Pro, Unspecified Version)",
+  "stills": {},
+  "perf": {
+    "dpr2-cpu1": {
+      "stroke-drawing-A": {
+        "fps": 58.3,
+        "p50ms": 16.7,
+        "p95ms": 16.8,
+        "maxMs": 83.3
+      }
+    },
+    "dpr3-cpu4": {
+      "stroke-drawing-A": {
+        "fps": 57.1,
+        "p50ms": 16.7,
+        "p95ms": 16.8,
+        "maxMs": 116.7
+      }
+    }
+  },
+  "motion": {},
+  "contrast": null,
+  "seam": null
+}

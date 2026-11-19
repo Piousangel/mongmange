@@ -1,0 +1,108 @@
+{
+  "base": "http://localhost:8082",
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Pro, Unspecified Version)",
+  "stills": {},
+  "perf": {},
+  "motion": {
+    "motion-01-eye-390": {
+      "frames": 960,
+      "seconds": 16,
+      "wallSeconds": 133,
+      "errors": [],
+      "sheetEveryNthFrame": 40
+    },
+    "motion-01-eye-interrupt-390": {
+      "frames": 540,
+      "seconds": 9,
+      "wallSeconds": 43,
+      "errors": [],
+      "sheetEveryNthFrame": 22
+    },
+    "motion-01-eye-rm-390": {
+      "frames": 960,
+      "seconds": 16,
+      "wallSeconds": 117,
+      "errors": [],
+      "sheetEveryNthFrame": 40
+    },
+    "motion-02-attach-L1-390": {
+      "frames": 900,
+      "seconds": 15,
+      "wallSeconds": 79,
+      "errors": [],
+      "sheetEveryNthFrame": 37
+    },
+    "motion-02-attach-L2-390": {
+      "frames": 900,
+      "seconds": 15,
+      "wallSeconds": 87,
+      "errors": [],
+      "sheetEveryNthFrame": 37
+    },
+    "motion-02-attach-L3-390": {
+      "frames": 900,
+      "seconds": 15,
+      "wallSeconds": 84,
+      "errors": [],
+      "sheetEveryNthFrame": 37
+    },
+    "motion-02-attach-rm-390": {
+      "frames": 900,
+      "seconds": 15,
+      "wallSeconds": 107,
+      "errors": [],
+      "sheetEveryNthFrame": 37
+    },
+    "motion-01-eye-360": {
+      "frames": 960,
+      "seconds": 16,
+      "wallSeconds": 98,
+      "errors": [],
+      "sheetEveryNthFrame": 40
+    },
+    "motion-01-eye-interrupt-360": {
+      "frames": 540,
+      "seconds": 9,
+      "wallSeconds": 52,
+      "errors": [],
+      "sheetEveryNthFrame": 22
+    },
+    "motion-01-eye-rm-360": {
+      "frames": 960,
+      "seconds": 16,
+      "wallSeconds": 192,
+      "errors": [],
+      "sheetEveryNthFrame": 40
+    },
+    "motion-02-attach-L1-360": {
+      "frames": 900,
+      "seconds": 15,
+      "wallSeconds": 183,
+      "errors": [],
+      "sheetEveryNthFrame": 37
+    },
+    "motion-02-attach-L2-360": {
+      "frames": 900,
+      "seconds": 15,
+      "wallSeconds": 193,
+      "errors": [],
+      "sheetEveryNthFrame": 37
+    },
+    "motion-02-attach-L3-360": {
+      "frames": 900,
+      "seconds": 15,
+      "wallSeconds": 193,
+      "errors": [],
+      "sheetEveryNthFrame": 37
+    },
+    "motion-02-attach-rm-360": {
+      "frames": 900,
+      "seconds": 15,
+      "wallSeconds": 229,
+      "errors": [],
+      "sheetEveryNthFrame": 37
+    }
+  },
+  "contrast": null,
+  "seam": null
+}

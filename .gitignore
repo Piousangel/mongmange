@@ -4,3 +4,4 @@ node_modules/
 .env
 .env.local
 .env*.local
+docs/spike/render-02/*-360.webm

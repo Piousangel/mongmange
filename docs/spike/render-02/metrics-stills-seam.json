@@ -1,0 +1,71 @@
+{
+  "base": "http://localhost:8082",
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Pro, Unspecified Version)",
+  "stills": {},
+  "perf": {},
+  "motion": {},
+  "contrast": {
+    "body": {
+      "rgb": [
+        127,
+        121,
+        114
+      ],
+      "L": 0.19401675321613795
+    },
+    "body2": {
+      "rgb": [
+        127,
+        121,
+        114
+      ],
+      "L": 0.19401675321613795
+    },
+    "eyeL": {
+      "rgb": [
+        218,
+        209,
+        193
+      ],
+      "L": 0.6439758658371407
+    },
+    "bg": {
+      "rgb": [
+        21,
+        29,
+        50
+      ],
+      "L": 0.012684484273127548
+    },
+    "eye": {
+      "rgb": [
+        235,
+        226,
+        208
+      ],
+      "L": 0.7660894667902525
+    },
+    "ratios": {
+      "bodyVsBg": 3.892777551665149,
+      "eyeVsBody": 3.3443993333826585
+    }
+  },
+  "seam": {
+    "A": {
+      "insideSamples": 163,
+      "interiorSamples": 149,
+      "min": 25.1,
+      "max": 27,
+      "mean": 26,
+      "rimMin": 13.1
+    },
+    "B": {
+      "insideSamples": 167,
+      "interiorSamples": 153,
+      "min": 25.1,
+      "max": 27,
+      "mean": 26,
+      "rimMin": 13.1
+    }
+  }
+}
