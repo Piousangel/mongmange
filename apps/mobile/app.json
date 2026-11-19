@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "mongmangE",
+    "slug": "mongmange",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.piousangel.mongmange"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.piousangel.mongmange"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "owner": "piousangels-team",
+    "extra": {
+      "eas": {
+        "projectId": "3f2eff79-1c05-4259-85f0-bc6a59b722de"
+      }
+    }
+  }
+}

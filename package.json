@@ -1,0 +1,14 @@
+{
+  "name": "mongmange",
+  "private": true,
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "typecheck": "pnpm -r --parallel run typecheck",
+    "test": "pnpm -r run test",
+    "web": "pnpm --filter mobile web",
+    "spike:capture": "node scripts/spike-capture.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.1"
+  }
+}

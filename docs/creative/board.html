@@ -13,10 +13,17 @@ h2{font-weight:500;font-size:19px;margin:0}h2 small{color:var(--sub);font-weight
 .imgs img{height:420px;border-radius:6px;flex:none;cursor:zoom-in}
 .pros{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;font-size:14px}
 .pros div b{display:block;font-weight:600;margin-bottom:2px}
-@media (max-width:700px){.imgs img{height:300px}.pros{grid-template-columns:1fr}}
+.imgs.rej{margin-top:8px}.imgs.rej img{height:200px;opacity:.85}
+@media (max-width:700px){.imgs img{height:300px}.imgs.rej img{height:160px}.pros{grid-template-columns:1fr}}
 </style></head><body><main>
 <h1>몽망이 크리에이티브 디렉션 — 후보 4안</h1>
 <p class="lead">AI 이미지는 방향 탐색용입니다. 각 안의 마지막 이미지가 "실제 앱 렌더"에 가까운 것입니다(없는 안은 아직 격차가 큼).</p>
+
+<section><h2>v1 통합안 — 먹 한 방울 + 하루 한 획 <small>D-10 · 아트 바이블 v1 (v1/art-bible-v1.md)</small></h2>
+<p class="one">한지 위 콩처럼 동그란 먹 한 방울(폭:높이 1.25, 눈은 칠하지 않은 종이). 매일 긋는 획이 두름·받침·빗·원상·스밈 다섯 자리에 붙는다. 낮은 한지, 밤은 조수처럼 물이 차오르면 먹이 풀려 은회색이 된다. 아침에는 마블링 인화 카드가 나온다. 윗줄: 표정 기준 → 성장 → 낮 → 밤 → 아침 카드 → 실제 렌더 목표. 아랫줄: 비교안·탈락작.</p>
+<div class="imgs"><img src="v1/img/01e-day0-expressions-final.png"><img src="v1/img/02a-growth-orbit-strokes.png"><img src="v1/img/03a-home-day-margin.png"><img src="v1/img/04a-home-night-water.png"><img src="v1/img/05a-morning-card-marbling.png"><img src="v1/img/06c-in-engine-target-final.png"><img src="v1/img/06a-in-engine-flat-vector.png"></div>
+<div class="imgs rej"><img src="v1/img/01c-day0-expressions-wet-ink.png"><img src="v1/img/01a-day0-expressions-gpt.png"><img src="v1/img/01b-day0-expressions-gemini.png"><img src="v1/img/01d-day0-expressions-wash.png"><img src="v1/img/02b-growth-absorbed-strokes.png"><img src="v1/img/02c-growth-hugging-coat.png"><img src="v1/img/03b-home-day-desk.png"><img src="v1/img/04b-home-night-tide.png"><img src="v1/img/05b-morning-card-takbon.png"><img src="v1/img/06b-in-engine-2p5d-day-night.png"></div>
+<div class="pros"><div><b>강점</b>"작고 귀여운 시작"을 장식 없이 비율과 반응으로 만든다. 첫 터치에 눈이 처음 열리고, 첫 획이 바로 몸에 붙는다(첫 30초). 벡터 + 셰이더라 실제 렌더(06c)가 시안에 가깝다. 밤에는 몸이 밝아져서 대비 3:1도 지킨다.</div><div><b>위험</b>검댕·흔한 블랙 슬라임으로 읽힐 수 있다(아랫줄 01a). 빈자리 눈만으로 충분히 귀여운지 아직 모른다(모델이 6번 중 4번 눈동자를 넣었다). 정수리가 뾰족해지면 💩·양파가 된다(04b·05b). 모션 스터디가 아직 없다.</div></div></section>
 
 <section><h2>① 하루 한 획 <small>경쟁 디렉터 · 팀 1순위 후보</small></h2>
 <p class="one">한지 위 먹점 하나에서 시작. 하루 한 획을 그으면 몸이 되고, 오래된 획은 바랜다. 몽(夢)·망(忘). 이름의 E 가로획 세 개 = 'E 빗' 종 표식.</p>

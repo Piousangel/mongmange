@@ -1,0 +1,72 @@
+{
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Pro, Unspecified Version)",
+  "scenes": {
+    "a-day0": {
+      "fps": {
+        "frames": 240,
+        "fps": 60,
+        "p50ms": 16.7,
+        "p95ms": 16.7,
+        "maxMs": 16.8
+      },
+      "errors": []
+    },
+    "a-day7": {
+      "fps": {
+        "frames": 240,
+        "fps": 60,
+        "p50ms": 16.7,
+        "p95ms": 16.7,
+        "maxMs": 16.8
+      },
+      "errors": []
+    },
+    "b-stroke": {
+      "fps": {
+        "frames": 241,
+        "fps": 60.3,
+        "p50ms": 16.7,
+        "p95ms": 16.8,
+        "maxMs": 16.8
+      },
+      "errors": [],
+      "drawingFps": {
+        "fps": 60,
+        "p95ms": 16.7
+      }
+    },
+    "c-night": {
+      "fps": {
+        "frames": 240,
+        "fps": 60,
+        "p50ms": 16.7,
+        "p95ms": 16.7,
+        "maxMs": 16.8
+      },
+      "errors": []
+    }
+  },
+  "stress_dpr3_cpu4x": {
+    "a-day7": {
+      "frames": 180,
+      "fps": 60,
+      "p50ms": 16.7,
+      "p95ms": 16.8,
+      "maxMs": 16.8
+    },
+    "c-night": {
+      "frames": 180,
+      "fps": 60,
+      "p50ms": 16.7,
+      "p95ms": 16.7,
+      "maxMs": 16.8
+    },
+    "b-stroke-drawing": {
+      "frames": 147,
+      "fps": 58.8,
+      "p50ms": 16.7,
+      "p95ms": 16.8,
+      "maxMs": 66.7
+    }
+  }
+}

@@ -61,3 +61,5 @@
 ## 6. 기록
 - 결정: `DECISIONS.md` / 진행: `.claude/progress.md` / 조사: `docs/research/` / 계획: `docs/plans/`
 - 오너가 할 일: `docs/team/owner-todo.md` (끝나면 지운다)
+- 라이선스 원장: `docs/team/license-ledger.md` (AI 생성물·글꼴·소리·의존성, 들일 때 같은 커밋에 기록)
+- 정본: 문서끼리 값이 다르면 `DECISIONS.md` 맨 위 '정본 지도'를 따른다
