@@ -2,7 +2,22 @@
 // 경합 방지(리뷰 C8): 모든 작업을 한 줄 큐로 직렬화하고, 고정 identifier로 덮어쓴다.
 // 권한은 여기서 묻지 않는다: 묻는 시점(첫 재우기 뒤 사전 문구 동의)은 화면이 정하고 requestPermission을 부른다.
 // 마름·방치 알림은 없다(D-03). 웹은 notify.web.ts(no-op).
-import * as Notifications from 'expo-notifications';
+// 네이티브 모듈이 없는 옛 개발 빌드에서도 죽지 않게 지연 로드한다. 없으면 모든 호출이 실패로 처리되어 알림만 꺼진다.
+type ExpoNotifications = typeof import('expo-notifications');
+const loaded: ExpoNotifications | null = (() => {
+  try {
+    return require('expo-notifications') as ExpoNotifications;
+  } catch {
+    return null;
+  }
+})();
+const Notifications: ExpoNotifications =
+  loaded ??
+  (new Proxy({} as ExpoNotifications, {
+    get() {
+      throw new Error('expo-notifications 네이티브 모듈 없음');
+    },
+  }));
 import { Linking, Platform } from 'react-native';
 
 const CHANNEL = 'morning';
@@ -11,7 +26,7 @@ let ready = false;
 let queue: Promise<unknown> = Promise.resolve();
 
 function setup() {
-  if (ready) return;
+  if (ready || !loaded) return;
   ready = true;
   // 앱이 앞에 있을 때는 띄우지 않는다(이미 아침 화면이 보인다)
   Notifications.setNotificationHandler({
