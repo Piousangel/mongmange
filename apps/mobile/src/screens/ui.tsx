@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { paperFx } from '../render/shaders';
 
-import { KText, SANS, SERIF, track, useFontScale } from '../ui/type';
+import { KText, SANS, SERIF, serifFamily, track, useFontScale } from '../ui/type';
+import { SEAL_GLYPH, getLocale, t } from '../i18n';
 export { SANS, SERIF } from '../ui/type';
 
 /** 화면 배치(아트 7-1·7-3): W = 화면 폭 18%, 몽망이 중심 세로 62%, 사물 3개는 아래 22% 띠 */
@@ -16,7 +17,11 @@ export function layout(width: number, height: number) {
     cx: width * 0.5,
     groundY,
     /** 핵 크기 s일 때 핵 중심 y(바닥은 고정) */
-    oyFor: (s: number) => groundY - (CORE.h / 2) * s * wpx,
+    // UI 스레드(useDerivedValue 등)에서도 부르므로 worklet이어야 한다(11-20 S25: "Tried to synchronously call a Remote Function oyFor")
+    oyFor: (s: number) => {
+      'worklet';
+      return groundY - (CORE.h / 2) * s * wpx;
+    },
     objectsY: height * 0.84,
   };
 }
@@ -70,10 +75,11 @@ function ObjectIcon({ i, x, y, line, fill, color, alpha }: { i: number; x: numbe
   );
 }
 
-export function ObjectLabels({ width, y, color, labels = ['한 획', '먹 갈기', '물 한 방울'] }: { width: number; y: number; color: string; labels?: string[] }) {
+export function ObjectLabels({ width, y, color, labels }: { width: number; y: number; color: string; labels?: string[] }) {
+  const ls = labels ?? [t('obj.brush.label'), t('obj.inkstone.label'), t('obj.dropper.label')];
   return (
     <>
-      {labels.map((l, i) => (
+      {ls.map((l, i) => (
         <Text key={l} style={[styles.label, { color, top: y + 24, left: width * (0.2 + 0.3 * i) - 50 }]} pointerEvents="none">
           {l}
         </Text>
@@ -82,13 +88,13 @@ export function ObjectLabels({ width, y, color, labels = ['한 획', '먹 갈기
   );
 }
 
-/** 세로 명조 제목(8자 이하, 글자 단위 줄바꿈) + 주사 낙관(오른쪽 위, 화면에서 유일한 강조색) */
+/** 세로 명조 제목(8자 이하, 글자 단위 줄바꿈) + 주사 낙관(오른쪽 위, 화면에서 유일한 강조색). 영어는 늘 가로(아트 6절) */
 export function VerticalTitle({ text, color, opacity = 1, seal = true, top }: { text: string; color: string; opacity?: number; seal?: boolean; top?: number }) {
   const fs = useFontScale();
-  // 글자 150% 이상이면 가로쓰기(아트 6절, D-08)
-  if (fs >= 1.5) {
+  // 글자 150% 이상이면 가로쓰기(아트 6절, D-08). 세로쓰기는 한글 전용 — 라틴 글자를 세우면 읽히지 않는다
+  if (fs >= 1.5 || getLocale() !== 'ko') {
     return (
-      <KText style={[styles.line, { top: top ?? '16%', color, opacity, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header">
+      <KText style={[styles.line, { top: top ?? '16%', color, opacity, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header" serif="title">
         {text}
       </KText>
     );
@@ -104,7 +110,7 @@ export function VerticalTitle({ text, color, opacity = 1, seal = true, top }: { 
       </View>
       {seal && (
         <View style={[styles.seal, { opacity }]} pointerEvents="none">
-          <Text style={styles.sealText}>몽</Text>
+          <Text style={[styles.sealText, { fontFamily: serifFamily('title', 'ko') }]}>{SEAL_GLYPH}</Text>
         </View>
       )}
     </>

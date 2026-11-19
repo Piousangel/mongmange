@@ -10,6 +10,8 @@ import { blinkAt, breathAt } from '../render/idle';
 import { Mongmangi, REST_FRAME, type BodyFrame } from '../render/Mongmangi';
 import { nightFx, tideFx } from '../render/shaders';
 import { ObjectIcons, ObjectLabels, Paper, SERIF, VerticalTitle, layout, styles as ui } from './ui';
+import { dayName, nightName, t } from '../i18n';
+import { localizeSerif } from '../ui/type';
 
 const TIDE_MS = PARAMS.rm ? 400 : 2400;
 
@@ -98,7 +100,7 @@ export function HomeScreen({ day, startNight }: { day: number; startNight: boole
   // 조수 마스크: 알파 1 = 아직 한지
   const tideU = useDerivedValue(() => ({ res: [width, height], level: level.value, time: clock.value / 1000 }));
   const dim = useDerivedValue(() => nightK.value);
-  const title = day >= 7 ? '몽망이·이레째' : '';
+  const title = day >= 7 ? t('day.title', { day: dayName(6) }) : '';
 
   return (
     <GestureDetector gesture={tap}>
@@ -121,7 +123,7 @@ export function HomeScreen({ day, startNight }: { day: number; startNight: boole
         {phase === 'night' && (
           <>
             <Text style={[ui.line, { top: '14%', color: PALETTE.night.text, fontSize: 16 }]} pointerEvents="none">
-              {day >= 7 ? '이레째 밤' : '첫 밤'}
+              {nightName(day >= 7 ? 6 : 0)}
             </Text>
             <Soothe since={nightAt} />
           </>
@@ -138,8 +140,8 @@ function Soothe({ since }: { since: { value: number } }) {
     return { opacity: dt < 0 ? 0 : dt < 400 ? dt / 400 : dt < 3000 ? 1 : Math.max(0, 1 - (dt - 3000) / 400) };
   });
   return (
-    <Animated.Text style={[ui.line, { bottom: '25%', color: PALETTE.night.textSub, fontFamily: SERIF }, st]} pointerEvents="none">
-      물에 풀린 먹은 아침이면 다시 몸으로 돌아와요
+    <Animated.Text style={[localizeSerif([ui.line, { bottom: '25%', color: PALETTE.night.textSub, fontFamily: SERIF }], 'line'), st]} pointerEvents="none">
+      {t('night.soothe')}
     </Animated.Text>
   );
 }

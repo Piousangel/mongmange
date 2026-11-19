@@ -1,25 +1,32 @@
 import { Skia, TextAlign, drawAsImage, type SkCanvas, type SkTypefaceFontProvider } from '@shopify/react-native-skia';
 import { Image } from 'react-native';
 import { FONT_FILES } from '../../ui/type';
-import { CARD_FONT, DreamCardArt, defaultLabels, isVertical, makeDreamArt, textOf, type DreamCardInput } from './DreamCard';
+import { CARD_FONT, CARD_FONT_EN, CARD_FONT_EN_ITALIC, CARD_TEXT_W, DreamCardArt, cardFontFor, cardTextBoxes, defaultLabels, makeDreamArt, type DreamCardInput } from './DreamCard';
 import type { DreamCardImage, DreamCardImageOptions } from './renderImage.types';
 
 export type { DreamCardImage, DreamCardImageOptions } from './renderImage.types';
 
 let provider: Promise<SkTypefaceFontProvider | null> | null = null;
-/** 앱 번들 Gowun Batang을 Skia 글꼴 공급자에 한 번 등록. 실패하면 null(시스템 글꼴로 계속) */
+/** 앱 번들 명조(한국어 Gowun Batang, 영어 Cormorant 두 벌)를 Skia 글꼴 공급자에 한 번 등록. 실패하면 null(시스템 글꼴로 계속) */
 function cardFonts(): Promise<SkTypefaceFontProvider | null> {
   if (!provider) {
     provider = (async () => {
       try {
-        const src = Image.resolveAssetSource(FONT_FILES.GowunBatang);
-        if (!src) return null;
-        const data = await Skia.Data.fromURI(src.uri);
-        const tf = Skia.Typeface.MakeFreeTypeFaceFromData(data);
-        if (!tf) return null;
         const p = Skia.TypefaceFontProvider.Make();
-        p.registerFont(tf, CARD_FONT);
-        return p;
+        let any = false;
+        for (const [file, name] of [
+          [FONT_FILES.GowunBatang, CARD_FONT],
+          [FONT_FILES.CormorantGaramond, CARD_FONT_EN],
+          [FONT_FILES.CormorantGaramondItalic, CARD_FONT_EN_ITALIC],
+        ] as const) {
+          const src = Image.resolveAssetSource(file);
+          if (!src) continue;
+          const tf = Skia.Typeface.MakeFreeTypeFaceFromData(await Skia.Data.fromURI(src.uri));
+          if (!tf) continue;
+          p.registerFont(tf, name);
+          any = true;
+        }
+        return any ? p : null;
       } catch (e) {
         console.warn('[dreamCard] font load failed', e);
         return null;
@@ -29,9 +36,9 @@ function cardFonts(): Promise<SkTypefaceFontProvider | null> {
   return provider;
 }
 
-function drawText(canvas: SkCanvas, fonts: SkTypefaceFontProvider | null, text: string, x: number, y: number, size: number, color: string, align: 'left' | 'center' | 'right', width: number, spacing: number) {
+function drawText(canvas: SkCanvas, fonts: SkTypefaceFontProvider | null, family: string, text: string, x: number, y: number, size: number, color: string, align: 'left' | 'center' | 'right', width: number, spacing: number) {
   const pb = Skia.ParagraphBuilder.Make({ textAlign: align === 'center' ? TextAlign.Center : align === 'right' ? TextAlign.Right : TextAlign.Left }, fonts ?? undefined);
-  pb.pushStyle({ color: Skia.Color(color), fontSize: size, fontFamilies: [CARD_FONT, 'serif'], letterSpacing: spacing });
+  pb.pushStyle({ color: Skia.Color(color), fontSize: size, fontFamilies: [family, CARD_FONT, 'serif'], letterSpacing: spacing });
   pb.addText(text);
   const p = pb.build();
   p.layout(width);
@@ -56,13 +63,13 @@ export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCar
   const canvas = surface.getCanvas();
   canvas.drawImage(img, 0, 0);
   const lb = input.labels ?? defaultLabels(input.card);
-  for (const it of art.layout.text) {
-    const t = textOf(it, lb);
-    const size = it.size * width;
-    if (isVertical(it, lb)) {
-      [...t].forEach((ch, i) => drawText(canvas, fonts, ch, it.x * width, it.y * width + size * (0.95 + i * 1.32), size, it.color, 'center', size * 2, 0));
+  for (const { item: it, vertical, lines, x, ys, size: sz, spacing } of cardTextBoxes(art.layout.text, lb)) {
+    const size = sz * width;
+    const family = cardFontFor(it.role, false);
+    if (vertical) {
+      lines.forEach((ch, i) => drawText(canvas, fonts, family, ch, it.x * width, ys[0]! * width + size * (0.95 + i * 1.32), size, it.color, 'center', size * 2, 0));
     } else {
-      drawText(canvas, fonts, t, it.x * width, it.y * width, size, it.color, it.align, width * 0.84, it.spacing * width);
+      lines.forEach((ln, i) => drawText(canvas, fonts, family, ln, x * width, ys[i]! * width, size, it.color, it.align, width * CARD_TEXT_W, spacing * width));
     }
   }
   surface.flush();

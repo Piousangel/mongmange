@@ -1,5 +1,5 @@
 import { ImageFormat, drawAsImage } from '@shopify/react-native-skia';
-import { DreamCardArt, SERIF_WEB, defaultLabels, isVertical, makeDreamArt, textOf, type DreamCardInput } from './DreamCard';
+import { CARD_TEXT_W, DreamCardArt, cardFontFor, cardTextBoxes, defaultLabels, makeDreamArt, textOf, type DreamCardInput } from './DreamCard';
 import type { DreamCardImage, DreamCardImageOptions } from './renderImage.types';
 
 export type { DreamCardImage, DreamCardImageOptions } from './renderImage.types';
@@ -23,27 +23,26 @@ export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCar
   if (!g) throw new Error('no 2d context');
   g.drawImage(bmp, 0, 0);
   const lb = input.labels ?? defaultLabels(input.card);
-  // 번들 글꼴(Gowun Batang, expo-font가 FontFace로 등록)이 준비될 때까지 기다린다. 없으면 대체 글꼴
+  // 번들 글꼴(expo-font가 FontFace로 등록)이 준비될 때까지 기다린다. 없으면 대체 글꼴
   try {
-    await document.fonts.load(`40px GowunBatang`, '몽망이');
+    await Promise.all(art.layout.text.map((it) => document.fonts.load(`40px ${cardFontFor(it.role, true).split(',')[0]}`, textOf(it, lb))));
   } catch {
     /* 대체 글꼴 */
   }
   g.textBaseline = 'alphabetic';
-  for (const it of art.layout.text) {
-    const t = textOf(it, lb);
-    const size = it.size * width;
+  for (const { item: it, vertical, lines, x, ys, size: sz, spacing } of cardTextBoxes(art.layout.text, lb)) {
+    const size = sz * width;
     g.fillStyle = it.color;
-    g.font = `400 ${size}px ${SERIF_WEB}`;
+    g.font = `400 ${size}px ${cardFontFor(it.role, true)}`;
     const gs = g as CanvasRenderingContext2D & { letterSpacing?: string };
-    if (isVertical(it, lb)) {
+    if (vertical) {
       gs.letterSpacing = '0px';
       g.textAlign = 'center';
-      [...t].forEach((ch, i) => g.fillText(ch, it.x * width, it.y * width + size * (0.95 + i * 1.32)));
+      lines.forEach((ch, i) => g.fillText(ch, it.x * width, ys[0]! * width + size * (0.95 + i * 1.32)));
     } else {
-      gs.letterSpacing = `${it.spacing * width}px`;
+      gs.letterSpacing = `${spacing * width}px`;
       g.textAlign = it.align;
-      g.fillText(t, it.x * width, it.y * width, width * 0.84);
+      lines.forEach((ln, i) => g.fillText(ln, x * width, ys[i]! * width, width * CARD_TEXT_W));
     }
   }
   const url = cv.toDataURL('image/png');

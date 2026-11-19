@@ -9,6 +9,8 @@ import { NO_GAZE, gazeOffset, type Gaze } from '../render/gaze';
 import { blinkAt, blinkShape, breathAt, wobble } from '../render/idle';
 import { Mongmangi, REST_FRAME, type BodyFrame } from '../render/Mongmangi';
 import { Caption, Paper, SERIF, layout, styles as ui } from './ui';
+import { t } from '../i18n';
+import { KText } from '../ui/type';
 
 const RM = PARAMS.rm;
 const GRAMMAR = grammarOf(PARAMS.grammar);
@@ -213,14 +215,14 @@ export function IntroScreen({ hooks, captions = PARAMS.cap }: { hooks?: IntroHoo
       const land = landAt.value;
       const open = openAt.value;
       const t00 = t0.value;
-      if (t >= open + 5000 && t < open + 6400) return "light 햅틱 ×2 · 허밍 3도 위";
-      if (t >= open + 1300 && t < open + 2400) return "허밍 '응'";
-      if (t >= open && t < open + 1300) return "soft 햅틱 · 허밍 '응?'";
-      if (open >= NEVER && t >= t00 + 6000) return "낮은 허밍 '음…'";
+      if (t >= open + 5000 && t < open + 6400) return "light 햅틱 ×2 · 허밍 3도 위"; // i18n-ignore: 개발 자막
+      if (t >= open + 1300 && t < open + 2400) return "허밍 '응'"; // i18n-ignore: 개발 자막
+      if (t >= open && t < open + 1300) return "soft 햅틱 · 허밍 '응?'"; // i18n-ignore: 개발 자막
+      if (open >= NEVER && t >= t00 + 6000) return "낮은 허밍 '음…'"; // i18n-ignore: 개발 자막
       const combStart = Math.max(land + 800, t00 + 3200);
-      if (t >= combStart && t < combStart + 900) return "아주 작은 '스—'";
-      if (t >= land && t < land + 900) return "물방울 '톡' · soft 햅틱";
-      if (t < (dropAt.value > t00 ? dropAt.value : t00 + 2000)) return '종이 위 공기음';
+      if (t >= combStart && t < combStart + 900) return "아주 작은 '스—'"; // i18n-ignore: 개발 자막
+      if (t >= land && t < land + 900) return "물방울 '톡' · soft 햅틱"; // i18n-ignore: 개발 자막
+      if (t < (dropAt.value > t00 ? dropAt.value : t00 + 2000)) return '종이 위 공기음'; // i18n-ignore: 개발 자막
       return '';
     },
     (c, prev) => {
@@ -264,22 +266,26 @@ export function IntroScreen({ hooks, captions = PARAMS.cap }: { hooks?: IntroHoo
         testID="intro"
         accessible
         accessibilityRole="button"
-        accessibilityLabel="먹 한 방울"
-        accessibilityHint="두 번 눌러 만져 보세요"
-        accessibilityActions={[{ name: 'activate', label: '만지기' }]}
+        accessibilityLabel={t('intro.a11y')}
+        accessibilityHint={t('intro.a11yHint')}
+        accessibilityActions={[{ name: 'activate', label: t('intro.a11yAction') }]}
         onAccessibilityAction={() => handleTap(L.cx, oy, false)}
       >
         <Canvas style={StyleSheet.absoluteFill} opaque>
           <Paper width={width} height={height} />
           <Mongmangi frame={frame} records={[]} mode={PARAMS.body} grammar={GRAMMAR} />
         </Canvas>
-        <Animated.Text style={[ui.line, { color: PALETTE.day.textSub, fontFamily: SERIF, fontSize: 13 }, askStyle]} pointerEvents="none">
-          만져 볼래요?
-        </Animated.Text>
+        <Animated.View style={[styles.ask, askStyle]} pointerEvents="none">
+          <KText style={[ui.line, styles.askText]}>{t('intro.ask')}</KText>
+        </Animated.View>
         {captions && <Caption text={caption} color={PALETTE.day.textSub} />}
       </View>
     </GestureDetector>
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1 } });
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  ask: { position: 'absolute', left: 0, right: 0 },
+  askText: { position: 'relative', color: PALETTE.day.textSub, fontFamily: SERIF, fontSize: 13 },
+});

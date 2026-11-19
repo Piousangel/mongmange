@@ -1,0 +1,1034 @@
+{
+  "base": "http://localhost:8097",
+  "errors": [
+    "ko-w390-fs100-card: Cannot update a component (`%s`) while rendering a different component (`%s`). To locate the bad setState() call inside `%s`, follow the stack trace as described in https://react.dev/link/setstate-in-render DevPanel GameApp GameApp"
+  ],
+  "log": [
+    {
+      "name": "en-w320-fs100-day",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs100-list",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs100-assist",
+      "overflow": [],
+      "aria": [
+        "Put the brush down",
+        "Water dropper",
+        "Position",
+        "Direction",
+        "Length",
+        "Curve",
+        "Back to drawing by hand",
+        "Draw this stroke: Position: Right · Direction: Down · Length: Short · Curve: Slight right",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs100-night",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Lift the dream",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs100-morning",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Lift the dream",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs100-card",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. The ink spreads quick and light — you rubbed it gently yesterday",
+        "Share this card — coming in a later update",
+        "Into the day — begin the day with Mongmangi",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs100-note",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴",
+        "Close the studio notebook",
+        "Close",
+        "Sound",
+        "Vibration",
+        "Morning dream · once a day",
+        "Bedtime, 30 minutes earlier",
+        "Bedtime, 30 minutes later",
+        "Morning, 30 minutes earlier",
+        "Morning, 30 minutes later",
+        "Show the tools as a list",
+        "Draw strokes with buttons",
+        "Same as device",
+        "한국어",
+        "English",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. Last night it dreamed of a soft quilt. Opens a larger view"
+      ]
+    },
+    {
+      "name": "en-w320-fs100-note-lang",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴",
+        "Close the studio notebook",
+        "Close",
+        "Sound",
+        "Vibration",
+        "Morning dream · once a day",
+        "Bedtime, 30 minutes earlier",
+        "Bedtime, 30 minutes later",
+        "Morning, 30 minutes earlier",
+        "Morning, 30 minutes later",
+        "Show the tools as a list",
+        "Draw strokes with buttons",
+        "Same as device",
+        "한국어",
+        "English",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. Last night it dreamed of a soft quilt. Opens a larger view"
+      ]
+    },
+    {
+      "name": "en-w320-fs200-day",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs200-list",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs200-assist",
+      "overflow": [
+        "By hand [-37,58]"
+      ],
+      "aria": [
+        "Put the brush down",
+        "Water dropper",
+        "Position",
+        "Direction",
+        "Length",
+        "Curve",
+        "Back to drawing by hand",
+        "Draw this stroke: Position: Right · Direction: Down · Length: Short · Curve: Slight right",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs200-night",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Lift the dream",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs200-morning",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Lift the dream",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs200-card",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. The ink spreads quick and light — you rubbed it gently yesterday",
+        "Share this card — coming in a later update",
+        "Into the day — begin the day with Mongmangi",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w320-fs200-note",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴",
+        "Close the studio notebook",
+        "Close",
+        "Sound",
+        "Vibration",
+        "Morning dream · once a day",
+        "Bedtime, 30 minutes earlier",
+        "Bedtime, 30 minutes later",
+        "Morning, 30 minutes earlier",
+        "Morning, 30 minutes later",
+        "Show the tools as a list",
+        "Draw strokes with buttons",
+        "Same as device",
+        "한국어",
+        "English",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. Last night it dreamed of a soft quilt. Opens a larger view"
+      ]
+    },
+    {
+      "name": "en-w320-fs200-note-lang",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴",
+        "Close the studio notebook",
+        "Close",
+        "Sound",
+        "Vibration",
+        "Morning dream · once a day",
+        "Bedtime, 30 minutes earlier",
+        "Bedtime, 30 minutes later",
+        "Morning, 30 minutes earlier",
+        "Morning, 30 minutes later",
+        "Show the tools as a list",
+        "Draw strokes with buttons",
+        "Same as device",
+        "한국어",
+        "English",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. Last night it dreamed of a soft quilt. Opens a larger view"
+      ]
+    },
+    {
+      "name": "en-w390-fs100-day",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs100-list",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs100-assist",
+      "overflow": [],
+      "aria": [
+        "Put the brush down",
+        "Water dropper",
+        "Position",
+        "Direction",
+        "Length",
+        "Curve",
+        "Back to drawing by hand",
+        "Draw this stroke: Position: Right · Direction: Down · Length: Short · Curve: Slight right",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs100-night",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Lift the dream",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs100-morning",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Lift the dream",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs100-card",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. The ink spreads quick and light — you rubbed it gently yesterday",
+        "Share this card — coming in a later update",
+        "Into the day — begin the day with Mongmangi",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs100-note",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴",
+        "Close the studio notebook",
+        "Close",
+        "Sound",
+        "Vibration",
+        "Morning dream · once a day",
+        "Bedtime, 30 minutes earlier",
+        "Bedtime, 30 minutes later",
+        "Morning, 30 minutes earlier",
+        "Morning, 30 minutes later",
+        "Show the tools as a list",
+        "Draw strokes with buttons",
+        "Same as device",
+        "한국어",
+        "English",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. Last night it dreamed of a soft quilt. Opens a larger view"
+      ]
+    },
+    {
+      "name": "en-w390-fs100-note-lang",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴",
+        "Close the studio notebook",
+        "Close",
+        "Sound",
+        "Vibration",
+        "Morning dream · once a day",
+        "Bedtime, 30 minutes earlier",
+        "Bedtime, 30 minutes later",
+        "Morning, 30 minutes earlier",
+        "Morning, 30 minutes later",
+        "Show the tools as a list",
+        "Draw strokes with buttons",
+        "Same as device",
+        "한국어",
+        "English",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. Last night it dreamed of a soft quilt. Opens a larger view"
+      ]
+    },
+    {
+      "name": "en-w390-fs200-day",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs200-list",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs200-assist",
+      "overflow": [],
+      "aria": [
+        "Put the brush down",
+        "Water dropper",
+        "Position",
+        "Direction",
+        "Length",
+        "Curve",
+        "Back to drawing by hand",
+        "Draw this stroke: Position: Right · Direction: Down · Length: Short · Curve: Slight right",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs200-night",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Lift the dream",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs200-morning",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Lift the dream",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs200-card",
+      "overflow": [],
+      "aria": [
+        "Paper floating on the water",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. The ink spreads quick and light — you rubbed it gently yesterday",
+        "Share this card — coming in a later update",
+        "Into the day — begin the day with Mongmangi",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-w390-fs200-note",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴",
+        "Close the studio notebook",
+        "Close",
+        "Sound",
+        "Vibration",
+        "Morning dream · once a day",
+        "Bedtime, 30 minutes earlier",
+        "Bedtime, 30 minutes later",
+        "Morning, 30 minutes earlier",
+        "Morning, 30 minutes later",
+        "Show the tools as a list",
+        "Draw strokes with buttons",
+        "Same as device",
+        "한국어",
+        "English",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. Last night it dreamed of a soft quilt. Opens a larger view"
+      ]
+    },
+    {
+      "name": "en-w390-fs200-note-lang",
+      "overflow": [],
+      "aria": [
+        "Mongmangi, Day 2, awake",
+        "Brush. Draw today’s stroke",
+        "Inkstone. Grind ink — hold to keep grinding",
+        "Water dropper. Put Mongmangi to sleep",
+        "Studio notebook",
+        "개발 메뉴",
+        "Close the studio notebook",
+        "Close",
+        "Sound",
+        "Vibration",
+        "Morning dream · once a day",
+        "Bedtime, 30 minutes earlier",
+        "Bedtime, 30 minutes later",
+        "Morning, 30 minutes earlier",
+        "Morning, 30 minutes later",
+        "Show the tools as a list",
+        "Draw strokes with buttons",
+        "Same as device",
+        "한국어",
+        "English",
+        "Dream card, First night, a soft quilt. Mongmangi sleeps with closed eyes on a quilted blanket. Last night it dreamed of a soft quilt. Opens a larger view"
+      ]
+    },
+    {
+      "name": "ko-w320-fs100-day",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs100-list",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs100-assist",
+      "overflow": [],
+      "aria": [
+        "붓 내려놓기",
+        "연적",
+        "자리",
+        "방향",
+        "길이",
+        "휨",
+        "손으로 긋기로 돌아가기",
+        "이 획으로 긋기, 몽망이 오른쪽에서 아래로, 짧게, 오른쪽으로 조금 휨",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs100-night",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 꺼내기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs100-morning",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 꺼내기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs100-card",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 어제 부드럽게 문질러 줘서 먹이 잔잔하게 빨리 번져요",
+        "카드 보내기, 다음 업데이트에서 열려요",
+        "낮으로, 몽망이와 하루 시작하기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs100-note",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴",
+        "공방 노트 닫기",
+        "닫기",
+        "소리",
+        "진동",
+        "아침 꿈 알림 · 하루 한 번",
+        "잠 시각 30분 앞당기기",
+        "잠 시각 30분 늦추기",
+        "아침 시각 30분 앞당기기",
+        "아침 시각 30분 늦추기",
+        "사물 대신 목록으로 보기",
+        "획을 버튼으로 긋기",
+        "기기 설정 따름",
+        "한국어",
+        "English",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 간밤엔 포근한 이불이 꿈에 나왔어요 크게 보기"
+      ]
+    },
+    {
+      "name": "ko-w320-fs100-note-lang",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴",
+        "공방 노트 닫기",
+        "닫기",
+        "소리",
+        "진동",
+        "아침 꿈 알림 · 하루 한 번",
+        "잠 시각 30분 앞당기기",
+        "잠 시각 30분 늦추기",
+        "아침 시각 30분 앞당기기",
+        "아침 시각 30분 늦추기",
+        "사물 대신 목록으로 보기",
+        "획을 버튼으로 긋기",
+        "기기 설정 따름",
+        "한국어",
+        "English",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 간밤엔 포근한 이불이 꿈에 나왔어요 크게 보기"
+      ]
+    },
+    {
+      "name": "ko-w320-fs200-day",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs200-list",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs200-assist",
+      "overflow": [],
+      "aria": [
+        "붓 내려놓기",
+        "연적",
+        "자리",
+        "방향",
+        "길이",
+        "휨",
+        "손으로 긋기로 돌아가기",
+        "이 획으로 긋기, 몽망이 오른쪽에서 아래로, 짧게, 오른쪽으로 조금 휨",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs200-night",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 꺼내기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs200-morning",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 꺼내기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs200-card",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 어제 부드럽게 문질러 줘서 먹이 잔잔하게 빨리 번져요",
+        "카드 보내기, 다음 업데이트에서 열려요",
+        "낮으로, 몽망이와 하루 시작하기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w320-fs200-note",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "공방 노트",
+        "개발 메뉴",
+        "공방 노트 닫기",
+        "닫기",
+        "소리",
+        "진동",
+        "아침 꿈 알림 · 하루 한 번",
+        "잠 시각 30분 앞당기기",
+        "잠 시각 30분 늦추기",
+        "아침 시각 30분 앞당기기",
+        "아침 시각 30분 늦추기",
+        "사물 대신 목록으로 보기",
+        "획을 버튼으로 긋기",
+        "기기 설정 따름",
+        "한국어",
+        "English",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 간밤엔 포근한 이불이 꿈에 나왔어요 크게 보기"
+      ]
+    },
+    {
+      "name": "ko-w320-fs200-note-lang",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "공방 노트",
+        "개발 메뉴",
+        "공방 노트 닫기",
+        "닫기",
+        "소리",
+        "진동",
+        "아침 꿈 알림 · 하루 한 번",
+        "잠 시각 30분 앞당기기",
+        "잠 시각 30분 늦추기",
+        "아침 시각 30분 앞당기기",
+        "아침 시각 30분 늦추기",
+        "사물 대신 목록으로 보기",
+        "획을 버튼으로 긋기",
+        "기기 설정 따름",
+        "한국어",
+        "English",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 간밤엔 포근한 이불이 꿈에 나왔어요 크게 보기"
+      ]
+    },
+    {
+      "name": "ko-w390-fs100-day",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs100-list",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs100-assist",
+      "overflow": [],
+      "aria": [
+        "붓 내려놓기",
+        "연적",
+        "자리",
+        "방향",
+        "길이",
+        "휨",
+        "손으로 긋기로 돌아가기",
+        "이 획으로 긋기, 몽망이 오른쪽에서 아래로, 짧게, 오른쪽으로 조금 휨",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs100-night",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 꺼내기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs100-morning",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 꺼내기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs100-card",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 어제 부드럽게 문질러 줘서 먹이 잔잔하게 빨리 번져요",
+        "카드 보내기, 다음 업데이트에서 열려요",
+        "낮으로, 몽망이와 하루 시작하기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs100-note",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴",
+        "공방 노트 닫기",
+        "닫기",
+        "소리",
+        "진동",
+        "아침 꿈 알림 · 하루 한 번",
+        "잠 시각 30분 앞당기기",
+        "잠 시각 30분 늦추기",
+        "아침 시각 30분 앞당기기",
+        "아침 시각 30분 늦추기",
+        "사물 대신 목록으로 보기",
+        "획을 버튼으로 긋기",
+        "기기 설정 따름",
+        "한국어",
+        "English",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 간밤엔 포근한 이불이 꿈에 나왔어요 크게 보기"
+      ]
+    },
+    {
+      "name": "ko-w390-fs100-note-lang",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴",
+        "공방 노트 닫기",
+        "닫기",
+        "소리",
+        "진동",
+        "아침 꿈 알림 · 하루 한 번",
+        "잠 시각 30분 앞당기기",
+        "잠 시각 30분 늦추기",
+        "아침 시각 30분 앞당기기",
+        "아침 시각 30분 늦추기",
+        "사물 대신 목록으로 보기",
+        "획을 버튼으로 긋기",
+        "기기 설정 따름",
+        "한국어",
+        "English",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 간밤엔 포근한 이불이 꿈에 나왔어요 크게 보기"
+      ]
+    },
+    {
+      "name": "ko-w390-fs200-day",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs200-list",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs200-assist",
+      "overflow": [],
+      "aria": [
+        "붓 내려놓기",
+        "연적",
+        "자리",
+        "방향",
+        "길이",
+        "휨",
+        "손으로 긋기로 돌아가기",
+        "이 획으로 긋기, 몽망이 오른쪽에서 아래로, 짧게, 오른쪽으로 조금 휨",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs200-night",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 꺼내기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs200-morning",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 꺼내기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs200-card",
+      "overflow": [],
+      "aria": [
+        "물 위에 뜬 한지",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 어제 부드럽게 문질러 줘서 먹이 잔잔하게 빨리 번져요",
+        "카드 보내기, 다음 업데이트에서 열려요",
+        "낮으로, 몽망이와 하루 시작하기",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-fs200-note",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "공방 노트",
+        "개발 메뉴",
+        "공방 노트 닫기",
+        "닫기",
+        "소리",
+        "진동",
+        "아침 꿈 알림 · 하루 한 번",
+        "잠 시각 30분 앞당기기",
+        "잠 시각 30분 늦추기",
+        "아침 시각 30분 앞당기기",
+        "아침 시각 30분 늦추기",
+        "사물 대신 목록으로 보기",
+        "획을 버튼으로 긋기",
+        "기기 설정 따름",
+        "한국어",
+        "English",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 간밤엔 포근한 이불이 꿈에 나왔어요 크게 보기"
+      ]
+    },
+    {
+      "name": "ko-w390-fs200-note-lang",
+      "overflow": [],
+      "aria": [
+        "몽망이, 이튿날, 깨어 있음",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 재우기",
+        "공방 노트",
+        "개발 메뉴",
+        "공방 노트 닫기",
+        "닫기",
+        "소리",
+        "진동",
+        "아침 꿈 알림 · 하루 한 번",
+        "잠 시각 30분 앞당기기",
+        "잠 시각 30분 늦추기",
+        "아침 시각 30분 앞당기기",
+        "아침 시각 30분 늦추기",
+        "사물 대신 목록으로 보기",
+        "획을 버튼으로 긋기",
+        "기기 설정 따름",
+        "한국어",
+        "English",
+        "꿈 인화 카드, 첫 밤, 포근한 이불. 누빔 이불 위에서 몽망이가 눈을 감고 자요. 간밤엔 포근한 이불이 꿈에 나왔어요 크게 보기"
+      ]
+    },
+    {
+      "name": "en-w390-intro-device",
+      "overflow": [],
+      "aria": [
+        "A drop of ink",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "ko-w390-intro-device",
+      "overflow": [],
+      "aria": [
+        "먹 한 방울",
+        "개발 메뉴"
+      ]
+    },
+    {
+      "name": "en-card-916",
+      "overflow": [],
+      "aria": [
+        "Dream card. Mongmangi · Day 3. Last night it dreamed of a full moon"
+      ]
+    },
+    {
+      "name": "ko-card-916",
+      "overflow": [],
+      "aria": [
+        "꿈 인화 카드. 몽망이·사흘째. 간밤엔 둥근 달이 꿈에 나왔어요"
+      ]
+    },
+    {
+      "name": "en-card-export",
+      "overflow": [],
+      "aria": []
+    },
+    {
+      "name": "ko-card-export",
+      "overflow": [],
+      "aria": []
+    }
+  ]
+}

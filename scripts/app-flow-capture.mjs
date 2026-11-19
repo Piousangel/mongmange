@@ -69,7 +69,7 @@ if (!GATE_ONLY) {
   await shot('05-day-first', '낮 홈 · 붓만 · "오늘의 한 획을 그어 주세요"');
 
   // 3. 붓 → 긋기 모드(지시문·알약 없음, 젖은 자국) → 한 획
-  await tid('obj-붓').click();
+  await tid('obj-brush').click();
   await sleep(700);
   await shot('06-stroke-mode', '긋기 모드 · 위쪽 비움 · 젖은 자국');
   const pts = [];
@@ -100,7 +100,7 @@ if (!GATE_ONLY) {
   await sleep(1500);
   await shot('11-reveal-all', '연적까지');
   // 5. 붓 막힘(긋기 모드에 들어가지 않음)
-  await tid('obj-붓').click();
+  await tid('obj-brush').click();
   await sleep(500);
   await shot('12-brush-blocked', '오늘 그은 뒤 붓 → 부드러운 거절, 긋기 모드 진입 없음');
   // 6. 몽망이 문지르기(미세 이동) + 벼루
@@ -111,7 +111,7 @@ if (!GATE_ONLY) {
     await sleep(60);
   }
   await page.mouse.up();
-  const ink = await tid('obj-벼루').boundingBox();
+  const ink = await tid('obj-inkstone').boundingBox();
   await page.mouse.move(ink.x + ink.width / 2, ink.y + 20);
   await page.mouse.down();
   await sleep(2000);
@@ -121,7 +121,7 @@ if (!GATE_ONLY) {
   snapshots.day1 = await dumpLS(page);
 
   // 7. 연적 → 조수(연속) → 밤 → 안심 문구 → 알림 사전 문구
-  await tid('obj-연적').click();
+  await tid('obj-dropper').click();
   const tideAt = [300, 900, 1700, 2500];
   for (let i = 0; i < tideAt.length; i++) {
     await sleep(tideAt[i] - (tideAt[i - 1] ?? 0));
@@ -217,7 +217,7 @@ for (const w of WIDTHS) {
       await page.waitForSelector('canvas', { timeout: 60000 });
       await sleep(scr === 'day' || action ? 3600 : 2200);
       if (action === 'stroke') {
-        await page.locator('[data-testid="obj-붓"]').first().click();
+        await page.locator('[data-testid="obj-brush"]').first().click();
         await sleep(800);
       }
       if (action === 'note') {
@@ -226,7 +226,7 @@ for (const w of WIDTHS) {
       }
       // 사물 터치 영역 겹침 검사
       const boxes = await page.evaluate(() =>
-        ['obj-붓', 'obj-벼루', 'obj-연적'].map((id) => {
+        ['obj-brush', 'obj-inkstone', 'obj-dropper'].map((id) => {
           const el = document.querySelector(`[data-testid="${id}"]`);
           if (!el) return null;
           const r = el.getBoundingClientRect();

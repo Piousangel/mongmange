@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MOTIF_NAMES, dayName, hhmm, morningLine } from '../game/text';
+import { morningLine, motifName } from '../game/text';
+import { LANGUAGE_NAMES, clockTime, dayName, t, type LanguagePref } from '../i18n';
 import { DreamCard } from '../render/dreamCard/DreamCard';
 import { DreamCardThumb, strokesForCard } from '../render/dreamCard/DreamCardThumb';
 import { SharePlaceholder, cardA11y, cardLabels, nightName } from './cardText';
@@ -64,48 +65,51 @@ export function NoteSheet({
   const dry = sim.dryness(state, now);
   const status = [
     dayName(state.dayIndex),
-    state.phase === 'asleep' ? '자는 중' : '깨어 있음',
-    state.ledger.strokeUsed ? '오늘의 획을 그었어요' : '오늘의 획이 남아 있어요',
-    dry > 0 ? '먹이 조금 말랐어요' : '먹이 촉촉해요',
+    state.phase === 'asleep' ? t('note.asleep') : t('note.awake'),
+    state.ledger.strokeUsed ? t('note.strokeUsed') : t('note.strokeLeft'),
+    dry > 0 ? t('note.dry') : t('note.wet'),
   ].join(' · ');
   const shift = (m: number, d: number) => (m + d + 1440) % 1440;
   return (
     <Modal visible={mounted} animationType="none" transparent onRequestClose={onClose} statusBarTranslucent>
       <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backSt]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="공방 노트 닫기" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('note.closeBackdrop')} />
       </Animated.View>
       <Animated.View style={[styles.sheet, { maxHeight: height - insets.top - 24, paddingBottom: insets.bottom + 16 }, sheetSt]} accessibilityViewIsModal>
         <View style={styles.grain} pointerEvents="none" />
         <View style={styles.head}>
-          <KText style={styles.title} accessibilityRole="header">
-            공방 노트
+          <KText style={styles.title} accessibilityRole="header" serif="title">
+            {t('note.title')}
           </KText>
-          <Pressable onPress={onClose} style={styles.close} accessibilityRole="button" accessibilityLabel="닫기" testID="note-close">
-            <KText style={styles.closeText}>닫기</KText>
+          <Pressable onPress={onClose} style={styles.close} accessibilityRole="button" accessibilityLabel={t('note.close')} testID="note-close">
+            <KText style={styles.closeText}>{t('note.close')}</KText>
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          <KText style={styles.section}>오늘 상태</KText>
+          <KText style={styles.section} serif="title">{t('note.today')}</KText>
           <KText style={styles.status}>{status}</KText>
-          {saveError !== null && <KText style={[styles.status, { color: PALETTE.day.accent, marginTop: 6 }]}>지금은 기기에 저장하지 못하고 있어요 · 앱을 닫기 전에 저장 공간을 확인해 주세요</KText>}
+          {saveError !== null && <KText style={[styles.status, { color: PALETTE.day.accent, marginTop: 6 }]}>{t('note.saveError')}</KText>}
 
-          <KText style={styles.section}>소리와 진동</KText>
-          <Row label="소리" value={s.soundEnabled} onChange={(v) => onMeta({ sound: { ...s, soundEnabled: v } })} />
-          <Row label="진동" value={s.hapticsEnabled} onChange={(v) => onMeta({ sound: { ...s, hapticsEnabled: v } })} />
+          <KText style={styles.section} serif="title">{t('note.soundSection')}</KText>
+          <Row label={t('note.sound')} value={s.soundEnabled} onChange={(v) => onMeta({ sound: { ...s, soundEnabled: v } })} />
+          <Row label={t('note.haptics')} value={s.hapticsEnabled} onChange={(v) => onMeta({ sound: { ...s, hapticsEnabled: v } })} />
 
-          <KText style={styles.section}>알림</KText>
-          <Row label="아침 꿈 알림 · 하루 한 번" value={meta.notifEnabled} onChange={onNotif} />
+          <KText style={styles.section} serif="title">{t('note.notifSection')}</KText>
+          <Row label={t('note.notif')} value={meta.notifEnabled} onChange={onNotif} />
 
-          <KText style={styles.section}>잠과 아침</KText>
-          <Stepper label="잠 시각" value={hhmm(state.bedtimeLocalMin)} onMinus={() => onTimes(shift(state.bedtimeLocalMin, -30), state.morningLocalMin)} onPlus={() => onTimes(shift(state.bedtimeLocalMin, 30), state.morningLocalMin)} />
-          <Stepper label="아침 시각" value={hhmm(state.morningLocalMin)} onMinus={() => onTimes(state.bedtimeLocalMin, shift(state.morningLocalMin, -30))} onPlus={() => onTimes(state.bedtimeLocalMin, shift(state.morningLocalMin, 30))} />
+          <KText style={styles.section} serif="title">{t('note.timesSection')}</KText>
+          <Stepper label={t('note.bedtime')} value={clockTime(state.bedtimeLocalMin)} onMinus={() => onTimes(shift(state.bedtimeLocalMin, -30), state.morningLocalMin)} onPlus={() => onTimes(shift(state.bedtimeLocalMin, 30), state.morningLocalMin)} />
+          <Stepper label={t('note.morning')} value={clockTime(state.morningLocalMin)} onMinus={() => onTimes(state.bedtimeLocalMin, shift(state.morningLocalMin, -30))} onPlus={() => onTimes(state.bedtimeLocalMin, shift(state.morningLocalMin, 30))} />
 
-          <KText style={styles.section}>접근성</KText>
-          <Row label="사물 대신 목록으로 보기" value={meta.listView} onChange={(v) => onMeta({ listView: v })} />
-          <Row label="획을 버튼으로 긋기" value={meta.assistStroke} onChange={(v) => onMeta({ assistStroke: v })} />
+          <KText style={styles.section} serif="title">{t('note.a11ySection')}</KText>
+          <Row label={t('note.listView')} value={meta.listView} onChange={(v) => onMeta({ listView: v })} />
+          <Row label={t('note.assistStroke')} value={meta.assistStroke} onChange={(v) => onMeta({ assistStroke: v })} />
 
-          <KText style={styles.section}>인화 카드 {state.cards.length}장</KText>
-          {state.cards.length === 0 && <KText style={styles.status}>아침마다 간밤의 꿈이 한 장씩 모여요</KText>}
+          <KText style={styles.section} serif="title">{t('note.langSection')}</KText>
+          <LangPicker value={meta.lang} onChange={(lang) => onMeta({ lang })} />
+
+          <KText style={styles.section} serif="title">{t('note.cards', { n: state.cards.length })}</KText>
+          {state.cards.length === 0 && <KText style={styles.status}>{t('note.cardsEmpty')}</KText>}
           <Album cards={state.cards} strokes={state.strokes} width={width} onOpen={setViewing} />
         </ScrollView>
       </Animated.View>
@@ -129,11 +133,10 @@ function Album({ cards, strokes, width, onOpen }: { cards: sim.DreamCard[]; stro
   return (
     <View style={[styles.album, { gap }]}>
       {items.map(({ c, i, strokes: st }) => (
-        <Pressable key={i} onPress={() => onOpen(i)} style={{ width: tw }} accessibilityRole="button" accessibilityLabel={`${cardA11y(c, pastLine(c))} 크게 보기`} testID={`album-${i}`}>
+        <Pressable key={i} onPress={() => onOpen(i)} style={{ width: tw }} accessibilityRole="button" accessibilityLabel={t('note.thumb.a11y', { card: cardA11y(c, pastLine(c)) })} testID={`album-${i}`}>
           <DreamCardThumb card={c} strokes={st} width={tw} />
           <KText style={styles.thumbText} numberOfLines={2} importantForAccessibility="no">
-            {nightName(c)} · {MOTIF_NAMES[c.motifId] ?? c.motifId}
-            {c.nightsMerged > 1 ? ' · 긴 잠' : ''}
+            {t(c.nightsMerged > 1 ? 'note.thumb.long' : 'note.thumb', { night: nightName(c), motif: motifName(c.motifId) ?? t('motif.fallback') })}
           </KText>
         </Pressable>
       ))}
@@ -153,8 +156,8 @@ function CardViewer({ card, strokes, onClose }: { card: sim.DreamCard; strokes: 
       <DreamCard card={card} strokes={st} labels={cardLabels(card, line)} width={w} a11yLabel={cardA11y(card, line)} />
       <View style={styles.viewerActions}>
         <SharePlaceholder dark />
-        <Pressable onPress={onClose} style={styles.viewerClose} accessibilityRole="button" accessibilityLabel="앨범으로 돌아가기" testID="viewer-close">
-          <KText style={[styles.closeText, { color: PALETTE.night.text, textDecorationLine: 'underline' }]}>앨범으로</KText>
+        <Pressable onPress={onClose} style={styles.viewerClose} accessibilityRole="button" accessibilityLabel={t('note.viewer.back.a11y')} testID="viewer-close">
+          <KText style={[styles.closeText, { color: PALETTE.night.text, textDecorationLine: 'underline' }]}>{t('note.viewer.back')}</KText>
         </Pressable>
       </View>
     </View>
@@ -194,17 +197,40 @@ function Row({ label, value, onChange }: { label: string; value: boolean; onChan
   );
 }
 
+/** 언어 고르기(D-17): 기기 따름 / 한국어 / English. 라디오 묶음 — 언어 이름은 늘 그 언어 글자로 */
+function LangPicker({ value, onChange }: { value: LanguagePref; onChange: (v: LanguagePref) => void }) {
+  const opts: { v: LanguagePref; label: string }[] = [
+    { v: 'system', label: t('note.lang.system') },
+    { v: 'ko', label: LANGUAGE_NAMES.ko },
+    { v: 'en', label: LANGUAGE_NAMES.en },
+  ];
+  return (
+    <View accessibilityRole="radiogroup">
+      {opts.map((o) => {
+        const on = o.v === value;
+        return (
+          <Pressable key={o.v} onPress={() => onChange(o.v)} style={styles.row} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={o.label} testID={`lang-${o.v}`}>
+            <KText style={styles.rowText}>{o.label}</KText>
+            <View style={[styles.radio, on && styles.radioOn]}>{on && <View style={styles.radioDot} />}</View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function Stepper({ label, value, onMinus, onPlus }: { label: string; value: string; onMinus: () => void; onPlus: () => void }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, styles.rowWrap]}>
       <KText style={styles.rowText}>{label}</KText>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Pressable onPress={onMinus} style={styles.step} accessibilityRole="button" accessibilityLabel={`${label} 30분 앞당기기`}>
-          <KText style={styles.stepText}>이르게</KText>
+      {/* 글자 200%·영어 12시간제에서 한 줄에 안 들어가면 조절 묶음이 다음 줄 오른쪽으로 내려간다(i18n-v1 캡처) */}
+      <View style={styles.stepGroup}>
+        <Pressable onPress={onMinus} style={styles.step} accessibilityRole="button" accessibilityLabel={t('note.earlier.a11y', { label })}>
+          <KText style={styles.stepText}>{t('note.earlier')}</KText>
         </Pressable>
         <KText style={[styles.rowText, styles.time]}>{value}</KText>
-        <Pressable onPress={onPlus} style={styles.step} accessibilityRole="button" accessibilityLabel={`${label} 30분 늦추기`}>
-          <KText style={styles.stepText}>늦게</KText>
+        <Pressable onPress={onPlus} style={styles.step} accessibilityRole="button" accessibilityLabel={t('note.later.a11y', { label })}>
+          <KText style={styles.stepText}>{t('note.later')}</KText>
         </Pressable>
       </View>
     </View>
@@ -223,6 +249,8 @@ const styles = StyleSheet.create({
   status: { fontFamily: SANS, fontSize: 15, color: PALETTE.day.text, lineHeight: 22 },
   row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: PALETTE.day.wash },
   rowText: { fontFamily: SANS, fontSize: 15, color: PALETTE.day.text, flexShrink: 1 },
+  rowWrap: { flexWrap: 'wrap' },
+  stepGroup: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
   time: { minWidth: 56, textAlign: 'center', fontVariant: ['tabular-nums'] },
   step: { minWidth: 48, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   stepText: { fontFamily: SANS, fontSize: 13, color: PALETTE.day.textSub, textDecorationLine: 'underline' },
@@ -234,4 +262,7 @@ const styles = StyleSheet.create({
   viewerClose: { minHeight: 44, minWidth: 88, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   toggle: { width: 46, height: 26, borderRadius: 13, borderWidth: 1, borderColor: PALETTE.day.textSub, justifyContent: 'center' },
   knob: { width: 18, height: 18, borderRadius: 9 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: PALETTE.day.textSub, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  radioOn: { borderColor: PALETTE.day.text },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: PALETTE.day.text },
 });

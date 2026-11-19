@@ -1,7 +1,9 @@
 import { DREAM_TEMPERS, day7ClumsyRecords, day7Records, sim, type DreamAspect } from '@mong/core';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { MOTIF_NAMES, dayName, morningLine } from '../../game/text';
+import { morningLine } from '../../game/text';
+import { cardLabels } from '../../screens/cardText';
+import { t as tr } from '../../i18n';
 import { useAppFonts } from '../../ui/type';
 import { DreamCard, type DreamCardLabels } from './DreamCard';
 import { renderDreamCardImage } from './renderImage';
@@ -35,12 +37,7 @@ export function DreamCardPreview() {
     [night, motifId, comp, seed, temper],
   );
   const strokes = useMemo(() => (q.get('hand') === 'clumsy' ? day7ClumsyRecords() : day7Records()).slice(0, Math.max(1, Math.min(7, night))), [q, night]);
-  const motifName = MOTIF_NAMES[motifId] ?? '꿈';
-  const labels: DreamCardLabels = {
-    name: `몽망이·${dayName(night - 1)}`,
-    line: morningLine({ kind: 'observation', axis: null, keys: [] }, card),
-    sub: `${motifName} · Day ${night}`,
-  };
+  const labels: DreamCardLabels = cardLabels(card, morningLine({ kind: 'observation', axis: null, keys: [] }, card));
   const ratio = aspect === '9:16' ? 16 / 9 : 1.25;
   const width = Math.min(vw, vh / ratio);
   const fontsReady = useAppFonts();
@@ -69,7 +66,7 @@ export function DreamCardPreview() {
         png ? (
           <Image source={{ uri: `data:image/png;base64,${png}` }} style={{ width, height: width * ratio }} />
         ) : (
-          <Text style={styles.msg}>{err ?? '인화 중…'}</Text>
+          <Text style={styles.msg}>{err ?? tr('card.rendering')}</Text>
         )
       ) : !fontsReady ? null : (
         <DreamCard card={card} strokes={strokes} labels={labels} width={width} aspect={aspect} />

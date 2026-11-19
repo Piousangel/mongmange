@@ -16,7 +16,9 @@ import { PARAMS } from '../render/clock';
 import { DevPanel } from './DevPanel';
 import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
 import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, onEffects, setMeta, tickNow, useGame } from './store';
-import { REJECT_TEXT } from './text';
+import { rejectText } from './text';
+import { t } from '../i18n';
+import { useLocale } from '../i18n/react';
 
 const TICK_MS = 20_000;
 /** 획을 받은 뒤 낮 홈으로 돌아가기까지(씻기 창 + 여유) */
@@ -50,6 +52,7 @@ function wakeAtReal(st: sim.State) {
 
 export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   ensureBoot();
+  useLocale();
   const snap = useGame();
   const { state, meta } = snap;
   const { width, height } = useWindowDimensions();
@@ -130,22 +133,22 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               setTimeout(() => setWashOpen(false), sim.WASH_WINDOW_MS);
               if (returnTimer.current) clearTimeout(returnTimer.current);
               returnTimer.current = setTimeout(() => setMode('home'), STROKE_RETURN_MS);
-              if (st.strokesTotal === 1) setTimeout(() => flash('밤이 되면 오늘의 획이 꿈이 돼요', 4000), 1800);
+              if (st.strokesTotal === 1) setTimeout(() => flash(t('line.firstStroke'), 4000), 1800);
               break;
             case 'strokeRejected':
-              flash(e.reason === 'used' && washOpenRef.current ? '연적 물로 씻으면 다시 그을 수 있어요' : REJECT_TEXT[e.reason]);
+              flash(e.reason === 'used' && washOpenRef.current ? t('line.washHint') : rejectText(e.reason));
               break;
             case 'strokeWashed':
               if (returnTimer.current) clearTimeout(returnTimer.current);
               setWashOpen(false);
               setStrokeKey((k) => k + 1);
-              flash('물로 씻어 냈어요 · 한 번 더 그을 수 있어요');
+              flash(t('line.washed'));
               break;
             case 'notSleepy':
-              flash('아직 졸리지 않은가 봐요');
+              flash(t('line.notSleepy'));
               break;
             case 'rehydrated':
-              flash('먹이 다시 촉촉해졌어요');
+              flash(t('line.rehydrated'));
               break;
             case 'slept':
               // 연적으로 재웠을 때만(정산 중 잠에서는 묻지도 예약하지도 않는다, 리뷰 C2)
@@ -207,7 +210,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       if (p === 'undetermined') p = await requestPermission();
       setMeta({ notifAsked: true });
       if (p === 'denied') {
-        flash('기기 설정에서 알림을 허용해 주세요');
+        flash(t('line.notifDenied'));
         openSettings();
         return;
       }
@@ -279,7 +282,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             setIntroPlaying(true);
             const lost = getSnapshot().lostSave;
             if (!getSnapshot().state) install();
-            if (lost) setTimeout(() => flash('전에 키우던 몽망이를 읽지 못했어요 · 원래 기록은 기기에 남겨 두었어요', 6000), 9000);
+            if (lost) setTimeout(() => flash(t('line.lostSave'), 6000), 9000);
             dispatch({ type: 'tap', target: 'body', holdMs: 0, ...toW(x, y) });
           },
           onPet: (x, y) => {
@@ -288,7 +291,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           },
           onDone: () => {
             setIntroPlaying(false);
-            flash('오늘의 한 획을 그어 주세요', 4500);
+            flash(t('line.firstPrompt'), 4500);
           },
         }}
       />
@@ -350,7 +353,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         animateReveal={animateReveal}
         actions={{
           onBrush: () => setMode('stroke'),
-          onBrushBlocked: () => flash('오늘의 획은 몸에 잘 붙어 있어요 · 내일 아침이면 붓이 다시 젖어요', 4000),
+          onBrushBlocked: () => flash(t('line.brushBlocked'), 4000),
           onGrindStart: () => sound.play('inkGrind'),
           onGrindEnd: (ms) => {
             sound.stop('inkGrind');
@@ -377,14 +380,14 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       {body}
       {notifPrompt && kind === 'night' && (
         <View style={[styles.prompt, { bottom: insets.bottom + 28 }]} accessibilityViewIsModal testID="notif-prompt">
-          <KText style={styles.promptText}>아침에 꿈이 떠오르면 알려 줄까요?</KText>
-          <KText style={styles.promptSub}>하루 한 번, 깨는 시각에만 알려요</KText>
+          <KText style={styles.promptText}>{t('notif.ask')}</KText>
+          <KText style={styles.promptSub}>{t('notif.askSub')}</KText>
           <View style={styles.promptRow}>
-            <Pressable onPress={() => answerPrompt(false)} style={styles.promptBtn} accessibilityRole="button" accessibilityLabel="괜찮아요" testID="notif-no">
-              <KText style={styles.promptBtnText}>괜찮아요</KText>
+            <Pressable onPress={() => answerPrompt(false)} style={styles.promptBtn} accessibilityRole="button" accessibilityLabel={t('notif.no')} testID="notif-no">
+              <KText style={styles.promptBtnText}>{t('notif.no')}</KText>
             </Pressable>
-            <Pressable onPress={() => answerPrompt(true)} style={styles.promptBtn} accessibilityRole="button" accessibilityLabel="알려 주세요" testID="notif-yes">
-              <KText style={[styles.promptBtnText, { color: PALETTE.night.text }]}>알려 주세요</KText>
+            <Pressable onPress={() => answerPrompt(true)} style={styles.promptBtn} accessibilityRole="button" accessibilityLabel={t('notif.yes')} testID="notif-yes">
+              <KText style={[styles.promptBtnText, { color: PALETTE.night.text }]}>{t('notif.yes')}</KText>
             </Pressable>
           </View>
         </View>
@@ -397,7 +400,12 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           meta={meta}
           now={nowT}
           saveError={snap.saveError}
-          onMeta={setMeta}
+          onMeta={(p) => {
+            setMeta(p);
+            // 언어를 바꾸면 이미 예약한 아침 알림 문구도 새 언어로(권한이 있을 때만, scheduleMorning이 확인)
+            const st = getSnapshot().state;
+            if (p.lang !== undefined && getSnapshot().meta.notifEnabled && st?.phase === 'asleep') void scheduleMorning(wakeAtReal(st));
+          }}
           onNotif={onNotif}
           onTimes={(b, m) => dispatch({ type: 'setTimes', bedtimeLocalMin: b, morningLocalMin: m })}
         />

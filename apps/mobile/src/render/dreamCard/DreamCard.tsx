@@ -41,15 +41,17 @@ import {
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { paperFx } from '../shaders';
+import { dayName, getLocale, t } from '../../i18n';
+import { EN_SERIF_SCALE, serifFamily } from '../../ui/type';
 import { getMarbleFx, marbleUniforms } from './marble';
 
 /** 카드 위 글(문장은 앱이 언어별로 만들어 넘긴다 — 시스템 2.6) */
 export interface DreamCardLabels {
-  /** 세로쓰기 8자 이하: "몽망이·이레째" */
+  /** 이름 줄. 한국어 8자 이하면 세로쓰기("몽망이·이레째"), 영어는 가로 */
   name: string;
   /** 아침 문장 한 줄 */
   line: string;
-  /** 작은 보조 줄: "둥근 달 · Day 7" */
+  /** 작은 보조 줄: 모티프 · 밤 */
   sub: string;
 }
 
@@ -62,12 +64,32 @@ export interface DreamCardInput {
 
 export function defaultLabels(card: sim.DreamCard): DreamCardLabels {
   const n = card.night;
-  return { name: `몽망이·${n + 1}일째`, line: '간밤의 꿈을 한지에 찍었어요', sub: `Day ${n} · last night's dream` };
+  const day = dayName(Math.max(0, n - 1));
+  return { name: t('card.name', { day }), line: t('card.defaultLine'), sub: day };
 }
 
-/** 앱 번들 명조(Gowun Batang, ui/type.tsx)와 같은 글꼴. 아트 6절(본명조 + Cormorant Italic)과 다름 — 보고서에 기록 */
+/**
+ * 카드 글꼴: 한국어 = 앱 번들 명조(Gowun Batang — 아트 6절의 본명조 자리), 영어 = Cormorant Garamond(이름 줄 Medium, 문장 Italic).
+ * 네이티브 공유 이미지(renderImage.tsx)는 이 이름으로 Skia 글꼴 공급자에 등록한다.
+ */
 export const CARD_FONT = 'GowunBatang';
+export const CARD_FONT_EN = 'CormorantGaramond';
+export const CARD_FONT_EN_ITALIC = 'CormorantGaramondItalic';
 export const SERIF_WEB = 'GowunBatang, "Noto Serif KR", serif';
+const SERIF_WEB_EN = 'CormorantGaramond, Garamond, Georgia, serif';
+const SERIF_WEB_EN_ITALIC = 'CormorantGaramondItalic, Garamond, Georgia, serif';
+
+/** 글 역할 → 글꼴 이름(locale별). sub(작은 보조 줄)는 영어에서도 바로 선 Medium */
+export function cardFontFor(role: DreamTextItem['role'], web: boolean, loc = getLocale()): string {
+  if (loc === 'ko') return web ? SERIF_WEB : CARD_FONT;
+  const italic = role === 'serifLight';
+  return web ? (italic ? SERIF_WEB_EN_ITALIC : SERIF_WEB_EN) : italic ? CARD_FONT_EN_ITALIC : CARD_FONT_EN;
+}
+
+/** 영어 명조는 x높이가 작아 키운다(화면 KText와 같은 배율) */
+export function cardFontScale(loc = getLocale()): number {
+  return loc === 'ko' ? 1 : EN_SERIF_SCALE;
+}
 
 // ---------- 정적 그림(오프스크린에서도 같은 요소를 쓴다: 훅·공유값 없음) ----------
 
@@ -447,13 +469,106 @@ export function textOf(item: DreamTextItem, labels: DreamCardLabels): string {
   return labels[item.key];
 }
 
-/** 세로쓰기는 8자 이하만(아트 6절). 길면 가로로 */
+/** 세로쓰기는 한글이 든 8자 이하만(아트 6절). 길거나 라틴 글자면 가로로 */
 export function isVertical(item: DreamTextItem, labels: DreamCardLabels): boolean {
-  return item.vertical && [...labels[item.key]].length <= 8;
+  const s = labels[item.key];
+  return item.vertical && [...s].length <= 8 && /[\uAC00-\uD7A3]/.test(s) && !/[A-Za-z]/.test(s);
 }
 
-function fontFor(_role: DreamTextItem['role']) {
-  return Platform.OS === 'web' ? SERIF_WEB : CARD_FONT;
+function fontFor(role: DreamTextItem['role']) {
+  return cardFontFor(role, Platform.OS === 'web');
+}
+
+/** 카드 위 글 한 덩이(폭 = 1 단위). 가로 글은 줄로 나눈 결과와 줄마다의 기준선을 갖는다 — 화면·웹 PNG·네이티브 PNG가 같은 배치를 쓴다 */
+export interface CardTextBox {
+  item: DreamTextItem;
+  vertical: boolean;
+  /** 세로면 글자 하나씩, 가로면 줄 */
+  lines: string[];
+  /** 기준 x(폭 단위). 세로 이름이 가로로 바뀌면 카드 가운데(0.5)로 옮긴다 */
+  x: number;
+  /** 가로: 줄마다 기준선 y(폭 단위). 세로: 첫 글자 위쪽 y */
+  ys: number[];
+  size: number;
+  spacing: number;
+}
+
+/** 글자 폭 어림(em). 줄 나눔 판단용이라 조금 넉넉하게 잡는다 */
+function advance(ch: string, loc: 'ko' | 'en'): number {
+  if (/[\uAC00-\uD7A3]/.test(ch)) return 0.95;
+  if (ch === ' ') return loc === 'en' ? 0.25 : 0.3;
+  if (/[A-Z]/.test(ch)) return 0.66;
+  if (/[mwMW—]/.test(ch)) return 0.78;
+  if (/[il.,\u0027\u2019·:;!|]/.test(ch)) return 0.26;
+  return loc === 'en' ? 0.45 : 0.55;
+}
+export function textWidth(s: string, size: number, spacing: number, loc: 'ko' | 'en'): number {
+  let w = 0;
+  for (const ch of s) w += advance(ch, loc) * size + spacing;
+  return w;
+}
+
+/** 공백에서 줄을 나눈다(최대 maxLines). 넘치면 null */
+function wrapWords(s: string, maxW: number, size: number, spacing: number, loc: 'ko' | 'en', maxLines: number): string[] | null {
+  const words = s.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (textWidth(next, size, spacing, loc) <= maxW || !cur) cur = next;
+    else {
+      lines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines || lines.some((l) => textWidth(l, size, spacing, loc) > maxW)) return null;
+  return lines;
+}
+
+/** 글 너비 한도(폭의 84%, 가운데 정렬) */
+export const CARD_TEXT_W = 0.84;
+
+/**
+ * 카드 글 배치(D-17): 한국어 이름은 세로, 영어 이름은 가로(자간 좁게). 문장은 한 줄을 넘으면 두 줄로 나누고 글자를 조금 줄이며,
+ * 보조 줄은 문장 마지막 줄 아래로 따라 내려간다(일곱 날 점 줄 위에서 멈춘다).
+ */
+export function cardTextBoxes(items: readonly DreamTextItem[], labels: DreamCardLabels, loc = getLocale()): CardTextBox[] {
+  const k = cardFontScale(loc);
+  const out: CardTextBox[] = [];
+  let lastBase = 0;
+  let lineCount = 1;
+  for (const it of items) {
+    const text = labels[it.key];
+    if (isVertical(it, labels)) {
+      out.push({ item: it, vertical: true, lines: [...text], x: it.x, ys: [it.y], size: it.size, spacing: 0 });
+      continue;
+    }
+    let size = it.size * k;
+    const spacing = it.key === 'name' && loc === 'en' ? 0.002 : it.spacing;
+    if (it.key === 'line') {
+      let lines = wrapWords(text, CARD_TEXT_W, size, spacing, loc, 1);
+      if (!lines) {
+        size = it.size * (loc === 'en' ? 1 : 0.93);
+        for (let i = 0; i < 6 && !(lines = wrapWords(text, CARD_TEXT_W, size, spacing, loc, 2)); i++) size *= 0.92;
+      }
+      lines ??= [text];
+      const ys = lines.map((_, i) => it.y + i * size * 1.26);
+      lastBase = ys[ys.length - 1]!;
+      lineCount = lines.length;
+      out.push({ item: it, vertical: false, lines, x: it.x, ys, size, spacing });
+      continue;
+    }
+    // 보조 줄: 문장이 두 줄이면 마지막 줄 아래로(간격은 조금 좁힌다)
+    const y = it.key === 'sub' && lineCount > 1 ? lastBase + 0.039 : it.y;
+    let lines = wrapWords(text, CARD_TEXT_W, size, spacing, loc, 1);
+    for (let i = 0; i < 6 && !lines; i++) {
+      size *= 0.92;
+      lines = wrapWords(text, CARD_TEXT_W, size, spacing, loc, 1);
+    }
+    out.push({ item: it, vertical: false, lines: lines ?? [text], x: it.vertical ? 0.5 : it.x, ys: [y], size, spacing });
+  }
+  return out;
 }
 
 /** 화면용 카드: Skia 그림 + RN 글(접근성·글꼴). 공유 이미지는 renderDreamCardImage */
@@ -469,50 +584,48 @@ export function DreamCard({
   const lb = labels ?? defaultLabels(card);
   const H = art.H;
   return (
-    <View style={{ width, height: H }} accessible accessibilityRole="image" accessibilityLabel={a11yLabel ?? `꿈 인화 카드. ${lb.name}. ${lb.line}`} testID="dream-card-art">
+    <View style={{ width, height: H }} accessible accessibilityRole="image" accessibilityLabel={a11yLabel ?? t('card.a11y.fallback', { name: lb.name, line: lb.line })} testID="dream-card-art">
       {/* 카드 위 글은 그림의 일부(설명은 위 accessibilityLabel 하나로) */}
       <Canvas style={{ width, height: H }}>
         <DreamCardArt art={art} />
       </Canvas>
-      {art.layout.text.map((it) => {
-        const t = textOf(it, lb);
-        const size = it.size * width;
-        const vert = isVertical(it, lb);
-        if (vert) {
+      {cardTextBoxes(art.layout.text, lb).map(({ item: it, vertical, lines, ys, size: sz, spacing }) => {
+        const size = sz * width;
+        if (vertical) {
           return (
             <Text
               key={it.key}
-              style={[styles.t, { left: it.x * width - size, width: size * 2, top: it.y * width, fontSize: size, lineHeight: size * 1.32, textAlign: 'center', color: it.color, fontFamily: fontFor(it.role) }]}
+              style={[styles.t, { left: it.x * width - size, width: size * 2, top: ys[0]! * width, fontSize: size, lineHeight: size * 1.32, textAlign: 'center', color: it.color, fontFamily: fontFor(it.role) }]}
               maxFontSizeMultiplier={1}
               importantForAccessibility="no"
             >
-              {[...t].join('\n')}
+              {lines.join('\n')}
             </Text>
           );
         }
-        return (
+        return lines.map((ln, i) => (
           <Text
-            key={it.key}
-            numberOfLines={2}
+            key={`${it.key}${i}`}
+            numberOfLines={1}
             style={[
               styles.t,
               {
-                left: width * 0.08,
-                right: width * 0.08,
-                top: it.y * width - size * 1.05,
+                left: width * ((1 - CARD_TEXT_W) / 2 - 0.02),
+                right: width * ((1 - CARD_TEXT_W) / 2 - 0.02),
+                top: ys[i]! * width - size * 1.05,
                 fontSize: size,
                 lineHeight: size * 1.4,
                 textAlign: it.align,
                 color: it.color,
-                letterSpacing: it.spacing * width,
+                letterSpacing: spacing * width,
                 fontFamily: fontFor(it.role),
               },
             ]}
             maxFontSizeMultiplier={1}
           >
-            {t}
+            {ln}
           </Text>
-        );
+        ));
       })}
     </View>
   );

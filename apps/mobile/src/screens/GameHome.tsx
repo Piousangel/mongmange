@@ -1,6 +1,6 @@
 import { Canvas, Group, Path, Rect, Shader } from '@shopify/react-native-skia';
 import { COMB_REST, PALETTE, grammarOf, selectVisual, sim } from '@mong/core';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import { NO_GAZE, gazeOffset, type Gaze } from '../render/gaze';
 import { blinkAt, breathAt, wobble } from '../render/idle';
 import { Mongmangi, REST_FRAME, type BodyFrame } from '../render/Mongmangi';
 import { tideFx } from '../render/shaders';
-import { dayName, wakeClock } from '../game/text';
+import { SEAL_GLYPH, dayName, nightName, t, wakeClock } from '../i18n';
 import { KText, track, useFontScale } from '../ui/type';
 import { NightRings, NightWater } from './HomeScreen';
 import { ObjectIcons, Paper, SANS, SERIF, VerticalTitle, inkPool, layout, styles as ui } from './ui';
@@ -71,7 +71,12 @@ export function GameHome({
   const vis = selectVisual({ phase: state.phase, strokes: records });
   const s = vis.coreScale;
   const ox = L.cx;
-  const oy = L.oyFor(s);
+  // 목록으로 보기: 버튼 목록이 길어지면(글자 200%·영어) 몽망이가 목록 위로 비켜 앉는다(리뷰 P1-3, 320×568에서 첫 버튼을 덮었음)
+  const [listTop, setListTop] = useState<number | null>(null);
+  const baseOy = L.oyFor(s);
+  const bodyBottom = baseOy + 0.75 * s * L.wpx;
+  const lift = listView && !asleep && listTop !== null ? Math.max(0, bodyBottom + 14 - listTop) : 0;
+  const oy = Math.max(insets.top + height * 0.2, baseOy - lift);
 
   // 조수: 마운트 때 이미 자고 있으면 다 찬 상태, 낮 → 밤으로 바뀌면 그때부터 2400ms
   const tideAt = useSharedValue(asleep ? -1e9 : 1e12);
@@ -173,7 +178,7 @@ export function GameHome({
   // 사물 중심 간격 = 폭 30% → 터치 영역이 겹치지 않게(폭 320에서 92)
   const objW = Math.min(116, width * 0.3 - 4);
   const sleepy = !asleep && sim.canPutToSleep(state, now);
-  const title = reveal === 'all' ? `몽망이·${dayName(state.dayIndex)}` : '';
+  const title = reveal === 'all' ? t('day.title', { day: dayName(state.dayIndex) }) : '';
   const bodyR = 0.75 * s * L.wpx;
 
   const look = (x: number, y: number, holdMs = 1500) => {
@@ -230,9 +235,9 @@ export function GameHome({
   };
 
   const objs = [
-    { name: '붓', label: '한 획', a11y: blocked ? '붓, 오늘의 한 획은 그었어요' : '붓, 오늘의 한 획 긋기' },
-    { name: '벼루', label: '먹 갈기', a11y: '벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다' },
-    { name: '연적', label: '물 한 방울', a11y: sleepy ? '연적, 물 한 방울, 몽망이가 졸려 해요' : '연적, 물 한 방울, 재우기' },
+    { id: 'brush', name: t('obj.brush'), label: t('obj.brush.label'), a11y: blocked ? t('obj.brush.a11yDone') : t('obj.brush.a11y') },
+    { id: 'inkstone', name: t('obj.inkstone'), label: t('obj.inkstone.label'), a11y: t('obj.inkstone.a11y') },
+    { id: 'dropper', name: t('obj.dropper'), label: t('obj.dropper.label'), a11y: sleepy ? t('obj.dropper.a11ySleepy') : t('obj.dropper.a11y') },
   ];
   const grindHandlers = {
     onPressIn: () => {
@@ -295,11 +300,11 @@ export function GameHome({
         style={{ position: 'absolute', left: ox - bodyR * 1.3, top: oy - bodyR, width: bodyR * 2.6, height: bodyR * 2 }}
         accessible
         accessibilityRole="button"
-        accessibilityLabel={`몽망이, ${dayName(state.dayIndex)}, ${asleep ? '자는 중' : sleepy ? '졸림' : '깨어 있음'}`}
-        accessibilityHint={asleep ? '자고 있어요. 건드리면 잔물결만 일어요' : '두 번 눌러 쓰다듬기'}
+        accessibilityLabel={t('home.mong.a11y', { day: dayName(state.dayIndex), state: asleep ? 'asleep' : sleepy ? 'sleepy' : 'awake' })}
+        accessibilityHint={asleep ? t('home.mong.hintAsleep') : t('home.mong.hint')}
         accessibilityActions={[
-          { name: 'activate', label: '쓰다듬기' },
-          { name: 'longpress', label: '문지르기' },
+          { name: 'activate', label: t('home.mong.pet') },
+          { name: 'longpress', label: t('home.mong.rub') },
         ]}
         onAccessibilityAction={(e) => {
           if (asleep) return;
@@ -321,8 +326,8 @@ export function GameHome({
         objs.map((o, i) =>
           shown[i] ? (
             <Pressable
-              key={o.name}
-              testID={`obj-${o.name}`}
+              key={o.id}
+              testID={`obj-${o.id}`}
               disabled={asleep}
               style={[styles.obj, { width: objW, left: xs[i]! - objW / 2, top: objTop }]}
               accessibilityRole="button"
@@ -342,10 +347,10 @@ export function GameHome({
 
       {/* 목록으로 보기(D-08): 사물 UI 대신 평범한 버튼 */}
       {listView && !asleep && (
-        <View style={[styles.list, { bottom: insets.bottom + 24 }]}>
+        <View style={[styles.list, { bottom: insets.bottom + 24 }]} onLayout={(e) => setListTop(e.nativeEvent.layout.y)}>
           {objs.map((o, i) => (
             <Pressable
-              key={o.name}
+              key={o.id}
               style={styles.listBtn}
               accessibilityRole="button"
               accessibilityLabel={o.a11y}
@@ -355,10 +360,7 @@ export function GameHome({
                 if (i === 2) actions.onSleep();
               }}
             >
-              <KText style={styles.listText}>
-                {o.name} · {o.label}
-                {i === 1 ? ' (누르고 있기)' : ''}
-              </KText>
+              <KText style={styles.listText}>{t(i === 1 ? 'obj.list.hold' : 'obj.list', { name: o.name, label: o.label })}</KText>
             </Pressable>
           ))}
         </View>
@@ -372,9 +374,9 @@ export function GameHome({
       {/* 공방 노트 입구 = 주사 낙관(첫 획 뒤 '탁' 찍힘) */}
       {reveal === 'all' && (
         <Animated.View style={[styles.seal, { top: insets.top + 14 }, sealSt, asleep && { opacity: 0.55 }]}>
-          <Pressable onPress={actions.onNote} style={styles.sealHit} accessibilityRole="button" accessibilityLabel="공방 노트" testID="seal" hitSlop={10}>
-            <KText style={ui.sealText} maxFontSizeMultiplier={1}>
-              몽
+          <Pressable onPress={actions.onNote} style={styles.sealHit} accessibilityRole="button" accessibilityLabel={t('home.seal.a11y')} testID="seal" hitSlop={10}>
+            <KText style={ui.sealText} maxFontSizeMultiplier={1} serif="title">
+              {SEAL_GLYPH}
             </KText>
           </Pressable>
         </Animated.View>
@@ -382,14 +384,14 @@ export function GameHome({
 
       {asleep && (
         <>
-          <KText style={[ui.line, { top: insets.top + height * 0.1, color: PALETTE.night.text, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header">
-            {state.dayIndex === 0 ? '첫 밤' : `${dayName(state.dayIndex)} 밤`}
+          <KText style={[ui.line, { top: insets.top + height * 0.1, color: PALETTE.night.text, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header" serif="title">
+            {nightName(state.dayIndex)}
           </KText>
           <Animated.View style={[styles.nightLine, soothSt]} pointerEvents="none">
-            <KText style={[ui.line, styles.nightText]}>물에 풀린 먹은 아침이면 다시 몸으로 돌아와요</KText>
+            <KText style={[ui.line, styles.nightText]}>{t('night.soothe')}</KText>
           </Animated.View>
           <Animated.View style={[styles.nightLine, wakeSt]} pointerEvents="none">
-            <KText style={[ui.line, styles.nightText]}>몽망이는 아직 자고 있어요 · {wakeClock(sim.wakeableAt(state), state.clock.tzOffsetMin)} 깨요</KText>
+            <KText style={[ui.line, styles.nightText]}>{t('night.stillAsleep', { time: wakeClock(sim.wakeableAt(state), state.clock.tzOffsetMin) })}</KText>
           </Animated.View>
         </>
       )}
@@ -406,7 +408,14 @@ function ObjLabel({ text, i, alpha, asleep, small }: { text: string; i: number; 
   const st = useAnimatedStyle(() => ({ opacity: Math.min(alpha.value[i] ?? 1, 1) * (asleep ? 0.4 : 1) }));
   return (
     <Animated.View style={st}>
-      <KText style={[styles.objLabel, { color: asleep ? PALETTE.night.textSub : PALETTE.day.textSub }, small && { fontSize: 12 }]} numberOfLines={2}>
+      {/* 라벨은 한 줄(리뷰 P2: 'Grind ink'가 두 줄로 꺾여 화면 아래 끝·홈 인디케이터에 닿음). 큰 글자는 150%에서 멈추고 넘치면 줄인다 */}
+      <KText
+        style={[styles.objLabel, { color: asleep ? PALETTE.night.textSub : PALETTE.day.textSub }, small && { fontSize: 12 }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        maxFontSizeMultiplier={1.5}
+      >
         {text}
       </KText>
     </Animated.View>

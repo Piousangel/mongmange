@@ -1,3 +1,4 @@
+// i18n-ignore-file: 개발 빌드 전용 메뉴(__DEV__에서만 그린다) — 사용자 문구가 아니다
 // 개발 메뉴(개발 빌드에서만, __DEV__): 시간 가속 · 세이브 초기화 · 스파이크 화면 바로가기.
 import { sim } from '@mong/core';
 import { useState } from 'react';

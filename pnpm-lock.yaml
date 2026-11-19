@@ -239,6 +239,9 @@ importers:
         specifier: 0.13.0
         version: 0.13.0(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)
     devDependencies:
+      '@expo-google-fonts/cormorant-garamond':
+        specifier: 0.4.1
+        version: 0.4.1
       '@expo-google-fonts/gowun-batang':
         specifier: 0.4.1
         version: 0.4.1
@@ -665,6 +668,9 @@ packages:
 
   '@emnapi/wasi-threads@2.2.0':
     resolution: {integrity: sha512-JP7OYH38Q7+pyTAe14raZHLQIK7BDKbdwji+Xi3pcd/6QkJYQH3SX4wu6EplGrGJWRepoNzedfm0G3B9Z4e9Rw==}
+
+  '@expo-google-fonts/cormorant-garamond@0.4.1':
+    resolution: {integrity: sha512-e8J4Cn13K1txygamg50n3odLUsYP7Ck28XOGobMi7uDsWvFmp/jgK0qcALqJTlmi9NczSWUNdERxcLauHCBa/Q==}
 
   '@expo-google-fonts/gowun-batang@0.4.1':
     resolution: {integrity: sha512-d0bdZaGH7Nu3sCW1c5fbtZDufA5RpE+Ph+Laa9xi9QlvHylMKS1lohZ7elhkJSy1hmJket4JeokzS4DzjGfpYg==}
@@ -3500,6 +3506,8 @@ snapshots:
     dependencies:
       tslib: 2.9.1
     optional: true
+
+  '@expo-google-fonts/cormorant-garamond@0.4.1': {}
 
   '@expo-google-fonts/gowun-batang@0.4.1': {}
 

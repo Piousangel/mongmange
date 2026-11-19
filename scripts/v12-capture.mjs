@@ -76,7 +76,7 @@ const CHOICES = [
   [4, 3, 1, -1], // 왼쪽에서 왼쪽 위로 보통, 곧게
 ];
 for (let day = 0; day < CHOICES.length; day++) {
-  await tid('obj-붓').click();
+  await tid('obj-brush').click();
   await sleep(900);
   const [dp, dd, dl, db] = CHOICES[day];
   const step = async (key, n) => {
@@ -104,7 +104,7 @@ for (let day = 0; day < CHOICES.length; day++) {
   if (day === 0) await shot('03-assist-attached', '"이 획으로 긋기" → 손획과 같은 stroke 이벤트 → 부착 + 기쁨');
   if (day === 1) await shot('04-slid-lean', '금지 자리에서 시작한 획: 가장 가까운 허용 자리에 붙고 몸이 그쪽으로 9° 기욺');
   await sleep(6500);
-  await tid('obj-연적').click();
+  await tid('obj-dropper').click();
   await sleep(7500);
   const no = page.locator('[data-testid="notif-no"]');
   if (await no.count()) await no.first().click();

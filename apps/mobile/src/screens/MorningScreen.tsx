@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { gazeOffset, type Gaze } from '../render/gaze';
 import { blinkAt, breathAt } from '../render/idle';
 import { Mongmangi, REST_FRAME, type BodyFrame } from '../render/Mongmangi';
-import { KText, track } from '../ui/type';
+import { KText, track, useFontScale } from '../ui/type';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useDerivedValue, useSharedValue } from 'react-native-reanimated';
-import { MOTIF_NAMES, dayName, morningLine } from '../game/text';
+import { morningLine } from '../game/text';
+import { dayName, t } from '../i18n';
 import { PARAMS, clamp01, clock, easeOut } from '../render/clock';
 import { NightWater } from './HomeScreen';
 import { Paper, SANS, SERIF, layout, styles as ui } from './ui';
@@ -88,7 +89,13 @@ export function MorningScreen({
   const sheetTop = insets.top + height * 0.17;
   // 인화 카드(4:5): 문장·버튼 자리(약 150pt)를 남기고 가장 크게
   const cardTop = insets.top + 20;
-  const cardW = Math.max(160, Math.min(width - 40, 360, (height - cardTop - insets.bottom - 160) / 1.25));
+  // 카드 아래 글 덩이(문장·긴 잠·보내기)의 실제 높이를 재서 카드 크기를 정한다 — 글자 200%·영어에서 문장이 3줄이 되면
+  // 카드를 줄이고, 남은 띠(글 덩이 아래 ~ '낮으로' 위)에 몽망이를 맞춰 앉힌다(리뷰 P1-3: 320×568·200% 겹침)
+  const fs = Math.min(useFontScale(), 1.5);
+  const [textH, setTextH] = useState(110 + (fs - 1) * 120);
+  const linkTop = height - insets.bottom - 18 - 44;
+  const MONG_BAND = 64;
+  const cardW = Math.max(140, Math.min(width - 40, 360, (linkTop - cardTop - 14 - textH - MONG_BAND) / 1.25));
   const cardH = cardW * 1.25;
   const text = developed ? morningLine(developed.line, developed.card) : '';
   const cardStrokes = useMemo(() => (developed ? strokesForCard(state.strokes, developed.card) : []), [developed, state.strokes]);
@@ -112,8 +119,12 @@ export function MorningScreen({
   // 몽망이: 수면 위에서 깨어나 한지를 함께 본다(리뷰 U7). 물이 빠지면 낮 먹색으로
   const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
   const s = selectVisual({ phase: 'awake', strokes: state.strokes }).coreScale;
-  const mongY = height * 0.83;
-  const wpx = L.wpx * 0.8;
+  const textBottom = cardTop + cardH + 14 + textH;
+  const free = linkTop - textBottom;
+  // 현상 뒤: 글 덩이와 '낮으로' 사이 띠에 맞춘다(넉넉하면 원래 자리·크기 그대로)
+  const fitK = developed ? Math.max(0.4, Math.min(1, free / (1.5 * L.wpx * 0.8))) : 1;
+  const mongY = developed ? Math.min(height * 0.83, textBottom + Math.max(free, 0) * 0.58) : height * 0.83;
+  const wpx = L.wpx * 0.8 * fitK;
   const mountAt = useSharedValue(clock.value);
   const gaze = useDerivedValue<Gaze>(() => ({ x: width / 2, y: developed ? insets.top + cardH * 0.5 : sheetTop + sheetH / 2, at: mountAt.value + 1200, holdMs: 1e9 }));
   const frame = useDerivedValue<BodyFrame>(() => {
@@ -158,8 +169,8 @@ export function MorningScreen({
       </Canvas>
 
       {!developed && (
-        <KText style={[ui.line, { top: insets.top + height * 0.07, color: PALETTE.night.text, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header">
-          {dayName(state.dayIndex)} 아침
+        <KText style={[ui.line, { top: insets.top + height * 0.07, color: PALETTE.night.text, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header" serif="title">
+          {t('morning.title', { day: dayName(state.dayIndex) })}
         </KText>
       )}
 
@@ -168,9 +179,9 @@ export function MorningScreen({
           style={[styles.sheet, { width: sheetW, height: sheetH, left: (width - sheetW) / 2, top: sheetTop }, sheetSt]}
           accessible
           accessibilityRole="adjustable"
-          accessibilityLabel="물 위에 뜬 한지"
-          accessibilityHint="위로 쓸어 건져 올리세요"
-          accessibilityActions={[{ name: 'increment', label: '건져 올리기' }, { name: 'activate', label: '건져 올리기' }]}
+          accessibilityLabel={t('morning.sheet.a11y')}
+          accessibilityHint={t('morning.sheet.hint')}
+          accessibilityActions={[{ name: 'increment', label: t('morning.sheet.action') }, { name: 'activate', label: t('morning.sheet.action') }]}
           onAccessibilityAction={lift}
           testID="dream-sheet"
         >
@@ -181,10 +192,10 @@ export function MorningScreen({
       {!lifted && (
         <>
           <KText style={[ui.line, { top: sheetTop + sheetH + 28, color: PALETTE.night.textSub, fontFamily: SERIF }]} pointerEvents="none">
-            물 위의 한지를 위로 건져 올려요
+            {t('morning.lift')}
           </KText>
-          <Pressable style={[styles.link, { bottom: insets.bottom + 18 }]} onPress={lift} accessibilityRole="button" accessibilityLabel="꿈 꺼내기" testID="develop" hitSlop={8}>
-            <KText style={[styles.linkText, { color: PALETTE.night.textSub }]}>꿈 꺼내기</KText>
+          <Pressable style={[styles.link, { bottom: insets.bottom + 18 }]} onPress={lift} accessibilityRole="button" accessibilityLabel={t('morning.develop')} testID="develop" hitSlop={8}>
+            <KText style={[styles.linkText, { color: PALETTE.night.textSub }]}>{t('morning.develop')}</KText>
           </Pressable>
         </>
       )}
@@ -195,18 +206,18 @@ export function MorningScreen({
         </Animated.View>
       )}
       {developed && (
-        <Animated.View style={[styles.cardText, { top: cardTop + cardH + 14 }, textSt]} pointerEvents="box-none">
+        <Animated.View style={[styles.cardText, { top: cardTop + cardH + 14 }, textSt]} pointerEvents="box-none" onLayout={(e) => setTextH(Math.ceil(e.nativeEvent.layout.height))}>
           {/* 카드 위 글은 인화(공유용)라 작다. 읽는 글은 여기 — 스크린리더는 카드 설명에서 같은 문장을 읽으므로 숨긴다 */}
-          <KText style={[styles.lineText, { maxWidth: Math.min(width - 32, cardW + 40) }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <KText style={[styles.lineText, { maxWidth: Math.min(width - 32, cardW + 40) }]} maxFontSizeMultiplier={1.5} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
             {text}
           </KText>
-          {developed.card.nightsMerged > 1 && <KText style={styles.sub}>긴 잠 · 밤 {developed.card.nightsMerged}개를 한 장에</KText>}
+          {developed.card.nightsMerged > 1 && <KText style={styles.sub}>{t('morning.merged', { n: developed.card.nightsMerged })}</KText>}
           <SharePlaceholder />
         </Animated.View>
       )}
       {developed && (
-        <Pressable style={[styles.link, { bottom: insets.bottom + 18 }]} onPress={onDone} accessibilityRole="button" accessibilityLabel="낮으로, 몽망이와 하루 시작하기" testID="card-done" hitSlop={8}>
-          <KText style={styles.linkText}>낮으로</KText>
+        <Pressable style={[styles.link, { bottom: insets.bottom + 18 }]} onPress={onDone} accessibilityRole="button" accessibilityLabel={t('morning.done.a11y')} testID="card-done" hitSlop={8}>
+          <KText style={styles.linkText}>{t('morning.done')}</KText>
         </Pressable>
       )}
     </View>

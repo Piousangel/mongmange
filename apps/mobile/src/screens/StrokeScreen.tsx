@@ -32,6 +32,8 @@ import { blinkAt, breathAt, wobble } from '../render/idle';
 import { Mongmangi, REST_FRAME, type BodyFrame } from '../render/Mongmangi';
 import { sound } from '../audio/sound';
 import { Caption, ObjectIcons, ObjectLabels, Paper, SANS, layout } from './ui';
+import { t } from '../i18n';
+import { KText, useFontScale } from '../ui/type';
 
 const RM = PARAMS.rm;
 type Pt = { x: number; y: number; t: number };
@@ -131,7 +133,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
     gaze.value = { x: L.cx + Math.sin(attach.theta) * L.wpx, y: L.oyFor(s0) - Math.cos(attach.theta) * L.wpx * 0.6, at: now, holdMs: 1200 };
     if (!game0) setRecords((r) => [...r, rec]);
     setInfo(
-      `L${lv} · ${raw.length}점 · ${(raw.at(-1)!.t / 1000).toFixed(2)}s · θ ${((attach.theta * 180) / Math.PI).toFixed(0)}° · 회전 ${((attach.rot * 180) / Math.PI).toFixed(0)}° · 축소 ${attach.scale.toFixed(2)} · 휨 ${attach.bend}`,
+      `L${lv} · ${raw.length}점 · ${(raw.at(-1)!.t / 1000).toFixed(2)}s · θ ${((attach.theta * 180) / Math.PI).toFixed(0)}° · 회전 ${((attach.rot * 180) / Math.PI).toFixed(0)}° · 축소 ${attach.scale.toFixed(2)} · 휨 ${attach.bend}`, // i18n-ignore: 스파이크 계측 표시
     );
     const g = globalThis as unknown as { __strokes?: unknown[] };
     (g.__strokes ??= []).push({ raw, attach, drawnAtCoreScale: s0 });
@@ -309,9 +311,9 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
   useAnimatedReaction(
     () => {
       const d = clock.value - lastAttach.value.at;
-      if (drawing.value) return '붓 마찰음(속도 연동)';
-      if (d >= 0 && d < 900) return "light 햅틱 · 낮은 허밍 '음—'";
-      if (d >= 900 && d < 2300) return 'light 햅틱 ×2';
+      if (drawing.value) return '붓 마찰음(속도 연동)'; // i18n-ignore: 개발 자막
+      if (d >= 0 && d < 900) return "light 햅틱 · 낮은 허밍 '음—'"; // i18n-ignore: 개발 자막
+      if (d >= 900 && d < 2300) return 'light 햅틱 ×2'; // i18n-ignore: 개발 자막
       return '';
     },
     (c, p) => {
@@ -330,11 +332,11 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
     } else {
       void Share.share({ message: rawLog });
     }
-    setInfo(`내보냄: 획 ${records.length}개 · 세이브 ${json.length}B`);
+    setInfo(`내보냄: 획 ${records.length}개 · 세이브 ${json.length}B`); // i18n-ignore: 스파이크 개발 버튼
   };
 
   const clean = PARAMS.clean;
-  const labels = useMemo(() => ['한 획', '먹 갈기', '물 한 방울'], []);
+  const labels = [t('obj.brush.label'), t('obj.inkstone.label'), t('obj.dropper.label')];
   return (
     <View style={styles.root}>
       <GestureDetector gesture={pan}>
@@ -370,7 +372,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
             style={[styles.objHit, { left: width * 0.2 - 40, top: L.objectsY - 32 }]}
             onPress={game.onBrushTap}
             accessibilityRole="button"
-            accessibilityLabel="붓 내려놓기"
+            accessibilityLabel={t('stroke.brushDown')}
           />
           <Pressable
             testID="wash"
@@ -378,7 +380,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
             style={[styles.objHit, { left: width * 0.8 - 40, top: L.objectsY - 32 }]}
             onPress={game.onJarTap}
             accessibilityRole="button"
-            accessibilityLabel={game.washOpen ? '연적, 물로 씻기, 방금 그은 획을 지웁니다' : '연적'}
+            accessibilityLabel={game.washOpen ? t('stroke.wash.a11y') : t('stroke.dropper.a11y')}
             accessibilityState={{ disabled: !game.washOpen }}
           >
             {game.washOpen && <JarBreath />}
@@ -387,8 +389,8 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
       )}
       {game?.assist && assist === null && (
         <View style={[styles.assistBar, { top: insets.top + 12 }]} pointerEvents="box-none">
-          <Pressable onPress={() => setAssistLive({ mode: 'choice', c: ASSIST_DEFAULT })} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="버튼으로 긋기" testID="assist-open">
-            <Text style={styles.assistText}>버튼으로 긋기</Text>
+          <Pressable onPress={() => setAssistLive({ mode: 'choice', c: ASSIST_DEFAULT })} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel={t('assist.open')} testID="assist-open">
+            <KText style={styles.assistText}>{t('assist.open')}</KText>
           </Pressable>
         </View>
       )}
@@ -411,7 +413,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
             </Pressable>
           ))}
           <Pressable onPress={exportJson} style={styles.btn}>
-            <Text style={styles.btnText}>raw JSON</Text>
+            <Text style={styles.btnText}>raw JSON</Text>{/* i18n-ignore: 스파이크 개발 버튼 */}
           </Pressable>
           <Pressable
             onPress={() => {
@@ -420,7 +422,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
             }}
             style={styles.btn}
           >
-            <Text style={styles.btnText}>비우기</Text>
+            <Text style={styles.btnText}>비우기</Text>{/* i18n-ignore: 스파이크 개발 버튼 */}
           </Pressable>
         </View>
       )}
@@ -457,21 +459,21 @@ function pointsStroke(a: Pt, b: Pt, bend: number): Pt[] {
   return out;
 }
 
-const PLACE_NAMES = ['머리 위', '오른쪽 위', '오른쪽', '오른쪽 아래', '아래', '왼쪽 아래', '왼쪽', '왼쪽 위'];
-const DIR_NAMES = ['위로', '오른쪽 위로', '오른쪽으로', '오른쪽 아래로', '아래로', '왼쪽 아래로', '왼쪽으로', '왼쪽 위로'];
-const LEN_NAMES = ['짧게', '보통', '길게'];
-const BEND_NAMES = ['왼쪽으로 크게 휨', '왼쪽으로 조금 휨', '곧게', '오른쪽으로 조금 휨', '오른쪽으로 크게 휨'];
+const placeName = (i: number) => t('assist.placeName', { i });
+const dirName = (i: number) => t('assist.dirName', { i });
+const lenName = (i: number) => t('assist.lenName', { i });
+const bendName = (b: number) => t('assist.bendName', { i: b + 2 });
 const DIR_ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
 
 export function choiceText(c: AssistChoice): string {
-  return `몽망이 ${PLACE_NAMES[c.place]}에서 ${DIR_NAMES[c.dir]}, ${LEN_NAMES[c.len]}, ${BEND_NAMES[c.bend + 2]}`;
+  return t('assist.choice', { place: placeName(c.place), dir: dirName(c.dir), len: lenName(c.len), bend: bendName(c.bend) });
 }
 
-const ROWS: { key: keyof AssistChoice; label: string; value: (c: AssistChoice) => string }[] = [
-  { key: 'place', label: '자리', value: (c) => PLACE_NAMES[c.place]! },
-  { key: 'dir', label: '방향', value: (c) => `${DIR_ARROWS[c.dir]} ${DIR_NAMES[c.dir]}` },
-  { key: 'len', label: '길이', value: (c) => LEN_NAMES[c.len]! },
-  { key: 'bend', label: '휨', value: (c) => BEND_NAMES[c.bend + 2]! },
+const ROWS: { key: keyof AssistChoice; label: () => string; value: (c: AssistChoice) => string }[] = [
+  { key: 'place', label: () => t('assist.place'), value: (c) => placeName(c.place) },
+  { key: 'dir', label: () => t('assist.dir'), value: (c) => `${DIR_ARROWS[c.dir]} ${dirName(c.dir)}` },
+  { key: 'len', label: () => t('assist.len'), value: (c) => lenName(c.len) },
+  { key: 'bend', label: () => t('assist.bend'), value: (c) => bendName(c.bend) },
 ];
 
 /**
@@ -494,36 +496,38 @@ function AssistPanel({
   onClose: () => void;
 }) {
   const c = state.mode === 'choice' ? state.c : null;
+  // 글자 150% 이상이면 줄 이름을 값 위 한 줄로 올린다(320 폭·200%에서 값 칸이 말줄임되지 않게, 리뷰 P2)
+  const stacked = useFontScale() >= 1.5;
   return (
     <View style={[styles.panel, { top }]} testID="assist-panel">
       {c === null && (
-        <Text style={styles.panelNote} accessibilityLiveRegion="polite">
-          {state.mode === 'points' && state.a && !state.b ? '끝점을 눌러 주세요' : '누른 두 점으로 그어요 · 휨만 바꿀 수 있어요'}
-        </Text>
+        <KText style={styles.panelNote} accessibilityLiveRegion="polite">
+          {state.mode === 'points' && state.a && !state.b ? t('assist.endPoint') : t('assist.pointsNote')}
+        </KText>
       )}
       {ROWS.map((r) => {
-        const value = c ? r.value(c) : r.key === 'bend' ? '손잡이' : '—';
+        const value = c ? r.value(c) : r.key === 'bend' ? t('assist.handle') : '—';
         const enabled = c !== null || r.key === 'bend';
         return (
           <View
             key={r.key}
-            style={styles.panelRow}
+            style={[styles.panelRow, stacked && styles.panelRowStacked]}
             accessible
             accessibilityRole="adjustable"
-            accessibilityLabel={r.label}
+            accessibilityLabel={r.label()}
             accessibilityValue={{ text: value }}
-            accessibilityHint="위아래로 쓸어 바꿔요"
+            accessibilityHint={t('assist.hint')}
             accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
             onAccessibilityAction={(e) => onChange(r.key, e.nativeEvent.actionName === 'increment' ? 1 : -1)}
             testID={`assist-${r.key}`}
           >
-            <Text style={styles.panelLabel}>{r.label}</Text>
+            <KText style={[styles.panelLabel, stacked && styles.panelLabelStacked]}>{r.label()}</KText>
             <Pressable onPress={() => onChange(r.key, -1)} disabled={!enabled} style={styles.panelStep} importantForAccessibility="no" accessibilityElementsHidden testID={`assist-${r.key}-prev`}>
               <Text style={styles.assistText}>◀</Text>
             </Pressable>
-            <Text style={[styles.panelValue, !enabled && { opacity: 0.4 }]} numberOfLines={1}>
+            <KText style={[styles.panelValue, !enabled && { opacity: 0.4 }]} numberOfLines={2}>
               {value}
-            </Text>
+            </KText>
             <Pressable onPress={() => onChange(r.key, 1)} disabled={!enabled} style={styles.panelStep} importantForAccessibility="no" accessibilityElementsHidden testID={`assist-${r.key}-next`}>
               <Text style={styles.assistText}>▶</Text>
             </Pressable>
@@ -531,19 +535,19 @@ function AssistPanel({
         );
       })}
       <View style={styles.panelActions}>
-        <Pressable onPress={onClose} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="손으로 긋기로 돌아가기" testID="assist-close">
-          <Text style={styles.assistText}>손으로</Text>
+        <Pressable onPress={onClose} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel={t('assist.close.a11y')} testID="assist-close">
+          <KText style={styles.assistText}>{t('assist.close')}</KText>
         </Pressable>
         <Pressable
           onPress={onCommit}
           disabled={!ready}
           style={[styles.assistBtn, styles.commitBtn, !ready && { opacity: 0.4 }]}
           accessibilityRole="button"
-          accessibilityLabel={c ? `이 획으로 긋기, ${choiceText(c)}` : '이 획으로 긋기'}
+          accessibilityLabel={c ? t('assist.commit.a11y', { choice: choiceText(c) }) : t('assist.commit')}
           accessibilityState={{ disabled: !ready }}
           testID="assist-commit"
         >
-          <Text style={[styles.assistText, { color: PALETTE.day.text }]}>이 획으로 긋기</Text>
+          <KText style={[styles.assistText, { color: PALETTE.day.text }]}>{t('assist.commit')}</KText>
         </Pressable>
       </View>
     </View>
@@ -571,10 +575,12 @@ const styles = StyleSheet.create({
   panel: { position: 'absolute', left: 16, right: 16, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(239,232,218,0.94)', borderWidth: StyleSheet.hairlineWidth, borderColor: PALETTE.day.wash },
   panelNote: { fontFamily: SANS, fontSize: 12, color: PALETTE.day.textSub, paddingVertical: 4 },
   panelRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
-  panelLabel: { width: 40, fontFamily: SANS, fontSize: 13, color: PALETTE.day.textSub },
+  panelRowStacked: { flexWrap: 'wrap', paddingTop: 4 },
+  panelLabelStacked: { width: '100%' },
+  panelLabel: { width: 76, fontFamily: SANS, fontSize: 13, color: PALETTE.day.textSub },
   panelStep: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   panelValue: { flex: 1, textAlign: 'center', fontFamily: SANS, fontSize: 14, color: PALETTE.day.text },
-  panelActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
+  panelActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   commitBtn: { backgroundColor: 'rgba(43,42,40,0.14)' },
   study: { position: 'absolute', top: 14, right: 16, fontSize: 11, color: '#8a8076', fontFamily: SANS, letterSpacing: 1 },
 });

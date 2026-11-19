@@ -5,6 +5,7 @@
 import { readSave, sim, writeSave, clearSave, type KV } from '@mong/core';
 import { useSyncExternalStore } from 'react';
 import { DEFAULT_SOUND_SETTINGS, type SoundSettings } from '../audio/soundMap';
+import { setLanguagePref, type LanguagePref } from '../i18n';
 import { kv as defaultKV } from './storage';
 
 type State = sim.State;
@@ -28,6 +29,8 @@ export interface Meta {
   firstNightShown: boolean;
   /** 개발 메뉴: 소리·햅틱 타이밍 자막(기본 끔) */
   devCaptions: boolean;
+  /** 공방 노트 언어 고르기(D-17): 기기 따름 / 한국어 / English */
+  lang: LanguagePref;
   /** 개발 메뉴 시간 가속(ms). 늘기만 한다(되돌리면 sim이 역행으로 본다) */
   devOffsetMs: number;
 }
@@ -43,6 +46,7 @@ export const DEFAULT_META: Meta = {
   assistStroke: false,
   firstNightShown: false,
   devCaptions: false,
+  lang: 'system',
   devOffsetMs: 0,
 };
 
@@ -89,7 +93,8 @@ function loadMeta(): Meta {
     const raw = kv.getString(META_KEY);
     if (!raw) return DEFAULT_META;
     const m = JSON.parse(raw) as Partial<Meta>;
-    return { ...DEFAULT_META, ...m, sound: { ...DEFAULT_SOUND_SETTINGS, ...(m.sound ?? {}) } };
+    const lang: LanguagePref = m.lang === 'ko' || m.lang === 'en' ? m.lang : 'system';
+    return { ...DEFAULT_META, ...m, lang, sound: { ...DEFAULT_SOUND_SETTINGS, ...(m.sound ?? {}) } };
   } catch {
     return DEFAULT_META;
   }
@@ -97,6 +102,7 @@ function loadMeta(): Meta {
 
 export function setMeta(patch: Partial<Meta>) {
   const meta = { ...snap.meta, ...patch };
+  if (patch.lang !== undefined) setLanguagePref(meta.lang);
   try {
     kv.set(META_KEY, JSON.stringify(meta));
   } catch (e) {
@@ -124,6 +130,7 @@ function apply(step: sim.Step, ev: Event | null, save: boolean) {
 /** 콜드 스타트: 메타·세이브 복원 → 있으면 appForeground(그 시각까지 정산). 없으면 state=null(설치 전 = 인트로) */
 export function boot() {
   const meta = loadMeta();
+  setLanguagePref(meta.lang);
   snap = { ...snap, meta };
   const r = readSave(kv);
   if (r.error) console.warn('[save] 본 세이브 손상 → ', r.source, r.error);
