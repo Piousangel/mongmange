@@ -1,4 +1,4 @@
-import { Canvas } from '@shopify/react-native-skia';
+import { BlurMask, Canvas, Oval } from '@shopify/react-native-skia';
 import {
   COMB_REST,
   PALETTE,
@@ -13,16 +13,19 @@ import {
   serializeSave,
   CURRENT_MESH_VERSION,
   type AttachLevel,
+  type RawPoint,
   type StrokeRecord,
 } from '@mong/core';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
-import { runOnJS, useAnimatedReaction, useDerivedValue, useSharedValue } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useDerivedValue, useSharedValue } from 'react-native-reanimated';
 import { PARAMS, clamp01, clock, ease, easeOut, springStep } from '../render/clock';
 import { NO_GAZE, gazeOffset, type Gaze } from '../render/gaze';
 import { blinkAt, breathAt, wobble } from '../render/idle';
 import { Mongmangi, REST_FRAME, type BodyFrame } from '../render/Mongmangi';
+import { sound } from '../audio/sound';
 import { Caption, ObjectIcons, ObjectLabels, Paper, SANS, layout } from './ui';
 
 const RM = PARAMS.rm;
@@ -41,11 +44,34 @@ function attachProgress(dt: number): number {
  * 긋기 모드(붓을 든 뒤): 손가락을 대고 뗄 때까지가 한 획(최대 6초). 점은 RNGH Pan worklet에서 SharedValue에 쌓이고
  * 그리는 중 리본도 UI 스레드에서 갱신된다(JS 재렌더 없음). 손을 떼면 D-12 부착(회전·이동, L1~L3).
  */
-export function StrokeScreen({ initial }: { initial: number }) {
+/** 앱 흐름에서 쓸 때: 기록은 sim 상태에서 오고, 받아들일지는 sim이 판정한다(하루 한 획 등) */
+export interface StrokeGame {
+  records: StrokeRecord[];
+  /** 정규화 점열(핵 중심·W 단위) → sim 판정. 받아들여졌으면 붙은 기록, 아니면 null */
+  onStroke: (raw: RawPoint[], level: AttachLevel) => StrokeRecord | null;
+  /** 화면에 겹쳐 그릴 것(한 줄 문구 등) */
+  overlay?: ReactNode;
+  /** 붓 사물을 다시 누름 = 붓 내려놓기 */
+  onBrushTap: () => void;
+  /** 씻기 창(5초) 동안 연적이 숨 쉬고, 누르면 씻기 */
+  washOpen: boolean;
+  onJarTap: () => void;
+  /** 대체 입력(버튼으로 긋기) 표시: 스크린리더 또는 노트 접근성 설정일 때만(리뷰 U2) */
+  assist: boolean;
+  /** 오늘 아직 안 그었으면 몽망이 둘레에 옅은 젖은 자국(아트 11절 19~24초, 지시문 대신) */
+  wetMark: boolean;
+}
+
+export function StrokeScreen({ initial, game }: { initial: number; game?: StrokeGame }) {
   const { width, height } = useWindowDimensions();
   const L = layout(width, height);
+  const insets = useSafeAreaInsets();
   const [level, setLevel] = useState<AttachLevel>(PARAMS.attach);
-  const [records, setRecords] = useState<StrokeRecord[]>(() => (PARAMS.pose === 'clumsy' ? day7ClumsyRecords : day7Records)(PARAMS.attach).slice(0, initial));
+  const [localRecords, setRecords] = useState<StrokeRecord[]>(() => (game ? [] : (PARAMS.pose === 'clumsy' ? day7ClumsyRecords : day7Records)(PARAMS.attach).slice(0, initial)));
+  const records = game ? game.records : localRecords;
+  const gameRef = useRef(game);
+  gameRef.current = game;
+  const [assist, setAssist] = useState<{ a: Pt | null; b: Pt | null; bend: number } | null>(null);
   const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
   const [info, setInfo] = useState('');
   const attachedAt = useSharedValue<number[]>(records.map(() => -1e9));
@@ -63,23 +89,37 @@ export function StrokeScreen({ initial }: { initial: number }) {
   const sNow = coreScale(n);
   const sPrev = coreScale(Math.max(n - 1, 0));
 
-  const commit = (pts: Pt[]) => {
+  const commit = (input: Pt[]) => {
+    let pts = input;
     const n0 = nRef.current;
     const s0 = coreScale(n0);
-    if (pts.length < 2) {
+    if (pts.length < 2 && !gameRef.current) {
       live.value = [];
       return;
     }
+    // 앱 흐름: 점 하나(탭)도 sim에 보내 '짧음' 판정을 sim이 내린다
+    if (pts.length === 1) pts = [pts[0]!, { ...pts[0]!, t: pts[0]!.t + 16 }];
     // 정본: 그을 때의 핵 중심·W 단위(D-13)
-    const raw = quantizeRaw(normalizeRaw(pts, L.cx, L.oyFor(s0), L.wpx));
     const lv = levelRef.current;
-    const attach = attachStroke(raw, s0, lv, n0);
-    const rec: StrokeRecord = { raw, attach, drawnAtCoreScale: s0, meshVersion: CURRENT_MESH_VERSION };
+    let rec: StrokeRecord;
+    const game0 = gameRef.current;
+    if (game0) {
+      const got = game0.onStroke(normalizeRaw(pts, L.cx, L.oyFor(s0), L.wpx), lv);
+      if (!got) {
+        live.value = [];
+        return;
+      }
+      rec = got;
+    } else {
+      const q = quantizeRaw(normalizeRaw(pts, L.cx, L.oyFor(s0), L.wpx));
+      rec = { raw: q, attach: attachStroke(q, s0, lv, n0), drawnAtCoreScale: s0, meshVersion: CURRENT_MESH_VERSION };
+    }
+    const { raw, attach } = rec;
     const now = clock.value;
     attachedAt.value = [...attachedAt.value, now];
     lastAttach.value = { at: now, side: Math.sin(attach.theta) >= 0 ? 1 : -1 };
     gaze.value = { x: L.cx + Math.sin(attach.theta) * L.wpx, y: L.oyFor(s0) - Math.cos(attach.theta) * L.wpx * 0.6, at: now, holdMs: 1200 };
-    setRecords((r) => [...r, rec]);
+    if (!game0) setRecords((r) => [...r, rec]);
     setInfo(
       `L${lv} · ${raw.length}점 · ${(raw.at(-1)!.t / 1000).toFixed(2)}s · θ ${((attach.theta * 180) / Math.PI).toFixed(0)}° · 회전 ${((attach.rot * 180) / Math.PI).toFixed(0)}° · 축소 ${attach.scale.toFixed(2)} · 휨 ${attach.bend}`,
     );
@@ -91,10 +131,56 @@ export function StrokeScreen({ initial }: { initial: number }) {
     live.value = [];
   }, [records.length, live]);
 
+  const lastSpeedAt = useSharedValue(0);
+  const brushOn = () => sound.play('brushStroke');
+  const brushOff = () => sound.stop('brushStroke');
+  const brushSpeed = (v: number) => sound.setBrushSpeed(v);
+
+  // 접근성 대체 입력(D-08): 눌러 시작점, 다시 눌러 끝점 → 곡률 손잡이 하나 → 긋기
+  const assistPts = (a: Pt, b: Pt, bend: number): Pt[] => {
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const cx = mx - dy * bend;
+    const cy = my + dx * bend;
+    const out: Pt[] = [];
+    for (let i = 0; i <= 40; i++) {
+      const u = i / 40;
+      const e = u * u * (3 - 2 * u);
+      out.push({ x: (1 - e) * (1 - e) * a.x + 2 * (1 - e) * e * cx + e * e * b.x, y: (1 - e) * (1 - e) * a.y + 2 * (1 - e) * e * cy + e * e * b.y, t: Math.round(u * 900) });
+    }
+    return out;
+  };
+  const assistPress = (x: number, y: number) => {
+    setAssist((st) => {
+      if (!st) return st;
+      const p = { x, y, t: 0 };
+      const next = !st.a || st.b ? { a: p, b: null, bend: 0 } : { ...st, b: p };
+      live.value = next.a && next.b ? assistPts(next.a, next.b, next.bend) : next.a ? [next.a, { ...next.a, x: next.a.x + 1 }] : [];
+      return next;
+    });
+  };
+  const assistBend = (d: number) => {
+    setAssist((st) => {
+      if (!st?.a || !st.b) return st;
+      const next = { ...st, bend: Math.max(-0.6, Math.min(0.6, st.bend + d)) };
+      live.value = assistPts(next.a!, next.b!, next.bend);
+      return next;
+    });
+  };
+  const assistCommit = () => {
+    if (!assist?.a || !assist.b) return;
+    const pts = assistPts(assist.a, assist.b, assist.bend);
+    setAssist({ a: null, b: null, bend: 0 });
+    commit(pts);
+  };
+
   const pan = usePanGesture({
     minDistance: 0,
     onBegin: (e) => {
       'worklet';
+      runOnJS(brushOn)();
       drawing.value = true;
       startT.value = clock.value;
       live.value = [{ x: e.x, y: e.y, t: clock.value }];
@@ -115,9 +201,16 @@ export function StrokeScreen({ initial }: { initial: number }) {
         return arr;
       });
       gaze.value = { x: e.x, y: e.y, at: t - 200, holdMs: 1e9 };
+      // 붓 소리 속도 연동: 50ms마다 한 번 JS로
+      if (last && t - lastSpeedAt.value > 50) {
+        const dt = Math.max(1, t - last.t);
+        lastSpeedAt.value = t;
+        runOnJS(brushSpeed)((Math.hypot(last.x - e.x, last.y - e.y) / dt) * 1000);
+      }
     },
     onFinalize: () => {
       'worklet';
+      runOnJS(brushOff)();
       if (!drawing.value) return;
       drawing.value = false;
       gaze.value = { ...gaze.value, at: clock.value - 200, holdMs: 0 };
@@ -231,14 +324,88 @@ export function StrokeScreen({ initial }: { initial: number }) {
         <View style={StyleSheet.absoluteFill} testID="stroke-surface">
           <Canvas style={StyleSheet.absoluteFill} opaque>
             <Paper width={width} height={height} light={light} />
+            {game?.wetMark && (
+              <Oval x={L.cx - 1.6 * L.wpx} y={L.groundY - 0.75 * L.wpx * sNow} width={3.2 * L.wpx} height={1.1 * L.wpx * sNow} color={PALETTE.day.wash} opacity={0.12}>
+                <BlurMask blur={14} style="normal" />
+              </Oval>
+            )}
             <Mongmangi frame={frame} records={records} live={live} mode={PARAMS.body} grammar={grammar} />
             <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={halfDim} />
           </Canvas>
           <ObjectLabels width={width} y={L.objectsY} color={PALETTE.day.textSub} labels={labels} />
-          <Caption text={caption} color={PALETTE.day.textSub} />
+          {!game && <Caption text={caption} color={PALETTE.day.textSub} />}
         </View>
       </GestureDetector>
-      {!clean && (
+      {assist !== null && (
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          accessibilityLabel="획 시작점과 끝점 고르기"
+          accessibilityHint="한 번 눌러 시작점, 다시 눌러 끝점을 고릅니다"
+          onPress={(e) => assistPress(e.nativeEvent.locationX, e.nativeEvent.locationY)}
+        />
+      )}
+      {game && (
+        <>
+          <Pressable
+            testID="brush-down"
+            style={[styles.objHit, { left: width * 0.2 - 40, top: L.objectsY - 32 }]}
+            onPress={game.onBrushTap}
+            accessibilityRole="button"
+            accessibilityLabel="붓 내려놓기"
+          />
+          <Pressable
+            testID="wash"
+            disabled={!game.washOpen}
+            style={[styles.objHit, { left: width * 0.8 - 40, top: L.objectsY - 32 }]}
+            onPress={game.onJarTap}
+            accessibilityRole="button"
+            accessibilityLabel={game.washOpen ? '연적, 물로 씻기, 방금 그은 획을 지웁니다' : '연적'}
+            accessibilityState={{ disabled: !game.washOpen }}
+          >
+            {game.washOpen && <JarBreath />}
+          </Pressable>
+        </>
+      )}
+      {game?.assist && (
+        <View style={[styles.assistBar, { top: insets.top + 12 }]} pointerEvents="box-none">
+          {assist === null ? (
+            <Pressable onPress={() => setAssist({ a: null, b: null, bend: 0 })} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="버튼으로 긋기">
+              <Text style={styles.assistText}>버튼으로 긋기</Text>
+            </Pressable>
+          ) : (
+            <>
+              <Pressable onPress={() => assistBend(-0.15)} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="왼쪽으로 휘기">
+                <Text style={styles.assistText}>휘기 ◀</Text>
+              </Pressable>
+              <Pressable onPress={() => assistBend(0.15)} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="오른쪽으로 휘기">
+                <Text style={styles.assistText}>▶ 휘기</Text>
+              </Pressable>
+              <Pressable
+                onPress={assistCommit}
+                disabled={!assist.a || !assist.b}
+                style={[styles.assistBtn, !(assist.a && assist.b) && { opacity: 0.4 }]}
+                accessibilityRole="button"
+                accessibilityLabel="이 획으로 긋기"
+              >
+                <Text style={styles.assistText}>긋기</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setAssist(null);
+                  live.value = [];
+                }}
+                style={styles.assistBtn}
+                accessibilityRole="button"
+                accessibilityLabel="손으로 긋기로 돌아가기"
+              >
+                <Text style={styles.assistText}>손으로</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      )}
+      {game?.overlay}
+      {!clean && !game && (
         <View style={styles.dev}>
           {([1, 2, 3] as const).map((l) => (
             <Pressable key={l} onPress={() => setLevel(l)} style={[styles.btn, level === l && styles.on]}>
@@ -264,7 +431,7 @@ export function StrokeScreen({ initial }: { initial: number }) {
           L{level}
         </Text>
       )}
-      {!clean && info !== '' && (
+      {!clean && !game && info !== '' && (
         <Text style={styles.info} pointerEvents="none">
           {info}
         </Text>
@@ -273,12 +440,23 @@ export function StrokeScreen({ initial }: { initial: number }) {
   );
 }
 
+/** 씻기 창 동안 연적이 숨 쉼(1.2초 주기, 담묵 고리) */
+function JarBreath() {
+  const st = useAnimatedStyle(() => ({ opacity: PARAMS.rm ? 0.5 : 0.25 + 0.35 * (0.5 + 0.5 * Math.sin((clock.value / 1200) * Math.PI * 2)) }));
+  return <Animated.View pointerEvents="none" style={[styles.jarRing, st]} />;
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  objHit: { position: 'absolute', width: 80, height: 72, alignItems: 'center' },
+  jarRing: { marginTop: 6, width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: PALETTE.day.textSub },
   dev: { position: 'absolute', top: 8, left: 8, flexDirection: 'row', gap: 4 },
   btn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.25)' },
   on: { backgroundColor: 'rgba(0,0,0,0.6)' },
   btnText: { color: '#fff', fontSize: 11 },
   info: { position: 'absolute', top: 40, left: 10, right: 10, fontSize: 10, color: '#7a7066', fontFamily: SANS },
+  assistBar: { position: 'absolute', top: 54, right: 12, flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '70%' },
+  assistBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(43,42,40,0.08)' },
+  assistText: { fontFamily: SANS, fontSize: 13, color: PALETTE.day.textSub },
   study: { position: 'absolute', top: 14, right: 16, fontSize: 11, color: '#8a8076', fontFamily: SANS, letterSpacing: 1 },
 });

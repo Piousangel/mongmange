@@ -1,0 +1,34 @@
+# 꿈 인화 카드 v1 — 문법·구현·혹평
+
+- 2026-11-20 · 아트 디렉터 + 렌더 · 기준: 아트 바이블 v1.2.1, 05a(채택)·05b(일곱 날 점만), 시스템 2.5·2.6·5절, sim/dream.ts
+- 산출물: grid-10x3.png(05a 기준 + 모티프 10 × 성향 3), cards/*.png(공유 함수 출력 1080×1350, 9:16 4장), screen-component-moon.png
+
+## 1. 문법
+간밤 획이 물에 풀려 한지에 찍힌 한 장(스미나가시). 넓이를 보존하는 방울 사상(Jaffer & Lu)을 픽셀마다 역으로 되짚는다.
+- ① 동심 고리(먼저 떨군 방울이 바깥, 금박 실선 2줄) — boldness: 고리 수·농담·회청→흑
+- ② 모티프 형상(물 위 조작만) — closeness: 다른 방울, curiosity: 뻗음
+- ③ 몽망이 실제 획(D-13 점열) 빗질 — 획 속도 → 끄는 세기
+- ④ 결(숨 2~3번 + 소용돌이) — tempo: 너울/잔물결
+- ⑤ 빈 자리: 감은 눈 몽망이
+- 테두리: 밤 물 위 손뜬 한지, 세로 "몽망이·이레째", 아침 문장, 일곱 날 점, 몽망이 실루엣 낙관
+- 모티프 10: 이불(누빔), 찻잔(위에서 본 잔+손잡이), 창가의 손(맞댄 방울 4개 창살), 찻잔 둘, 산(능선 들어올림), 바다(몽망이 아래 물띠), 별(먹점·금점), 손잡고 본 바다, 비(끌린 먹점), 달(큰 맑은 방울+금박 테)
+- 결정성: 시드 FNV-1a(카드 필드 + 획 점열·부착), Math.random·시각 없음. 같은 입력 PNG 바이트 동일.
+
+## 2. 구현
+- core `visual/dreamCard.ts`: dreamCardSeed, buildDreamScene, dreamCardLayout('4:5'|'9:16'), DREAM_LIMITS / test `dream-card.test.ts`(결정성, 시드 변화, 상한·구별)
+- mobile `render/dreamCard/`: marble.ts(Shader로만), DreamCard.tsx, renderImage(.web).tsx, DreamCardPreview.tsx / App.tsx 라우트 2줄 / scripts/dream-card-capture.mjs
+- 공유: `renderDreamCardImage(input, { aspect, width=1080 }) → Promise<{width,height,mime,base64}>`
+- 통합: MorningScreen의 DreamCardArt를 `<DreamCard card strokes labels width />`로 교체(PM 통합 때)
+
+## 3. 혹평
+1. 배경화면처럼 보이나: 대부분 아님(여백 위 판화). 05a의 층 밀도에는 못 미침, 잔물결(c)은 찢긴 종이처럼 보일 수 있음.
+2. 정체성: 몽망이·낙관·점 줄·세로 이름으로 드러남. 빈 자리 + 고리가 눈동자·과녁으로 읽힘(찻잔, 별·비 c가 심함). 획 재해석 층이 거의 안 보임.
+3. 10개 구별: 산·바다·이불·창·달·찻잔·별은 실루엣만으로 구별. 비가 가장 약함, 바다/손잡고 본 바다, 찻잔/찻잔 둘이 비슷.
+4. 비율: 4:5 좋음. 9:16은 인화가 작아 print.r 0.38→0.45 필요.
+5. 영어 이탤릭은 웹 대체 글꼴.
+
+## 4. 다음
+실기기(네이티브 내보내기, 셰이더 비용, uniform 약 216 vec4 — 일부 GPU 상한 256), 화면 카드 Picture 캐시, 비 재설계, 눈동자 읽힘 완화, 9:16 확대, 획 층 금박 선 가시화, expo-file-system·sharing 연결.
+
+## 5. 검증
+pnpm typecheck 통과, pnpm test core 119·mobile 25 통과, 캡처 콘솔 오류 0, 결정성 true.

@@ -28,6 +28,23 @@
       "eas": {
         "projectId": "3f2eff79-1c05-4259-85f0-bc6a59b722de"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#2B2A28"
+        }
+      ]
+    ]
   }
 }

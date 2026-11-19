@@ -35,9 +35,10 @@
 
 | 글꼴 | 라이선스 | 상태 |
 |---|---|---|
-| 본명조(Noto Serif KR) | SIL OFL 1.1 | 후보, 아직 번들 안 함 |
-| Cormorant Garamond | SIL OFL 1.1 | 후보, 아직 번들 안 함 |
-| Pretendard | SIL OFL 1.1 | 후보, 아직 번들 안 함 |
+| **Gowun Batang** 400 (명조, 본문·제목·시 한 줄) | SIL OFL 1.1 | **번들(11-20 앱 흐름 v1.1)**. 출처 npm `@expo-google-fonts/gowun-batang@0.4.1`의 `400Regular/GowunBatang_400Regular.ttf`(8.4MB, Google Fonts 배포본). 원문 `node_modules/@expo-google-fonts/gowun-batang/LICENSE_FONT`. 서브셋은 아직(용량 줄이기 할 일) |
+| **Pretendard** Regular (UI 고딕) | SIL OFL 1.1 | **번들(11-20)**. 출처 npm `pretendard@1.3.9`의 `dist/public/static/Pretendard-Regular.otf`(1.6MB). 원문은 패키지 `LICENSE` |
+| 본명조(Noto Serif KR) | SIL OFL 1.1 | 후보(Gowun Batang으로 대체, 미번들) |
+| Cormorant Garamond | SIL OFL 1.1 | 후보, 아직 번들 안 함(영어판) |
 
 번들할 때 OFL 원문을 앱 '오픈소스 라이선스' 화면과 저장소에 함께 넣는다.
 
@@ -52,6 +53,7 @@
 - 사람 허밍 녹음으로 바꿀 때는 새 행을 만든다. 녹음자의 **서면 동의**(상업 이용, 피치·시간 변형·편집 허용, 기한·지역 무제한, 권리 양도 또는 독점 이용 허락)를 받고, 외주면 계약서에 같은 조항을 넣는다.
 
 ## 5. 코드 의존성
+- 11-20 앱 흐름에서 추가(모두 `npx expo install`, SDK 58): react-native-mmkv 4.3.2(MIT), react-native-nitro-modules 0.37.2(MIT), expo-notifications·expo-audio·expo-haptics·expo-font(MIT), react-native-safe-area-context 5.11.1(MIT). 개발용 vitest(MIT). 글꼴 패키지 두 개는 3절.
 - npm 의존성 라이선스는 첫 EAS 빌드 전에 `license-checker` 등으로 한 번 뽑아 이 절에 요약한다(GPL 계열이 앱 번들에 들어오지 않는지).
 
 ## 할 일

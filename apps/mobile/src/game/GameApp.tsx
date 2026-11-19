@@ -1,0 +1,438 @@
+// 하루를 플레이하는 앱 흐름(MVP): 첫 실행 인트로 → 낮 홈(붓·벼루·연적) → 한 획 → 재우기 → 밤 → 아침 현상.
+// 화면은 sim 상태에서 고르고, 손이 한 일은 모두 sim 이벤트로 보낸다. 효과(effects)는 소리·햅틱·한 줄 문구·알림으로 나눈다.
+import { PALETTE, coreScale, sim, type AttachLevel, type RawPoint, type StrokeRecord } from '@mong/core';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, AppState, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { sound, useSoundSettings } from '../audio/sound';
+import { GameHome, type RevealStage } from '../screens/GameHome';
+import { IntroScreen, type IntroBeat } from '../screens/IntroScreen';
+import { MorningScreen } from '../screens/MorningScreen';
+import { NoteSheet } from '../screens/NoteSheet';
+import { StrokeScreen } from '../screens/StrokeScreen';
+import { SANS, SERIF, layout, styles as ui } from '../screens/ui';
+import { KText, track } from '../ui/type';
+import { DevPanel } from './DevPanel';
+import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
+import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, onEffects, setMeta, tickNow, useGame } from './store';
+import { REJECT_TEXT } from './text';
+
+const TICK_MS = 20_000;
+/** 획을 받은 뒤 낮 홈으로 돌아가기까지(씻기 창 + 여유) */
+const STROKE_RETURN_MS = sim.WASH_WINDOW_MS + 600;
+/** 재우기 뒤 알림 사전 문구: 조수(2400ms) + 첫 밤 안심 문구(3400ms)가 끝난 다음 */
+const NOTIF_PROMPT_DELAY_MS = 2400 + 3600;
+const HOLD_MIN_MS = sim.LEDGER.holdMinMs;
+const INTRO_BEAT_SOUND: Record<IntroBeat, Parameters<typeof sound.play>[0]> = {
+  air: 'paperAir',
+  drop: 'inkDropLand',
+  wait: 'mongWait',
+  open: 'firstEyeOpen',
+  joy: 'mongJoy',
+  pet: 'pet',
+};
+
+let booted = false;
+function ensureBoot() {
+  if (booted) return;
+  booted = true;
+  // 세이브가 없으면 설치 전(인트로). 설치 = 첫 탭 순간. 설치됨의 판정은 세이브 하나로만(리뷰 C7)
+  boot();
+}
+
+type Kind = 'intro' | 'morning' | 'stroke' | 'day' | 'night';
+
+/** 지금 알림을 예약할 시각(sim이 깨는 시각을 정한다). 개발 메뉴 시간 오프셋은 실제 시계로 되돌린다 */
+function wakeAtReal(st: sim.State) {
+  return sim.wakeableAt(st) - getSnapshot().meta.devOffsetMs;
+}
+
+export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
+  ensureBoot();
+  const snap = useGame();
+  const { state, meta } = snap;
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const L = layout(width, height);
+  const [mode, setMode] = useState<'home' | 'stroke'>('home');
+  const [introPlaying, setIntroPlaying] = useState(false);
+  const [developed, setDeveloped] = useState<{ card: sim.DreamCard; line: sim.MorningLine } | null>(null);
+  const [line, setLine] = useState('');
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [nowT, setNowT] = useState(() => now());
+  const [washOpen, setWashOpen] = useState(false);
+  const washOpenRef = useRef(false);
+  washOpenRef.current = washOpen;
+  const [strokeKey, setStrokeKey] = useState(0);
+  const [notifPrompt, setNotifPrompt] = useState(false);
+  const [screenReader, setScreenReader] = useState(false);
+  const lineTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const returnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useSoundSettings(meta.sound);
+
+  const flash = useCallback((text: string, ms = 3400) => {
+    if (lineTimer.current) clearTimeout(lineTimer.current);
+    setLine(text);
+    lineTimer.current = setTimeout(() => setLine(''), ms);
+  }, []);
+
+  useEffect(() => {
+    // 웹은 스크린리더 감지가 믿을 수 없어 노트 설정으로만 켠다
+    if (Platform.OS === 'web') return;
+    AccessibilityInfo.isScreenReaderEnabled()
+      .then(setScreenReader)
+      .catch(() => {});
+    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', setScreenReader);
+    return () => sub.remove();
+  }, []);
+
+  // ── 앱 앞/뒤 전환 → sim. 백그라운드는 sim에 알린 뒤 저장(store). 돌아오면 엔진이 환경음을 되살린다 ──
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'active') {
+        goForeground();
+        sound.resume();
+        setNowT(now());
+      } else if (st === 'background') {
+        goBackground();
+        sound.suspend();
+        scheduleForBackground();
+      }
+    });
+    const iv = setInterval(() => {
+      if (AppState.currentState !== 'active' && AppState.currentState !== undefined) return;
+      tickNow();
+      setNowT(now());
+    }, TICK_MS);
+    return () => {
+      sub.remove();
+      clearInterval(iv);
+    };
+  }, []);
+
+  // ── sim 효과 → 소리·문구·알림 ──
+  useEffect(
+    () =>
+      onEffects((effects, ev, st) => {
+        setNowT(now());
+        for (const e of effects) {
+          switch (e.type) {
+            case 'strokeAccepted':
+              sound.play('strokeAttach');
+              setTimeout(() => sound.play('mongJoy'), 900);
+              setWashOpen(true);
+              setTimeout(() => setWashOpen(false), sim.WASH_WINDOW_MS);
+              if (returnTimer.current) clearTimeout(returnTimer.current);
+              returnTimer.current = setTimeout(() => setMode('home'), STROKE_RETURN_MS);
+              if (st.strokesTotal === 1) setTimeout(() => flash('밤이 되면 오늘의 획이 꿈이 돼요', 4000), 1800);
+              break;
+            case 'strokeRejected':
+              flash(e.reason === 'used' && washOpenRef.current ? '연적 물로 씻으면 다시 그을 수 있어요' : REJECT_TEXT[e.reason]);
+              break;
+            case 'strokeWashed':
+              if (returnTimer.current) clearTimeout(returnTimer.current);
+              setWashOpen(false);
+              setStrokeKey((k) => k + 1);
+              flash('물로 씻어 냈어요 · 한 번 더 그을 수 있어요');
+              break;
+            case 'notSleepy':
+              flash('아직 졸리지 않은가 봐요');
+              break;
+            case 'rehydrated':
+              flash('먹이 다시 촉촉해졌어요');
+              break;
+            case 'slept':
+              // 연적으로 재웠을 때만(정산 중 잠에서는 묻지도 예약하지도 않는다, 리뷰 C2)
+              if (ev?.type === 'putToSleep') {
+                sound.play('sleepDrop');
+                onPutToSleep(st);
+              }
+              break;
+            case 'woke':
+              setNotifPrompt(false);
+              if (AppState.currentState === 'active') void cancelMorning();
+              break;
+            case 'cardDeveloped':
+              sound.play('morningLift');
+              setDeveloped({ card: e.card, line: e.line });
+              break;
+            default:
+              break;
+          }
+        }
+      }),
+    [flash],
+  );
+
+  /** 재우기 직후: 권한이 있으면 바로 예약. 처음이면 조수·안심 문구 뒤 앱 안 사전 문구 → (동의하면) OS 권한 창 */
+  const onPutToSleep = (st: sim.State) => {
+    const m = getSnapshot().meta;
+    if (!m.notifEnabled) return;
+    void permission().then((p) => {
+      if (p === 'granted') void scheduleMorning(wakeAtReal(st));
+      else if (p === 'undetermined' && !m.notifAsked) {
+        if (promptTimer.current) clearTimeout(promptTimer.current);
+        promptTimer.current = setTimeout(() => {
+          if (getSnapshot().state?.phase === 'asleep') setNotifPrompt(true);
+        }, NOTIF_PROMPT_DELAY_MS);
+      }
+    });
+  };
+  const answerPrompt = (yes: boolean) => {
+    setNotifPrompt(false);
+    if (!yes) {
+      setMeta({ notifAsked: true, notifEnabled: false });
+      return;
+    }
+    setMeta({ notifAsked: true });
+    void requestPermission().then((p) => {
+      const st = getSnapshot().state;
+      if (p === 'granted' && st?.phase === 'asleep') void scheduleMorning(wakeAtReal(st));
+    });
+  };
+  /** 공방 노트 알림 토글: 끄면 예약 취소, 켜면 권한 확인(영구 거절이면 기기 설정 안내) */
+  const onNotif = (on: boolean) => {
+    setMeta({ notifEnabled: on });
+    if (!on) {
+      void cancelMorning();
+      return;
+    }
+    void permission().then(async (p) => {
+      if (p === 'undetermined') p = await requestPermission();
+      setMeta({ notifAsked: true });
+      if (p === 'denied') {
+        flash('기기 설정에서 알림을 허용해 주세요');
+        openSettings();
+        return;
+      }
+      const st = getSnapshot().state;
+      if (st?.phase === 'asleep') void scheduleMorning(wakeAtReal(st));
+    });
+  };
+
+  const kind: Kind = !state || introPlaying
+    ? 'intro'
+    : developed || (state.phase === 'awake' && state.pendingCard)
+      ? 'morning'
+      : state.phase === 'asleep'
+        ? 'night'
+        : mode === 'stroke'
+          ? 'stroke'
+          : 'day';
+
+  // ── 환경음: 낮 = 종이 공기, 밤·아침 물 = 밤 물소리(조수가 다 찬 2400ms 뒤). 엔진이 원하는 환경음을 기억한다 ──
+  const prevKind = useRef<Kind>('intro');
+  useEffect(() => {
+    const wet = kind === 'night' || (kind === 'morning' && !developed);
+    let t: ReturnType<typeof setTimeout> | null = null;
+    if (wet) {
+      t = setTimeout(
+        () => {
+          sound.stop('paperAir');
+          sound.play('nightAmbience');
+        },
+        prevKind.current === 'day' ? 2400 : 0,
+      );
+    } else if (kind !== 'intro') {
+      sound.stop('nightAmbience');
+      sound.play('paperAir');
+    }
+    prevKind.current = kind;
+    return () => {
+      if (t) clearTimeout(t);
+    };
+  }, [kind, developed]);
+
+  // 첫 밤 안심 문구(한 번): 밤 화면에 들어가면 표시하고 기록
+  const soothe = kind === 'night' && !meta.firstNightShown;
+  useEffect(() => {
+    if (soothe) {
+      const t = setTimeout(() => setMeta({ firstNightShown: true }), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [soothe]);
+
+  // 사물 등장 순서: 단계가 바뀐 뒤 처음 그리는 낮 홈에서만 차례로 나타난다
+  const reveal: RevealStage = state && state.strokesTotal === 0 && state.dayIndex === 0 ? 'first' : 'all';
+  const seenReveal = useRef<RevealStage | null>(null);
+  const animateReveal = kind === 'day' && seenReveal.current !== reveal;
+  useEffect(() => {
+    if (kind === 'day' || kind === 'night') seenReveal.current = reveal;
+  }, [kind, reveal]);
+
+  const toW = (x: number, y: number) => ({ x: (x - L.cx) / L.wpx, y: (y - L.oyFor(coreScale(state?.strokesTotal ?? 0))) / L.wpx });
+
+  let body: ReactNode = null;
+  if (kind === 'intro') {
+    body = (
+      <IntroScreen
+        captions={__DEV__ && meta.devCaptions}
+        hooks={{
+          onBeat: (b) => sound.play(INTRO_BEAT_SOUND[b]),
+          onFirstTap: (x, y) => {
+            setIntroPlaying(true);
+            const lost = getSnapshot().lostSave;
+            if (!getSnapshot().state) install();
+            if (lost) setTimeout(() => flash('전에 키우던 몽망이를 읽지 못했어요 · 원래 기록은 기기에 남겨 두었어요', 6000), 9000);
+            dispatch({ type: 'tap', target: 'body', holdMs: 0, ...toW(x, y) });
+          },
+          onPet: (x, y) => {
+            sound.play('pet');
+            dispatch({ type: 'tap', target: 'body', holdMs: 0, ...toW(x, y) });
+          },
+          onDone: () => {
+            setIntroPlaying(false);
+            flash('오늘의 한 획을 그어 주세요', 4500);
+          },
+        }}
+      />
+    );
+  } else if (!state) {
+    body = null;
+  } else if (kind === 'morning') {
+    body = (
+      <MorningScreen
+        state={state}
+        developed={developed}
+        onDevelop={() => dispatch({ type: 'developCard' })}
+        onDone={() => {
+          setDeveloped(null);
+          setMode('home');
+        }}
+      />
+    );
+  } else if (kind === 'stroke') {
+    const onStroke = (raw: RawPoint[], level: AttachLevel): StrokeRecord | null => {
+      const eff = dispatch({ type: 'stroke', raw, level });
+      if (!eff.some((e) => e.type === 'strokeAccepted')) return null;
+      return getSnapshot().state!.strokes.at(-1) ?? null;
+    };
+    body = (
+      <StrokeScreen
+        key={strokeKey}
+        initial={0}
+        game={{
+          records: state.strokes,
+          onStroke,
+          onBrushTap: () => {
+            if (returnTimer.current) clearTimeout(returnTimer.current);
+            setMode('home');
+          },
+          washOpen,
+          onJarTap: () => dispatch({ type: 'washStroke' }),
+          assist: screenReader || meta.assistStroke,
+          wetMark: !state.ledger.strokeUsed,
+          overlay:
+            line !== '' ? (
+              <KText style={[ui.line, styles.strokeLine, { top: insets.top + height * 0.16 }]} accessibilityLiveRegion="polite" pointerEvents="none">
+                {line}
+              </KText>
+            ) : null,
+        }}
+      />
+    );
+  } else {
+    body = (
+      <GameHome
+        state={state}
+        now={nowT}
+        line={line}
+        listView={meta.listView}
+        soothe={soothe}
+        reveal={reveal}
+        animateReveal={animateReveal}
+        actions={{
+          onBrush: () => setMode('stroke'),
+          onBrushBlocked: () => flash('오늘의 획은 몸에 잘 붙어 있어요 · 내일 아침이면 붓이 다시 젖어요', 4000),
+          onGrindStart: () => sound.play('inkGrind'),
+          onGrindEnd: (ms) => {
+            sound.stop('inkGrind');
+            dispatch({ type: 'grind', durationMs: ms });
+          },
+          onSleep: () => dispatch({ type: 'putToSleep' }),
+          onPet: (x, y, holdMs, moveSpeed) => {
+            sound.stop('rub');
+            if (holdMs < HOLD_MIN_MS) {
+              sound.play('pet');
+              dispatch({ type: 'tap', target: 'body', holdMs, ...toW(x, y) });
+            } else dispatch({ type: 'tap', target: 'body', holdMs, moveSpeed, ...toW(x, y) });
+          },
+          onRubStart: () => sound.play('rub'),
+          onPaper: (x, y) => dispatch({ type: 'tap', target: 'paper', holdMs: 0, ...toW(x, y) }),
+          onNote: () => setNoteOpen(true),
+        }}
+      />
+    );
+  }
+
+  return (
+    <View style={[styles.fill, { backgroundColor: PALETTE.day.bg }]}>
+      {body}
+      {notifPrompt && kind === 'night' && (
+        <View style={[styles.prompt, { bottom: insets.bottom + 28 }]} accessibilityViewIsModal testID="notif-prompt">
+          <KText style={styles.promptText}>아침에 꿈이 떠오르면 알려 줄까요?</KText>
+          <KText style={styles.promptSub}>하루 한 번, 깨는 시각에만 알려요</KText>
+          <View style={styles.promptRow}>
+            <Pressable onPress={() => answerPrompt(false)} style={styles.promptBtn} accessibilityRole="button" accessibilityLabel="괜찮아요" testID="notif-no">
+              <KText style={styles.promptBtnText}>괜찮아요</KText>
+            </Pressable>
+            <Pressable onPress={() => answerPrompt(true)} style={styles.promptBtn} accessibilityRole="button" accessibilityLabel="알려 주세요" testID="notif-yes">
+              <KText style={[styles.promptBtnText, { color: PALETTE.night.text }]}>알려 주세요</KText>
+            </Pressable>
+          </View>
+        </View>
+      )}
+      {kind !== 'intro' && state && (
+        <NoteSheet
+          visible={noteOpen}
+          onClose={() => setNoteOpen(false)}
+          state={state}
+          meta={meta}
+          now={nowT}
+          saveError={snap.saveError}
+          onMeta={setMeta}
+          onNotif={onNotif}
+          onTimes={(b, m) => dispatch({ type: 'setTimes', bedtimeLocalMin: b, morningLocalMin: m })}
+        />
+      )}
+      {__DEV__ && (
+        <DevPanel
+          onSpike={onSpike}
+          onReset={() => {
+            setDeveloped(null);
+            setMode('home');
+            setIntroPlaying(false);
+            seenReveal.current = null;
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
+/** 앱이 뒤로 갈 때: 오늘 밤 자동 잠 → 깨는 시각을 sim으로 투영해 예약(권한이 이미 있을 때만, 묻지 않는다) */
+function scheduleForBackground() {
+  const { state, meta } = getSnapshot();
+  if (!state || !meta.notifEnabled) return;
+  let s = state;
+  if (s.phase === 'awake') {
+    const tr = sim.nextTransition(s);
+    if (!tr || tr.kind !== 'sleep') return;
+    s = sim.tick(s, tr.at + 1).state;
+  }
+  if (s.phase !== 'asleep') return;
+  void scheduleMorning(wakeAtReal(s));
+}
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  strokeLine: { color: PALETTE.day.textSub },
+  prompt: { position: 'absolute', left: 20, right: 20, paddingVertical: 18, paddingHorizontal: 18, borderRadius: 12, backgroundColor: 'rgba(13,17,32,0.82)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(233,226,210,0.35)' },
+  promptText: { fontFamily: SERIF, fontSize: 16, color: PALETTE.night.text, textAlign: 'center', letterSpacing: track.serif(16) },
+  promptSub: { marginTop: 6, fontFamily: SANS, fontSize: 13, color: PALETTE.night.textSub, textAlign: 'center' },
+  promptRow: { marginTop: 12, flexDirection: 'row', justifyContent: 'center', gap: 24 },
+  promptBtn: { minHeight: 44, minWidth: 88, justifyContent: 'center', alignItems: 'center' },
+  promptBtnText: { fontFamily: SANS, fontSize: 15, color: PALETTE.night.textSub },
+});

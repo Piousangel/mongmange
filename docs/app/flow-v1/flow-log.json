@@ -1,0 +1,889 @@
+{
+  "base": "http://localhost:8095",
+  "view": {
+    "width": 390,
+    "height": 844
+  },
+  "steps": [
+    {
+      "name": "01-install-blank",
+      "note": "빈 한지(0~2초) · 글자 없음",
+      "save": null
+    },
+    {
+      "name": "02-ask",
+      "note": "탭 전 새로고침 → 다시 인트로 · 6초 \"만져 볼래요?\"",
+      "save": null
+    },
+    {
+      "name": "03-first-tap-eyes",
+      "note": "첫 탭 = 설치 → 눈이 처음 열림",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 0,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 958,
+        "backup": true
+      }
+    },
+    {
+      "name": "04-joy",
+      "note": "기쁨(열림 + 5.6초)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 0,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 958,
+        "backup": true
+      }
+    },
+    {
+      "name": "05-day-first",
+      "note": "낮 홈 · 붓만 · \"오늘의 한 획을 그어 주세요\"",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 0,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 958,
+        "backup": true
+      }
+    },
+    {
+      "name": "06-stroke-mode",
+      "note": "긋기 모드 · 위쪽 비움 · 젖은 자국",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 0,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 958,
+        "backup": true
+      }
+    },
+    {
+      "name": "07-attached-jar",
+      "note": "부착 + 기쁨 · 연적이 숨 쉼(씻기 5초)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 1961,
+        "backup": true
+      }
+    },
+    {
+      "name": "08-second-in-wash",
+      "note": "씻기 창 안 두 번째 획 → \"연적 물로 씻으면…\"(sim 판정)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 1961,
+        "backup": true
+      }
+    },
+    {
+      "name": "09-reveal-seal",
+      "note": "등장 순서: 낙관·제목",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 1961,
+        "backup": true
+      }
+    },
+    {
+      "name": "10-reveal-ink",
+      "note": "벼루",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 1961,
+        "backup": true
+      }
+    },
+    {
+      "name": "11-reveal-all",
+      "note": "연적까지",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 1961,
+        "backup": true
+      }
+    },
+    {
+      "name": "12-brush-blocked",
+      "note": "오늘 그은 뒤 붓 → 부드러운 거절, 긋기 모드 진입 없음",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 1961,
+        "backup": true
+      }
+    },
+    {
+      "name": "13-rub-grind",
+      "note": "문지르기(holdMs·moveSpeed) + 벼루 2초 → 먹물",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 1966,
+        "holdMs": 1597,
+        "bytes": 2036,
+        "backup": true
+      }
+    },
+    {
+      "name": "14-tide-0",
+      "note": "조수 300ms",
+      "save": {
+        "phase": "asleep",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 1966,
+        "holdMs": 1597,
+        "bytes": 2374,
+        "backup": true
+      }
+    },
+    {
+      "name": "14-tide-1",
+      "note": "조수 900ms",
+      "save": {
+        "phase": "asleep",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 1966,
+        "holdMs": 1597,
+        "bytes": 2374,
+        "backup": true
+      }
+    },
+    {
+      "name": "14-tide-2",
+      "note": "조수 1700ms",
+      "save": {
+        "phase": "asleep",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 1966,
+        "holdMs": 1597,
+        "bytes": 2374,
+        "backup": true
+      }
+    },
+    {
+      "name": "14-tide-3",
+      "note": "조수 2500ms",
+      "save": {
+        "phase": "asleep",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 1966,
+        "holdMs": 1597,
+        "bytes": 2374,
+        "backup": true
+      }
+    },
+    {
+      "name": "15-night-soothe",
+      "note": "첫 밤 안심 문구",
+      "save": {
+        "phase": "asleep",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 1966,
+        "holdMs": 1597,
+        "bytes": 2374,
+        "backup": true
+      }
+    },
+    {
+      "name": "16-notif-prompt",
+      "note": "안심 문구 뒤 앱 안 사전 문구(알림)",
+      "save": {
+        "phase": "asleep",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 1966,
+        "holdMs": 1597,
+        "bytes": 2374,
+        "backup": true
+      }
+    },
+    {
+      "name": "17-night-wake-line",
+      "note": "밤 · \"아직 자고 있어요 · ○시쯤 깨요\"",
+      "save": {
+        "phase": "asleep",
+        "dayIndex": 0,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": false,
+        "strokeUsed": true,
+        "grindMs": 1966,
+        "holdMs": 1597,
+        "bytes": 2374,
+        "backup": true
+      }
+    },
+    {
+      "name": "18-morning-water",
+      "note": "아침 · 물 위 젖은 한지 · 몽망이가 함께 봄",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 0,
+        "pendingCard": true,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2339,
+        "backup": true
+      }
+    },
+    {
+      "name": "19-lift-0",
+      "note": "건져 올린 뒤 300ms(물 빠짐 1600 + 카드 800)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "19-lift-1",
+      "note": "건져 올린 뒤 900ms(물 빠짐 1600 + 카드 800)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "19-lift-2",
+      "note": "건져 올린 뒤 1500ms(물 빠짐 1600 + 카드 800)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "19-lift-3",
+      "note": "건져 올린 뒤 2000ms(물 빠짐 1600 + 카드 800)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "19-lift-4",
+      "note": "건져 올린 뒤 2600ms(물 빠짐 1600 + 카드 800)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "20-dream-card",
+      "note": "인화 카드 + 아침 문장",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "21-day2-home",
+      "note": "이튿날 낮 · 붓 다시 진함",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "22-reload-restored",
+      "note": "새로고침(콜드 스타트) → 인트로 없이 이튿날",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "23-note-sliding",
+      "note": "노트 올라오는 중 · 배경은 제자리 페이드",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "24-note",
+      "note": "공방 노트 · 먹·한지 토글",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2257,
+        "backup": true
+      }
+    },
+    {
+      "name": "25-meta-corrupt",
+      "note": "메타 손상 후 새로고침 → 인트로 없이 낮 홈(설치 판정 = 세이브)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "pendingCard": false,
+        "strokeUsed": false,
+        "grindMs": 0,
+        "holdMs": 0,
+        "bytes": 2261,
+        "backup": true
+      }
+    },
+    {
+      "name": "aria",
+      "a11y": [
+        "몽망이, 이튿날, 졸림",
+        "붓, 오늘의 한 획 긋기",
+        "벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다",
+        "연적, 물 한 방울, 몽망이가 졸려 해요",
+        "몽망이·이튿날",
+        "공방 노트",
+        "개발 메뉴"
+      ]
+    }
+  ],
+  "gate": [
+    {
+      "tag": "w320-fs100",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs100",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs100",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs100",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs100",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs150",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs150",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs150",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs150",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs150",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs200",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs200",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs200",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs200",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w320-fs200",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs100",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs100",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs100",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs100",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs100",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs150",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs150",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs150",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs150",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs150",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs200",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs200",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs200",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs200",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w360-fs200",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs100",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs100",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs100",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs100",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs100",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs150",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs150",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs150",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs150",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs150",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs200",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs200",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs200",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs200",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w390-fs200",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs100",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs100",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs100",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs100",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs100",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs150",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs150",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs150",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs150",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs150",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs200",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs200",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs200",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs200",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w412-fs200",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs100",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs100",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs100",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs100",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs100",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs150",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs150",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs150",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs150",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs150",
+      "scr": "morning",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs200",
+      "scr": "day",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs200",
+      "scr": "stroke",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs200",
+      "scr": "note",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs200",
+      "scr": "night",
+      "overlap": false
+    },
+    {
+      "tag": "w430-fs200",
+      "scr": "morning",
+      "overlap": false
+    }
+  ],
+  "errors": []
+}

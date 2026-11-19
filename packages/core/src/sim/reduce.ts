@@ -236,13 +236,22 @@ function care(s: State, at: Millis, effects: Effect[]): State {
   return { ...s, lastCareAt: at };
 }
 
+/** 지금 붓을 들 수 있는가(화면이 긋기 모드에 들어가기 전에 묻는 선택자). null = 그을 수 있음 */
+export function strokeBlock(s: State): 'used' | 'asleep' | null {
+  if (s.phase === 'asleep') return 'asleep';
+  if (s.ledger.strokeUsed) return 'used';
+  return null;
+}
+
+/** 오늘 간 먹 농도 0..1(벼루 먹물 표시, 획의 grind) */
+export function grindLevel(s: State): number {
+  return Math.min(1, s.ledger.grindMs / LEDGER.grindFullMs);
+}
+
 function applyStroke(s: State, e: Extract<Event, { type: 'stroke' }>, at: Millis, effects: Effect[]): State {
-  if (s.phase === 'asleep') {
-    effects.push({ type: 'strokeRejected', reason: 'asleep' });
-    return s;
-  }
-  if (s.ledger.strokeUsed) {
-    effects.push({ type: 'strokeRejected', reason: 'used' });
+  const block = strokeBlock(s);
+  if (block) {
+    effects.push({ type: 'strokeRejected', reason: block });
     return s;
   }
   if (e.raw.length < 2 || polylineLength(e.raw) < LEDGER.minStrokeLenW) {
@@ -258,7 +267,7 @@ function applyStroke(s: State, e: Extract<Event, { type: 'stroke' }>, at: Millis
     id,
     day: s.dayIndex,
     createdAt: at,
-    grind: Math.min(1, s.ledger.grindMs / LEDGER.grindFullMs),
+    grind: grindLevel(s),
     style: styleFor(s.temperament),
     pinned: n === 0 ? ('first' as const) : null,
   };

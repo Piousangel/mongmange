@@ -18,7 +18,26 @@ const NEVER = 1e12;
  * 첫 30초 중 0~16초(아트 11절): 빈 한지 → 방울 낙하 → 숨 → 빗 돋음 → "만져 볼래요?" → 첫 탭에 눈이 처음 열림
  * → 깜빡 → 탭한 자리 보기 → 정면 → 기쁨. 인터럽트 규칙: 첫 탭이 오면 그 순간이 0이 된다(리뷰 I9).
  */
-export function IntroScreen() {
+export type IntroBeat = 'air' | 'drop' | 'wait' | 'open' | 'joy' | 'pet';
+
+/** 앱 흐름에서 쓸 때의 고리. 없으면 스파이크 화면(?screen=intro) 그대로 */
+export interface IntroHooks {
+  /** 소리·햅틱 비트(시계 기준으로 한 번씩) */
+  onBeat?: (b: IntroBeat) => void;
+  /** 첫 탭(눈이 처음 열리는 순간). 탭 좌표(화면 px) */
+  onFirstTap?: (x: number, y: number) => void;
+  /** 눈 열림 뒤 연타 = 쓰다듬기 */
+  onPet?: (x: number, y: number) => void;
+  /** 기쁨까지 끝남(열림 + 7초) → 낮 홈으로 */
+  onDone?: () => void;
+}
+
+/** captions = 개발용 소리·햅틱 자막(기본 끔, 개발 메뉴 또는 ?cap=1). art-bible 11절 0~2초는 '글자 없음' */
+export function IntroScreen({ hooks, captions = PARAMS.cap }: { hooks?: IntroHooks; captions?: boolean } = {}) {
+  const fire = (b: IntroBeat) => hooks?.onBeat?.(b);
+  const first = (x: number, y: number) => hooks?.onFirstTap?.(x, y);
+  const pet = (x: number, y: number) => hooks?.onPet?.(x, y);
+  const done = () => hooks?.onDone?.();
   const { width, height } = useWindowDimensions();
   const L = layout(width, height);
   const oy = L.oyFor(1);
@@ -44,23 +63,33 @@ export function IntroScreen() {
 
   const landAt = useDerivedValue(() => dropAt.value + (RM ? 300 : 400));
 
-  const tap = useTapGesture({
-    onActivate: (e) => {
-      'worklet';
-      const t = clock.value;
-      lastTap.value = { x: e.x, y: e.y, at: t };
+  // 탭 처리(제스처 worklet과 스크린리더 동작이 같이 쓴다)
+  const handleTap = (ex: number, ey: number, onUI: boolean) => {
+    'worklet';
+    const e = { x: ex, y: ey };
+    const t = clock.value;
+    lastTap.value = { x: e.x, y: e.y, at: t };
       if (openAt.value < NEVER) {
         // 눈 열림 뒤 연타: 비트를 앞당기지 않고 쓰다듬기 반응 + 그쪽 보기만
         petAt.value = t;
         gaze.value = { x: e.x, y: e.y, at: t, holdMs: 1500 };
+        if (onUI) runOnJS(pet)(e.x, e.y);
+        else pet(e.x, e.y);
         return;
       }
+      if (onUI) runOnJS(first)(e.x, e.y);
+      else first(e.x, e.y);
       if (t < dropAt.value) {
         // 빈 한지에 탭: 탭한 자리 위에서 바로 떨어진다(가로 가운데 ±20%로 보정)
         dropAt.value = t;
         dropX.value = Math.min(Math.max(e.x, width * 0.3), width * 0.7);
       }
       openAt.value = Math.max(t, dropAt.value + (RM ? 300 : 400));
+  };
+  const tap = useTapGesture({
+    onActivate: (e) => {
+      'worklet';
+      handleTap(e.x, e.y, true);
     },
   });
 
@@ -199,6 +228,29 @@ export function IntroScreen() {
     },
   );
 
+  // 소리 비트(자막과 같은 시각표). 같은 비트는 한 번만
+  useAnimatedReaction(
+    () => {
+      const t = clock.value;
+      const land = landAt.value;
+      const open = openAt.value;
+      const t00 = t0.value;
+      if (t00 < 0) return '';
+      if (open < NEVER && t >= open + 7000) return 'done';
+      if (t >= open + 5000) return 'joy';
+      if (t >= open) return 'open';
+      if (t >= t00 + 9000) return 'wait2';
+      if (t >= t00 + 6000) return 'wait';
+      if (t >= land) return 'drop';
+      return 'air';
+    },
+    (c, prev) => {
+      if (c === prev || c === '') return;
+      if (c === 'done') runOnJS(done)();
+      else runOnJS(fire)((c === 'wait2' ? 'wait' : c) as IntroBeat);
+    },
+  );
+
   const askStyle = useAnimatedStyle(() => {
     const t = clock.value;
     const show = openAt.value >= NEVER && t >= t0.value + 6000 ? clamp01((t - t0.value - 6000) / 400) : 0;
@@ -207,7 +259,16 @@ export function IntroScreen() {
 
   return (
     <GestureDetector gesture={tap}>
-      <View style={styles.root} testID="intro">
+      <View
+        style={styles.root}
+        testID="intro"
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="먹 한 방울"
+        accessibilityHint="두 번 눌러 만져 보세요"
+        accessibilityActions={[{ name: 'activate', label: '만지기' }]}
+        onAccessibilityAction={() => handleTap(L.cx, oy, false)}
+      >
         <Canvas style={StyleSheet.absoluteFill} opaque>
           <Paper width={width} height={height} />
           <Mongmangi frame={frame} records={[]} mode={PARAMS.body} grammar={GRAMMAR} />
@@ -215,7 +276,7 @@ export function IntroScreen() {
         <Animated.Text style={[ui.line, { color: PALETTE.day.textSub, fontFamily: SERIF, fontSize: 13 }, askStyle]} pointerEvents="none">
           만져 볼래요?
         </Animated.Text>
-        <Caption text={caption} color={PALETTE.day.textSub} />
+        {captions && <Caption text={caption} color={PALETTE.day.textSub} />}
       </View>
     </GestureDetector>
   );

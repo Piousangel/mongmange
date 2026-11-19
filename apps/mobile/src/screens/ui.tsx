@@ -1,17 +1,11 @@
-import { Fill, Group, Path, Shader, Skia } from '@shopify/react-native-skia';
+import { Fill, Group, Path, Shader, Skia, type SkPath } from '@shopify/react-native-skia';
 import { CORE, PALETTE } from '@mong/core';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { paperFx } from '../render/shaders';
 
-export const SERIF = Platform.select({
-  web: '"AppleMyungjo", "Noto Serif KR", "Nanum Myeongjo", serif',
-  default: undefined,
-});
-export const SANS = Platform.select({
-  web: '"Pretendard", "Apple SD Gothic Neo", system-ui, sans-serif',
-  default: undefined,
-});
+import { KText, SANS, SERIF, track, useFontScale } from '../ui/type';
+export { SANS, SERIF } from '../ui/type';
 
 /** 화면 배치(아트 7-1·7-3): W = 화면 폭 18%, 몽망이 중심 세로 62%, 사물 3개는 아래 22% 띠 */
 export function layout(width: number, height: number) {
@@ -44,11 +38,12 @@ export function Paper({ width, height, light }: { width: number; height: number;
 const brush = Skia.Path.MakeFromSVGString('M5 29 L27 9 M27 9 L31 5.5 L29.5 10.5 Z M3 30 Q8 27 13 30')!;
 const brushFill = Skia.Path.MakeFromSVGString('M27 9 L31 5.5 L29.5 10.5 Z')!;
 const ink = Skia.Path.MakeFromSVGString('M5 12 Q5 8 9 8 L27 8 Q31 8 31 12 L31 25 Q31 29 27 29 L9 29 Q5 29 5 25 Z')!;
-const inkPool = Skia.Path.MakeFromSVGString('M11 13 L25 13 Q27 13 27 15 L27 19 Q27 21 25 21 L11 21 Q9 21 9 19 L9 15 Q9 13 11 13 Z')!;
+export const inkPool = Skia.Path.MakeFromSVGString('M11 13 L25 13 Q27 13 27 15 L27 19 Q27 21 25 21 L11 21 Q9 21 9 19 L9 15 Q9 13 11 13 Z')!;
 const jar = Skia.Path.MakeFromSVGString('M15 9 L21 9 M15.5 9 Q15 12 11 14 Q6 17 7 23 Q8.5 30 18 30 Q27.5 30 29 23 Q30 17 25 14 Q21 12 20.5 9')!;
 const jarFill = Skia.Path.MakeFromSVGString('M9 22 Q10 28 18 28 Q26 28 27 22 Z')!;
 
-export function ObjectIcons({ width, y, color, dim }: { width: number; y: number; color: string; dim?: SharedValue<number> }) {
+/** 사물 선 아이콘 3개. alpha = 아이콘별 불투명도(등장 순서·잠김), 없으면 모두 1 */
+export function ObjectIcons({ width, y, color, dim, alpha }: { width: number; y: number; color: string; dim?: SharedValue<number>; alpha?: SharedValue<number[]> }) {
   const xs = [width * 0.2, width * 0.5, width * 0.8];
   const icons = [
     [brush, brushFill],
@@ -59,11 +54,18 @@ export function ObjectIcons({ width, y, color, dim }: { width: number; y: number
   return (
     <Group opacity={op}>
       {icons.map(([line, fill], i) => (
-        <Group key={i} transform={[{ translateX: xs[i]! - 18 }, { translateY: y - 18 }]}>
-          <Path path={fill} color={PALETTE.day.wash} opacity={0.55} />
-          <Path path={line} color={color} style="stroke" strokeWidth={1.5} strokeCap="round" strokeJoin="round" />
-        </Group>
+        <ObjectIcon key={i} i={i} x={xs[i]!} y={y} line={line} fill={fill} color={color} alpha={alpha} />
       ))}
+    </Group>
+  );
+}
+
+function ObjectIcon({ i, x, y, line, fill, color, alpha }: { i: number; x: number; y: number; line: SkPath; fill: SkPath; color: string; alpha?: SharedValue<number[]> }) {
+  const a = useDerivedValue(() => alpha?.value[i] ?? 1);
+  return (
+    <Group transform={[{ translateX: x - 18 }, { translateY: y - 18 }]} opacity={a}>
+      <Path path={fill} color={PALETTE.day.wash} opacity={0.55} />
+      <Path path={line} color={color} style="stroke" strokeWidth={1.5} strokeCap="round" strokeJoin="round" />
     </Group>
   );
 }
@@ -81,12 +83,21 @@ export function ObjectLabels({ width, y, color, labels = ['한 획', '먹 갈기
 }
 
 /** 세로 명조 제목(8자 이하, 글자 단위 줄바꿈) + 주사 낙관(오른쪽 위, 화면에서 유일한 강조색) */
-export function VerticalTitle({ text, color, opacity = 1, seal = true }: { text: string; color: string; opacity?: number; seal?: boolean }) {
+export function VerticalTitle({ text, color, opacity = 1, seal = true, top }: { text: string; color: string; opacity?: number; seal?: boolean; top?: number }) {
+  const fs = useFontScale();
+  // 글자 150% 이상이면 가로쓰기(아트 6절, D-08)
+  if (fs >= 1.5) {
+    return (
+      <KText style={[styles.line, { top: top ?? '16%', color, opacity, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header">
+        {text}
+      </KText>
+    );
+  }
   return (
     <>
-      <View style={[styles.vtitle, { opacity }]} pointerEvents="none">
+      <View style={[styles.vtitle, { opacity }, top !== undefined && { top }]} pointerEvents="none" accessible accessibilityRole="header" accessibilityLabel={text}>
         {Array.from(text).map((ch, i) => (
-          <Text key={i} style={[styles.vchar, { color }]}>
+          <Text key={i} style={[styles.vchar, { color }]} maxFontSizeMultiplier={1.4}>
             {ch}
           </Text>
         ))}
@@ -111,9 +122,9 @@ export function Caption({ text, color }: { text: string; color: string }) {
 }
 
 export const styles = StyleSheet.create({
-  label: { position: 'absolute', width: 100, textAlign: 'center', fontFamily: SANS, fontSize: 13, letterSpacing: 1 },
+  label: { position: 'absolute', width: 100, textAlign: 'center', fontFamily: SANS, fontSize: 13, letterSpacing: track.sans },
   vtitle: { position: 'absolute', top: '16%', alignSelf: 'center', alignItems: 'center' },
-  vchar: { fontFamily: SERIF, fontSize: 17, lineHeight: 22, letterSpacing: 1.4 },
+  vchar: { fontFamily: SERIF, fontSize: 17, lineHeight: 22 },
   seal: {
     position: 'absolute',
     top: 54,
@@ -127,5 +138,5 @@ export const styles = StyleSheet.create({
   },
   sealText: { color: '#F4E9DC', fontSize: 13, fontFamily: SERIF },
   caption: { position: 'absolute', bottom: 10, left: 0, right: 0, textAlign: 'center', fontFamily: SANS, fontSize: 10, opacity: 0.75 },
-  line: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontFamily: SERIF, fontSize: 14, letterSpacing: 1 },
+  line: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontFamily: SERIF, fontSize: 15, letterSpacing: track.serif(15), paddingHorizontal: 24 },
 });

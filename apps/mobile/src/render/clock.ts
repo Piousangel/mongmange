@@ -23,13 +23,22 @@ export interface Params {
   grammar: string;
   /** 7일차 포즈: base(기준) | clumsy(서툰 손) */
   pose: 'base' | 'clumsy';
+  /** 웹 품질 관문: 글자 크기 배율(1, 1.5, 2) */
+  fs: number;
+  /** 스파이크 화면 소리 자막(?cap=1) */
+  cap: boolean;
 }
 
 export function readParams(): Params {
-  const q = Platform.OS === 'web' && typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  return readParamsFrom(Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.search : '');
+}
+
+/** 쿼리 문자열 → Params. 화면 기본값 = 'app'(앱 흐름) */
+export function readParamsFrom(search: string): Params {
+  const q = new URLSearchParams(search);
   const a = Number(q.get('attach'));
   return {
-    screen: q.get('screen') ?? 'day',
+    screen: q.get('screen') ?? 'app',
     day: Number(q.get('day') ?? 0),
     attach: a === 1 || a === 3 ? a : 2,
     body: q.get('body') === 'B' ? 'B' : 'A',
@@ -41,6 +50,8 @@ export function readParams(): Params {
     study: q.get('study') ?? '',
     grammar: q.get('grammar') ?? '',
     pose: q.get('pose') === 'clumsy' ? 'clumsy' : 'base',
+    fs: Number(q.get('fs') ?? 1) || 1,
+    cap: q.get('cap') === '1',
   };
 }
 
