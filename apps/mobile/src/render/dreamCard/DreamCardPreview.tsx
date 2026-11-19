@@ -2,6 +2,7 @@ import { DREAM_TEMPERS, day7ClumsyRecords, day7Records, sim, type DreamAspect } 
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { MOTIF_NAMES, dayName, morningLine } from '../../game/text';
+import { useAppFonts } from '../../ui/type';
 import { DreamCard, type DreamCardLabels } from './DreamCard';
 import { renderDreamCardImage } from './renderImage';
 
@@ -42,9 +43,11 @@ export function DreamCardPreview() {
   };
   const ratio = aspect === '9:16' ? 16 / 9 : 1.25;
   const width = Math.min(vw, vh / ratio);
+  const fontsReady = useAppFonts();
   const [png, setPng] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
+    if (!fontsReady) return;
     if (!exportMode) {
       const id = setTimeout(() => {
         (window as unknown as { __cardReady?: boolean }).__cardReady = true;
@@ -58,7 +61,7 @@ export function DreamCardPreview() {
       })
       .catch((e) => setErr(String(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exportMode, card, strokes, aspect]);
+  }, [fontsReady, exportMode, card, strokes, aspect]);
 
   return (
     <View style={styles.root}>
@@ -68,7 +71,7 @@ export function DreamCardPreview() {
         ) : (
           <Text style={styles.msg}>{err ?? '인화 중…'}</Text>
         )
-      ) : (
+      ) : !fontsReady ? null : (
         <DreamCard card={card} strokes={strokes} labels={labels} width={width} aspect={aspect} />
       )}
     </View>

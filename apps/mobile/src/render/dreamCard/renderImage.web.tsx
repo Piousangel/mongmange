@@ -1,5 +1,5 @@
 import { ImageFormat, drawAsImage } from '@shopify/react-native-skia';
-import { DreamCardArt, ITALIC_WEB, SERIF_WEB, defaultLabels, isVertical, makeDreamArt, textOf, type DreamCardInput } from './DreamCard';
+import { DreamCardArt, SERIF_WEB, defaultLabels, isVertical, makeDreamArt, textOf, type DreamCardInput } from './DreamCard';
 import type { DreamCardImage, DreamCardImageOptions } from './renderImage.types';
 
 export type { DreamCardImage, DreamCardImageOptions } from './renderImage.types';
@@ -23,13 +23,18 @@ export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCar
   if (!g) throw new Error('no 2d context');
   g.drawImage(bmp, 0, 0);
   const lb = input.labels ?? defaultLabels(input.card);
+  // 번들 글꼴(Gowun Batang, expo-font가 FontFace로 등록)이 준비될 때까지 기다린다. 없으면 대체 글꼴
+  try {
+    await document.fonts.load(`40px GowunBatang`, '몽망이');
+  } catch {
+    /* 대체 글꼴 */
+  }
   g.textBaseline = 'alphabetic';
   for (const it of art.layout.text) {
     const t = textOf(it, lb);
     const size = it.size * width;
     g.fillStyle = it.color;
-    const fam = it.role === 'italic' ? ITALIC_WEB : SERIF_WEB;
-    g.font = `${it.role === 'italic' ? 'italic ' : ''}${it.role === 'serifLight' ? '300' : '400'} ${size}px ${fam}`;
+    g.font = `400 ${size}px ${SERIF_WEB}`;
     const gs = g as CanvasRenderingContext2D & { letterSpacing?: string };
     if (isVertical(it, lb)) {
       gs.letterSpacing = '0px';

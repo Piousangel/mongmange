@@ -5,6 +5,7 @@ import {
   Fill,
   Group,
   LinearGradient,
+  Oval,
   Path,
   RadialGradient,
   Rect,
@@ -32,6 +33,7 @@ import {
   type DreamLayout,
   type DreamScene,
   type DreamTextItem,
+  type DreamVessel,
   type Ribbon,
   type StrokeRecord,
   type sim,
@@ -39,7 +41,7 @@ import {
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { paperFx } from '../shaders';
-import { marbleFx, marbleUniforms } from './marble';
+import { getMarbleFx, marbleUniforms } from './marble';
 
 /** 카드 위 글(문장은 앱이 언어별로 만들어 넘긴다 — 시스템 2.6) */
 export interface DreamCardLabels {
@@ -63,8 +65,9 @@ export function defaultLabels(card: sim.DreamCard): DreamCardLabels {
   return { name: `몽망이·${n + 1}일째`, line: '간밤의 꿈을 한지에 찍었어요', sub: `Day ${n} · last night's dream` };
 }
 
-export const SERIF_WEB = '"AppleMyungjo", "Noto Serif KR", "Nanum Myeongjo", serif';
-export const ITALIC_WEB = '"Cormorant Garamond", "Iowan Old Style", "Palatino", Georgia, serif';
+/** 앱 번들 명조(Gowun Batang, ui/type.tsx)와 같은 글꼴. 아트 6절(본명조 + Cormorant Italic)과 다름 — 보고서에 기록 */
+export const CARD_FONT = 'GowunBatang';
+export const SERIF_WEB = 'GowunBatang, "Noto Serif KR", serif';
 
 // ---------- 정적 그림(오프스크린에서도 같은 요소를 쓴다: 훅·공유값 없음) ----------
 
@@ -77,14 +80,15 @@ export interface DreamArt {
   sheetPath: SkPath;
   shadowRect: { x: number; y: number; width: number; height: number };
   uniforms: ReturnType<typeof marbleUniforms>;
-  coverUniforms: ReturnType<typeof marbleUniforms> | null;
-  coverPath: SkPath | null;
-  coverEdge: SkPath | null;
-  poolClip: SkPath | null;
-  body: { core: SkPath; combs: Verts; strokes: Verts; rims: Verts; ground: { x: number; y: number; width: number; height: number } | null; eyes: SkPath };
+  vessels: VesselArt[];
+  body: BodyGeo;
+  friend: { t: object[]; geo: BodyGeo } | null;
+  ringPx: { x: number; y: number; r: number };
   seal: { plate: SkPath; figure: SkPath; combs: Verts; eyes: SkPath };
   dots: { x: number; y: number; r: number; kind: 'past' | 'now' | 'future' }[];
 }
+
+const GOLD_HEX = '#C9A45C';
 
 interface Verts {
   vertices: SkPoint[];
@@ -150,29 +154,10 @@ function deckleRect(x: number, y: number, w: number, h: number, amp: number, ste
   return polyPath(pts);
 }
 
-/** 몽망이(감은 눈 — 꿈꾸는 중) 기하. 단위 W, 핵 중심 원점 */
-function bodyGeometry(strokes: readonly StrokeRecord[], s: number) {
+/** 몽망이(감은 눈 — 꿈꾸는 중) 기하. 단위 W, 핵 중심 원점. 획 옷은 그리지 않는다 — 밤새 물에 풀려 마블링(획 빗질)이 됐다 */
+function bodyGeometry(nStrokes: number, s: number, comb = true) {
   const core = polyPath(coreOutline(s, 160));
-  const combs = combStrands(strokes.length, s, COMB_REST).map((st) => buildRibbon(st.pts, { widths: st.widths, roundStart: true, roundEnd: true }));
-  const rib: Ribbon[] = [];
-  const rim: Ribbon[] = [];
-  let x0 = 1e9;
-  let x1 = -1e9;
-  for (const rec of strokes) {
-    const sp = strokeSpine(rec, s, 1);
-    const rb = buildRibbon(sp.pts, { ...sp.opts, widths: sp.widths });
-    if (sp.label === 'base') {
-      for (let j = 0; j < rb.positions.length; j += 2) {
-        x0 = Math.min(x0, rb.positions[j]!);
-        x1 = Math.max(x1, rb.positions[j]!);
-      }
-    } else {
-      rib.push(rb);
-      rim.push(buildRibbon(sp.pts, { ...sp.opts, widths: sp.widths.map((w) => w + 0.045) }));
-    }
-  }
-  const gy = (CORE.h / 2) * s;
-  const ground = x1 > x0 ? { x: x0, y: gy - 0.09 * 0.35, width: x1 - x0, height: 0.09 } : null;
+  const combs = comb ? combStrands(nStrokes, s, COMB_REST).map((st) => buildRibbon(st.pts, { widths: st.widths, roundStart: true, roundEnd: true })) : [];
   const ec = eyeCenters();
   const sh = eyeShape('closed');
   const ep = Skia.PathBuilder.Make();
@@ -181,7 +166,113 @@ function bodyGeometry(strokes: readonly StrokeRecord[], s: number) {
     for (let i = 2; i < sh.length; i += 2) ep.lineTo(cx + sh[i]!, ec.y * s + sh[i + 1]!);
     ep.close();
   }
-  return { core, combs: toVerts(combs), strokes: toVerts(rib), rims: toVerts(rim), ground, eyes: ep.build() };
+  return { core, combs: toVerts(combs), eyes: ep.build() };
+}
+
+type BodyGeo = ReturnType<typeof bodyGeometry>;
+
+interface QuiltArt {
+  kind: 'quilt';
+  path: SkPath;
+  seams: SkPath;
+  fold: SkPath;
+}
+interface CupArt {
+  kind: 'cup';
+  opening: { x: number; y: number; width: number; height: number };
+  backRim: SkPath;
+  front: SkPath;
+  frontRim: SkPath;
+  band: SkPath;
+  handle: SkPath;
+  saucer: { x: number; y: number; width: number; height: number };
+  glaze: ReturnType<typeof marbleUniforms>;
+  friend: { t: { translateX: number }[] | object[]; geo: BodyGeo } | null;
+}
+type VesselArt = QuiltArt | CupArt;
+
+/** 반 타원(위 = −1, 아래 = +1) 경로 점 */
+function halfEllipse(cx: number, cy: number, rx: number, ry: number, sign: 1 | -1, n = 32): number[] {
+  const out: number[] = [];
+  for (let i = 0; i <= n; i++) {
+    const a = Math.PI * (i / n);
+    out.push(cx - Math.cos(a) * rx, cy + sign * Math.sin(a) * ry);
+  }
+  return out;
+}
+
+function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scene: DreamScene, uni: (shift: [number, number]) => ReturnType<typeof marbleUniforms>, wpx: number): VesselArt {
+  const u = (x: number) => x * W;
+  const cx = c0.x + u(v.x);
+  const top = c0.y + u(v.y);
+  const w = u(v.w);
+  const h = u(v.h);
+  if (v.kind === 'quilt') {
+    // 누빔 이불: 물결진 윗단 + 둥근 아랫단, 마름모 바늘땀, 윗단 접힌 그늘
+    const n = jitter(scene.seed + 9);
+    const edge: number[] = [];
+    const steps = 24;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = cx - w / 2 + w * t;
+      edge.push(x, top + u(0.006) * Math.sin(t * 9 + 0.5) + u(0.004) * n(t * 7) + u(0.045) * (2 * t - 1) * (2 * t - 1) * (2 * t - 1) * (2 * t - 1));
+    }
+    const pb = Skia.PathBuilder.Make();
+    pb.moveTo(edge[0]!, edge[1]!);
+    for (let i = 2; i < edge.length; i += 2) pb.lineTo(edge[i]!, edge[i + 1]!);
+    const ey = edge[edge.length - 1]!;
+    pb.cubicTo(cx + w * 0.58, ey + h * 0.3, cx + w * 0.46, top + h * 0.95, cx + w * 0.1, top + h);
+    pb.cubicTo(cx - w * 0.1, top + h * 1.04, cx - w * 0.46, top + h * 0.95, cx - w * 0.56, edge[1]! + h * 0.3);
+    pb.cubicTo(cx - w * 0.58, edge[1]! + h * 0.12, cx - w * 0.52, edge[1]!, edge[0]!, edge[1]!);
+    pb.close();
+    const seams = Skia.PathBuilder.Make();
+    const k = u(0.034);
+    for (let d = -w; d <= w + h; d += k) {
+      seams.moveTo(cx - w / 2 + d, top - u(0.02));
+      seams.lineTo(cx - w / 2 + d - h * 1.2, top + h * 1.2);
+      seams.moveTo(cx - w / 2 + d - h * 1.2, top - u(0.02));
+      seams.lineTo(cx - w / 2 + d, top + h * 1.2);
+    }
+    return { kind: 'quilt', path: pb.build(), seams: seams.build(), fold: polyPath(edge.map((v2, i) => (i % 2 ? v2 + u(0.008) : v2)), false) };
+  }
+  // 옆에서 본 찻잔: 입술 타원 + 사발 + 굽 + 받침. 유약은 같은 물의 다른 자리(마블링)
+  const rx = w / 2;
+  const ry = h * 0.17;
+  const bottom = top + h;
+  const front = Skia.PathBuilder.Make();
+  const lower = halfEllipse(cx, top, rx, ry, 1);
+  front.moveTo(lower[0]!, lower[1]!);
+  for (let i = 2; i < lower.length; i += 2) front.lineTo(lower[i]!, lower[i + 1]!);
+  // lower는 왼→오가 아니라 a=0(왼)..π(오)
+  front.cubicTo(cx + rx * 0.98, top + h * 0.55, cx + rx * 0.6, bottom, cx + rx * 0.32, bottom);
+  front.lineTo(cx - rx * 0.32, bottom);
+  front.cubicTo(cx - rx * 0.6, bottom, cx - rx * 0.98, top + h * 0.55, lower[0]!, lower[1]!);
+  front.close();
+  const band = polyPath(halfEllipse(cx, top + h * 0.42, rx * 0.9, ry * 0.9, 1), false);
+  const hd = v.handle;
+  const handle = Skia.PathBuilder.Make();
+  const hx = cx + hd * rx * 0.93;
+  handle.moveTo(hx, top + h * 0.2);
+  handle.cubicTo(hx + hd * u(0.06), top + h * 0.12, hx + hd * u(0.06), top + h * 0.68, hx - hd * u(0.01), top + h * 0.62);
+  // 유약 = 같은 물의 다른 자리(몽망이 자리 빈 물을 피해 옆 고리를 빌려 온다)
+  const glazeShift: [number, number] = [0.27 - v.x, scene.ringC.y * 0.5 - v.y];
+  let friend: CupArt['friend'] = null;
+  if (v.friend) {
+    const fs = 0.55 * scene.body.s;
+    friend = { t: [{ translateX: cx }, { translateY: top + u(0.005) }, { scale: wpx }] as object[], geo: bodyGeometry(0, fs, false) };
+  }
+  return {
+    kind: 'cup',
+    opening: { x: cx - rx * 0.96, y: top - ry * 0.96, width: rx * 1.92, height: ry * 1.92 },
+    backRim: polyPath(halfEllipse(cx, top, rx, ry, -1), false),
+    front: front.build(),
+    frontRim: polyPath(lower, false),
+    band,
+    handle: handle.build(),
+    saucer: { x: cx - rx * 1.45, y: bottom - u(0.012), width: rx * 2.9, height: u(0.03) },
+    glaze: uni(glazeShift),
+    friend,
+  };
 }
 
 export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx: number, aa: number): DreamArt {
@@ -198,33 +289,16 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   const lineItem = layout.text.find((t) => t.key === 'line')!;
   const yLim = u(lineItem.y - lineItem.size * 1.9);
   const uniforms = marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim);
-  let coverUniforms = null;
-  let coverPath = null;
-  let coverEdge = null;
-  let poolClip: SkPath | null = null;
-  if (scene.cover) {
-    const cy = c0.y + u(scene.cover.y);
-    const bottom = u(layout.print.y + layout.print.r + 0.06);
-    const n = jitter(scene.seed + 5);
-    const edge: number[] = [];
-    for (let x = u(sh.x); x <= u(sh.x + sh.w) + 1; x += u(0.01)) {
-      const dx = (x - c0.x) / W;
-      edge.push(x, cy + u(scene.cover.wobble) * (Math.sin(dx * 13 + 0.6) * 0.7 + n(dx * 30) * 1.2) + u(0.03) * dx * dx * 4);
-    }
-    coverEdge = polyPath(edge, false);
-    coverPath = polyPath([...edge, u(sh.x + sh.w), bottom, u(sh.x), bottom]);
-    // 이불 띠 = 같은 물, 몽망이 자리만 누빈 주름 줄로 채워 아랫몸을 덮는다(자리 밖은 바탕과 같아 이음매가 없다)
-    coverUniforms = marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, [0, 0], 1);
-    const pr2 = u(scene.pool) * 1.04;
-    const circ = Skia.PathBuilder.Make();
-    circ.addCircle(c0.x, c0.y, pr2);
-    poolClip = circ.build();
-  }
-  const body = bodyGeometry(input.strokes, scene.body.s);
+  const wpx = scene.body.w * W;
+  const vessels = scene.vessels.map((v) => vesselArt(v, c0, W, scene, (sft) => marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, sft), wpx));
+  const body = bodyGeometry(input.strokes.length, scene.body.s);
+  const friend = scene.friend
+    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false) }
+    : null;
   // 낙관: 주사 인면에 몽망이(빗 포함)를 양각으로 새김 — 글꼴 없이 그리는 이 앱만의 인장
   const sl = layout.seal;
   const plate = deckleRect(u(sl.x), u(sl.y), u(sl.size), u(sl.size), u(0.0016), u(0.003), scene.seed & 0xff);
-  const fig = bodyGeometry([], 1.0);
+  const fig = bodyGeometry(0, 1.0);
   const night = Math.max(1, input.card.night);
   const idx = (night - 1) % 7;
   const d = layout.dots;
@@ -243,11 +317,10 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
     sheetPath,
     shadowRect: { x: u(sh.x) + u(0.004), y: u(sh.y) + u(0.012), width: u(sh.w), height: u(sh.h) },
     uniforms,
-    coverUniforms,
-    coverPath,
-    coverEdge,
-    poolClip,
+    vessels,
     body,
+    friend,
+    ringPx: { x: c0.x + u(scene.ringC.x), y: c0.y + u(scene.ringC.y), r: u(pr.r) },
     seal: { plate, figure: fig.core, combs: fig.combs, eyes: fig.eyes },
     dots,
   };
@@ -255,16 +328,27 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
 
 const PAPER_BASE = [0xef / 255, 0xe8 / 255, 0xda / 255];
 
-/** 카드 그림(글 제외). Canvas 안에도, drawAsImage(오프스크린)에도 그대로 쓴다 */
+function Drop({ t, geo, color = PALETTE.day.body }: { t: object[]; geo: BodyGeo; color?: string }) {
+  return (
+    <Group transform={t as never}>
+      <Path path={geo.core} color={color} />
+      <Vertices vertices={geo.combs.vertices} indices={geo.combs.indices} mode="triangles" color={color} />
+      <Path path={geo.eyes} color={PALETTE.day.bg} />
+    </Group>
+  );
+}
+
+/** 카드 그림(글 제외). Canvas 안에도, drawAsImage(오프스크린)에도 그대로 쓴다. 셰이더가 없으면 평평한 먹 층 */
 export function DreamCardArt({ art }: { art: DreamArt }) {
   const { W, H, c0, layout } = art;
+  const fx = getMarbleFx();
   const wpx = art.scene.body.w * W;
-  const s = art.scene.body.s;
   const bodyT = [{ translateX: c0.x }, { translateY: c0.y }, { scale: wpx }];
   const sl = layout.seal;
   const sealC = { x: (sl.x + sl.size / 2) * W, y: (sl.y + sl.size * 0.56) * W };
   const sealT = [{ translateX: sealC.x }, { translateY: sealC.y }, { scale: sl.size * W * 0.66 }];
   const paperU = { res: [W, H], base: PAPER_BASE, light: 1 };
+  const lw = W * 0.0024;
   return (
     <Group>
       {/* 밤 물(건져 올린 자리) */}
@@ -274,7 +358,6 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
       <Rect x={0} y={0} width={W} height={H} opacity={0.5}>
         <RadialGradient c={vec(W * 0.5, H * 0.42)} r={H * 0.6} colors={['rgba(201,164,92,0.10)', 'rgba(20,26,44,0)']} />
       </Rect>
-      {/* 젖은 한지 그림자 */}
       <Rect rect={art.shadowRect} color="rgba(0,0,0,0.55)">
         <BlurMask blur={W * 0.012} style="normal" />
       </Rect>
@@ -282,43 +365,59 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
         <Fill>
           <Shader source={paperFx} uniforms={paperU} />
         </Fill>
-        {/* 인화 */}
-        <Fill>
-          <Shader source={marbleFx} uniforms={art.uniforms} />
-        </Fill>
-        {/* 몽망이: 번짐 고리 → 획(담묵) → 몸·빗(먹) → 감은 눈(종이) */}
-        <Group transform={bodyT}>
-          {art.body.ground && (
-            <RoundedRect {...art.body.ground} r={0.045} color={PALETTE.day.strokeInk} opacity={0.5}>
-              <BlurMask blur={0.02} style="normal" />
-            </RoundedRect>
-          )}
-          {/* 획 = 짙은 테 안의 담묵(게임 몸 합성과 같은 읽힘: 테는 몸 먹, 안은 stroke-ink) */}
-          <Vertices vertices={art.body.rims.vertices} indices={art.body.rims.indices} mode="triangles" color={PALETTE.day.body} />
-          <Vertices vertices={art.body.strokes.vertices} indices={art.body.strokes.indices} mode="triangles" color={PALETTE.day.strokeInk} />
-          <Group>
-            <Path path={art.body.core} color={PALETTE.day.body} />
-            <Vertices vertices={art.body.combs.vertices} indices={art.body.combs.indices} mode="triangles" color={PALETTE.day.body} />
-            <Path path={art.body.eyes} color={PALETTE.day.bg} />
-          </Group>
-        </Group>
-        {/* 이불(모티프): 아랫몸을 덮는 무늬 띠 */}
-        {art.coverPath && art.coverUniforms && (
-          <Group clip={art.coverPath}>
-            <Fill>
-              <Shader source={paperFx} uniforms={paperU} />
-            </Fill>
-            <Fill>
-              <Shader source={marbleFx} uniforms={art.coverUniforms} />
-            </Fill>
-          </Group>
+        {fx ? (
+          <Fill>
+            <Shader source={fx} uniforms={art.uniforms} />
+          </Fill>
+        ) : (
+          // 폴백: 셰이더 컴파일 실패 기기 — 고리 중심에 번진 담묵 한 층(앱은 계속 간다)
+          <Circle cx={art.ringPx.x} cy={art.ringPx.y} r={art.ringPx.r}>
+            <RadialGradient c={vec(art.ringPx.x, art.ringPx.y)} r={art.ringPx.r} colors={['rgba(95,92,86,0.32)', 'rgba(95,92,86,0.18)', 'rgba(95,92,86,0)']} />
+          </Circle>
         )}
-        {art.coverEdge && art.poolClip && (
-          <Group clip={art.poolClip}>
-            <Path path={art.coverEdge} style="stroke" strokeWidth={W * 0.0026} color={PALETTE.day.body} opacity={0.6}>
-              <BlurMask blur={W * 0.001} style="normal" />
-            </Path>
-          </Group>
+        {/* 그릇 뒤쪽(찻물·뒷입술·받침) */}
+        {art.vessels.map((v, i) =>
+          v.kind === 'cup' ? (
+            <Group key={`b${i}`}>
+              <Oval rect={v.saucer} color={PALETTE.day.wash} opacity={0.55} />
+              <Oval rect={v.opening} color={PALETTE.day.strokeInk} opacity={0.32} />
+              <Path path={v.backRim} style="stroke" strokeWidth={lw} color={PALETTE.day.body} opacity={0.75} />
+            </Group>
+          ) : null,
+        )}
+        {art.friend && <Drop t={art.friend.t} geo={art.friend.geo} />}
+        {art.vessels.map((v, i) => (v.kind === 'cup' && v.friend ? <Drop key={`f${i}`} t={v.friend.t} geo={v.friend.geo} /> : null))}
+        {/* 몽망이 */}
+        <Drop t={bodyT} geo={art.body} />
+        {/* 그릇 앞쪽(사발·이불) — 몸 아래를 덮는다 */}
+        {art.vessels.map((v, i) =>
+          v.kind === 'cup' ? (
+            <Group key={`c${i}`}>
+              <Path path={v.front} color="#EDE6D8" />
+              {fx && (
+                <Group clip={v.front} opacity={0.9}>
+                  <Fill>
+                    <Shader source={fx} uniforms={v.glaze} />
+                  </Fill>
+                </Group>
+              )}
+              <Path path={v.band} style="stroke" strokeWidth={W * 0.0016} color={GOLD_HEX} opacity={0.9} />
+              <Path path={v.front} style="stroke" strokeWidth={lw} color={PALETTE.day.body} opacity={0.75} />
+              <Path path={v.frontRim} style="stroke" strokeWidth={lw * 1.3} color={PALETTE.day.body} opacity={0.85} />
+              <Path path={v.handle} style="stroke" strokeWidth={W * 0.007} strokeCap="round" color={PALETTE.day.body} opacity={0.8} />
+            </Group>
+          ) : (
+            <Group key={`q${i}`}>
+              <Path path={v.path} color="#EAE1CF" />
+              <Group clip={v.path}>
+                <Path path={v.seams} style="stroke" strokeWidth={W * 0.0014} color={PALETTE.day.inkFaded} opacity={0.85} />
+                <Path path={v.fold} style="stroke" strokeWidth={W * 0.006} color={PALETTE.day.wash} opacity={0.6}>
+                  <BlurMask blur={W * 0.003} style="normal" />
+                </Path>
+              </Group>
+              <Path path={v.path} style="stroke" strokeWidth={lw} color={PALETTE.day.body} opacity={0.7} />
+            </Group>
+          ),
         )}
         {/* 일곱 날 점 줄(05b에서 가져온 장치) */}
         {art.dots.map((d, i) =>
@@ -353,9 +452,8 @@ export function isVertical(item: DreamTextItem, labels: DreamCardLabels): boolea
   return item.vertical && [...labels[item.key]].length <= 8;
 }
 
-function fontFor(role: DreamTextItem['role']) {
-  if (Platform.OS === 'web') return role === 'italic' ? ITALIC_WEB : SERIF_WEB;
-  return undefined;
+function fontFor(_role: DreamTextItem['role']) {
+  return Platform.OS === 'web' ? SERIF_WEB : CARD_FONT;
 }
 
 /** 화면용 카드: Skia 그림 + RN 글(접근성·글꼴). 공유 이미지는 renderDreamCardImage */
@@ -405,8 +503,6 @@ export function DreamCard({
                 color: it.color,
                 letterSpacing: it.spacing * width,
                 fontFamily: fontFor(it.role),
-                fontStyle: it.role === 'italic' ? 'italic' : 'normal',
-                fontWeight: it.role === 'serifLight' ? '300' : '400',
               },
             ]}
             maxFontSizeMultiplier={1}
