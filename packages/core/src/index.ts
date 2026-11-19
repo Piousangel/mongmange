@@ -22,6 +22,7 @@ export * from './geometry/types';
 export * from './geometry/core';
 export * from './geometry/simplify';
 export * from './geometry/attach';
+export * from './geometry/assist';
 export * from './geometry/ribbon';
 export * from './geometry/comb';
 export * from './geometry/eyes';

@@ -21,6 +21,20 @@ export const MOTIF_NAMES: Record<string, string> = {
   'center.moon': '둥근 달',
 };
 
+/** 카드 그림 설명(스크린리더, 아트 10절). 카드 v1.1 구도 기준 — 그림이 바뀌면 같이 고친다 */
+export const MOTIF_SCENES: Record<string, string> = {
+  'near-alone.quilt': '누빔 이불 위에서 몽망이가 눈을 감고 자요',
+  'near-alone.teacup': '김이 오르는 찻잔 하나 곁에 몽망이가 있어요',
+  'near-with.window-hand': '창살 같은 물방울 너머로 손 하나가 비쳐요',
+  'near-with.teacup-two': '찻잔 두 개에서 김이 꼬여 올라요',
+  'far-alone.mountain': '먹물결이 먼 산 능선처럼 솟아 있어요',
+  'far-alone.sea': '몽망이 아래로 바다 물띠가 흘러요',
+  'far-with.stars-drops': '먹점과 금점이 별처럼 흩어져 있어요',
+  'far-with.sea-hand': '물띠 곁에 작은 몽망이 둘이 나란히 있어요',
+  'center.rain': '비구름 같은 호 아래로 먹점이 끌려 내려요',
+  'center.moon': '큰 맑은 방울에 금빛 테가 둘린 둥근 달이에요',
+};
+
 const CAUSE: Record<string, [string, string]> = {
   speed: ['어제 획을 빠르게 그어서', '어제 획을 천천히 그어서'],
   len: ['어제 획을 길게 뻗어서', '어제 획을 짧게 그어서'],

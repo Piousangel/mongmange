@@ -35,7 +35,7 @@
 
 | 글꼴 | 라이선스 | 상태 |
 |---|---|---|
-| **Gowun Batang** 400 (명조, 본문·제목·시 한 줄) | SIL OFL 1.1 | **번들(11-20 앱 흐름 v1.1)**. 출처 npm `@expo-google-fonts/gowun-batang@0.4.1`의 `400Regular/GowunBatang_400Regular.ttf`(8.4MB, Google Fonts 배포본). 원문 `node_modules/@expo-google-fonts/gowun-batang/LICENSE_FONT`. 서브셋은 아직(용량 줄이기 할 일) |
+| **Gowun Batang** 400 (명조, 본문·제목·시 한 줄) | SIL OFL 1.1 | **번들(11-20 앱 흐름 v1.1)**. 출처 npm `@expo-google-fonts/gowun-batang@0.4.1`의 `400Regular/GowunBatang_400Regular.ttf`(8.4MB, Google Fonts 배포본). 원문 `node_modules/@expo-google-fonts/gowun-batang/LICENSE_FONT`. **11-20 v1.2 서브셋**: 앱 번들은 `apps/mobile/assets/fonts/GowunBatang_400Regular.subset.ttf`(1,430,408B ≈ 1.4MB, 원본 8,433,188B의 17%) — 앱 소스 글자 + KS X 1001 완성형 한글 2,350자 + ASCII·Latin-1·문장부호·호환 자모, 총 2,698자(목록 `.subset.chars.txt`, 누락 검사 `apps/mobile/test/font-subset.test.ts`). 도구 `tools/font/subset.mjs`(npm `subset-font@2.9.0` BSD-3-Clause, harfbuzzjs wasm, devDependency). **OFL 확인**: 저작권 줄에 Reserved Font Name 선언이 없어(“Copyright 2021 The Gowun Batang Project Authors”만) 수정본도 원래 글꼴 이름을 쓸 수 있다(OFL 3항 제한 없음) → name 테이블·저작권 문자열 그대로 유지, 파일명도 원래 이름 + `.subset`. OFL 원문을 `assets/fonts/OFL-GowunBatang.txt`로 함께 둔다(OFL 2항). 원본 패키지는 devDependency로 옮김(서브셋 원본) |
 | **Pretendard** Regular (UI 고딕) | SIL OFL 1.1 | **번들(11-20)**. 출처 npm `pretendard@1.3.9`의 `dist/public/static/Pretendard-Regular.otf`(1.6MB). 원문은 패키지 `LICENSE` |
 | 본명조(Noto Serif KR) | SIL OFL 1.1 | 후보(Gowun Batang으로 대체, 미번들) |
 | Cormorant Garamond | SIL OFL 1.1 | 후보, 아직 번들 안 함(영어판) |
@@ -53,6 +53,7 @@
 - 사람 허밍 녹음으로 바꿀 때는 새 행을 만든다. 녹음자의 **서면 동의**(상업 이용, 피치·시간 변형·편집 허용, 기한·지역 무제한, 권리 양도 또는 독점 이용 허락)를 받고, 외주면 계약서에 같은 조항을 넣는다.
 
 ## 5. 코드 의존성
+- 11-20 v1.2: `subset-font@2.9.0`(BSD-3-Clause, 개발 도구 — 앱 번들 아님, 루트 devDependency). 네이티브 의존성 추가 없음.
 - 11-20 앱 흐름에서 추가(모두 `npx expo install`, SDK 58): react-native-mmkv 4.3.2(MIT), react-native-nitro-modules 0.37.2(MIT), expo-notifications·expo-audio·expo-haptics·expo-font(MIT), react-native-safe-area-context 5.11.1(MIT). 개발용 vitest(MIT). 글꼴 패키지 두 개는 3절.
 - npm 의존성 라이선스는 첫 EAS 빌드 전에 `license-checker` 등으로 한 번 뽑아 이 절에 요약한다(GPL 계열이 앱 번들에 들어오지 않는지).
 

@@ -463,12 +463,14 @@ export function DreamCard({
   labels,
   width,
   aspect = '4:5',
-}: DreamCardInput & { width: number; aspect?: DreamAspect }) {
+  a11yLabel,
+}: DreamCardInput & { width: number; aspect?: DreamAspect; /** 스크린리더 설명(모티프·아침 문장). 없으면 이름·문장 */ a11yLabel?: string }) {
   const art = useMemo(() => makeDreamArt({ card, strokes }, aspect, width, 2), [card, strokes, aspect, width]);
   const lb = labels ?? defaultLabels(card);
   const H = art.H;
   return (
-    <View style={{ width, height: H }} accessible accessibilityRole="image" accessibilityLabel={`꿈 인화 카드. ${lb.name}. ${lb.line}`} testID="dream-card-art">
+    <View style={{ width, height: H }} accessible accessibilityRole="image" accessibilityLabel={a11yLabel ?? `꿈 인화 카드. ${lb.name}. ${lb.line}`} testID="dream-card-art">
+      {/* 카드 위 글은 그림의 일부(설명은 위 accessibilityLabel 하나로) */}
       <Canvas style={{ width, height: H }}>
         <DreamCardArt art={art} />
       </Canvas>
@@ -482,6 +484,7 @@ export function DreamCard({
               key={it.key}
               style={[styles.t, { left: it.x * width - size, width: size * 2, top: it.y * width, fontSize: size, lineHeight: size * 1.32, textAlign: 'center', color: it.color, fontFamily: fontFor(it.role) }]}
               maxFontSizeMultiplier={1}
+              importantForAccessibility="no"
             >
               {[...t].join('\n')}
             </Text>

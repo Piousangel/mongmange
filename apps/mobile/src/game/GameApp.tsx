@@ -12,6 +12,7 @@ import { NoteSheet } from '../screens/NoteSheet';
 import { StrokeScreen } from '../screens/StrokeScreen';
 import { SANS, SERIF, layout, styles as ui } from '../screens/ui';
 import { KText, track } from '../ui/type';
+import { PARAMS } from '../render/clock';
 import { DevPanel } from './DevPanel';
 import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
 import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, onEffects, setMeta, tickNow, useGame } from './store';
@@ -79,8 +80,11 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   }, []);
 
   useEffect(() => {
-    // 웹은 스크린리더 감지가 믿을 수 없어 노트 설정으로만 켠다
-    if (Platform.OS === 'web') return;
+    // 웹은 스크린리더 감지가 믿을 수 없어 노트 설정으로만 켠다(캡처는 ?sr=1)
+    if (Platform.OS === 'web') {
+      if (PARAMS.sr) setScreenReader(true);
+      return;
+    }
     AccessibilityInfo.isScreenReaderEnabled()
       .then(setScreenReader)
       .catch(() => {});
@@ -323,6 +327,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           washOpen,
           onJarTap: () => dispatch({ type: 'washStroke' }),
           assist: screenReader || meta.assistStroke,
+          screenReader,
           wetMark: !state.ledger.strokeUsed,
           overlay:
             line !== '' ? (

@@ -1,0 +1,187 @@
+{
+  "base": "http://localhost:8097",
+  "view": {
+    "width": 390,
+    "height": 844
+  },
+  "steps": [
+    {
+      "name": "intro-a11y",
+      "a11y": {
+        "role": "button",
+        "label": "먹 한 방울",
+        "tabIndex": null
+      },
+      "installedByEnter": true
+    },
+    {
+      "name": "01-assist-panel",
+      "note": "스크린리더 흉내: 긋기 모드에 들어오면 고르기 패널(자리·방향·길이·휨) + 미리 보기 획",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 1,
+        "cards": 1,
+        "strokeUsed": false,
+        "pending": false
+      }
+    },
+    {
+      "name": "assist-a11y",
+      "rows": [
+        {
+          "k": "place",
+          "role": "slider",
+          "label": "자리",
+          "value": null
+        },
+        {
+          "k": "dir",
+          "role": "slider",
+          "label": "방향",
+          "value": null
+        },
+        {
+          "k": "len",
+          "role": "slider",
+          "label": "길이",
+          "value": null
+        },
+        {
+          "k": "bend",
+          "role": "slider",
+          "label": "휨",
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "03-assist-attached",
+      "note": "\"이 획으로 긋기\" → 손획과 같은 stroke 이벤트 → 부착 + 기쁨",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 1,
+        "strokes": 2,
+        "cards": 1,
+        "strokeUsed": true,
+        "pending": false
+      }
+    },
+    {
+      "name": "05-morning-water",
+      "note": "아침 · 물 위 젖은 한지",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 2,
+        "strokes": 2,
+        "cards": 1,
+        "strokeUsed": false,
+        "pending": true
+      }
+    },
+    {
+      "name": "06-lift-900",
+      "note": "건져 올린 뒤 900ms — 한지 자리에서 카드로 커짐",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 2,
+        "strokes": 2,
+        "cards": 2,
+        "strokeUsed": false,
+        "pending": false
+      },
+      "ms": 900
+    },
+    {
+      "name": "07-lift-1900",
+      "note": "건져 올린 뒤 1900ms — 한지 자리에서 카드로 커짐",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 2,
+        "strokes": 2,
+        "cards": 2,
+        "strokeUsed": false,
+        "pending": false
+      },
+      "ms": 1900
+    },
+    {
+      "name": "08-lift-2300",
+      "note": "건져 올린 뒤 2300ms — 한지 자리에서 카드로 커짐",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 2,
+        "strokes": 2,
+        "cards": 2,
+        "strokeUsed": false,
+        "pending": false
+      },
+      "ms": 2300
+    },
+    {
+      "name": "09-dream-card",
+      "note": "아침 인화 카드(DreamCard) + 읽는 문장 + 공유 자리",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 2,
+        "strokes": 2,
+        "cards": 2,
+        "strokeUsed": false,
+        "pending": false
+      }
+    },
+    {
+      "name": "card-a11y",
+      "label": "꿈 인화 카드, 이튿날 밤, 빗소리. 비구름 같은 호 아래로 먹점이 끌려 내려요. 어제 먹을 살짝 갈아서 먹빛이 맑고 옅어졌어요"
+    },
+    {
+      "name": "02-assist-panel-back",
+      "note": "자리 = 위쪽(금지 자리 ①)에서 긋는 고름 — 미리 보기",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 2,
+        "strokes": 2,
+        "cards": 2,
+        "strokeUsed": false,
+        "pending": false
+      }
+    },
+    {
+      "name": "04-slid-lean",
+      "note": "금지 자리에서 시작한 획: 가장 가까운 허용 자리에 붙고 몸이 그쪽으로 9° 기욺",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 2,
+        "strokes": 3,
+        "cards": 2,
+        "strokeUsed": true,
+        "pending": false
+      }
+    },
+    {
+      "name": "10-album",
+      "note": "공방 노트 · 인화 카드 앨범(저해상도 오프스크린 썸네일 캐시)",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 4,
+        "strokes": 4,
+        "cards": 4,
+        "strokeUsed": false,
+        "pending": false
+      }
+    },
+    {
+      "name": "11-album-viewer",
+      "note": "지난 카드 크게 다시 보기",
+      "save": {
+        "phase": "awake",
+        "dayIndex": 4,
+        "strokes": 4,
+        "cards": 4,
+        "strokeUsed": false,
+        "pending": false
+      }
+    }
+  ],
+  "errors": []
+}

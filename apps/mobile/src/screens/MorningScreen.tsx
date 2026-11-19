@@ -1,7 +1,7 @@
-import { BlurMask, Canvas, Circle, Fill, Group, Oval, Path, RadialGradient, RoundedRect, Skia, vec } from '@shopify/react-native-skia';
+import { BlurMask, Canvas, Oval, RoundedRect } from '@shopify/react-native-skia';
 import { COMB_REST, PALETTE, grammarOf, selectVisual, sim } from '@mong/core';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { AccessibilityInfo, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { gazeOffset, type Gaze } from '../render/gaze';
 import { blinkAt, breathAt } from '../render/idle';
@@ -13,6 +13,9 @@ import { MOTIF_NAMES, dayName, morningLine } from '../game/text';
 import { PARAMS, clamp01, clock, easeOut } from '../render/clock';
 import { NightWater } from './HomeScreen';
 import { Paper, SANS, SERIF, layout, styles as ui } from './ui';
+import { DreamCard } from '../render/dreamCard/DreamCard';
+import { strokesForCard } from '../render/dreamCard/DreamCardThumb';
+import { cardLabels, cardA11y, SharePlaceholder } from './cardText';
 
 const RM = PARAMS.rm;
 /** 물 빠짐 1600ms + 카드 800ms(아트 5·8절). Reduce Motion은 페이드 300ms */
@@ -40,6 +43,13 @@ export function MorningScreen({
   const drag = useSharedValue(0);
   const liftAt = useSharedValue(developed ? -1e9 : 1e12);
   const [lifted, setLifted] = useState(!!developed);
+  // 라이브 카드(마블링 셰이더 2~3개 + makeDreamArt)는 물 빠짐 연출이 끝난 뒤에 마운트한다 — 셰이더 컴파일이 물 빠짐 프레임을 잡지 않게(v1.2 리뷰 ①)
+  const [cardLive, setCardLive] = useState(!!developed);
+  useEffect(() => {
+    if (!developed || cardLive) return;
+    const id = setTimeout(() => setCardLive(true), DRAIN_MS);
+    return () => clearTimeout(id);
+  }, [developed, cardLive]);
 
   const lift = () => {
     if (lifted) return;
@@ -70,17 +80,34 @@ export function MorningScreen({
     const up = liftAt.value < 1e11 ? -height * 0.08 * easeOut(k.value) : drag.value;
     return { transform: [{ translateY: bob * (1 - k.value) + up }], opacity: 1 - cardK.value };
   });
-  const cardSt = useAnimatedStyle(() => ({ opacity: cardK.value, transform: [{ translateY: (1 - cardK.value) * 16 }] }));
 
   const insets = useSafeAreaInsets();
   const L = layout(width, height);
   const sheetW = Math.min(width * 0.5, 240, height * 0.24);
   const sheetH = sheetW * 1.25;
   const sheetTop = insets.top + height * 0.17;
-  const cardW = Math.min(width * 0.62, 300, height * 0.34);
+  // 인화 카드(4:5): 문장·버튼 자리(약 150pt)를 남기고 가장 크게
+  const cardTop = insets.top + 20;
+  const cardW = Math.max(160, Math.min(width - 40, 360, (height - cardTop - insets.bottom - 160) / 1.25));
   const cardH = cardW * 1.25;
   const text = developed ? morningLine(developed.line, developed.card) : '';
-  const motif = developed ? (MOTIF_NAMES[developed.card.motifId] ?? '꿈') : '';
+  const cardStrokes = useMemo(() => (developed ? strokesForCard(state.strokes, developed.card) : []), [developed, state.strokes]);
+  const labels = useMemo(() => (developed ? cardLabels(developed.card, text) : undefined), [developed, text]);
+  // 건져 올린 한지가 그대로 인화 카드가 된다: 물 빠짐 끝의 한지 자리·크기에서 카드 자리로 커지며 옮겨 간다(크로스페이드)
+  const sheetEndCy = sheetTop + sheetH / 2 - height * 0.08;
+  const cardCy = cardTop + cardH / 2;
+  const s0 = sheetW / cardW;
+  const cardSt = useAnimatedStyle(() => {
+    const c = cardK.value;
+    return { opacity: Math.min(1, c * 1.6), transform: [{ translateY: (sheetEndCy - cardCy) * (1 - c) }, { scale: s0 + (1 - s0) * c }] };
+  });
+  const textSt = useAnimatedStyle(() => ({ opacity: clamp01((cardK.value - 0.55) / 0.45) }));
+  // 스크린리더: 카드가 다 놓이면 모티프·아침 문장을 한 번 읽어 준다(건져 올리기 동작 결과 알림)
+  useEffect(() => {
+    if (!developed) return;
+    const id = setTimeout(() => AccessibilityInfo.announceForAccessibility(cardA11y(developed.card, text)), DRAIN_MS + CARD_MS);
+    return () => clearTimeout(id);
+  }, [developed, text]);
 
   // 몽망이: 수면 위에서 깨어나 한지를 함께 본다(리뷰 U7). 물이 빠지면 낮 먹색으로
   const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
@@ -163,13 +190,18 @@ export function MorningScreen({
       )}
 
       {developed && (
-        <Animated.View style={[styles.cardWrap, { paddingTop: insets.top + 28 }, cardSt]} testID="dream-card" pointerEvents="box-none">
-          <View accessible accessibilityLabel={`인화 카드, ${motif}. ${text}`}>
-            <DreamCardArt card={developed.card} w={cardW} h={cardH} />
-            <KText style={[styles.motif, { width: cardW }]}>{motif}</KText>
-          </View>
-          <KText style={[styles.lineText, { maxWidth: Math.min(width - 32, cardW + 60) }]}>{text}</KText>
+        <Animated.View style={[styles.card, { top: cardTop, left: (width - cardW) / 2, width: cardW, height: cardH }, cardSt]} testID="dream-card">
+          {cardLive && <DreamCard card={developed.card} strokes={cardStrokes} labels={labels} width={cardW} a11yLabel={cardA11y(developed.card, text)} />}
+        </Animated.View>
+      )}
+      {developed && (
+        <Animated.View style={[styles.cardText, { top: cardTop + cardH + 14 }, textSt]} pointerEvents="box-none">
+          {/* 카드 위 글은 인화(공유용)라 작다. 읽는 글은 여기 — 스크린리더는 카드 설명에서 같은 문장을 읽으므로 숨긴다 */}
+          <KText style={[styles.lineText, { maxWidth: Math.min(width - 32, cardW + 40) }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            {text}
+          </KText>
           {developed.card.nightsMerged > 1 && <KText style={styles.sub}>긴 잠 · 밤 {developed.card.nightsMerged}개를 한 장에</KText>}
+          <SharePlaceholder />
         </Animated.View>
       )}
       {developed && (
@@ -196,41 +228,6 @@ function WetSheet({ w, h }: { w: number; h: number }) {
   );
 }
 
-/** 인화 카드(MVP 자리표시 그림): 먹 톤 = inkTone, 물결 = flow, 구도 = composition. 모티프 그림은 아트 작업 대기 */
-function DreamCardArt({ card, w, h }: { card: sim.DreamCard; w: number; h: number }) {
-  const tone = Math.round(0x6a - 0x4a * card.inkTone);
-  const ink = `rgb(${tone},${tone + 2},${tone + 8})`;
-  const cx = w * [0.5, 0.36, 0.64][card.composition]!;
-  const cy = h * 0.46;
-  const waves = useMemo(() => {
-    const out: string[] = [];
-    const n = card.flow > 0 ? 6 : 3;
-    const amp = card.flow > 0 ? 3 : 9;
-    const len = card.flow > 0 ? 18 : 60;
-    for (let i = 0; i < n; i++) {
-      const y = h * (0.66 + (0.26 * i) / n);
-      let d = `M 0 ${y.toFixed(1)}`;
-      for (let x = 0; x <= w; x += 6) d += ` L ${x} ${(y + Math.sin(x / len + card.flowSeed + i) * amp).toFixed(1)}`;
-      out.push(d);
-    }
-    return out.map((d) => Skia.Path.MakeFromSVGString(d)!);
-  }, [card.flow, card.flowSeed, w, h]);
-  return (
-    <Canvas style={{ width: w, height: h, borderRadius: 4 }}>
-      <Fill color="#F2ECE0" />
-      <Group>
-        <Circle cx={cx} cy={cy} r={w * 0.24}>
-          <RadialGradient c={vec(cx, cy)} r={w * 0.24} colors={[ink, 'rgba(120,118,112,0.05)']} />
-        </Circle>
-        <Oval x={cx - w * 0.3} y={cy + w * 0.2} width={w * 0.6} height={w * 0.08} color={ink} opacity={0.18} />
-        {waves.map((p, i) => (
-          <Path key={i} path={p} style="stroke" strokeWidth={1} color={ink} opacity={0.35} />
-        ))}
-      </Group>
-    </Canvas>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1 },
   sheet: { position: 'absolute', borderRadius: 3, overflow: 'hidden' },
@@ -252,8 +249,8 @@ const styles = StyleSheet.create({
   },
   btnInline: { position: 'relative', bottom: 0, marginTop: 20, backgroundColor: 'rgba(43,42,40,0.06)', borderColor: 'rgba(43,42,40,0.25)' },
   btnText: { fontFamily: SANS, fontSize: 15, color: PALETTE.day.textSub, letterSpacing: 1 },
-  cardWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', paddingHorizontal: 16 },
-  motif: { position: 'absolute', top: 14, textAlign: 'center', fontFamily: SERIF, fontSize: 13, color: '#6B625A', letterSpacing: 2 },
-  lineText: { marginTop: 18, textAlign: 'center', fontFamily: SERIF, fontSize: 16, lineHeight: 26, color: PALETTE.day.text, letterSpacing: track.serif(16) },
+  card: { position: 'absolute', borderRadius: 3, overflow: 'hidden' },
+  cardText: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: 16 },
+  lineText: { marginTop: 0, textAlign: 'center', fontFamily: SERIF, fontSize: 16, lineHeight: 26, color: PALETTE.day.text, letterSpacing: track.serif(16) },
   sub: { marginTop: 8, fontFamily: SANS, fontSize: 12, color: PALETTE.day.textSub },
 });

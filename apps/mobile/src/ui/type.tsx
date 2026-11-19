@@ -7,7 +7,8 @@ import { Platform, StyleSheet, Text, useWindowDimensions, type TextProps, type T
 import { PARAMS } from '../render/clock';
 
 export const FONT_FILES = {
-  GowunBatang: require('@expo-google-fonts/gowun-batang/400Regular/GowunBatang_400Regular.ttf'),
+  // 서브셋(v1.2): 앱 글자 + KS X 1001 한글 2,350자 + 영문·숫자·문장부호, 8.4MB → 1.4MB. 다시 만들기: node tools/font/subset.mjs
+  GowunBatang: require('../../assets/fonts/GowunBatang_400Regular.subset.ttf'),
   Pretendard: require('pretendard/dist/public/static/Pretendard-Regular.otf'),
 };
 

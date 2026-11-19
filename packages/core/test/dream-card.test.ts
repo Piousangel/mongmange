@@ -91,4 +91,5 @@ describe('uniform 상한 — 자르기가 일어나면 실패', () => {
   });
 });
 
-const SNAPSHOT = { moon: [3914316475, '2d519a11'], quilt916: 'e629fa0a', empty: '8487e6ad' };
+// 11-20 v1.2: quilt916 갱신 — 서툰 손 6번(앞 위 지그재그)이 미끄러짐 비용(attach SLIDE_DRIFT_W)으로 자리가 바뀜. 의도한 변경
+const SNAPSHOT = { moon: [3914316475, '2d519a11'], quilt916: '37769e1e', empty: '8487e6ad' };

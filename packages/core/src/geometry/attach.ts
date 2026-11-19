@@ -16,6 +16,8 @@ export const WRAP_BEND = 0.5;
 /** 부착 판정은 메시 버전과 무관하게 고정된 단순화(v1)로 한다 — 메시를 고쳐도 자리가 바뀌지 않게 */
 const ATTACH_SIMPLIFY_VERSION = 1;
 const DEG = Math.PI / 180;
+/** 미끄러진 획의 몸통이 손 자리에서 멀어지는 비용(rad당). 금지 자리에서 시작한 획에만 */
+export const SLIDE_DRIFT_W = 0.6;
 /** 크기 1 핵 정수리 높이(−y) */
 const CORE_TOP = CORE.h / 2;
 
@@ -289,6 +291,12 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
     dirA = Math.atan2(L.y - F.y, L.x - F.x);
   }
 
+  // 금지 자리에서 미끄러진 획(v1.2 앱 흐름): 손이 그은 자리(무게 중심)에서 가장 가까운 허용 자리 쪽에 몸통이 남게 한다.
+  // 이 항이 없으면 접선 정렬이 획을 옆구리 아래로 눕혀, 오른쪽 위 짧은 획이 바닥 쪽으로 흘러내려 안 붙은 것처럼 보였다.
+  const handC = angleOf(cx, cy);
+  const slidCase = isForbidden(theta0) || isForbidden(handC);
+  const driftTarget = nearestAllowed(handC);
+
   let pick: Score = { cost: 1e9, theta: nearestAllowed(theta0), rot: 0 };
   const probe: Attach = { ...base };
   for (let kt = -6; kt <= 6; kt++) {
@@ -330,12 +338,22 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
       }
       inside /= q.length;
       far /= q.length;
+      let drift = 0;
+      if (slidCase) {
+        let qx = 0;
+        let qy = 0;
+        for (let i = 0; i < q.length; i++) {
+          qx += q[i]!.x;
+          qy += q[i]!.y;
+        }
+        drift = Math.abs(wrapPi(angleOf(qx / q.length, qy / q.length) - driftTarget));
+      }
       forb /= q.length;
       crown /= q.length;
       head /= q.length;
       const move = Math.abs(wrapPi(th - theta0)) * 0.3 + Math.abs(wrapPi(rot)) * 0.08;
       // 금지 판정은 점 단위 비율(render-03: 가중치 2 → 6). 앵커 θ 하나만 보면 획 몸통이 빗 자리를 덮는다(정수리 '넷째 가닥')
-      const cost = inside * 5 + far * 2.5 + farMax * 0.8 + forb * 6 + crown * 8 + head * 6 + move;
+      const cost = inside * 5 + far * 2.5 + farMax * 0.8 + forb * 6 + crown * 8 + head * 6 + move + drift * SLIDE_DRIFT_W;
       if (cost < pick.cost - 1e-12) pick = { cost, theta: th, rot };
     }
   }
@@ -374,4 +392,23 @@ export function maxProtrusion(local: readonly RawPoint[], s: number): number {
   let m = -1e9;
   for (let i = 0; i < local.length; i++) m = Math.max(m, coreSdf(local[i]!.x, local[i]!.y, s));
   return m;
+}
+
+/**
+ * 부착 피드백(v1.2): 손이 그은 자리(무게 중심 각도)와 붙은 자리(θ)의 차이.
+ * 금지 자리에서 미끄러진 획이면 slid = true — 앱은 몸을 붙은 쪽으로 조금 더 기울이고 그쪽을 본다(아트 1-3 '가장 가까운 허용 자리').
+ * side = 붙은 자리가 앞(+1, 화면 오른쪽)인가 뒤(−1)인가.
+ */
+export function slideOf(raw: readonly RawPoint[], a: Attach): { slid: boolean; delta: number; side: 1 | -1 } {
+  'worklet';
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < raw.length; i++) {
+    cx += raw[i]!.x;
+    cy += raw[i]!.y;
+  }
+  const n = Math.max(raw.length, 1);
+  const hand = angleOf(cx / n, cy / n);
+  const delta = wrapPi(a.theta - hand);
+  return { slid: isForbidden(hand) && Math.abs(delta) > 6 * DEG, delta, side: Math.sin(a.theta) >= 0 ? 1 : -1 };
 }

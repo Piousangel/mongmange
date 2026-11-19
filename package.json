@@ -9,6 +9,7 @@
     "spike:capture": "node scripts/spike-capture.mjs"
   },
   "devDependencies": {
-    "playwright": "^1.65.1"
+    "playwright": "^1.65.1",
+    "subset-font": "2.9.0"
   }
 }

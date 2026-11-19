@@ -27,6 +27,8 @@ export interface Params {
   fs: number;
   /** 스파이크 화면 소리 자막(?cap=1) */
   cap: boolean;
+  /** 웹 캡처용 스크린리더 흉내(?sr=1): 웹은 스크린리더 감지를 믿을 수 없어 이 값으로만 켠다 */
+  sr: boolean;
 }
 
 export function readParams(): Params {
@@ -52,6 +54,7 @@ export function readParamsFrom(search: string): Params {
     pose: q.get('pose') === 'clumsy' ? 'clumsy' : 'base',
     fs: Number(q.get('fs') ?? 1) || 1,
     cap: q.get('cap') === '1',
+    sr: q.get('sr') === '1',
   };
 }
 

@@ -1,6 +1,11 @@
 import { BlurMask, Canvas, Oval } from '@shopify/react-native-skia';
 import {
+  ASSIST_DEFAULT,
   COMB_REST,
+  assistStroke,
+  clampChoice,
+  slideOf,
+  type AssistChoice,
   PALETTE,
   STROKE,
   attachStroke,
@@ -17,7 +22,7 @@ import {
   type StrokeRecord,
 } from '@mong/core';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Platform, Pressable, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useDerivedValue, useSharedValue } from 'react-native-reanimated';
@@ -58,6 +63,8 @@ export interface StrokeGame {
   onJarTap: () => void;
   /** 대체 입력(버튼으로 긋기) 표시: 스크린리더 또는 노트 접근성 설정일 때만(리뷰 U2) */
   assist: boolean;
+  /** 스크린리더가 켜져 있으면 긋기 모드에 들어오자마자 고르기 패널을 연다 */
+  screenReader?: boolean;
   /** 오늘 아직 안 그었으면 몽망이 둘레에 옅은 젖은 자국(아트 11절 19~24초, 지시문 대신) */
   wetMark: boolean;
 }
@@ -71,7 +78,8 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
   const records = game ? game.records : localRecords;
   const gameRef = useRef(game);
   gameRef.current = game;
-  const [assist, setAssist] = useState<{ a: Pt | null; b: Pt | null; bend: number } | null>(null);
+  // 대체 입력(D-08): choice = 자리·방향·길이·휨 고르기(스크린리더 경로, C10-③), points = 화면을 두 번 눌러 시작·끝점(보이는 사용자)
+  const [assist, setAssist] = useState<AssistState | null>(() => (game?.assist && game.screenReader ? { mode: 'choice', c: ASSIST_DEFAULT } : null));
   const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
   const [info, setInfo] = useState('');
   const attachedAt = useSharedValue<number[]>(records.map(() => -1e9));
@@ -79,7 +87,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
   const drawing = useSharedValue(false);
   const startT = useSharedValue(0);
   const gaze = useSharedValue<Gaze>(NO_GAZE);
-  const lastAttach = useSharedValue({ at: -1e9, side: 0 });
+  const lastAttach = useSharedValue({ at: -1e9, side: 0, lean: 6 });
   const [caption, setCaption] = useState('');
   const n = records.length;
   const nRef = useRef(n);
@@ -117,7 +125,9 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
     const { raw, attach } = rec;
     const now = clock.value;
     attachedAt.value = [...attachedAt.value, now];
-    lastAttach.value = { at: now, side: Math.sin(attach.theta) >= 0 ? 1 : -1 };
+    // 금지 자리에서 미끄러진 획(v1.2): 가장 가까운 허용 자리에 붙고, 몸이 그쪽으로 조금 더(6° → 9°) 기운다
+    const sl = slideOf(raw, attach);
+    lastAttach.value = { at: now, side: sl.side, lean: sl.slid ? 9 : 6 };
     gaze.value = { x: L.cx + Math.sin(attach.theta) * L.wpx, y: L.oyFor(s0) - Math.cos(attach.theta) * L.wpx * 0.6, at: now, holdMs: 1200 };
     if (!game0) setRecords((r) => [...r, rec]);
     setInfo(
@@ -136,43 +146,50 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
   const brushOff = () => sound.stop('brushStroke');
   const brushSpeed = (v: number) => sound.setBrushSpeed(v);
 
-  // 접근성 대체 입력(D-08): 눌러 시작점, 다시 눌러 끝점 → 곡률 손잡이 하나 → 긋기
-  const assistPts = (a: Pt, b: Pt, bend: number): Pt[] => {
-    const mx = (a.x + b.x) / 2;
-    const my = (a.y + b.y) / 2;
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const cx = mx - dy * bend;
-    const cy = my + dx * bend;
-    const out: Pt[] = [];
-    for (let i = 0; i <= 40; i++) {
-      const u = i / 40;
-      const e = u * u * (3 - 2 * u);
-      out.push({ x: (1 - e) * (1 - e) * a.x + 2 * (1 - e) * e * cx + e * e * b.x, y: (1 - e) * (1 - e) * a.y + 2 * (1 - e) * e * cy + e * e * b.y, t: Math.round(u * 900) });
+  // 접근성 대체 입력(D-08). 점 → 화면 좌표(지금 핵 중심·W)
+  const toScreen = (raw: RawPoint[]): Pt[] => {
+    const s0 = coreScale(nRef.current);
+    return raw.map((p) => ({ x: L.cx + p.x * L.wpx, y: L.oyFor(s0) + p.y * L.wpx, t: p.t }));
+  };
+  const assistPts = (st: AssistState): Pt[] | null => {
+    if (st.mode === 'choice') return toScreen(assistStroke(st.c, coreScale(nRef.current)));
+    if (!st.a || !st.b) return null;
+    return pointsStroke(st.a, st.b, st.bend);
+  };
+  const setAssistLive = (next: AssistState | null) => {
+    setAssist(next);
+    if (!next) {
+      live.value = [];
+      return;
     }
-    return out;
+    const pts = assistPts(next);
+    live.value = pts ?? (next.mode === 'points' && next.a ? [next.a, { ...next.a, x: next.a.x + 1 }] : []);
   };
   const assistPress = (x: number, y: number) => {
-    setAssist((st) => {
-      if (!st) return st;
-      const p = { x, y, t: 0 };
-      const next = !st.a || st.b ? { a: p, b: null, bend: 0 } : { ...st, b: p };
-      live.value = next.a && next.b ? assistPts(next.a, next.b, next.bend) : next.a ? [next.a, { ...next.a, x: next.a.x + 1 }] : [];
-      return next;
-    });
+    const st = assist;
+    if (!st) return;
+    const p = { x, y, t: 0 };
+    setAssistLive(st.mode !== 'points' || !st.a || st.b ? { mode: 'points', a: p, b: null, bend: 0 } : { ...st, b: p });
   };
-  const assistBend = (d: number) => {
-    setAssist((st) => {
-      if (!st?.a || !st.b) return st;
-      const next = { ...st, bend: Math.max(-0.6, Math.min(0.6, st.bend + d)) };
-      live.value = assistPts(next.a!, next.b!, next.bend);
-      return next;
-    });
+  const changeChoice = (key: keyof AssistChoice, d: number) => {
+    const st = assist;
+    if (!st) return;
+    if (key === 'bend' && st.mode === 'points') {
+      if (st.a && st.b) setAssistLive({ ...st, bend: Math.max(-0.6, Math.min(0.6, st.bend + d * 0.15)) });
+      return;
+    }
+    const c = st.mode === 'choice' ? st.c : ASSIST_DEFAULT;
+    const next = clampChoice({ ...c, [key]: c[key] + d });
+    setAssistLive({ mode: 'choice', c: next });
+    if (game?.screenReader) AccessibilityInfo.announceForAccessibility(choiceText(next));
   };
+  const assistReady = assist !== null && assistPts(assist) !== null;
   const assistCommit = () => {
-    if (!assist?.a || !assist.b) return;
-    const pts = assistPts(assist.a, assist.b, assist.bend);
-    setAssist({ a: null, b: null, bend: 0 });
+    if (!assist) return;
+    const pts = assistPts(assist);
+    if (!pts) return;
+    // 하루 한 획: 그은 뒤에는 패널을 닫는다(거절이면 sim 문구가 이유를 알려 주고, '버튼으로 긋기'로 다시 연다)
+    setAssist(null);
     commit(pts);
   };
 
@@ -230,8 +247,8 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
     const s = sPrev + (sNow - sPrev) * sg;
     const b = RM ? 0 : breathAt(t, 3200);
     const g = gazeOffset(gaze.value, t, L.cx, L.oyFor(s), L.wpx);
-    // 받는 쪽으로 6° 기욺(200~1400ms)
-    const lean = RM ? 0 : la.side * ((6 * Math.PI) / 180) * Math.sin(clamp01((dLast - 150) / 1300) * Math.PI);
+    // 받는 쪽으로 6° 기욺(200~1400ms). 금지 자리에서 옮겨 붙은 획이면 9°
+    const lean = RM ? 0 : la.side * ((la.lean * Math.PI) / 180) * Math.sin(clamp01((dLast - 150) / 1300) * Math.PI);
     // 기쁨(정착 뒤): 눈 ^ ^, 작은 튐, 빗 2회 튕김(+120ms)
     const jd = dLast - 900;
     let eyeMix = 0;
@@ -337,10 +354,12 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
         </View>
       </GestureDetector>
       {assist !== null && (
+        // 보이는 사용자용 두 점 고르기. 스크린리더에는 숨긴다(두 번 탭이 같은 가운데 점이 된다 — C10-③)
         <Pressable
           style={StyleSheet.absoluteFill}
-          accessibilityLabel="획 시작점과 끝점 고르기"
-          accessibilityHint="한 번 눌러 시작점, 다시 눌러 끝점을 고릅니다"
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
           onPress={(e) => assistPress(e.nativeEvent.locationX, e.nativeEvent.locationY)}
         />
       )}
@@ -366,43 +385,22 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
           </Pressable>
         </>
       )}
-      {game?.assist && (
+      {game?.assist && assist === null && (
         <View style={[styles.assistBar, { top: insets.top + 12 }]} pointerEvents="box-none">
-          {assist === null ? (
-            <Pressable onPress={() => setAssist({ a: null, b: null, bend: 0 })} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="버튼으로 긋기">
-              <Text style={styles.assistText}>버튼으로 긋기</Text>
-            </Pressable>
-          ) : (
-            <>
-              <Pressable onPress={() => assistBend(-0.15)} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="왼쪽으로 휘기">
-                <Text style={styles.assistText}>휘기 ◀</Text>
-              </Pressable>
-              <Pressable onPress={() => assistBend(0.15)} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="오른쪽으로 휘기">
-                <Text style={styles.assistText}>▶ 휘기</Text>
-              </Pressable>
-              <Pressable
-                onPress={assistCommit}
-                disabled={!assist.a || !assist.b}
-                style={[styles.assistBtn, !(assist.a && assist.b) && { opacity: 0.4 }]}
-                accessibilityRole="button"
-                accessibilityLabel="이 획으로 긋기"
-              >
-                <Text style={styles.assistText}>긋기</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setAssist(null);
-                  live.value = [];
-                }}
-                style={styles.assistBtn}
-                accessibilityRole="button"
-                accessibilityLabel="손으로 긋기로 돌아가기"
-              >
-                <Text style={styles.assistText}>손으로</Text>
-              </Pressable>
-            </>
-          )}
+          <Pressable onPress={() => setAssistLive({ mode: 'choice', c: ASSIST_DEFAULT })} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="버튼으로 긋기" testID="assist-open">
+            <Text style={styles.assistText}>버튼으로 긋기</Text>
+          </Pressable>
         </View>
+      )}
+      {game?.assist && assist !== null && (
+        <AssistPanel
+          top={insets.top + 10}
+          state={assist}
+          ready={assistReady}
+          onChange={changeChoice}
+          onCommit={assistCommit}
+          onClose={() => setAssistLive(null)}
+        />
       )}
       {game?.overlay}
       {!clean && !game && (
@@ -440,6 +438,118 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
   );
 }
 
+type AssistState = { mode: 'choice'; c: AssistChoice } | { mode: 'points'; a: Pt | null; b: Pt | null; bend: number };
+
+/** 두 점 + 곡률 손잡이 하나(보이는 사용자용, D-08 원안) */
+function pointsStroke(a: Pt, b: Pt, bend: number): Pt[] {
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const cx = mx - dy * bend;
+  const cy = my + dx * bend;
+  const out: Pt[] = [];
+  for (let i = 0; i <= 40; i++) {
+    const u = i / 40;
+    const e = u * u * (3 - 2 * u);
+    out.push({ x: (1 - e) * (1 - e) * a.x + 2 * (1 - e) * e * cx + e * e * b.x, y: (1 - e) * (1 - e) * a.y + 2 * (1 - e) * e * cy + e * e * b.y, t: Math.round(u * 900) });
+  }
+  return out;
+}
+
+const PLACE_NAMES = ['머리 위', '오른쪽 위', '오른쪽', '오른쪽 아래', '아래', '왼쪽 아래', '왼쪽', '왼쪽 위'];
+const DIR_NAMES = ['위로', '오른쪽 위로', '오른쪽으로', '오른쪽 아래로', '아래로', '왼쪽 아래로', '왼쪽으로', '왼쪽 위로'];
+const LEN_NAMES = ['짧게', '보통', '길게'];
+const BEND_NAMES = ['왼쪽으로 크게 휨', '왼쪽으로 조금 휨', '곧게', '오른쪽으로 조금 휨', '오른쪽으로 크게 휨'];
+const DIR_ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+
+export function choiceText(c: AssistChoice): string {
+  return `몽망이 ${PLACE_NAMES[c.place]}에서 ${DIR_NAMES[c.dir]}, ${LEN_NAMES[c.len]}, ${BEND_NAMES[c.bend + 2]}`;
+}
+
+const ROWS: { key: keyof AssistChoice; label: string; value: (c: AssistChoice) => string }[] = [
+  { key: 'place', label: '자리', value: (c) => PLACE_NAMES[c.place]! },
+  { key: 'dir', label: '방향', value: (c) => `${DIR_ARROWS[c.dir]} ${DIR_NAMES[c.dir]}` },
+  { key: 'len', label: '길이', value: (c) => LEN_NAMES[c.len]! },
+  { key: 'bend', label: '휨', value: (c) => BEND_NAMES[c.bend + 2]! },
+];
+
+/**
+ * 고르기 패널(D-08, C10-③): 줄마다 '조절 가능' 요소 하나. 스크린리더는 위·아래로 쓸어 값을 바꾸고(increment/decrement),
+ * 보이는 사용자는 ◀ ▶를 누른다. 고를 때마다 미리 보기 획이 그려지고, '이 획으로 긋기'가 손획과 같은 stroke 이벤트를 보낸다.
+ */
+function AssistPanel({
+  top,
+  state,
+  ready,
+  onChange,
+  onCommit,
+  onClose,
+}: {
+  top: number;
+  state: AssistState;
+  ready: boolean;
+  onChange: (key: keyof AssistChoice, d: number) => void;
+  onCommit: () => void;
+  onClose: () => void;
+}) {
+  const c = state.mode === 'choice' ? state.c : null;
+  return (
+    <View style={[styles.panel, { top }]} testID="assist-panel">
+      {c === null && (
+        <Text style={styles.panelNote} accessibilityLiveRegion="polite">
+          {state.mode === 'points' && state.a && !state.b ? '끝점을 눌러 주세요' : '누른 두 점으로 그어요 · 휨만 바꿀 수 있어요'}
+        </Text>
+      )}
+      {ROWS.map((r) => {
+        const value = c ? r.value(c) : r.key === 'bend' ? '손잡이' : '—';
+        const enabled = c !== null || r.key === 'bend';
+        return (
+          <View
+            key={r.key}
+            style={styles.panelRow}
+            accessible
+            accessibilityRole="adjustable"
+            accessibilityLabel={r.label}
+            accessibilityValue={{ text: value }}
+            accessibilityHint="위아래로 쓸어 바꿔요"
+            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+            onAccessibilityAction={(e) => onChange(r.key, e.nativeEvent.actionName === 'increment' ? 1 : -1)}
+            testID={`assist-${r.key}`}
+          >
+            <Text style={styles.panelLabel}>{r.label}</Text>
+            <Pressable onPress={() => onChange(r.key, -1)} disabled={!enabled} style={styles.panelStep} importantForAccessibility="no" accessibilityElementsHidden testID={`assist-${r.key}-prev`}>
+              <Text style={styles.assistText}>◀</Text>
+            </Pressable>
+            <Text style={[styles.panelValue, !enabled && { opacity: 0.4 }]} numberOfLines={1}>
+              {value}
+            </Text>
+            <Pressable onPress={() => onChange(r.key, 1)} disabled={!enabled} style={styles.panelStep} importantForAccessibility="no" accessibilityElementsHidden testID={`assist-${r.key}-next`}>
+              <Text style={styles.assistText}>▶</Text>
+            </Pressable>
+          </View>
+        );
+      })}
+      <View style={styles.panelActions}>
+        <Pressable onPress={onClose} style={styles.assistBtn} accessibilityRole="button" accessibilityLabel="손으로 긋기로 돌아가기" testID="assist-close">
+          <Text style={styles.assistText}>손으로</Text>
+        </Pressable>
+        <Pressable
+          onPress={onCommit}
+          disabled={!ready}
+          style={[styles.assistBtn, styles.commitBtn, !ready && { opacity: 0.4 }]}
+          accessibilityRole="button"
+          accessibilityLabel={c ? `이 획으로 긋기, ${choiceText(c)}` : '이 획으로 긋기'}
+          accessibilityState={{ disabled: !ready }}
+          testID="assist-commit"
+        >
+          <Text style={[styles.assistText, { color: PALETTE.day.text }]}>이 획으로 긋기</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 /** 씻기 창 동안 연적이 숨 쉼(1.2초 주기, 담묵 고리) */
 function JarBreath() {
   const st = useAnimatedStyle(() => ({ opacity: PARAMS.rm ? 0.5 : 0.25 + 0.35 * (0.5 + 0.5 * Math.sin((clock.value / 1200) * Math.PI * 2)) }));
@@ -458,5 +568,13 @@ const styles = StyleSheet.create({
   assistBar: { position: 'absolute', top: 54, right: 12, flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '70%' },
   assistBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(43,42,40,0.08)' },
   assistText: { fontFamily: SANS, fontSize: 13, color: PALETTE.day.textSub },
+  panel: { position: 'absolute', left: 16, right: 16, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(239,232,218,0.94)', borderWidth: StyleSheet.hairlineWidth, borderColor: PALETTE.day.wash },
+  panelNote: { fontFamily: SANS, fontSize: 12, color: PALETTE.day.textSub, paddingVertical: 4 },
+  panelRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
+  panelLabel: { width: 40, fontFamily: SANS, fontSize: 13, color: PALETTE.day.textSub },
+  panelStep: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  panelValue: { flex: 1, textAlign: 'center', fontFamily: SANS, fontSize: 14, color: PALETTE.day.text },
+  panelActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
+  commitBtn: { backgroundColor: 'rgba(43,42,40,0.14)' },
   study: { position: 'absolute', top: 14, right: 16, fontSize: 11, color: '#8a8076', fontFamily: SANS, letterSpacing: 1 },
 });
