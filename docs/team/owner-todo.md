@@ -3,12 +3,12 @@
 근거: docs/research/03-store-release.md 8절. 비용 합계 약 124 USD, 이후 Apple 연 99 USD.
 
 ## 마감 (D-18 출시 2027-02-02 기준 — 늦으면 출시가 밀린다)
-- **11-21까지**: Google Play Console·Apple Developer 개인 계정 가입(한 주 늦으면 출시 02-16)
+- **11-21까지**: ~~Google Play Console~~(11-20 가입 완료) · Apple Developer 개인 계정 가입(한 주 늦으면 출시 02-16)
 - **11-28까지**: 테스터 15~20명 명단, 소액 광고 예산 여부(기본 0원)
 - **12-05까지**: 영문 앱 이름 확정(팀이 후보·설문 준비)
 
 ## 지금 (개발과 병행, 기다리는 시간이 길어서 먼저)
-1. **Google Play Console 개인 계정** (25 USD, 1회) — 신원 확인에 며칠 걸림. 신규 개인 계정은 출시 전에 테스터 12명 이상이 14일 연속 비공개 테스트에 참여해야 하므로 일찍 만든다.
+1. ~~Google Play Console 개인 계정~~ — 11-20 가입 완료. 남은 것: 신원 확인 완료 여부 확인, 앱 만들기(패키지 com.piousangel.mongmange)는 첫 출시 빌드 때 팀과 함께. (25 USD, 1회) — 신원 확인에 며칠 걸림. 신규 개인 계정은 출시 전에 테스터 12명 이상이 14일 연속 비공개 테스트에 참여해야 하므로 일찍 만든다.
 2. **Apple Developer Program 개인 가입** (연 99 USD) — 개인사업자도 개인으로 가입하고, 판매자명은 실명으로 표시된다. 급하지 않으니 첫 빌드 전까지 하면 된다.
 3. ~~Expo 계정~~ — 11-19 완료. GitHub(Piousangel)로 가입, 조직 `piousangels-team`, 프로젝트 `@piousangels-team/mongmange`(ID 3f2eff79…), 이 Mac의 eas-cli 로그인 완료.
 
