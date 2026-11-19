@@ -19,6 +19,10 @@ export interface Params {
   octaves: number;
   nres: number;
   study: string;
+  /** render-03 획 문법 A|B|C(없으면 채택안) */
+  grammar: string;
+  /** 7일차 포즈: base(기준) | clumsy(서툰 손) */
+  pose: 'base' | 'clumsy';
 }
 
 export function readParams(): Params {
@@ -35,6 +39,8 @@ export function readParams(): Params {
     octaves: Number(q.get('oct') ?? 4),
     nres: Number(q.get('nres') ?? 0.5),
     study: q.get('study') ?? '',
+    grammar: q.get('grammar') ?? '',
+    pose: q.get('pose') === 'clumsy' ? 'clumsy' : 'base',
   };
 }
 

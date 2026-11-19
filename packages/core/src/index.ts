@@ -16,6 +16,7 @@ export function tick(state: CoreState, dtMs: number): CoreState {
 export * from './visual/bodySpec';
 export * from './visual/pose';
 export * from './visual/selectVisual';
+export * from './visual/grammar';
 export * from './geometry/types';
 export * from './geometry/core';
 export * from './geometry/simplify';
@@ -24,3 +25,5 @@ export * from './geometry/ribbon';
 export * from './geometry/comb';
 export * from './geometry/eyes';
 export * from './save/envelope';
+/** MVP 시뮬레이션(State·Event·tick·reduce·세이브). 기존 이름(tick·Phase 등)과 겹치지 않게 네임스페이스로 낸다 */
+export * as sim from './sim/index';

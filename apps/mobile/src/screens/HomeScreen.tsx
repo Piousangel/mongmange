@@ -1,5 +1,5 @@
 import { Canvas, Fill, Group, Oval, Rect, Shader } from '@shopify/react-native-skia';
-import { COMB_REST, PALETTE, day7Records, selectVisual } from '@mong/core';
+import { COMB_REST, PALETTE, day7ClumsyRecords, day7Records, grammarOf, selectVisual } from '@mong/core';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { GestureDetector, useTapGesture } from 'react-native-gesture-handler';
@@ -20,7 +20,8 @@ const TIDE_MS = PARAMS.rm ? 400 : 2400;
 export function HomeScreen({ day, startNight }: { day: number; startNight: boolean }) {
   const { width, height } = useWindowDimensions();
   const L = layout(width, height);
-  const records = useMemo(() => (day >= 7 ? day7Records(PARAMS.attach) : []), [day]);
+  const records = useMemo(() => (day >= 7 ? (PARAMS.pose === 'clumsy' ? day7ClumsyRecords : day7Records)(PARAMS.attach) : []), [day]);
+  const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
   const vis = selectVisual({ phase: 'awake', strokes: records });
   const s = vis.coreScale;
   const ox = L.cx;
@@ -112,7 +113,7 @@ export function HomeScreen({ day, startNight }: { day: number; startNight: boole
             </Rect>
           </Group>
           {phase !== 'day' && <NightRings frameOx={ox} frameOy={oy} wpx={L.wpx} s={s} nightK={nightK} ripple={ripple} strokes={records.length} />}
-          <Mongmangi frame={frame} records={records} mode={PARAMS.body} />
+          <Mongmangi frame={frame} records={records} mode={PARAMS.body} grammar={grammar} />
           <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={dim} />
         </Canvas>
         {phase === 'day' && <ObjectLabels width={width} y={L.objectsY} color={PALETTE.day.textSub} />}

@@ -25,6 +25,9 @@ export interface RibbonOptions {
   widths?: readonly number[];
   /** 메시 버전(폭 곡선) */
   meshVersion?: number;
+  /** 획 문법(render-03): 끝 테이퍼 시작 비율·최소 폭을 덮어쓴다 */
+  tailStart?: number;
+  tailMin?: number;
 }
 
 /** 점별 폭(W). 속도가 빠르면 가늘고, 압력이 있으면 굵다. 시작은 붓을 눌러 살짝 부풀고(돈필) 끝은 빠진다(수필) */
@@ -44,8 +47,9 @@ export function strokeWidths(pts: readonly RawPoint[], opts: RibbonOptions): num
     speed.push((Math.hypot(b.x - a.x, b.y - a.y) / dt) * 1000); // W/s
   }
   const out: number[] = [];
-  const tailStart = v >= 2 ? 0.62 : 0.7;
-  const tailMin = (v >= 2 ? 0.12 : 0.2) - 0.06 * (opts.taper ?? 0);
+  const tailStart = opts.tailStart ?? (v >= 2 ? 0.62 : 0.7);
+  // 문법이 끝 최소 폭을 주면 L2 테이퍼 보정도 그 하한 안에서만 깎는다(실처럼 빠지는 끝 금지)
+  const tailMin = opts.tailMin !== undefined ? opts.tailMin - 0.04 * (opts.taper ?? 0) : (v >= 2 ? 0.12 : 0.2) - 0.06 * (opts.taper ?? 0);
   for (let i = 0; i < n; i++) {
     const s = acc[i]! / L;
     const hk = Math.min(s / 0.18, 1);

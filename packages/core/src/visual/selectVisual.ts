@@ -12,7 +12,8 @@ export interface VisualInput {
   ages?: readonly number[];
 }
 
-export type StrokeTone = 'body' | 'mid' | 'faded';
+/** 획 나이 톤(아트 v1.2·시스템 4.3): stroke = 새 획 담묵(strokeInk), mid = inkMid, faded = inkFaded. 나이가 많을수록 바탕 쪽 */
+export type StrokeTone = 'stroke' | 'mid' | 'faded';
 
 export interface VisualState {
   phase: Phase;
@@ -26,9 +27,9 @@ export interface VisualState {
   strokes: { rec: StrokeRecord; tone: StrokeTone }[];
 }
 
-/** 시스템 4.3: 0~7 짙은 먹(몸과 같은 coverage), 8~20 ink-mid, 그 뒤 ink-faded */
+/** 시스템 4.3(v1.2): 0~7 stroke-ink 담묵(가장자리는 몸과 한 coverage), 8~20 ink-mid, 그 뒤 ink-faded */
 export function toneForAge(age: number): StrokeTone {
-  if (age <= 7) return 'body';
+  if (age <= 7) return 'stroke';
   if (age <= 20) return 'mid';
   return 'faded';
 }

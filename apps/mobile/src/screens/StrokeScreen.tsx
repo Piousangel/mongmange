@@ -5,7 +5,9 @@ import {
   STROKE,
   attachStroke,
   coreScale,
+  day7ClumsyRecords,
   day7Records,
+  grammarOf,
   normalizeRaw,
   quantizeRaw,
   serializeSave,
@@ -43,7 +45,8 @@ export function StrokeScreen({ initial }: { initial: number }) {
   const { width, height } = useWindowDimensions();
   const L = layout(width, height);
   const [level, setLevel] = useState<AttachLevel>(PARAMS.attach);
-  const [records, setRecords] = useState<StrokeRecord[]>(() => day7Records(PARAMS.attach).slice(0, initial));
+  const [records, setRecords] = useState<StrokeRecord[]>(() => (PARAMS.pose === 'clumsy' ? day7ClumsyRecords : day7Records)(PARAMS.attach).slice(0, initial));
+  const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
   const [info, setInfo] = useState('');
   const attachedAt = useSharedValue<number[]>(records.map(() => -1e9));
   const live = useSharedValue<Pt[]>([]);
@@ -228,7 +231,7 @@ export function StrokeScreen({ initial }: { initial: number }) {
         <View style={StyleSheet.absoluteFill} testID="stroke-surface">
           <Canvas style={StyleSheet.absoluteFill} opaque>
             <Paper width={width} height={height} light={light} />
-            <Mongmangi frame={frame} records={records} live={live} mode={PARAMS.body} />
+            <Mongmangi frame={frame} records={records} live={live} mode={PARAMS.body} grammar={grammar} />
             <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={halfDim} />
           </Canvas>
           <ObjectLabels width={width} y={L.objectsY} color={PALETTE.day.textSub} labels={labels} />

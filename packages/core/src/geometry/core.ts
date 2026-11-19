@@ -100,10 +100,10 @@ export function wrapPi(a: number): number {
 }
 
 /** D-12 금지 자리 안인가 */
-export function isForbidden(theta: number): boolean {
+export function isForbidden(theta: number, zones: readonly (readonly [number, number])[] = FORBIDDEN): boolean {
   'worklet';
-  for (let i = 0; i < FORBIDDEN.length; i++) {
-    const z = FORBIDDEN[i]!;
+  for (let i = 0; i < zones.length; i++) {
+    const z = zones[i]!;
     const lo = z[0];
     const hi = z[1];
     const t = lo < 0 ? wrapPi(theta) : wrap2pi(theta);
@@ -113,18 +113,22 @@ export function isForbidden(theta: number): boolean {
 }
 
 /** 금지 자리면 가장 가까운 허용 경계(+여유)로 미끄러뜨린다 */
-export function nearestAllowed(theta: number, margin: number = (6 * Math.PI) / 180): number {
+export function nearestAllowed(
+  theta: number,
+  margin: number = (6 * Math.PI) / 180,
+  zones: readonly (readonly [number, number])[] = FORBIDDEN,
+): number {
   'worklet';
-  if (!isForbidden(theta)) return wrapPi(theta);
+  if (!isForbidden(theta, zones)) return wrapPi(theta);
   let best = theta;
   let bestD = 1e9;
-  for (let i = 0; i < FORBIDDEN.length; i++) {
-    const z = FORBIDDEN[i]!;
+  for (let i = 0; i < zones.length; i++) {
+    const z = zones[i]!;
     const cands = [z[0] - margin, z[1] + margin];
     for (let j = 0; j < 2; j++) {
       const c = cands[j]!;
       const d = Math.abs(wrapPi(c - theta));
-      if (d < bestD && !isForbidden(c)) {
+      if (d < bestD && !isForbidden(c, zones)) {
         bestD = d;
         best = c;
       }

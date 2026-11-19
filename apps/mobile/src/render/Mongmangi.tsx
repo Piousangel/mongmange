@@ -27,16 +27,16 @@ import {
   eyeShapeCached,
   STROKE,
   simplifyStroke,
-  strokeRibbon,
   strokeSpine,
   type CombPose,
+  type StrokeGrammar,
   type EyeKind,
   type Ribbon,
   type StrokeRecord,
 } from '@mong/core';
 import { useMemo, useState } from 'react';
 import { runOnJS, useAnimatedReaction, useDerivedValue, useSharedValue, type SharedValue } from 'react-native-reanimated';
-import { MAX_SEGS, bodySdfFx, hexToRgb, inkFillFx } from './shaders';
+import { MAX_SEGS, bodySdfFx, hexToRgb, inkFillFx, strokeInkFx } from './shaders';
 
 /** 한 프레임의 몸 상태(화면이 시계에서 계산해 넘긴다) */
 export interface BodyFrame {
@@ -105,7 +105,14 @@ interface Props {
   /** 그리는 중인 획(화면 px, t ms) */
   live?: SharedValue<{ x: number; y: number; t: number }[]>;
   mode: 'A' | 'B';
+  /** render-03 획 문법(폭·틈·담묵·비백) */
+  grammar: StrokeGrammar;
 }
+
+/** 획 칠 덧칠 리본을 몸 마스크보다 이만큼(pt) 넓힌다 — 0이면 닫힘·블러로 넓어진 몸 마스크의 검은 띠가 겹친 획 사이에 등고선처럼 남는다 */
+const OVERLAY_PAD_PT = 1.6;
+/** 빗 가닥의 텍스처 획 번호 시작(셰이더: ≥ 40 = 빗) */
+const COMB_TEX_ID = 40;
 
 const EYE_C = eyeCenters();
 /** 후보 B를 쓰지 않을 때 넘기는 고정 uniform(매 프레임 768칸 배열을 채우지 않음) */
@@ -130,21 +137,27 @@ const CORE_PATH = (() => {
   return p.build();
 })();
 
-function ribbonsToVerts(rs: Ribbon[]): { vertices: SkPoint[]; indices: number[] } {
+function ribbonsToVerts(rs: Ribbon[], ids?: number[]): { vertices: SkPoint[]; indices: number[]; textures: SkPoint[] } {
   'worklet';
   const vertices: SkPoint[] = [];
   const indices: number[] = [];
+  const textures: SkPoint[] = [];
   for (let r = 0; r < rs.length; r++) {
     const rb = rs[r]!;
     const base = vertices.length;
-    for (let i = 0; i < rb.positions.length; i += 2) vertices.push({ x: rb.positions[i]!, y: rb.positions[i + 1]! });
+    const id = ids ? ids[r]! : r;
+    for (let i = 0; i < rb.positions.length; i += 2) {
+      vertices.push({ x: rb.positions[i]!, y: rb.positions[i + 1]! });
+      if (ids) textures.push({ x: rb.uvs[i]! + 2 * id, y: rb.uvs[i + 1]! });
+    }
     for (let i = 0; i < rb.indices.length; i++) indices.push(rb.indices[i]! + base);
   }
   if (vertices.length === 0) {
     vertices.push({ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 });
     indices.push(0, 1, 2);
+    if (ids) textures.push({ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 });
   }
-  return { vertices, indices };
+  return { vertices, indices, textures };
 }
 
 function eyePath(pts: number[], cxs: number[], cy: number) {
@@ -172,12 +185,13 @@ function tint(hex: string | number[], input: SkImageFilter) {
  * 칠 레이어 페인트(D-13 단일 coverage): 레이어 안의 흰 마스크(핵 + 획 + 빗, 겹치면 1에서 포화)를
  * 블러 → 알파 램프로 가장자리·안쪽 테·바깥 번짐을 **한 번만** 만든다. 웹·네이티브 공통 필터만 쓴다.
  */
-function makeBodyPaint(night: number, bleed: number, ink: number, blurPt: number): SkPaint {
+function makeBodyPaint(night: number, bleed: number, ink: number, blurPt: number, closePt: number): SkPaint {
   const b = hexToRgb(PALETTE.day.body);
   const nb = hexToRgb(PALETTE.night.body);
   const body = [0, 1, 2].map((i) => b[i]! + (nb[i]! - b[i]!) * night);
-  // 닫힘(팽창 → 침식): 획과 몸 사이 작은 틈이 종이 점(셋째 눈처럼 읽힘)으로 남지 않게 메운다
-  const closed = Skia.ImageFilter.MakeErode(1.5, 1.5, Skia.ImageFilter.MakeDilate(1.5, 1.5, null));
+  // 닫힘(팽창 → 침식): 획과 몸 사이 작은 틈이 종이 점(셋째 눈처럼 읽힘)으로 남지 않게 메운다.
+  // render-03: 반경은 획 문법이 정한다 — 일부러 연 틈(0.03W 안팎)보다 작아야 틈이 산다
+  const closed = Skia.ImageFilter.MakeErode(closePt, closePt, Skia.ImageFilter.MakeDilate(closePt, closePt, null));
   const m = Skia.ImageFilter.MakeBlur(blurPt, blurPt, TileMode.Decal, closed);
   const edge = Skia.ImageFilter.MakeColorFilter(ramp(5, -2), m); // c 0.4→0.6
   const inner = Skia.ImageFilter.MakeColorFilter(ramp(6, -4.6), m); // c 0.77→0.93: 안쪽 면
@@ -201,7 +215,7 @@ function makeBodyPaint(night: number, bleed: number, ink: number, blurPt: number
 }
 
 /** 몽망이 = 핵 + 빗 + 획을 하나의 coverage 마스크로 합친 뒤 한 번 칠하고, 눈을 뺀다(D-13·아트 12절) */
-export function Mongmangi({ frame, records, live, mode }: Props) {
+export function Mongmangi({ frame, records, live, mode, grammar }: Props) {
   // 칠 페인트는 값이 바뀔 때만 다시 만든다(양자화 키, JS 스레드)
   const [key, setKey] = useState('0|10|20');
   useAnimatedReaction(
@@ -215,8 +229,8 @@ export function Mongmangi({ frame, records, live, mode }: Props) {
   );
   const paint = useMemo(() => {
     const [n, b, i] = key.split('|').map(Number) as [number, number, number];
-    return makeBodyPaint(n / 20, b / 10, i / 20, mode === 'A' ? EDGE.bleedPx * 0.4 : 0.8);
-  }, [key, mode]);
+    return makeBodyPaint(n / 20, b / 10, i / 20, mode === 'A' ? EDGE.bleedPx * 0.4 : 0.8, grammar.closePt);
+  }, [key, mode, grammar]);
 
   const base = useDerivedValue(() => {
     const f = frame.value;
@@ -239,40 +253,133 @@ export function Mongmangi({ frame, records, live, mode }: Props) {
   // 획별 캐시(리뷰 2-5): 단순화 점열은 raw가 불변이라 기록당 한 번(JS), 리본은 그 획의 (핵 크기, 부착 진행)이
   // 바뀔 때만 다시 만든다 → 한 획이 정착하는 동안 나머지 획은 다시 계산하지 않는다.
   const simplified = useMemo(() => records.map((r) => simplifyStroke(r.raw, STROKE.simplifiedMax, r.meshVersion)), [records]);
-  const strokeCache = useSharedValue<{ key: string; rb: Ribbon | null }[]>([]);
+  // base = 받침 라벨(render-03): 몸 마스크에 넣지 않고 바닥에 번진 담묵으로 몸 아래에 그린다(평평한 바닥 유지, 발·부스러기 금지)
+  const strokeCache = useSharedValue<{ key: string; rb: Ribbon | null; ov: Ribbon | null; base: boolean }[]>([]);
   const strokeRibbons = useDerivedValue(() => {
     const f = frame.value;
     const prev = strokeCache.value;
-    const out: { key: string; rb: Ribbon | null }[] = [];
+    const out: { key: string; rb: Ribbon | null; ov: Ribbon | null; base: boolean }[] = [];
+    const pad = (2 * OVERLAY_PAD_PT) / f.wpx;
     let changed = prev.length !== records.length;
     for (let i = 0; i < records.length; i++) {
       const k = f.attachK[i] ?? 1;
-      const key = `${f.s.toFixed(5)}|${k.toFixed(4)}`;
+      const key = `${grammar.id}|${f.s.toFixed(5)}|${k.toFixed(4)}`;
       const old = prev[i];
       if (old && old.key === key) {
         out.push(old);
         continue;
       }
       changed = true;
-      out.push({ key, rb: k < 0 ? null : strokeRibbon(records[i]!, f.s, k, simplified[i]) });
+      if (k < 0) {
+        out.push({ key, rb: null, ov: null, base: false });
+        continue;
+      }
+      const sp = strokeSpine(records[i]!, f.s, k, simplified[i], grammar);
+      const wide: number[] = [];
+      for (let j = 0; j < sp.widths.length; j++) wide.push(sp.widths[j]! + pad);
+      out.push({
+        key,
+        rb: buildRibbon(sp.pts, { ...sp.opts, widths: sp.widths }),
+        ov: buildRibbon(sp.pts, { ...sp.opts, widths: wide }),
+        base: sp.label === 'base',
+      });
     }
     if (changed) strokeCache.value = out;
     return out;
   });
-  const ribbons = useDerivedValue(() => {
+  // 빗은 프레임당 한 번만(리뷰 7번): 자세 키가 같으면 지난 프레임 것을 쓰고, 마스크 리본·덧칠 리본을 함께 만든다
+  const combCache = useSharedValue<{ key: string; mask: Ribbon[]; ink: Ribbon[] }>({ key: '', mask: [], ink: [] });
+  const combRibbons = useDerivedValue(() => {
     const f = frame.value;
+    const c = f.comb;
+    const key = `${f.combN}|${f.s.toFixed(5)}|${f.wpx}|${c.angle.toFixed(3)}|${c.spread.toFixed(3)}|${c.grow.toFixed(4)}|${c.wobble0.toFixed(3)}|${c.wobble1.toFixed(3)}|${c.wobble2.toFixed(3)}`;
+    const prev = combCache.value;
+    if (prev.key === key) return prev;
+    const mask: Ribbon[] = [];
+    const ink: Ribbon[] = [];
+    if (c.grow > 0.001) {
+      const strands = combStrands(f.combN, f.s, c);
+      const pad = (2 * OVERLAY_PAD_PT) / f.wpx;
+      for (let i = 0; i < strands.length; i++) {
+        // render-03: 빗 끝도 붓을 뗀 둥근 끝(실 테이퍼 금지)
+        mask.push(buildRibbon(strands[i]!.pts, { widths: strands[i]!.widths, roundStart: true, roundEnd: true }));
+        const w: number[] = [];
+        for (let j = 0; j < strands[i]!.widths.length; j++) w.push(strands[i]!.widths[j]! + pad);
+        ink.push(buildRibbon(strands[i]!.pts, { widths: w, roundStart: true, roundEnd: true }));
+      }
+    }
+    const out = { key, mask, ink };
+    combCache.value = out;
+    return out;
+  });
+  const ribbons = useDerivedValue(() => {
     const all: Ribbon[] = [];
     const sr = strokeRibbons.value;
-    for (let i = 0; i < sr.length; i++) if (sr[i]!.rb) all.push(sr[i]!.rb!);
-    if (f.comb.grow > 0.001) {
-      const strands = combStrands(f.combN, f.s, f.comb);
-      for (let i = 0; i < strands.length; i++) all.push(buildRibbon(strands[i]!.pts, { widths: strands[i]!.widths, roundStart: true }));
-    }
+    for (let i = 0; i < sr.length; i++) if (sr[i]!.rb && !sr[i]!.base) all.push(sr[i]!.rb!);
+    const cr = combRibbons.value.mask;
+    for (let i = 0; i < cr.length; i++) all.push(cr[i]!);
     return all;
   });
   const maskVerts = useDerivedValue(() => ribbonsToVerts(ribbons.value));
   const vtx = useDerivedValue(() => maskVerts.value.vertices);
   const idx = useDerivedValue(() => maskVerts.value.indices);
+  // 획 칠 덧칠(render-03): 유저 획 = 문법 농도·비백, 빗 = 몸 먹 + 끝 비백. 몸 칠 위에 srcATop, 핵 밖에서만
+  const inkVerts = useDerivedValue(() => {
+    const rs: Ribbon[] = [];
+    const ids: number[] = [];
+    const sr = strokeRibbons.value;
+    for (let i = 0; i < sr.length; i++) {
+      if (!sr[i]!.ov || sr[i]!.base) continue;
+      rs.push(sr[i]!.ov!);
+      ids.push(i);
+    }
+    const ci = combRibbons.value.ink;
+    for (let i = 0; i < ci.length; i++) {
+      rs.push(ci[i]!);
+      ids.push(COMB_TEX_ID + i);
+    }
+    return ribbonsToVerts(rs, ids);
+  });
+  const inkV = useDerivedValue(() => inkVerts.value.vertices);
+  const inkI = useDerivedValue(() => inkVerts.value.indices);
+  const inkT = useDerivedValue(() => inkVerts.value.textures);
+  const inkU = useDerivedValue(() => {
+    const f = frame.value;
+    const b = hexToRgb(PALETTE.day.body);
+    const nb = hexToRgb(PALETTE.night.body);
+    const pd = hexToRgb(PALETTE.day.bg);
+    const pn = hexToRgb(PALETTE.night.bg);
+    const n = f.night;
+    return {
+      ink: [0, 1, 2].map((i) => b[i]! + (nb[i]! - b[i]!) * n),
+      paper: [0, 1, 2].map((i) => pd[i]! + (pn[i]! - pd[i]!) * n),
+      // 밤 농도는 문법의 toneNight(밤 몸과 1.5:1 이상 떨어지게, 아트 4절 stroke-ink 밤)
+      tone: grammar.tone + (grammar.toneNight - grammar.tone) * n,
+      dry: grammar.dry * (1 - n),
+    };
+  });
+  const invS = useDerivedValue(() => [{ scale: 1 / frame.value.s }]);
+  // 받침 = 바닥 담묵 한 띠(리뷰 2-①-1): 받침 획들의 가로 범위를 하나로 합친 낮은 타원. 획별 구슬 금지, 밤에도 남는다
+  const groundRect = useDerivedValue(() => {
+    const f = frame.value;
+    const sr = strokeRibbons.value;
+    let x0 = 1e9;
+    let x1 = -1e9;
+    for (let i = 0; i < sr.length; i++) {
+      const rb = sr[i]!.rb;
+      if (!rb || !sr[i]!.base) continue;
+      for (let j = 0; j < rb.positions.length; j += 2) {
+        x0 = Math.min(x0, rb.positions[j]!);
+        x1 = Math.max(x1, rb.positions[j]!);
+      }
+    }
+    if (x1 < x0) return { x: 0, y: 0, width: 0, height: 0 };
+    const gy = (CORE.h / 2) * f.s;
+    const h = 0.09;
+    return { x: x0, y: gy - h * 0.35, width: x1 - x0, height: h };
+  });
+  const groundOpacity = useDerivedValue(() => (0.5 + 0.35 * frame.value.night) * frame.value.ink);
+  const groundColor = useDerivedValue(() => (frame.value.night > 0.5 ? PALETTE.night.strokeInk : PALETTE.day.strokeInk));
 
   // 갓 그은 획 번짐(1200ms): 넓힌 리본을 담묵으로 몸 아래에
   const freshVerts = useDerivedValue(() => {
@@ -317,7 +424,7 @@ export function Mongmangi({ frame, records, live, mode }: Props) {
     for (let i = 0; i < pts.length; i += step) local.push({ x: (pts[i]!.x - f.ox) / f.wpx, y: (pts[i]!.y - f.oy) / f.wpx, t: pts[i]!.t });
     const last = pts[pts.length - 1]!;
     if ((pts.length - 1) % step !== 0) local.push({ x: (last.x - f.ox) / f.wpx, y: (last.y - f.oy) / f.wpx, t: last.t });
-    return ribbonsToVerts([buildRibbon(local, { roundStart: true, roundEnd: true })]);
+    return ribbonsToVerts([buildRibbon(local, { roundStart: true, roundEnd: true, width: grammar.baseWidth })]);
   });
   const liveV = useDerivedValue(() => liveVerts.value.vertices);
   const liveI = useDerivedValue(() => liveVerts.value.indices);
@@ -412,6 +519,14 @@ export function Mongmangi({ frame, records, live, mode }: Props) {
           </Vertices>
         </Group>
       </Group>
+      {/* 받침 획 = 바닥에 번진 담묵 한 띠(몸 마스크 밖, 몸 아래, 밤에도) */}
+      <Group transform={base} opacity={groundOpacity}>
+        <Group transform={anim}>
+          <Oval rect={groundRect} color={groundColor}>
+            <BlurMask blur={0.02} style="normal" />
+          </Oval>
+        </Group>
+      </Group>
       {/* 바깥 레이어: 눈 구멍(dstOut)을 칠한 몸에서만 빼기 위해 분리 */}
       <Group layer>
         <Group layer={paint}>
@@ -436,6 +551,19 @@ export function Mongmangi({ frame, records, live, mode }: Props) {
             </>
           )}
         </Group>
+        {mode === 'A' && (
+          <Group transform={base}>
+            <Group transform={anim}>
+              <Group transform={coreT} clip={CORE_PATH} invertClip>
+                <Group transform={invS}>
+                  <Vertices vertices={inkV} indices={inkI} textures={inkT} mode="triangles" blendMode="srcATop">
+                    <Shader source={strokeInkFx} uniforms={inkU} />
+                  </Vertices>
+                </Group>
+              </Group>
+            </Group>
+          </Group>
+        )}
         <Group transform={base}>
           <Group transform={anim}>
             <Path path={eyes} color="black" blendMode="dstOut" opacity={eyeHoleOpacity}>

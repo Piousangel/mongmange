@@ -38,17 +38,21 @@ export const COMB = {
   /** 돌출: 0일차 → 이레(7획) */
   protrude0: 0.18,
   protrude7: 0.3,
-  /** 가닥 굵기: 0일차 → 이레 */
-  thick0: 0.05,
-  thick7: 0.066,
-  /** 가닥 사이 간격 = 굵기 × 1.2 */
-  gapRatio: 1.2,
+  /** 가닥 굵기: 0일차 → 이레 (render-03: 0.05 → 0.06 시작, 가는 실 가닥 = 털) */
+  thick0: 0.06,
+  thick7: 0.074,
+  /** 끝 폭 / 뿌리 폭 (render-03: 0.38 실 테이퍼 → 0.8 붓을 뗀 둥근 끝) */
+  tipRatio: 0.8,
+  /** 금지 자리 ① 상한 = 맨 아래 가닥 뿌리 각 + 이 여유(D-12 render-03 개정) */
+  forbiddenMargin: (6 * Math.PI) / 180,
+  /** 가닥 사이 간격 = 굵기 × 1.0 (render-03: 1.2 → 1.0, 굵기를 키운 만큼 빗 전체 높이가 어깨까지 내려가지 않게) */
+  gapRatio: 1.0,
   /** 휨 반경 하한 */
   bendRadiusMin: 0.5,
   /** 뿌리가 몸 안으로 들어가는 길이(마스크가 이어지도록) */
   rootInset: 0.1,
-  /** 맨 위 가닥 뿌리 각도(정수리 오른쪽 1시) */
-  topRootTheta: (34 * Math.PI) / 180,
+  /** 맨 위 가닥 뿌리 각도(정수리 오른쪽 1시). render-03: 34° → 28°(`01e`처럼 정수리 가까이에서 돋음) */
+  topRootTheta: (28 * Math.PI) / 180,
 } as const;
 
 export const RING = {
@@ -79,17 +83,43 @@ export const STROKE = {
   anchorInset: -0.015,
 } as const;
 
-/** D-12 금지 자리(라디안, θ 규약). ① 정수리 + 빗 뿌리 ② 뒤쪽 아래 꼬리 자리 */
+/**
+ * D-12 금지 자리(라디안, θ 규약). ① 정수리 + 빗 뿌리 ② 뒤쪽 아래 꼬리 자리.
+ * ①의 상한 45°는 하한값이다 — 실제로 쓰는 ①은 빗 기하에서 파생한다(geometry/comb.ts FORBIDDEN_ZONES, render-03).
+ */
 export const FORBIDDEN: readonly (readonly [number, number])[] = [
   [(-25 * Math.PI) / 180, (45 * Math.PI) / 180],
   [(200 * Math.PI) / 180, (250 * Math.PI) / 180],
 ];
 
-/** 아트 1-2 단계별 획 최대 돌출(L2부터 적용). n = 지금까지 그은 획 수 */
+/**
+ * 머리 띠(render-03 리뷰 2-①-2: 귀·뿔·후드): 정수리 뒤쪽 위(−80°~0°)는 금지 자리는 아니지만 여기서 크게 솟은 획은
+ * 고양이 귀·뿔·후드로 읽힌다. 이 띠 안의 획 점은 돌출을 cap으로 묶는다(부착 비용 + L2 축소).
+ */
+export const HEAD_ZONE = {
+  lo: (-80 * Math.PI) / 180,
+  hi: 0,
+  cap: 0.12,
+} as const;
+
+/**
+ * 아트 1-2 단계별 획 최대 돌출(L2부터 적용). n = 지금까지 그은 획 수.
+ * render-03 개정: 7획 이하 0.5W → 0.33W(빗 0.3W보다 유저 획이 크게 나가면 빗이 묻히고 털 뭉치가 된다). 30획 1.0W는 그대로.
+ */
 export function protrusionCap(n: number): number {
   'worklet';
-  if (n <= 7) return 0.5;
-  return Math.min(1.0, 0.5 + (0.5 * (n - 7)) / 23);
+  if (n <= 7) return 0.33;
+  return Math.min(1.0, 0.33 + (0.67 * (n - 7)) / 23);
+}
+
+/**
+ * L2 획 길이 상한(render-03 리뷰 6번: 서툰 손 C 핵 면적 마진). 7획 이하 0.7W, 30획 1.6W.
+ * 돌출 상한만으로는 몸을 따라 길게 그은 획이 몸 둘레를 다 덮어 핵이 작아 보인다. 넘으면 비율을 지킨 균일 축소(L2 정의 그대로).
+ */
+export function lengthCap(n: number): number {
+  'worklet';
+  if (n <= 7) return 0.7;
+  return Math.min(1.6, 0.7 + (0.9 * (n - 7)) / 23);
 }
 
 /** 시스템 4.1 정본 */
@@ -117,8 +147,12 @@ export const PALETTE = {
     body: '#1B1A18',
     bodyRim: null,
     eye: '#EFE8DA',
-    inkMid: '#5B5751',
-    inkFaded: '#827D75',
+    /** 새 획(나이 0~7) 안쪽 = body → bg 32%(아트 1-3-1, render-03). 나이가 많을수록 bg 쪽: strokeInk → inkMid → inkFaded */
+    strokeInk: '#5F5C56',
+    /** 나이 8~20 = body → bg 50% (v1.2: #5B5751은 strokeInk보다 어두워 바램이 거꾸로였다) */
+    inkMid: '#858179',
+    /** 나이 21~ = body → bg 66% */
+    inkFaded: '#A7A298',
     wash: '#B9B3A8',
     text: '#2A2622',
     textSub: '#6B625A',
@@ -130,8 +164,10 @@ export const PALETTE = {
     body: '#7E7973',
     bodyRim: '#E9E2D2',
     eye: '#E9E2D2',
-    inkMid: '#6C6862',
-    inkFaded: '#4A4846',
+    /** 밤 새 획 = 밤 body → 밤 bg 35%(몸과 1.64:1 — 1.30:1이면 획이 몸의 부속물로 붙어 보였다) */
+    strokeInk: '#59585A',
+    inkMid: '#494A50',
+    inkFaded: '#3C3E47',
     wash: '#2A3148',
     text: '#E9E2D2',
     textSub: '#A8A196',

@@ -1,5 +1,5 @@
 import { Canvas } from '@shopify/react-native-skia';
-import { COMB_REST, PALETTE } from '@mong/core';
+import { COMB_REST, PALETTE, grammarOf } from '@mong/core';
 import { useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { GestureDetector, useTapGesture } from 'react-native-gesture-handler';
@@ -11,6 +11,7 @@ import { Mongmangi, REST_FRAME, type BodyFrame } from '../render/Mongmangi';
 import { Caption, Paper, SERIF, layout, styles as ui } from './ui';
 
 const RM = PARAMS.rm;
+const GRAMMAR = grammarOf(PARAMS.grammar);
 const NEVER = 1e12;
 
 /**
@@ -209,7 +210,7 @@ export function IntroScreen() {
       <View style={styles.root} testID="intro">
         <Canvas style={StyleSheet.absoluteFill} opaque>
           <Paper width={width} height={height} />
-          <Mongmangi frame={frame} records={[]} mode={PARAMS.body} />
+          <Mongmangi frame={frame} records={[]} mode={PARAMS.body} grammar={GRAMMAR} />
         </Canvas>
         <Animated.Text style={[ui.line, { color: PALETTE.day.textSub, fontFamily: SERIF, fontSize: 13 }, askStyle]} pointerEvents="none">
           만져 볼래요?

@@ -1,16 +1,30 @@
 // D-12 "모양은 손, 자리는 몸": 회전 + 이동(+L2 균일 축소, L3 둘레 휨)만으로 획을 핵 표면에 붙인다.
 // 결정적: 같은 raw·같은 핵 크기·같은 단계 → 같은 Attach. worklet 호환(배열·숫자만).
-import { STROKE, protrusionCap } from '../visual/bodySpec';
-import { CORE, angleOf, coreRadius1, coreSdf, isForbidden, nearestAllowed, wrapPi } from './core';
+import { HEAD_ZONE, STROKE, lengthCap, protrusionCap } from '../visual/bodySpec';
+import { CORE, angleOf, coreRadius1, coreSdf, wrapPi } from './core';
+import { isForbiddenNow as isForbidden, nearestAllowedNow as nearestAllowed } from './comb';
 import { simplifyStroke } from './simplify';
 import type { Attach, AttachLevel, RawPoint } from './types';
 
-export const ATTACH_VERSION = 1;
+/**
+ * 2(render-03): 금지 자리 ①을 빗에서 파생, 금지 판정 가중치 2 → 6(점 단위), 머리 띠 돌출 상한(귀·후드), L3 = 진짜 감기(앵커 접선 좌표를 핵 둘레로 다시 놓음, bend 0.5 — 0.7은 손가락·후드).
+ * attachVersion 1 기록은 옛 L3(반경 압축)으로 그대로 그린다.
+ */
+export const ATTACH_VERSION = 2;
+/** L3 감기 비율(attachVersion 2) */
+export const WRAP_BEND = 0.5;
 /** 부착 판정은 메시 버전과 무관하게 고정된 단순화(v1)로 한다 — 메시를 고쳐도 자리가 바뀌지 않게 */
 const ATTACH_SIMPLIFY_VERSION = 1;
 const DEG = Math.PI / 180;
 /** 크기 1 핵 정수리 높이(−y) */
 const CORE_TOP = CORE.h / 2;
+
+/** 머리 띠(−80°~0°) 안의 점인가 */
+function inHead(x: number, y: number): boolean {
+  'worklet';
+  const a = angleOf(x, y);
+  return a >= HEAD_ZONE.lo && a <= HEAD_ZONE.hi;
+}
 
 export interface PolarPoint {
   theta: number;
@@ -117,6 +131,92 @@ function nearestIndex(pts: readonly RawPoint[], a: Attach): number {
   return best;
 }
 
+
+/** 크기 s 핵 둘레의 호 길이 표(θ 0..2π, n칸). [θ, 누적 길이] — 감기용 */
+function perimeterTable(s: number, n: number): { th: number[]; acc: number[]; total: number } {
+  'worklet';
+  const th: number[] = [];
+  const acc: number[] = [];
+  let px = 0;
+  let py = 0;
+  let total = 0;
+  for (let i = 0; i <= n; i++) {
+    const t = (i / n) * Math.PI * 2;
+    const x = surfaceX(t, s);
+    const y = surfaceY(t, s);
+    if (i > 0) total += Math.hypot(x - px, y - py);
+    th.push(t);
+    acc.push(total);
+    px = x;
+    py = y;
+  }
+  return { th, acc, total };
+}
+
+/** 호 길이 → θ(표 선형 보간, 둘레를 넘으면 감아 돈다) */
+function thetaAtArc(tab: { th: number[]; acc: number[]; total: number }, arc: number): number {
+  'worklet';
+  const L = tab.total;
+  const a = ((arc % L) + L) % L;
+  let lo = 0;
+  let hi = tab.acc.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (tab.acc[mid]! <= a) lo = mid;
+    else hi = mid;
+  }
+  const span = Math.max(tab.acc[hi]! - tab.acc[lo]!, 1e-9);
+  return tab.th[lo]! + ((tab.th[hi]! - tab.th[lo]!) * (a - tab.acc[lo]!)) / span;
+}
+
+/** θ → 호 길이 */
+function arcAtTheta(tab: { th: number[]; acc: number[]; total: number }, theta: number): number {
+  'worklet';
+  const t = ((theta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  const n = tab.th.length - 1;
+  const f = (t / (Math.PI * 2)) * n;
+  const i = Math.min(Math.floor(f), n - 1);
+  return tab.acc[i]! + (tab.acc[i + 1]! - tab.acc[i]!) * (f - i);
+}
+
+/**
+ * L3 진짜 감기(render-03, 리뷰 1-2 원인 6): 놓인 획을 앵커의 (접선 u, 바깥 법선 v) 좌표로 바꾼 뒤
+ * 핵 둘레를 호 길이 u만큼 따라가 그 자리의 법선으로 v만큼 띄워 다시 놓는다. 곧은 획은 몸을 따라 휘고,
+ * 손이 준 곡률은 몸 곡률 위에 그대로 얹힌다. beta = 섞는 비율(0 = 강체, 1 = 완전 감기).
+ */
+export function wrapPoints(pts: readonly RawPoint[], anchor: number, s: number, beta: number): RawPoint[] {
+  'worklet';
+  if (beta <= 0 || pts.length === 0) return pts.slice();
+  const tab = perimeterTable(s, 180);
+  const A = pts[anchor]!;
+  const thA = angleOf(A.x, A.y);
+  const arcA = arcAtTheta(tab, thA);
+  const tA = tangentAngle(thA, s);
+  const Tx = Math.cos(tA);
+  const Ty = Math.sin(tA);
+  // 바깥 법선: 접선을 반시계 90°(화면 y 아래) — 정수리에서 T = (1, 0)이면 N = (0, −1)
+  const Nx = Ty;
+  const Ny = -Tx;
+  const dA = coreSdf(A.x, A.y, s);
+  const out: RawPoint[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i]!;
+    const u = (p.x - A.x) * Tx + (p.y - A.y) * Ty;
+    const v = (p.x - A.x) * Nx + (p.y - A.y) * Ny;
+    const th = thetaAtArc(tab, arcA + u);
+    const ta = tangentAngle(th, s);
+    const nx = Math.sin(ta);
+    const ny = -Math.cos(ta);
+    const off = dA + v;
+    const wx = surfaceX(th, s) + nx * off;
+    const wy = surfaceY(th, s) + ny * off;
+    const q: RawPoint = { x: p.x + (wx - p.x) * beta, y: p.y + (wy - p.y) * beta, t: p.t };
+    if (p.p !== undefined) q.p = p.p;
+    out.push(q);
+  }
+  return out;
+}
+
 /**
  * 단순화 점열을 부착 진행 k로 놓고 지금 핵 크기에 맞춘 로컬 점열.
  * sThen = 그을 때 핵 크기, sNow = 지금 핵 크기.
@@ -125,7 +225,12 @@ export function strokeLocal(pts: readonly RawPoint[], a: Attach, sThen: number, 
   'worklet';
   const placed = placePoints(pts, a, sThen, k);
   if (k === 0 && sNow === sThen) return placed;
-  const polar = polarOf(placed, sThen, a.bend * k, nearestIndex(pts, a));
+  const ai = nearestIndex(pts, a);
+  if (a.attachVersion >= 2) {
+    const wrapped = a.bend > 0 ? wrapPoints(placed, ai, sThen, a.bend * k) : placed;
+    return polarToLocal(polarOf(wrapped, sThen, 0, ai), sNow);
+  }
+  const polar = polarOf(placed, sThen, a.bend * k, ai);
   return polarToLocal(polar, sNow);
 }
 
@@ -134,7 +239,9 @@ export function toCorePolar(raw: readonly RawPoint[], a: Attach, coreScaleThen: 
   'worklet';
   const pts = simplifyStroke(raw, STROKE.simplifiedMax, meshVersion);
   const placed = placePoints(pts, a, coreScaleThen, 1);
-  return polarOf(placed, coreScaleThen, a.bend, nearestIndex(pts, a));
+  const ai = nearestIndex(pts, a);
+  if (a.attachVersion >= 2) return polarOf(a.bend > 0 ? wrapPoints(placed, ai, coreScaleThen, a.bend) : placed, coreScaleThen, 0, ai);
+  return polarOf(placed, coreScaleThen, a.bend, ai);
 }
 
 interface Score {
@@ -205,6 +312,7 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
       let far = 0;
       let forb = 0;
       let crown = 0;
+      let head = 0;
       let farMax = 0;
       for (let i = 0; i < q.length; i++) {
         const sd = coreSdf(q[i]!.x, q[i]!.y, s);
@@ -217,29 +325,46 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
         if (sd < 0.6 && isForbidden(ang)) forb += 1;
         // 정수리보다 위로 솟는 점(귀·볏·꼬리로 읽힘)
         crown += Math.max(0, -(q[i]!.y + (CORE_TOP + 0.02) * s));
+        // 머리 띠에서 크게 솟는 점(귀·뿔·후드로 읽힘)
+        if (inHead(q[i]!.x, q[i]!.y)) head += Math.max(0, sd - HEAD_ZONE.cap);
       }
       inside /= q.length;
       far /= q.length;
       forb /= q.length;
       crown /= q.length;
+      head /= q.length;
       const move = Math.abs(wrapPi(th - theta0)) * 0.3 + Math.abs(wrapPi(rot)) * 0.08;
-      const cost = inside * 5 + far * 2.5 + farMax * 0.8 + forb * 2 + crown * 8 + move;
+      // 금지 판정은 점 단위 비율(render-03: 가중치 2 → 6). 앵커 θ 하나만 보면 획 몸통이 빗 자리를 덮는다(정수리 '넷째 가닥')
+      const cost = inside * 5 + far * 2.5 + farMax * 0.8 + forb * 6 + crown * 8 + head * 6 + move;
       if (cost < pick.cost - 1e-12) pick = { cost, theta: th, rot };
     }
   }
   const out: Attach = { ...base, theta: pick.theta, rot: wrapPi(pick.rot) };
   if (level >= 2) {
     const cap = protrusionCap(n + 1);
+    let L = 0;
+    for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y);
+    const lc = lengthCap(n + 1);
+    if (L > lc) {
+      out.scale = lc / L;
+      out.taper = 1;
+    }
     for (let it = 0; it < 4; it++) {
       const q = placePoints(pts, out, s, 1);
-      let prot = 0;
-      for (let i = 0; i < q.length; i++) prot = Math.max(prot, coreSdf(q[i]!.x, q[i]!.y, s));
-      if (prot <= cap * 1.001) break;
-      out.scale = out.scale * (cap / prot);
+      // 점마다 상한(머리 띠는 HEAD_ZONE.cap)을 보고 가장 많이 넘는 비율만큼 균일 축소
+      let ratio = 1;
+      for (let i = 0; i < q.length; i++) {
+        const sd = coreSdf(q[i]!.x, q[i]!.y, s);
+        if (sd <= 0) continue;
+        const c = inHead(q[i]!.x, q[i]!.y) ? Math.min(cap, HEAD_ZONE.cap) : cap;
+        ratio = Math.min(ratio, c / sd);
+      }
+      if (ratio >= 0.999) break;
+      out.scale = out.scale * ratio;
       out.taper = 1;
     }
   }
-  if (level >= 3) out.bend = 0.3;
+  if (level >= 3) out.bend = WRAP_BEND;
   return out;
 }
 
