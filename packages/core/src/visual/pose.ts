@@ -112,9 +112,10 @@ export function strokeRibbon(
   sNow: number,
   k: number = 1,
   simplified?: readonly RawPoint[],
-  g: StrokeGrammar = GRAMMARS[DEFAULT_GRAMMAR],
+  gIn?: StrokeGrammar,
 ): Ribbon {
   'worklet';
+  const g = gIn ?? GRAMMARS[DEFAULT_GRAMMAR];
   const sp = strokeSpine(rec, sNow, k, simplified, g);
   return buildRibbon(sp.pts, { ...sp.opts, widths: sp.widths });
 }

@@ -196,8 +196,10 @@ export const SIMPLIFY_VERSIONS: Record<number, { jitter: number; eps: number; sp
 export const CURRENT_MESH_VERSION = 2;
 
 /** 파생 단순화 점열(≤max). 같은 raw + 같은 버전 → 같은 결과 */
-export function simplifyStroke(raw: readonly RawPoint[], max: number = STROKE.simplifiedMax, meshVersion: number = CURRENT_MESH_VERSION): RawPoint[] {
+export function simplifyStroke(raw: readonly RawPoint[], maxIn?: number, meshVersionIn?: number): RawPoint[] {
   'worklet';
+  const max = maxIn ?? STROKE.simplifiedMax;
+  const meshVersion = meshVersionIn ?? CURRENT_MESH_VERSION;
   if (raw.length === 0) return [];
   const cfg = SIMPLIFY_VERSIONS[meshVersion] ?? SIMPLIFY_VERSIONS[CURRENT_MESH_VERSION]!;
   // 같은 자리에 겹친 점 제거

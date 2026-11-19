@@ -88,8 +88,9 @@ export function combStrands(n: number, s: number, pose: CombPose): { pts: RawPoi
 }
 
 /** 빗 가닥이 몸을 빠져나가는 뿌리 각도(θ, 라디안) 세 개 */
-export function combRootThetas(n: number, s: number, pose: CombPose = COMB_REST): number[] {
+export function combRootThetas(n: number, s: number, poseIn?: CombPose): number[] {
   'worklet';
+  const pose = poseIn ?? COMB_REST;
   const st = combStrands(n, s, pose);
   const out: number[] = [];
   for (let k = 0; k < st.length; k++) out.push(angleOf(st[k]!.pts[1]!.x, st[k]!.pts[1]!.y));
@@ -100,8 +101,9 @@ export function combRootThetas(n: number, s: number, pose: CombPose = COMB_REST)
  * D-12 금지 자리 ①을 빗 기하에서 파생(render-03, 리뷰 1-3 결정 1): 상한 = 0~7획 쉬는 빗의 맨 아래 가닥 뿌리 각 중 최대 + 여유.
  * 빗 길이·각도가 바뀌면 금지 자리도 따라간다. 하한(−25°)과 꼬리 자리 ②는 bodySpec 값 그대로.
  */
-export function deriveForbidden(margin: number = COMB.forbiddenMargin): (readonly [number, number])[] {
+export function deriveForbidden(marginIn?: number): (readonly [number, number])[] {
   'worklet';
+  const margin = marginIn ?? COMB.forbiddenMargin;
   let hi = FORBIDDEN[0]![1];
   for (let n = 0; n <= 7; n++) {
     const th = combRootThetas(n, coreScale(n));
