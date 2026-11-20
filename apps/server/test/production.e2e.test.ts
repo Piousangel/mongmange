@@ -13,6 +13,11 @@ beforeAll(async () => {
     TRUSTED_PROXY_HOPS_API: '1',
     TRUSTED_PROXY_HOPS_WEB: '2',
     READY_TOKEN: 'prod-ready-token-000001',
+    SUPABASE_URL: 'https://unit.supabase.invalid',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-role-key-for-tests-0001',
+    RECOVERY_PEPPER: 'recovery-pepper-for-tests-0000000001',
+    CRON_AUDIENCE: 'https://mong-api-test-du.a.run.app',
+    CRON_SA_EMAIL: 'scheduler@mong-test.iam.gserviceaccount.com',
   });
 });
 afterAll(async () => {

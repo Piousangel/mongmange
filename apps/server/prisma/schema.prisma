@@ -1,7 +1,7 @@
-// 몽망이 서버 DB(architecture.md v2 3-1). 스키마 `app`(Data API 비노출, RLS 켜고 정책 0개 — 권한 판단은 Nest).
-// B1 골격: B2(맡겨 두기)·B3(링크) 첫 작업에 꼭 필요한 최소 3개만 둔다. 열 세부는 서버 v2 독립 리뷰 결과에 따라
-// B2·B3에서 새 마이그레이션으로 확장한다(확장 → 배포 → 축소). 나머지 표(save_versions·public_pages·reports·
-// metric_daily 등)는 해당 B 항목에서 만든다.
+// 몽망이 서버 DB(architecture.md v2.2 3-1). 스키마 `app`(Data API 비노출, RLS 켜고 정책 0개 — 권한 판단은 Nest).
+// B1 골격(users·creatures·saves) → B0 집계 → B2 맡겨 두기(user_auth·save_versions·deletion_log·storage_gc·auth_gc, 되찾기 열).
+// 나머지 표(public_pages·reports·link_daily 등)는 해당 B 항목에서 새 마이그레이션으로 만든다(확장 → 배포 → 축소).
+// Prisma가 표현하지 못하는 것(부분 UNIQUE·솎기 함수·RLS)은 마이그레이션 SQL에만 있다 — test/db.db.test.ts가 고정한다.
 
 generator client {
   provider     = "prisma-client"
@@ -24,6 +24,7 @@ model User {
   ageGateV         Int?      @map("age_gate_v") @db.SmallInt
   ageConfirmedOn   DateTime? @map("age_confirmed_on") @db.Date
   creature         Creature?
+  auths            UserAuth[]
 
   @@map("users")
   @@schema("app")
@@ -39,8 +40,13 @@ model Creature {
   linkEnabled Boolean  @default(false) @map("link_enabled")
   nameVisible Boolean  @default(false) @map("name_visible")
   hidden      Boolean  @default(false)
+  /// 되찾기 글귀 해시(HMAC-SHA256(pepper, 글귀), 3-3 ⑤). 평문은 어디에도 없다. 되찾으면 새 글귀로 바뀐다
+  recoveryHash      Bytes?    @unique @map("recovery_hash")
+  recoveryPepperV   Int?      @map("recovery_pepper_v") @db.SmallInt
+  recoveryRotatedAt DateTime? @map("recovery_rotated_at") @db.Timestamptz(6)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   save        Save?
+  versions    SaveVersion[]
 
   @@map("creatures")
   @@schema("app")
@@ -57,11 +63,151 @@ model Save {
   simVer        Int      @map("sim_ver") @db.SmallInt
   validated     Boolean
   clientSavedAt DateTime @map("client_saved_at") @db.Timestamptz(6)
-  dayIndex      Int      @map("day_index")
-  strokesTotal  Int      @map("strokes_total")
+  /// 미래 판 본(validated=false)은 서버가 읽지 못해 NULL(3-4-1)
+  dayIndex      Int?     @map("day_index")
+  strokesTotal  Int?     @map("strokes_total")
+  /// 하루(UTC) 새 본문 바이트 상한(3-4-1 '남용 상한' 4MB/일)의 셈 — 날짜와 그날 합(압축 뒤)
+  quotaDay      DateTime? @map("quota_day") @db.Date
+  quotaBytes    Int       @default(0) @map("quota_bytes")
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("saves")
+  @@schema("app")
+}
+
+/// 기기 로그인(JWT sub) → 사용자(3-1, B2). 되찾기는 새 기기 sub를 붙이고 옛 sub를 revoked로(3-3 ⑤).
+/// 쓰는 기기는 하나: UNIQUE(user_id) WHERE revoked_at IS NULL — 부분 인덱스라 마이그레이션 SQL에만 있다.
+model UserAuth {
+  sub       String    @id @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedAt  DateTime  @default(now()) @map("linked_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([linkedAt])
+  @@map("user_auth")
+  @@schema("app")
+}
+
+enum SaveVersionReason {
+  overwritten
+  weekly
+  conflict
+  pre_restore
+
+  @@map("save_version_reason")
+  @@schema("app")
+}
+
+/// 세이브 이력(3-4-1): 최근 3벌(overwritten) + 주 1벌(weekly) 최대 28일, 충돌·복원 전 본 각 3벌 30일.
+/// API에는 public_id만 내보낸다(순번이 규모를 드러내지 않게). UNIQUE(creature_id, iso_week) WHERE reason='weekly'는 SQL에만.
+model SaveVersion {
+  id            BigInt            @id @default(autoincrement())
+  publicId      String            @unique @default(dbgenerated("gen_random_uuid()")) @map("public_id") @db.Uuid
+  creatureId    String            @map("creature_id") @db.Uuid
+  creature      Creature          @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  rev           Int
+  body          Bytes
+  bodySha256    Bytes             @map("body_sha256")
+  envelopeVer   Int               @map("envelope_ver") @db.SmallInt
+  simVer        Int               @map("sim_ver") @db.SmallInt
+  validated     Boolean
+  dayIndex      Int?              @map("day_index")
+  strokesTotal  Int?              @map("strokes_total")
+  clientSavedAt DateTime          @map("client_saved_at") @db.Timestamptz(6)
+  reason        SaveVersionReason
+  /// weekly만, 예 `2026-W52`(서버 UTC ISO 주)
+  isoWeek       String?           @map("iso_week") @db.Char(8)
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([creatureId, reason, createdAt(sort: Desc)])
+  @@index([createdAt])
+  @@map("save_versions")
+  @@schema("app")
+}
+
+enum DeletionChannel {
+  app
+  web
+  email
+
+  @@map("deletion_channel")
+  @@schema("app")
+}
+
+enum DeletionKind {
+  user_request
+  web_request
+  inactive
+  report_confirmed
+  /// 백업 복원 뒤 이미 지웠던 계정을 다시 지움(3-8 '백업', B2 리뷰 m2)
+  restore_reapply
+
+  @@map("deletion_kind")
+  @@schema("app")
+}
+
+/// 삭제 기록(3-8). 누구인지 없이 개수만. 영수증은 해시만, 24시간 뒤 NULL
+model DeletionLog {
+  id               BigInt          @id @default(autoincrement())
+  requestedAt      DateTime        @default(now()) @map("requested_at") @db.Timestamptz(6)
+  completedAt      DateTime?       @map("completed_at") @db.Timestamptz(6)
+  channel          DeletionChannel
+  kind             DeletionKind
+  items            Json
+  receiptHash      Bytes?          @map("receipt_hash")
+  receiptExpiresAt DateTime?       @map("receipt_expires_at") @db.Timestamptz(6)
+  /// 지운 사용자 id의 단방향 HMAC(pepper 파생 키). 백업 보관 기간(7일)만 — 복원 뒤 다시 지울 근거. 그 뒤 NULL
+  subjectHmac      Bytes?          @map("subject_hmac")
+  subjectExpiresAt DateTime?       @map("subject_expires_at") @db.Timestamptz(6)
+
+  @@index([receiptHash])
+  @@index([subjectHmac])
+  @@map("deletion_log")
+  @@schema("app")
+}
+
+enum StorageGcReason {
+  old_version
+  uncommitted
+  quarantine_expiry
+  deletion
+
+  @@map("storage_gc_reason")
+  @@schema("app")
+}
+
+/// Storage 삭제 대기열(3-1). creature_id는 FK가 아니다 — 계정 삭제 뒤에도 남은 항목을 찾으려고. 처리하면 행째 지운다
+model StorageGc {
+  id         BigInt          @id @default(autoincrement())
+  bucket     String          @db.VarChar(32)
+  prefix     String
+  creatureId String?         @map("creature_id") @db.Uuid
+  /// 계정 삭제가 만든 항목이면 그 deletion_log — 전부 지워지면 영수증이 done(3-8 ⑥)
+  deletionId BigInt?         @map("deletion_id")
+  reason     StorageGcReason
+  notBefore  DateTime        @map("not_before") @db.Timestamptz(6)
+  attempts   Int             @default(0) @db.SmallInt
+
+  @@index([notBefore])
+  @@index([creatureId])
+  @@index([deletionId])
+  @@map("storage_gc")
+  @@schema("app")
+}
+
+/// Supabase auth.users 삭제 대기열(3-8 ⑤ '실패하면 재시도', 3-3 ⑤ 옛 기기 30일). 지워지면 행째 지운다.
+/// sub 말고는 아무것도 없다 — users·user_auth가 이미 사라진 뒤에 남는 유일한 흔적이라 처리되는 즉시 없어진다
+model AuthGc {
+  sub        String    @id @db.Uuid
+  deletionId BigInt?   @map("deletion_id")
+  notBefore  DateTime  @map("not_before") @db.Timestamptz(6)
+  attempts   Int       @default(0) @db.SmallInt
+
+  @@index([notBefore])
+  @@index([deletionId])
+  @@map("auth_gc")
   @@schema("app")
 }
 

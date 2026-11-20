@@ -43,12 +43,12 @@ B2~B7 담당은 아래 '읽을 절'만 보고 착수한다. '끝났다는 기준
 | B1 골격 | 완료 a817d30 | 2-5·6-1~6-4 | `users`·`creatures`·`saves` | 부록 A-3 #1~#4·#16~#18 |
 | B0 측정 시계 | 완료 2240ff2 | 3-6·3-7·3-10·3-2 정적 행 | `metric_daily`·`metric_monthly`·`metric_daily_k5`, `@mong/contract` | 부록 A-3 #5~#15 |
 | core 함수 | 달 위상 완료(C4), 스냅숏 남음 | **3-5-1**(`toPublicSnapshot`·`parsePublicSnapshot`)과 그 **착수 조건 5개**, 6-1 | `snap:1` | Node·RN·DOM 금지, 런타임 의존성 0. 남은 공수는 0-4 결정 대기 |
-| **B2** 맡겨 두기 | 대기 | 3-3(계정·연령·세션·글귀·JWT), **3-4·3-4-1**(동기화·이력), 3-8 '삭제' | `save_versions`, **`user_auth`**, `creatures.recovery_*`, `deletion_log`(영수증), `storage_gc(creature_id)` | 3-2 인증 공통 규칙(401·410), 3-4-1 남용 상한, 5-2 로그 가림, 7절 L4·L5·L6. **core `normalizeName` 숫자 규칙(3-5-2)은 B2에서** |
-| **B3** 링크·웹 정적 | 대기 | 3-2 링크 행, **3-5·3-5-1~3-5-3**, 3-6 '링크 퍼널', 3-9, 2-4 Storage | `public_pages`·`storage_gc`·`link_daily`·`link_funnel_daily` | 부록 A-3 #15(`/m/**`를 Cloud Run으로 옮김), 3-8 레이트 리밋, 5-2(IP와 코드 분리). **B3 체크**: `page-staging` 버킷·서명 URL 유효 시간·버킷 상한 시험(3-5-3), 이름 이스케이프(3-5-2), `/m` `s-maxage` 300 + CDN 무효화(3-9), 포스터·루프 렌더에 이름 인자 없음(C11과 함께) |
+| **B2** 맡겨 두기 | **코드 완료(커밋 대기, 11-20)** — 구현에서 정한 것은 부록 A-3 #21~#36(독립 리뷰 `docs/team/reviews/2026-11-20-b2-review.md` 반영) | 3-3(계정·연령·세션·글귀·JWT), **3-4·3-4-1**(동기화·이력), 3-8 '삭제' | `save_versions`, **`user_auth`**, `creatures.recovery_*`, `deletion_log`(영수증), `storage_gc(creature_id)` | 3-2 인증 공통 규칙(401·410), 3-4-1 남용 상한, 5-2 로그 가림, 7절 L4·L5·L6. **core `normalizeName` 숫자 규칙(3-5-2)은 B2에서** |
+| **B3** 링크·웹 정적 | 대기 | 3-2 링크 행, **3-5·3-5-1~3-5-3**, 3-6 '링크 퍼널', 3-9, 2-4 Storage | `public_pages`·`storage_gc`·`link_daily`·`link_funnel_daily` | 부록 A-3 #15(`/m/**`를 Cloud Run으로 옮김), 3-8 레이트 리밋, 5-2(IP와 코드 분리). **B3 체크**: `page-staging` 버킷·서명 URL 유효 시간·버킷 상한 시험(3-5-3), 이름 이스케이프(3-5-2), `/m` `s-maxage` 300 + CDN 무효화(3-9), 포스터·루프 렌더에 이름 인자 없음(C11과 함께), **공개 이름 검사는 반드시 core `normalizeName`**(불러오기 검사 `nameShape`는 숫자 규칙이 없어 조작 세이브의 전화번호가 통과한다 — B2 리뷰 m4), **`DELETE /me` ① `public_pages` 경로 모으기·② `link_daily` 삭제·④ CDN 무효화, Storage 삭제기 실제 구현**(B2가 남긴 자리, A-3 #30) |
 | **B4** 플래그·모티프 | 계약·정적 배포 준비 완료, 앱 연결·첫 원격 모티프 남음 | **3-7·3-7-1**, **3-10**, 3-11 순서 규칙 | `config/v1.json`·`content/v1.json`(contract) | 3-11 iOS 2.3.1 원칙 |
 | **B5** 안전 | 대기 | 3-8(XFF·리밋·신고), 3-9(상태 전이), 3-12(SQL 함수·CLI), 3-5-2 '이름 가리기' | `reports`·`report_hits`·`admin_actions`, `creatures.name_blocked` | 7절 L5 |
-| **B6** 배포 | 대기(오너 계정) | 2-3·2-4·5-2·6-4, 12절 #1·#2·#4 | — | B6 체크: 서울 rewrite, XFF 실측 → `TRUSTED_PROXY_HOPS_*`, 로그 버킷 7일, `pg_cron`(`rollup_metric_daily` 포함), `metrics_reader` 롤·GRANT 재실행, `.well-known` curl, **Scheduler OIDC 검사**(`aud`·서비스 계정 이메일, 2-4), Hosting 릴리스 권한만 가진 무효화용 서비스 계정 |
-| **B7** 부하 | 대기 | 7절(12월분 L2·L4·L5·L6) | — | 9-1 기준. L5에 3-4-1 남용 시나리오(미래 버전 쓰레기·계정 반복 생성) |
+| **B6** 배포 | 대기(오너 계정) | 2-3·2-4·5-2·6-4, 12절 #1·#2·#4 | — | B6 체크: 서울 rewrite, XFF 실측 → `TRUSTED_PROXY_HOPS_*`, 로그 버킷 7일, `pg_cron`(`rollup_metric_daily` 포함), `metrics_reader` 롤·GRANT 재실행, `.well-known` curl, **Scheduler OIDC 검사**(`aud`·서비스 계정 이메일, 2-4), Hosting 릴리스 권한만 가진 무효화용 서비스 계정. **B2가 더한 값**: 운영 필수 `SUPABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`·`RECOVERY_PEPPER`(없으면 부팅 거부), `CRON_AUDIENCE`·`CRON_SA_EMAIL`(없으면 cron 404 = 삭제 재시도·옛 기기 정리가 멈춤), 정적 빌드 `API_ORIGIN`, `pg_cron`에 `app.prune_save_versions()`·`app.expire_deletion_log()`. **Scheduler 잡의 OIDC audience는 `CRON_AUDIENCE`와 정확히 같은 문자열 = 서비스 URL 전체(경로 없음, `https://mong-api-…-du.a.run.app`)로 명시**한다 — 비워 두면 Google이 대상 URL 전체(`…/internal/cron/storage-gc`)를 aud로 넣어 늘 404(B2 리뷰 I2). `gc_stuck` error 로그(3회 넘게 실패한 대기 행·24시간 넘은 미완료 삭제)를 알림에 건다. **Cloud Run 플랫폼 요청 로그(`httpRequest.requestUrl`)에는 `GET /deletion/{receipt}`의 영수증이 남는다** — 24시간짜리 상태 조회 값이라 영향은 작지만 로그 버킷 7일 확인 때 함께 본다(B2 리뷰 m3) |
+| **B7** 부하 | 대기 | 7절(12월분 L2·L4·L5·L6) | — | 9-1 기준. L5에 3-4-1 남용 시나리오(미래 버전 쓰레기·계정 반복 생성). **B2 관찰 항목**: 새 계정 IP 접두 5/시간이 CGNAT 뒤 실사용자를 막는지(B2 리뷰 m9), 같은 사용자의 `recover`와 `DELETE /me`가 겹칠 때 교착 감지 500 빈도(데이터는 안전 — 한쪽만 커밋, m10), 복원 리허설에 `reapply-deletions` 한 바퀴 |
 | B8 처리방침 | 대기 | 5절 전부 | — | v2.2-applied 4절 차이 목록. **B8 체크**: ① 기기 값을 받지 않음(A4 결정) → Data safety '기기 또는 기타 ID'·App Privacy 'Device ID'를 서버 몫에서는 선언하지 않음(Expo 설치 id는 3-11·5-4 따로) ② 처리방침 5절에 '운영자가 이름을 가릴 수 있다' ③ 공개 사본 항목에 '그은 순서·농도 단계'를 적을지(3-5-1) |
 | C11 앱 net | 핑·로더 일부 완료 | 3-5(OG·루프 업로드), 3-5-2, 3-6(`moon`·`wg` 연결), 3-7-1 | contract | 4-1 비차단 원칙 |
 | E1~E4 1.0 직후 | — | 3-13 | `snap:1` 재사용 | 13절 D-23 개정 |
@@ -216,6 +216,7 @@ v1 그대로(Prisma 7, `@prisma/adapter-pg`, `prisma.config.ts`, 트랜잭션 �
 | `POST /api/v1/recover` | JWT(새 기기의 익명 로그인, **`bootstrap` 없이**) | `{code, ageGate:{v:2, ok:true}}` → `200 {creature:{code}, save: meta, newCode}` — 이 `sub`를 **기존 사용자에 붙이고** 옛 `sub`를 끊으며 **새 글귀를 한 번 보여 주고 옛 해시 무효**(흐름표 3-3 ⑤) / `404`(글귀 없음·틀림) / `409 has_creature`(이 `sub`에 이미 몽망이가 있음) / 시도 한도는 3-8 | B2 |
 | `DELETE /api/v1/me` | JWT | → `202 {receipt}` — **삭제 영수증 토큰**(128비트 난수 base64url, 서버는 해시만 `deletion_log`에, **수명 24시간** [팀 추정]). 연쇄 삭제 목록은 3-8 | B2 |
 | `GET /api/v1/deletion/{receipt}` | **없음**(영수증이 곧 권한) | → `{state: pending\|done}`, 모르는·만료된 영수증은 `404`. `no-store`, IP 접두당 30/분. 계정이 이미 없으므로 JWT를 받지 않는다(A4 리뷰 I5) [v2.2 새로] | B2 |
+| `POST /api/v1/deletion/web` | **없음**(코드 + 글귀가 곧 본인 확인) | `{code, phrase}` → `202 {receipt}`(앱 안 삭제와 같은 연쇄) / `404`(둘이 같은 몽망이를 가리키지 않음 — 어느 쪽이 틀렸는지 알리지 않음) / `429`(IP 접두당 5/시간·글귀당 10/일). CORS는 `WEB_ORIGIN` 한 곳만. 웹 `/delete` 폼이 Cloud Run 서울로 직접 보낸다(3-8 ②) [B2 구현, 부록 A-3 #25] | B2 |
 | `GET /m/{code}` | 없음 | 정적 HTML(3-5). 없는·꺼진·숨긴 코드는 같은 틀의 '사라진 링크'(200, noindex) | B3 |
 | `GET /m/{code}/get?p=ios\|android` | 없음 | `302` 스토어(캠페인 파라미터) + 카운트, `no-store` | B3 |
 | `POST /m/{code}/seen` | 없음 | 비콘(`sendBeacon`, 본문 없음) → `204`, `no-store`(3-6). v2의 `/api/v1/m/{code}/seen`에서 옮겼다(`/api`가 Firebase를 거치지 않게 되어서) | B3 |
@@ -224,7 +225,7 @@ v1 그대로(Prisma 7, `@prisma/adapter-pg`, `prisma.config.ts`, 트랜잭션 �
 | 정적(Firebase) | — | `/`, `/.well-known/apple-app-site-association`, `/.well-known/assetlinks.json`, `/config/v1.json`, `/content/v1.json`, `/content/motifs/*`, `/w/*`, `/delete`, `/privacy`, `/robots.txt`. **B0 구현**: `apps/web-static/src` → `scripts/build.mjs` → `public/`(팀 ID·지문·App Store id가 비었거나 자리표시자면 `predeploy`가 멈춤), `/m/**`는 B3 전까지 정적 `/m/index.html`로 rewrite(부록 A-3 #15). `/w/*`·`/delete`·`/privacy`는 아직 없음 | B0 ✔·B3·B4 |
 | (1.0 직후 자리) `/api/v1/night/*`, `/api/v1/cohort`, `/api/v1/footprints`, `/api/v1/blocks`, `POST /m/{code}/pat` | — | 3-13. **경로 이름만 예약**, 1.0 서버에는 없다(404) | — |
 
-- **인증 공통 규칙(v2.2)**: ① JWT `sub` → `user_auth`. **`bootstrap`·`recover` 외** 모든 JWT API는 행이 없으면 `401` ② 그 행이 `revoked_at`이면 `410`(되찾기로 다른 기기에 옮겨 감) ③ JWT 검사 항목은 3-3 ⑧. 인증 없는 경로는 핑·`/m/**`·삭제 영수증 조회뿐.
+- **인증 공통 규칙(v2.2)**: ① JWT `sub` → `user_auth`. **`bootstrap`·`recover` 외** 모든 JWT API는 행이 없으면 `401` ② 그 행이 `revoked_at`이면 `410`(되찾기로 다른 기기에 옮겨 감) ③ JWT 검사 항목은 3-3 ⑧. 인증 없는 경로는 핑·`/m/**`·삭제 영수증 조회·**웹 삭제(`POST /api/v1/deletion/web`, 코드 + 글귀가 곧 본인 확인)**뿐 [B2]. `/internal/cron/*`는 JWT가 아니라 Scheduler OIDC(2-4).
 - **계약 [v2.2, 부록 A-3 #5]**: 서버 HTTP 요청 스키마는 zod로 쓰고 `z.toJSONSchema(target openapi-3.0)` → `openapi.json`(CI 산출물 `pnpm --filter server openapi`, 개발 때만 `/api/docs`). 앱은 그 타입으로 `fetch`만 쓴다. **원격 계약(핑·`config/v1.json`·`content/v1.json`·모티프 파일)은 `packages/contract`(`@mong/contract`, `zod/mini`)** 한 파일에 둬 앱·서버·정적 CI가 같은 코드로 검사한다. v1의 `packages/api-contract`는 만들지 않는다.
 - **공통 응답 [v2.2]**: 오류는 `{error:{code, message, details?}, requestId}`(5xx는 문구 숨김), 모든 응답 `X-Content-Type-Options: nosniff`·`Referrer-Policy: no-referrer`·`X-Frame-Options: DENY`·`Cross-Origin-Resource-Policy: same-site`. `/m` 페이지 CSP는 B3(B0 정적 페이지는 인라인 해시 하나). (구현: `src/common/http-exception.filter.ts`, `src/app.factory.ts`)
 - `/api/v1/saves/validate`는 **개발 전용 예시**다. 운영 이미지(`NODE_ENV=production`)에는 모듈 자체가 없다(B1 리뷰 I7). B2의 `PUT /saves/main`이 같은 `inspectSave`를 쓴다.
@@ -242,7 +243,7 @@ v1 그대로(Prisma 7, `@prisma/adapter-pg`, `prisma.config.ts`, 트랜잭션 �
    - 새 폰이 OS 백업으로 복원되면 세이브는 오고 세션은 없다 → 공방 노트가 '맡겨 둔 몽망이가 있다면 되찾기 글귀로 이어 주세요'로 안내한다.
    - 막는 사고: 두 기기가 같은 refresh token을 돌리다 재사용 감지로 **둘 다** '맡겨 두기 끊김'이 되는 일(리뷰어 지적, 동작은 [확인 필요]).
    - 백업 제외 설정은 네이티브라 **빌드 2 네이티브 묶음**에 넣는다(4-2).
-5. **되찾기 글귀**: 서버가 80비트 보안 난수로 16자 Crockford base32를 만들고, `SHA-256(pepper_v ‖ 글귀)` 해시를 `creatures`에 둔다. '맡겨 두기'를 켤 때 한 번 보여 준다. `POST /recover` 성공 시:
+5. **되찾기 글귀**: 서버가 80비트 보안 난수로 16자 Crockford base32를 만들고, ~~`SHA-256(pepper_v ‖ 글귀)`~~ **`HMAC-SHA256(pepper, 정규 16자)`**(B2, 부록 A-3 #21) 해시와 pepper 판 번호(`recovery_pepper_v`)를 `creatures`에 둔다. '맡겨 두기'를 켤 때 한 번 보여 준다. `POST /recover` 성공 시:
    - [v2.2, A4 리뷰 I5] **몽망이·사용자는 그대로 두고 기기 로그인만 바꾼다.** 새 기기는 `bootstrap`을 하지 않으므로 빈 몽망이가 생기지 않고, `creatures UNIQUE(user_id)`와 부딪칠 일이 없다. 서버가 따로 토큰을 찍지 않는다 — 새 기기의 Supabase 익명 세션(JWT)이 그대로 '새 기기 토큰'이 되고, 서버는 그 `sub`를 기존 사용자에 연결한다(비대칭 JWT만 받는 원칙 유지, ⑧).
 
    | 단계 | 새 기기(sub S2) | 서버 | 옛 기기(sub S1) |
@@ -256,6 +257,7 @@ v1 그대로(Prisma 7, `@prisma/adapter-pg`, `prisma.config.ts`, 트랜잭션 �
    - 새 글귀를 주고 옛 해시를 무효로 하는 까닭: 글귀를 한 번 본 사람이 언제든 다시 가져가는 일을 막는다(리뷰 S3).
    - 시도 한도 IP 접두당 5회/시간, 글귀당 10회/일.
    - pepper는 Secret Manager 버전 관리 + **오프라인 사본**(런북). 잃으면 글귀가 전부 무효가 된다. `recovery_pepper_v`로 회전에 대비한다(리뷰 S4).
+   - **pepper 회전 절차 [B2 리뷰 m1]**: ① 새 값을 만들고 `RECOVERY_PEPPER`=새 값, `RECOVERY_PEPPER_V`=판+1, **`RECOVERY_PEPPERS_PREVIOUS`=`옛판:옛값`**으로 함께 배포한다(서버는 찾을 때 모든 판을 대 보고, 새로 쓸 때는 늘 지금 판). ② 재해시는 **글귀를 다시 쓸 때** 일어난다 — `recover`(새 글귀 발급)·`recovery-code` 재발급. 서버에는 평문 글귀가 없으므로 로그인(JWT)만으로는 다시 해시할 수 없다. ③ `select count(*) from app.creatures where recovery_pepper_v < 지금판`이 0이 되거나, 정책상 기한(유출 의심이면 즉시)을 넘기면 `RECOVERY_PEPPERS_PREVIOUS`에서 뺀다 — 그때까지 바꾸지 않은 글귀는 무효가 되므로(유출 대응일 때만) 앱이 '글귀 다시 받기'를 안내한다. 옛 판을 너무 일찍 빼면 글귀가 말없이 무효가 된다(시험 'pepper 회전'). ④ 판 번호가 지금 판보다 크거나 겹치면 부팅 거부(env 시험).
 6. **Apple/Google 연결(1.0.x)**: v1 그대로(`linkIdentity`, 새 네이티브 모듈 2개라 빌드 2 묶음 밖).
 7. 토큰 갱신 실패·세션 소실 = '맡겨 두기 끊김' 표시만, 게임은 계속.
 8. **JWT 검사(리뷰 S6)**: `iss` = 프로젝트 Auth URL, `aud` = `authenticated`, `exp`, `role = authenticated`, `sub` 존재. **비대칭 알고리즘만 받고 HS256은 거부**한다(레거시 키로 서명된 토큰 차단). Supabase 새 API 키 체계(`sb_secret_…`)의 이름·수명은 B1에서 확인 **[확인 필요]**.
@@ -658,10 +660,11 @@ B0 보고(7-4 '연결 대기 ②')가 짚은 대로 원격 키 9개와 앱 `FEAT
    | — | **남기는 것**: `reports`(코드만, 1년 — 재발 판단), `metric_*`(식별자 없음), 백업 속 사본(7일 뒤 소멸) | — |
 
    - **되살아남 막기(리뷰 I1)**: ① `bootstrap`·`recover` 외 모든 JWT API는 `user_auth` 행이 없으면 `401` ② `bootstrap`은 Auth Admin으로 `auth.users` 존재를 확인한다 — 삭제된 계정의 남은 액세스 토큰(최대 1시간)으로 아웃박스 `PUT`이나 재시도 `bootstrap`이 와도 행이 다시 생기지 않는다 ③ 앱은 `202`를 받으면 세션·아웃박스·`cloud.*` 메타를 바로 비운다. e2e: '삭제 직후 옛 토큰으로 `PUT` → `401`'.
-2. **웹 `/delete`**(Play 계정 삭제 정책의 웹 링크): **인장 코드와 되찾기 글귀가 둘 다 맞을 때만** 처리한다(7일 안).
+2. **웹 `/delete`**(Play 계정 삭제 정책의 웹 링크): **인장 코드와 되찾기 글귀가 둘 다 맞을 때만** 처리한다(7일 안 — B2 구현은 **즉시**: 정적 폼 → `POST /api/v1/deletion/web`, 부록 A-3 #25).
    - 인장 코드는 링크 URL에 공개된 값이라 그것만으로는 본인 확인이 안 된다(리뷰 I5). 그래서 **글귀가 없는 요청은 처리하지 않는다.** 이유와 대안(앱 안 '지우기', 앱을 2년 열지 않으면 자동 정리)을 `/delete`에 적는다. 링크만 켜고 맡겨 두기를 안 켠 사용자는 글귀가 없다 → 리뷰 질문 7.
-   - 처리한 뒤 받은 메일(글귀 평문 포함)은 지운다(런북).
-3. 백업 속 사본은 7일 뒤 소멸한다.
+   - ~~처리한 뒤 받은 메일(글귀 평문 포함)은 지운다(런북).~~ **[B2에서 대체됨]** 메일로 글귀를 받지 않는다 — 웹 폼이 API로 바로 보낸다(처리방침 12절 '글귀를 이메일에 적지 마세요'). 혹시 메일로 글귀가 오면 처리하지 않고 웹 페이지를 안내한 뒤 그 메일을 지운다(런북).
+   - 시도 한도: `/deletion/web`은 IP 접두당 5/시간(`web_delete_ip`)과 글귀당 10/일(`/recover`와 같은 글귀 버킷). IP 버킷이 `/recover`와 따로라 IP 하나가 글귀를 대 볼 수 있는 횟수는 사실상 10/시간이다 — 80비트 공간이라 위험은 없다(B2 리뷰 I3). 두 한도 모두 `test/cloud.db.test.ts`가 고정.
+3. 백업 속 사본은 7일 뒤 소멸한다. **백업에서 복원하면** 그 사이 지운 계정이 되살아나므로, `deletion_log.subject_hmac`(지운 user id의 단방향 HMAC, **백업 보관 기간과 같은 7일**만, `app.expire_deletion_log`가 NULL로)으로 복원 직후 다시 지운다 — `POST /internal/cron/reapply-deletions`, 절차는 `docs/ops/restore-runbook.md` [B2 리뷰 m2].
 4. 장기 미사용 — 5-5.
 - Apple 5.1.1(v): 익명 자동 계정도 보수적으로 같은 대상으로 본다(앱 안 삭제를 '맡겨 두기'·'링크'와 같은 OTA에).
 
@@ -798,7 +801,7 @@ B0 보고(7-4 '연결 대기 ②')가 짚은 대로 원격 키 9개와 앱 `FEAT
 
 | 시기 | 무엇 |
 |---|---|
-| **소프트런칭(12-22~)** | Supabase Studio + **SQL 함수** `app.restore_page(code)`·`app.confirm_hide(code)`·`app.dismiss_report(id)`(상태 전이와 `admin_actions` 기록을 한 트랜잭션에) + 작은 **CLI 스크립트** `pnpm --filter server ops:quarantine <code> restore\|confirm`(Storage 이동·삭제, service role, 오너 노트북에서만). 격리 파일은 Studio Storage 화면에서 미리 본다 **[확인 필요: 비공개 버킷 미리보기]** — 안 되면 CLI가 5분짜리 서명 URL을 찍어 준다. 웹 삭제 요청은 `ops:delete <code> <글귀>`(글귀 해시 대조 → 3-8 절차). B5 안에서 0.5일 |
+| **소프트런칭(12-22~)** | Supabase Studio + **SQL 함수** `app.restore_page(code)`·`app.confirm_hide(code)`·`app.dismiss_report(id)`(상태 전이와 `admin_actions` 기록을 한 트랜잭션에) + 작은 **CLI 스크립트** `pnpm --filter server ops:quarantine <code> restore\|confirm`(Storage 이동·삭제, service role, 오너 노트북에서만). 격리 파일은 Studio Storage 화면에서 미리 본다 **[확인 필요: 비공개 버킷 미리보기]** — 안 되면 CLI가 5분짜리 서명 URL을 찍어 준다. ~~웹 삭제 요청은 `ops:delete <code> <글귀>`(글귀 해시 대조 → 3-8 절차).~~ **[B2에서 대체됨]** 웹 삭제는 `POST /api/v1/deletion/web`이 바로 처리한다(운영자가 글귀를 다루지 않음). B5 안에서 0.5일 |
 | **정식 출시 전(01월, 1.1일)** | `mong-admin` 최소판: 신고 대기열 / 격리본 보기 + **원형 보기**(`snap.json` 파생 획을 SVG 폴리라인으로) / 삭제 요청 처리. 동작은 위 SQL 함수를 그대로 부른다 |
 | 1.0 직후 | 원형 보기를 밤물 마주침·동기 신고까지 넓힌다(3-13) |
 
@@ -944,6 +947,7 @@ v1 그대로(net 모듈 가짜 fetch, core 고정물 세이브를 core·서버 e
 | 신고 | 1년(목적: 같은 대상 재발 판단). 신고자 가명 값은 **신고 대상별 최대 7일** | `pg_cron` |
 | 발자국 방문자 키·밤물 맡김(1.0 직후) | 48시간 | `pg_cron` |
 | 백업 속 사본 | 7일 뒤 소멸 | Supabase |
+| 지운 계정의 표지(`deletion_log.subject_hmac`, user id의 단방향 HMAC) [B2] | **7일**(백업 보관 기간과 같음) — 복원 뒤 다시 지울 근거 | `pg_cron` → `app.expire_deletion_log()` |
 | **장기 미사용 계정** | **앱을 2년 동안 열지 않으면 정리** | 아래 |
 
 **장기 미사용 2년(규칙은 1.0 처리방침, 실행은 1.0.x)**
@@ -1340,7 +1344,28 @@ A3 반영표(#14)는 '6-2 전부 v2.1에 이미 반영'이라 적었다. 항목�
 | 19 | CI 워크플로 | `ci.yml` 하나에 전부 | 커밋 기준 `server-ci.yml`(DB·docker)·`static-ci.yml`. **A6가 `ci.yml`(`pnpm verify`)로 통합 중**(static-ci 흡수). `deploy-*.yml`은 B6 | 6-4 | B0-B1 1절·7절, A6 작업 |
 | 20 | 보름 모티프 번들 | 12·1·2월 번들, 원격은 3월부터 | 같음(`moon-12`·`moon-01`·`moon-02`) + **오프라인 대체 `월 mod 3`**(원격 팩이 없을 때 번들 셋 중 하나). 보름의 '밤의 날짜' = 그 밤이 시작된 저녁의 현지 날짜(04:00 경계, `nightDateOf`) | 3-10 | C4, D-25 개정 줄 |
 
-- 거꾸로 **문서가 구현보다 앞선 곳**(B2·B3가 마이그레이션으로 더할 것): `creatures.recovery_hash`·`recovery_pepper_v`·`recovery_rotated_at`, `user_auth`, `save_versions`·`public_pages`·`storage_gc`·`reports`·`report_hits`·`link_daily`·`link_funnel_daily`·`deletion_log`·`admin_actions`. B1 주석대로 '확장 → 배포 → 축소'로 더한다.
+- 거꾸로 **문서가 구현보다 앞선 곳**(B3·B5가 마이그레이션으로 더할 것): `public_pages`·`reports`·`report_hits`·`link_daily`·`link_funnel_daily`·`admin_actions`. B2가 `creatures.recovery_*`·`user_auth`·`save_versions`·`storage_gc`·`deletion_log`(+ `auth_gc`)를 더했다(`migrations/20261121000000_b2_cloud_save`). B1 주석대로 '확장 → 배포 → 축소'로 더한다.
+
+**B2 구현에서 정한 것(11-20, 코드: `apps/server/src/{auth,account,saves,deletion,cron}`, 시험 `test/cloud.db.test.ts`·`cloud-logs.db.test.ts`·`auth-jwt.test.ts`·`cron-auth.test.ts`)** — 위 표와 같은 규칙으로 문서를 구현에 맞춘다.
+
+| # | 무엇 | v2.2 문서 | 구현 | 근거 |
+|---|---|---|---|---|
+| 21 | 글귀 해시 | `SHA-256(pepper_v ‖ 글귀)` | **HMAC-SHA256(pepper, 정규 16자)** — 같은 취지(pepper 없이는 대입 불가)의 표준 구성. 정규화(대소문자·하이픈·공백 무시, I·L→1, O→0)는 contract `normalizeRecoveryCode`(앱 입력 칸과 같은 함수). pepper 회전 때는 옛 pepper로도 찾도록 그때 확장(`recovery_pepper_v`는 이미 저장) | 3-3 ⑤ |
+| 22 | 같은 본 | 표마다 다름(`If-None-Match` + 행 있음 = 409) | **서버 sha == 받은 sha면 전제 조건과 무관하게 `200`**(빨리 감기). 반쯤 성공한 첫 PUT 재전송·같은 본 동시 첫 PUT이 모두 같은 규칙으로 수렴 | 3-4 '빨리 감기' |
+| 23 | 409 모양 | `409 {server: meta}` | 공통 오류 모양 `{error:{code:"save_conflict", details:{server: meta\|null}}}`(3-2 공통 응답). 전제 조건이 없으면 `428 precondition_required`, 둘 다면 `400` | 3-2 |
+| 24 | 계약 위치 | 서버 요청 스키마는 zod(서버 안) | B2 요청·응답 스키마도 **`@mong/contract`(zod/mini)** — 앱(C11·C12)이 같은 판정으로 읽는다. 요청은 strict(기기 값·태어난 해 등 모르는 키는 400) | 3-2 '계약' |
+| 25 | 웹 `/delete` 처리 | '7일 안에' 처리(방법 미정, 메일 언급) | **`POST /api/v1/deletion/web` 즉시 처리**(코드 + 글귀, 위 3-2 행). 정적 `/delete` 폼이 `API_ORIGIN`(Cloud Run 서울)으로만 보낸다 — CSP `connect-src` 한 출처, 정적 빌드 검사가 고정. 글귀가 메일로 오가지 않는다(처리방침 12절 '글귀를 이메일에 적지 마세요'와 일치, '7일 안'은 여전히 참) | 3-8 ② |
+| 26 | Auth 삭제 재시도 | '실패하면 재시도 대기열' | 새 표 **`auth_gc(sub, deletion_id, not_before, attempts)`** — users가 지워진 뒤 sub만 남는 유일한 자리, 지워지면 행째 삭제. `storage_gc`에 `deletion_id`. 대기 행이 없어지면 `deletion_log.completed_at`(영수증 `done`). `bootstrap`·`recover`는 `auth_gc`에 있는 sub도 401(Auth 삭제가 늦어도 되살아나지 않음) | 3-8 ⑤⑥ |
+| 27 | 하루 4MB | 몽망이당 새 이력 바이트 | `saves.quota_day`·`quota_bytes`(잠근 행 위에서 셈) — **PUT·POST conflicts가 새로 쓰는 본문(압축 뒤)**을 센다. restore는 새 업로드가 아니라 세지 않는다 | 3-4-1 남용 상한 |
+| 28 | 미래 판 | '1 이하로만 큼' | `schemaVersion`·`sim.version` 중 하나라도 서버보다 2 이상 크거나 판 번호가 없으면 `422`. 미래 본은 `day_index`·`strokes_total` NULL(열을 NULL 허용으로 바꿈) | 3-4-1 |
+| 29 | 이력 시각 | DB `now()` | 서버 시계 하나(`Clock`)로 `created_at`·ISO 주·하루 상한·영수증 만료를 정한다(시험이 '29일 뒤'를 주입). 솎기 SQL은 `app.prune_save_versions(at)`, 영수증·지운 사용자 HMAC 만료는 `app.expire_deletion_log(at)` 함수(pg_cron 등록은 B6) | 3-4-1, 2-4 |
+| 30 | `DELETE /me` 범위 | ①~⑥ | B2는 ①(그 몽망이의 `storage_gc`)·②·③⑤(요청 안 한 번 + Scheduler 재시도)·⑥. **`public_pages` 경로 모으기·`link_daily` 삭제·④ CDN 무효화는 B3**(표·공개 파일이 B3에서 생김). Storage 삭제기는 B3 전까지 '설정 안 됨'이라 행이 대기열에 남는다(B2에는 파일이 없다) | 3-8 |
+| 31 | Scheduler | `/internal/cron/{job}` OIDC | `POST /internal/cron/storage-gc`(매일)·`reapply-deletions`(복원 뒤 한 번) — Google ID 토큰 RS256, `iss` accounts.google.com, **`aud`가 `CRON_AUDIENCE`(서비스 URL 전체, 경로 없음)와 정확히 같음**, `email = CRON_SA_EMAIL`·`email_verified`. 틀리면 **404**. **운영에서 두 값 필수(없으면 부팅 거부, B2 리뷰 I2)**. 일: Storage·Auth 대기열 + 되찾기로 끊긴 로그인 30일 뒤 `auth_gc`로 + 막힌 일 `gc_stuck` 알림 로그 | 2-4, 3-3 ⑤ 단계 5 |
+| 32 | JWT | `jose`, 비대칭만 | `ES256`·`RS256` 허용 목록, JWKS 원격 캐시(10분, 모르는 kid는 30초 쿨다운 뒤 재조회), `clockTolerance` 30초. 오류 분류는 **허용 목록**: 토큰 쪽 잘못(서명·클레임·만료·형식·맞는 키 없음·허용 밖 알고리즘)만 401, 그 밖(JWKS 비 200·302·429·시간 초과·파싱 실패·연결 실패)은 전부 **503**(앱이 익명 세션을 버리지 않게, B2 리뷰 I1 — 500·503·429·302·깨진 본문을 시험이 고정). `SUPABASE_URL`이 없으면 모든 토큰 401(로컬·compose) | 3-3 ⑧ |
+| 33 | 이력 기간 두 겹 | 기간 솎기는 `pg_cron`만 | PUT 안에서도 그 몽망이의 28·30일 지난 이력을 지우고 `weekly`는 최신 4벌만(B2 리뷰 I2) — `pg_cron` 등록이 빠져도 처리방침 '최대 4주'가 참. 시험: 일요일 시작 22일 안 ISO 주 5개 → weekly 4, 29일 뒤 PUT 한 번 → 28일 넘은 일반 이력 0 | 3-4-1 |
+| 34 | 이름 숫자 규칙 | '숫자 7개 이상 이어지면' | **구분자(글자도 숫자도 아닌 것)를 뺀 뒤** `\p{Nd}`(전각·다른 문자 체계 숫자 포함) 7개 이상 연속이면 `digits`, 문자·길이 검사보다 먼저(B2 리뷰 m4). `010·1234·5678`·`010 123 4567` 거부, `ab123cd4567`은 통과(글자가 끊음) | 3-5-2 |
+| 35 | 백업 복원 뒤 재삭제 | 없음 | `deletion_log.subject_hmac`(HMAC(pepper 파생 키, user id))·`subject_expires_at`(7일 = 백업 보관), 만료 함수 `app.expire_deletion_log(at)`(영수증 24시간과 한 함수), `DeletionService.reapplyAfterRestore`(kind `restore_reapply`) | 3-8 ③ |
+| 36 | 인장 코드 읽기·본문 상한·리밋 메모리 | — | 웹 삭제의 인장 코드도 글귀와 같은 Crockford 읽기(contract `normalizeCreatureCode`). Fastify 본문 상한 1.06MB(세이브 512KB는 이스케이프 전 기준이라 JSON 안에서 최대 두 배). 레이트 리밋 창 5만 개를 넘으면 하루 지난 것 → 오래된 것부터 80%까지 버림 | B2 리뷰 m5·m7·m8 |
 
 ---
 

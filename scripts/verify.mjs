@@ -53,12 +53,12 @@ function steps(heavy) {
 /** 정적 빌드는 주입 값이 비면 '값이 비었다'로 멈춰야 한다(배포 사고 방지 — 옛 static-ci와 같은 단언) */
 async function staticEmpty() {
   const env = { ...process.env };
-  for (const k of ['APPLE_TEAM_ID', 'ANDROID_CERT_SHA256', 'APP_STORE_ID']) delete env[k];
+  for (const k of ['APPLE_TEAM_ID', 'ANDROID_CERT_SHA256', 'APP_STORE_ID', 'API_ORIGIN']) delete env[k];
   const r = await run('node', ['apps/web-static/scripts/build.mjs'], { env, quiet: true });
-  const want = ['APPLE_TEAM_ID가 비어 있다', 'ANDROID_CERT_SHA256이 비어 있다', 'APP_STORE_ID가 비어 있다'];
+  const want = ['APPLE_TEAM_ID가 비어 있다', 'ANDROID_CERT_SHA256이 비어 있다', 'APP_STORE_ID가 비어 있다', 'API_ORIGIN이 비어 있다'];
   const missing = want.filter((w) => !r.out.includes(w));
   if (r.code === 1 && missing.length === 0) return { ok: true, out: r.out };
-  return { ok: false, out: `${r.out}\n기대: 종료 코드 1 + 세 값 모두 '비어 있다'(실제 코드 ${r.code}, 빠진 문구 ${missing.join(', ') || '없음'})` };
+  return { ok: false, out: `${r.out}\n기대: 종료 코드 1 + 네 값 모두 '비어 있다'(실제 코드 ${r.code}, 빠진 문구 ${missing.join(', ') || '없음'})` };
 }
 
 function run(cmd, argv, { env = process.env, quiet = false } = {}) {

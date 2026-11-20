@@ -92,12 +92,42 @@
             "value": "DENY"
           }
         ]
+      },
+      {
+        "source": "/delete/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=300"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          }
+        ]
+      },
+      {
+        "source": "/delete",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=300"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          }
+        ]
       }
     ],
     "rewrites": [
       {
         "source": "/m/**",
         "destination": "/m/index.html"
+      },
+      {
+        "source": "/delete",
+        "destination": "/delete/index.html"
       }
     ]
   }

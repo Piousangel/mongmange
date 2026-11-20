@@ -7,6 +7,7 @@
 //   ANDROID_CERT_SHA256  서명 인증서 SHA-256 지문, 쉼표로 여러 개(EAS 업로드 키 + Play 앱 서명 키) → assetlinks.json
 //   APP_STORE_ID         App Store 앱 id(숫자)                                  → /m 스토어 버튼·Smart App Banner
 //   SITE_ORIGIN          (선택) 기본 https://mongmang.ink — og:image 절대 주소
+//   API_ORIGIN           앱 API(Cloud Run 서울) 출처 https://… — /delete 페이지가 글귀를 이 주소로만 직접 보낸다(국외 CDN 엣지를 거치지 않게, 2-1)
 // 하나라도 비었거나 형식이 틀리거나 자리표시자 같은 값(0000…·같은 바이트 반복)이면 **실패**한다. 값은 오류 문구에 싣지 않는다.
 //
 // 검사(그럴듯한 오답 판별, OPERATING 8-1): 남은 {{…}} 0개 · AASA/assetlinks가 app.json의 번들 id·패키지와 같음 ·
@@ -63,7 +64,11 @@ export function readInjected(env) {
 
   const origin = (env.SITE_ORIGIN ?? 'https://mongmang.ink').trim().replace(/\/+$/, '');
   if (!/^https:\/\/[a-z0-9.-]+$/.test(origin)) problems.push('SITE_ORIGIN은 https://호스트 형식이어야 한다');
-  return { problems, values: { team, fps, storeId, origin } };
+
+  const apiOrigin = (env.API_ORIGIN ?? '').trim().replace(/\/+$/, '');
+  if (!apiOrigin) problems.push('API_ORIGIN이 비어 있다(Cloud Run mong-api 주소 https://…, B6 배포 뒤)');
+  else if (!/^https:\/\/[a-z0-9.-]+$/.test(apiOrigin) || /example|placeholder|localhost/i.test(apiOrigin)) problems.push('API_ORIGIN은 https://호스트 형식이어야 한다');
+  return { problems, values: { team, fps, storeId, origin, apiOrigin } };
 }
 
 function walk(dir) {
@@ -74,6 +79,23 @@ function walk(dir) {
 }
 
 const LANG_SCRIPT = "document.documentElement.lang=/^ko\\b/i.test(navigator.language||'')?'ko':'en';";
+
+/**
+ * /delete 폼 스크립트(3-8 ② 앱 없이 지우기). 인장 코드 + 되찾기 글귀를 API_ORIGIN의 `POST /api/v1/deletion/web`으로만 보낸다.
+ * 쿠키·리퍼러 없이, 결과는 textContent로만(innerHTML 없음). 빌드가 해시를 계산해 CSP script-src에 하나만 허용한다.
+ */
+export function deleteScript(apiOrigin) {
+  return `(function(){var d=document,h=d.documentElement;h.lang=/^ko\\b/i.test(navigator.language||'')?'ko':'en';
+var T={ko:{busy:'지우는 중이에요…',ok:'지웠어요. 남은 정리는 24시간 안에 끝나요. 영수증: ',nf:'코드와 글귀가 같은 몽망이를 가리키지 않아요. 다시 확인해 주세요.',bad:'코드 8자와 글귀 16자를 모두 넣어 주세요.',rl:'시도가 너무 잦아요. 한 시간 뒤에 다시 해 주세요.',err:'지금은 처리할 수 없어요. 잠시 뒤에 다시 해 주세요.'},
+en:{busy:'Deleting…',ok:'Deleted. Remaining cleanup finishes within 24 hours. Receipt: ',nf:'The code and phrase do not point to the same Mongmangi. Please check them.',bad:'Enter both the 8-character code and the 16-character phrase.',rl:'Too many tries. Please try again in an hour.',err:'We cannot process this right now. Please try again later.'}};
+var f=d.getElementById('del'),o=d.getElementById('out'),b=d.getElementById('go');
+f.addEventListener('submit',function(e){e.preventDefault();var t=T[h.lang]||T.en;o.textContent=t.busy;b.disabled=true;
+fetch('${apiOrigin}/api/v1/deletion/web',{method:'POST',headers:{'content-type':'application/json'},credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',
+body:JSON.stringify({code:f.elements.code.value,phrase:f.elements.phrase.value})})
+.then(function(r){if(r.status===202)return r.json().then(function(j){o.textContent=t.ok+j.receipt;f.reset();});
+o.textContent=r.status===404?t.nf:r.status===400?t.bad:r.status===429?t.rl:t.err;})
+.catch(function(){o.textContent=t.err;}).then(function(){b.disabled=false;});});})();`;
+}
 const TEXT = /\.(html|json|txt)$|apple-app-site-association$/;
 
 /**
@@ -104,6 +126,9 @@ export function build({
     APP_STORE_ID: values.storeId,
     LANG_SCRIPT,
     CSP_SCRIPT_HASH: `sha256-${createHash('sha256').update(LANG_SCRIPT).digest('base64')}`,
+    API_ORIGIN: values.apiOrigin,
+    DELETE_SCRIPT: deleteScript(values.apiOrigin),
+    CSP_DELETE_SCRIPT_HASH: `sha256-${createHash('sha256').update(deleteScript(values.apiOrigin)).digest('base64')}`,
     OG_IMAGE_TAGS: ogExists
       ? `<meta property="og:image" content="${values.origin}/og.jpg">\n<meta name="twitter:card" content="summary_large_image">`
       : '<meta name="twitter:card" content="summary">',
@@ -204,17 +229,27 @@ export function check(out, v) {
 
   // ④ HTML: 외부 스크립트·분석·비콘 없음, 외부 주소는 스토어·자기 도메인만(링크 코드가 새지 않게).
   //    CSP(default-src 'none')와 referrer no-referrer가 **두 겹**으로 있어야 한다(리뷰 m3·m4)
+  //    예외 하나: /delete 폼은 fetch로 API_ORIGIN 한 곳에만 보낸다 — CSP connect-src가 정확히 그 출처 하나일 때만 허용(B2)
   for (const f of walk(out).filter((p) => p.endsWith('.html'))) {
     const rel = relative(out, f);
     const html = read(out, rel);
+    const isDelete = rel === 'delete/index.html';
     if (/<script[^>]+src\s*=/i.test(html)) problems.push(`${rel}: 외부 스크립트`);
-    if (/sendBeacon|XMLHttpRequest|fetch\(|gtag|googletagmanager|analytics|<iframe|<link[^>]+rel=["']?(?:stylesheet|preconnect|dns-prefetch)|\sping\s*=/i.test(html)) {
-      problems.push(`${rel}: 분석·통신·외부 자원 흔적`);
-    }
+    const comms = isDelete ? /sendBeacon|XMLHttpRequest|gtag|googletagmanager|analytics|<iframe|<link[^>]+rel=["']?(?:stylesheet|preconnect|dns-prefetch)|\sping\s*=|innerHTML/i : /sendBeacon|XMLHttpRequest|fetch\(|gtag|googletagmanager|analytics|<iframe|<link[^>]+rel=["']?(?:stylesheet|preconnect|dns-prefetch)|\sping\s*=/i;
+    if (comms.test(html)) problems.push(`${rel}: 분석·통신·외부 자원 흔적`);
     if (!/<meta name="referrer" content="no-referrer">/.test(html)) problems.push(`${rel}: referrer no-referrer가 없다`);
     const csp = /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(html)?.[1] ?? '';
     if (!/(^|;\s*)default-src 'none'/.test(csp)) problems.push(`${rel}: CSP meta(default-src 'none')가 없다`);
+    if (isDelete) {
+      const connect = /(?:^|;\s*)connect-src ([^;]+)/.exec(csp)?.[1]?.trim();
+      if (connect !== v.apiOrigin) problems.push(`${rel}: CSP connect-src는 API_ORIGIN 하나여야 한다`);
+      if (/fetch\(/.test(html) && [...html.matchAll(/fetch\('([^']+)'/g)].some(([, u]) => !u.startsWith(`${v.apiOrigin}/api/v1/deletion/web`))) {
+        problems.push(`${rel}: fetch가 삭제 API 밖으로 간다`);
+      }
+      if (!/href="\/privacy"/.test(html)) problems.push(`${rel}: 처리방침(/privacy) 링크가 없다`);
+    }
     const allowed = [/^https:\/\/apps\.apple\.com\//, /^https:\/\/play\.google\.com\//, new RegExp(`^${v.origin.replace(/[.]/g, '\\.')}/`)];
+    if (isDelete && v.apiOrigin) allowed.push(new RegExp(`^${v.apiOrigin.replace(/[.]/g, '\\.')}/api/v1/deletion/web$`));
     // 속성 이름·따옴표와 무관하게 http(s)://·//(프로토콜 상대) 주소를 모두 본다
     for (const [, url] of html.matchAll(/=\s*["']?((?:https?:)?\/\/[^"'\s>]+)/gi)) {
       if (!allowed.some((re) => re.test(url))) problems.push(`${rel}: 허용 밖 외부 주소 ${url}`);

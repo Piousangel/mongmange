@@ -51,6 +51,12 @@ services:
       TRUSTED_PROXY_HOPS_API: '1'
       TRUSTED_PROXY_HOPS_WEB: '2'
       READY_TOKEN: local-ready-token-0000
+      # B2 운영 필수값의 로컬 자리(이 compose에는 Supabase Auth가 없다 → JWT는 모두 401, 인증 없는 경로만 스모크한다)
+      SUPABASE_URL: https://supabase.invalid
+      SUPABASE_SERVICE_ROLE_KEY: local-service-role-key-not-secret
+      RECOVERY_PEPPER: local-recovery-pepper-not-secret-000000
+      CRON_AUDIENCE: https://mong-api.invalid
+      CRON_SA_EMAIL: scheduler@local.invalid
     ports: ['127.0.0.1:8080:8080']
     depends_on:
       db: { condition: service_healthy }

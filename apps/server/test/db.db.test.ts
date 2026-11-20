@@ -53,7 +53,7 @@ describe('실제 DB', () => {
       select rolname, rolsuper, rolbypassrls from pg_roles where rolname = current_user`;
     expect(me).toMatchObject({ rolsuper: false, rolbypassrls: false });
     const owners = await prisma.$queryRaw<{ tableowner: string }[]>`select tableowner from pg_tables where schemaname = 'app'`;
-    expect(owners.length).toBe(5);
+    expect(owners.length).toBe(10);
     for (const o of owners) expect(o.tableowner).toBe(me!.rolname);
   });
 
@@ -70,13 +70,11 @@ describe('실제 DB', () => {
     const rows = await prisma.$queryRaw<{ relname: string; relrowsecurity: boolean }[]>`
       select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'app' and c.relkind = 'r' order by c.relname`;
-    expect(rows).toEqual([
-      { relname: 'creatures', relrowsecurity: true },
-      { relname: 'metric_daily', relrowsecurity: true },
-      { relname: 'metric_monthly', relrowsecurity: true },
-      { relname: 'saves', relrowsecurity: true },
-      { relname: 'users', relrowsecurity: true },
-    ]);
+    expect(rows).toEqual(
+      ['auth_gc', 'creatures', 'deletion_log', 'metric_daily', 'metric_monthly', 'save_versions', 'saves', 'storage_gc', 'user_auth', 'users'].map(
+        (relname) => ({ relname, relrowsecurity: true }),
+      ),
+    );
     const [p] = await prisma.$queryRaw<{ n: bigint }[]>`select count(*) as n from pg_policies where schemaname = 'app'`;
     expect(Number(p!.n)).toBe(0);
   });

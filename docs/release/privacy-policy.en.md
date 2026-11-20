@@ -128,7 +128,7 @@ The following is stored on your device. It is not sent to us unless you turn on 
 | Emails with questions or requests | Deleted within [period — owner to decide] after the request is handled |
 | **Inactive accounts** | **If you do not open the App for 2 years**, we delete everything you left on our server (account, game record, public page). We have no way to contact you, so this policy is our advance notice. Activity is recorded by month only |
 
-- **How we delete**: electronic files are deleted so they cannot be recovered. Deleting your account removes the game record, earlier copies, public page, link statistics, and age check record together; copies in backups expire after 7 days.
+- **How we delete**: electronic files are deleted so they cannot be recovered. Deleting your account removes the game record, earlier copies, public page, link statistics, and age check record together; copies in backups expire after 7 days. So that a deleted account does not come back if we ever have to restore the server from a backup, we keep one irreversible value (a one-way hash) that points to the deleted account for the same 7 days as the backups, delete the account again right after any restore, and then delete that value too.
 - Your on-device game record is deleted when you uninstall the App.
 
 ## 7. Service providers (processors)

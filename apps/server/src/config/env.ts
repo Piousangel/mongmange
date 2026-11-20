@@ -59,8 +59,59 @@ export const envSchema = z
     METRIC_NEW_CELLS_PER_DAY: z.coerce.number().int().min(1).max(1_000_000).default(20_000),
     /** /healthz의 ver. CI가 이미지 빌드 때 git sha를 넣는다 */
     APP_VERSION: z.string().min(1).default('dev'),
+    /**
+     * Supabase 프로젝트 주소(B2). JWT 검사의 iss(`{URL}/auth/v1`)·JWKS(`{URL}/auth/v1/.well-known/jwks.json`)·Auth Admin이 여기서 나온다.
+     * 운영 필수(https). 없으면 모든 JWT를 401로 거절한다(로컬·compose — 인증 경로가 '열리는' 일은 없다).
+     */
+    SUPABASE_URL: z.url({ protocol: /^https?$/ }).optional(),
+    /** Auth Admin(사용자 존재 확인·삭제)용 서비스 키. Secret Manager. 운영 필수 */
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
+    /** 되찾기 글귀 해시의 pepper(3-3 ⑤, Secret Manager + 오프라인 사본). 운영 필수 32자+. 잃으면 글귀가 전부 무효 */
+    RECOVERY_PEPPER: z.string().min(32).optional(),
+    /** 지금 pepper의 판 번호(creatures.recovery_pepper_v). 회전할 때 올린다 */
+    RECOVERY_PEPPER_V: z.coerce.number().int().min(1).max(32_767).default(1),
+    /**
+     * 회전 중 옛 pepper들 `판:값,판:값`(Secret Manager). 그 판으로 저장된 글귀를 계속 찾는다.
+     * 옛 판 행이 0이 될 때까지(architecture 3-3 ⑤ 'pepper 회전') 지우지 않는다
+     */
+    RECOVERY_PEPPERS_PREVIOUS: z
+      .string()
+      .optional()
+      .transform((v, ctx) => {
+        if (!v) return [];
+        const out: Array<{ v: number; value: string }> = [];
+        for (const part of v.split(',')) {
+          const i = part.indexOf(':');
+          const ver = Number(part.slice(0, i));
+          const value = part.slice(i + 1);
+          if (i < 1 || !Number.isInteger(ver) || ver < 1 || value.length < 32) {
+            ctx.addIssue({ code: 'custom', message: '`판:값` 꼴, 값 32자 이상' });
+            return z.NEVER;
+          }
+          out.push({ v: ver, value });
+        }
+        return out;
+      }),
+    /** 서비스 전체 하루(UTC) 새 기기 로그인(계정 생성·되찾기) 상한(3-4-1). 넘으면 503 + 운영 알림 로그 */
+    ACCOUNT_NEW_PER_DAY: z.coerce.number().int().min(1).max(1_000_000).default(5000),
+    /**
+     * `/internal/cron/*`(Cloud Scheduler) OIDC 검사(2-4): aud = 이 값과 **정확히 같은 문자열**, email = 전용 Scheduler 서비스 계정.
+     * 값 = 서비스 URL 전체(경로 없음, 예 `https://mong-api-xxxx-du.a.run.app`). Scheduler 잡의 OIDC audience를 **이 값으로 명시**한다
+     * (비워 두면 Google은 대상 URL 전체 `…/internal/cron/storage-gc`를 aud로 넣어 늘 404가 된다). 운영 필수(B2 리뷰 I2) —
+     * 없으면 삭제 뒤처리·옛 기기 30일 정리가 조용히 멈춘다. 개발에서 없으면 경로가 404.
+     */
+    CRON_AUDIENCE: z.url({ protocol: /^https?$/ }).optional(),
+    CRON_SA_EMAIL: z.email().optional(),
+    /** 웹 `/delete` 페이지 출처(CORS 허용 하나, 3-8 ②) */
+    WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default('https://mongmang.ink'),
   })
   .superRefine((e, ctx) => {
+    if (e.RECOVERY_PEPPERS_PREVIOUS.some((p) => p.v >= e.RECOVERY_PEPPER_V)) {
+      ctx.addIssue({ code: 'custom', path: ['RECOVERY_PEPPERS_PREVIOUS'], message: '옛 판 번호는 RECOVERY_PEPPER_V보다 작아야 합니다' });
+    }
+    if (new Set(e.RECOVERY_PEPPERS_PREVIOUS.map((p) => p.v)).size !== e.RECOVERY_PEPPERS_PREVIOUS.length) {
+      ctx.addIssue({ code: 'custom', path: ['RECOVERY_PEPPERS_PREVIOUS'], message: '같은 판 번호가 두 번 있습니다' });
+    }
     if (e.DB_CONNECT_TIMEOUT_MS >= e.READY_TIMEOUT_MS) {
       ctx.addIssue({ code: 'custom', path: ['DB_CONNECT_TIMEOUT_MS'], message: 'READY_TIMEOUT_MS보다 짧아야 합니다' });
     }
@@ -69,6 +120,12 @@ export const envSchema = z
       if (!e[k]) ctx.addIssue({ code: 'custom', path: [k], message: '운영에서는 1 이상이어야 합니다(0이면 전원이 한 키)' });
     }
     if (!e.READY_TOKEN) ctx.addIssue({ code: 'custom', path: ['READY_TOKEN'], message: '운영에서는 필수입니다(/readyz 비공개)' });
+    // B2: 운영에서 인증·되찾기 설정이 빠지면 조용히 뜨지 않는다(로그인 전부 401·글귀가 개발용 pepper로 해시되는 사고 방지)
+    if (!e.SUPABASE_URL?.startsWith('https://')) ctx.addIssue({ code: 'custom', path: ['SUPABASE_URL'], message: '운영에서는 https 주소가 필수입니다' });
+    if (!e.SUPABASE_SERVICE_ROLE_KEY) ctx.addIssue({ code: 'custom', path: ['SUPABASE_SERVICE_ROLE_KEY'], message: '운영에서는 필수입니다(Auth Admin)' });
+    if (!e.RECOVERY_PEPPER) ctx.addIssue({ code: 'custom', path: ['RECOVERY_PEPPER'], message: '운영에서는 필수입니다(32자 이상)' });
+    if (!e.CRON_AUDIENCE?.startsWith('https://')) ctx.addIssue({ code: 'custom', path: ['CRON_AUDIENCE'], message: '운영에서는 서비스 URL(https, 경로 없음)이 필수입니다' });
+    if (!e.CRON_SA_EMAIL) ctx.addIssue({ code: 'custom', path: ['CRON_SA_EMAIL'], message: '운영에서는 Scheduler 서비스 계정 이메일이 필수입니다' });
   })
   .transform((e) => ({ ...e, TRUSTED_PROXY_HOPS_API: e.TRUSTED_PROXY_HOPS_API ?? 0, TRUSTED_PROXY_HOPS_WEB: e.TRUSTED_PROXY_HOPS_WEB ?? 0 }));
 

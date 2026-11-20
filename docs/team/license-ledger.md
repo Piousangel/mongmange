@@ -55,6 +55,7 @@
 ## 5. 코드 의존성
 - 11-20 v1.2: `subset-font@2.9.0`(BSD-3-Clause, 개발 도구 — 앱 번들 아님, 루트 devDependency). 네이티브 의존성 추가 없음.
 - 11-20 앱 흐름에서 추가(모두 `npx expo install`, SDK 58): react-native-mmkv 4.3.2(MIT), react-native-nitro-modules 0.37.2(MIT), expo-notifications·expo-audio·expo-haptics·expo-font(MIT), react-native-safe-area-context 5.11.1(MIT). 개발용 vitest(MIT). 글꼴 패키지 두 개는 3절.
+- 11-20 B2 서버: `jose@6.2.18`(MIT, 런타임 의존성 0, `apps/server` dependencies) — Supabase JWT 비대칭 서명 검증·JWKS 캐시와 Cloud Scheduler OIDC 검증. 정본 2-4 'JWT 검증(`jose`)'이 지정한 라이브러리. 직접 짜면 알고리즘 혼동(HS256·none)·kid 처리 실수가 나기 쉬운 보안 경로라 들였다. 서버 번들 밖(외부 패키지)이라 앱 번들 영향 없음.
 - npm 의존성 라이선스는 첫 EAS 빌드 전에 `license-checker` 등으로 한 번 뽑아 이 절에 요약한다(GPL 계열이 앱 번들에 들어오지 않는지).
 
 ## 할 일

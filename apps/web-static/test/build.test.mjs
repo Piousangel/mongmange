@@ -8,7 +8,8 @@ import { build, BuildError, check, readFirebaseJson, readInjected, ROOT } from '
 
 const FP1 = Array.from({ length: 32 }, (_, i) => (i * 7 + 16).toString(16).toUpperCase().padStart(2, '0')).join(':');
 const FP2 = Array.from({ length: 32 }, (_, i) => (255 - i * 3).toString(16).toUpperCase().padStart(2, '0')).join(':');
-const ENV = { APPLE_TEAM_ID: 'A1B2C3D4E5', ANDROID_CERT_SHA256: `${FP1}, ${FP2.toLowerCase()}`, APP_STORE_ID: '6739012345' };
+const API = 'https://mong-api-abc123-du.a.run.app';
+const ENV = { APPLE_TEAM_ID: 'A1B2C3D4E5', ANDROID_CERT_SHA256: `${FP1}, ${FP2.toLowerCase()}`, APP_STORE_ID: '6739012345', API_ORIGIN: API };
 
 const dirs = [];
 function tmp() {
@@ -89,6 +90,7 @@ describe('정상 빌드', () => {
       '.well-known/assetlinks.json',
       'config/v1.json',
       'content/v1.json',
+      'delete/index.html',
       'index.html',
       'm/index.html',
       'robots.txt',
@@ -111,6 +113,32 @@ describe('정상 빌드', () => {
     const hash = createHash('sha256').update(script).digest('base64');
     expect(html).toContain(`script-src 'sha256-${hash}'`);
     expect(html).toMatch(/default-src 'none'/); // connect-src도 'none' — 페이지에서 어떤 통신도 못 한다
+  });
+
+  it('/delete 페이지(B2): 한·영, 코드+글귀 폼, 글귀는 API_ORIGIN의 삭제 API로만, CSP connect-src = 그 출처 하나, 처리방침 링크', () => {
+    const { read } = out();
+    const html = read('delete/index.html');
+    expect(html).toContain('<section lang="ko">');
+    expect(html).toContain('<section lang="en">');
+    expect(html).toMatch(/<input name="code"/);
+    expect(html).toMatch(/<input name="phrase"/);
+    expect(html).toContain('href="/privacy"');
+    expect(html).toContain(`fetch('${API}/api/v1/deletion/web'`);
+    expect(html).toContain(`connect-src ${API};`);
+    expect(html).toContain("form-action 'none'");
+    expect(html).toContain("credentials:'omit'");
+    expect(html).not.toMatch(/innerHTML|<script[^>]+src=|localStorage|document\.cookie/);
+    expect(html).toMatch(/이메일로 보내지 마세요/); // 처리방침 12절 '글귀를 이메일에 적지 마세요'와 같은 약속
+    const script = /<script>([\s\S]*?)<\/script>/.exec(html)[1];
+    expect(html).toContain(`script-src 'sha256-${createHash('sha256').update(script).digest('base64')}'`);
+    // 랜딩·/m은 여전히 어떤 통신도 못 한다
+    const m = read('m/index.html');
+    expect(m).not.toMatch(/fetch\(/);
+    expect(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(m)[1]).not.toContain('connect-src');
+  });
+  it('API_ORIGIN이 비었거나 https가 아니면 배포 실패', () => {
+    expect(fails({ ...ENV, API_ORIGIN: '' })).toMatch(/API_ORIGIN이 비어/);
+    expect(fails({ ...ENV, API_ORIGIN: 'http://mong-api.run.app' })).toMatch(/API_ORIGIN은 https/);
   });
 
   it('config/v1.json: 서버 기능 스위치는 모두 꺼짐(배포 전), 게임 플래그는 빠짐(= 번들 기본값)', () => {
@@ -173,7 +201,7 @@ describe('check() — 만들어진 산출물을 고장 내면 잡는다', () => 
     const o = tmp() + '/out';
     build({ env: ENV, outDir: o });
     const app = JSON.parse(readFileSync(join(ROOT, '../mobile/app.json'), 'utf8')).expo;
-    const v = { team: 'A1B2C3D4E5', origin: 'https://mongmang.ink', iosBundle: app.ios.bundleIdentifier, androidPackage: app.android.package, firebaseJson: readFirebaseJson(join(ROOT, 'firebase.json')) };
+    const v = { team: 'A1B2C3D4E5', origin: 'https://mongmang.ink', apiOrigin: API, iosBundle: app.ios.bundleIdentifier, androidPackage: app.android.package, firebaseJson: readFirebaseJson(join(ROOT, 'firebase.json')) };
     return { o, v };
   }
   const breaks = (o, v, rel, from, to) => {
@@ -204,6 +232,21 @@ describe('check() — 만들어진 산출물을 고장 내면 잡는다', () => 
       const { o, v } = built();
       expect(breaks(o, v, 'm/index.html', '<nav class="stores">', `<nav class="stores"${inject}>`), inject).toMatch(/분석|허용 밖 외부 주소/);
     }
+  });
+  it('/delete: connect-src를 넓히거나, 다른 곳으로 fetch하거나, innerHTML을 쓰거나, 처리방침 링크를 빼면 실패', () => {
+    for (const [from, to, re] of [
+      [`connect-src ${API};`, 'connect-src *;', /connect-src/],
+      [`fetch('${API}/api/v1/deletion/web'`, "fetch('https://evil.example/collect'", /fetch가 삭제 API 밖/],
+      ['o.textContent=t.busy', 'o.innerHTML=t.busy', /분석·통신/],
+      [/href="\/privacy"/g, 'href="/about"', /처리방침/],
+    ]) {
+      const { o, v } = built();
+      expect(breaks(o, v, 'delete/index.html', from, to), String(to)).toMatch(re);
+    }
+  });
+  it('/m 페이지에 fetch를 넣으면 여전히 실패(예외는 /delete 하나)', () => {
+    const { o, v } = built();
+    expect(breaks(o, v, 'm/index.html', '</main>', "<script>fetch('/x')</script></main>")).toMatch(/분석·통신/);
   });
   it('robots.txt가 /m/를 막으면 실패(I6)', () => {
     const { o, v } = built();

@@ -163,10 +163,21 @@ export interface NameRecord {
 export const NAME_LIMITS = { hangul: 6, latin: 12 } as const;
 
 /**
- * 이름 검사(2-2): 한글 완성형·라틴·숫자·공백·가운뎃점만, 한글이 들면 6자, 아니면 12자. 앞뒤 공백·겹공백은 정리한다.
- * 맞으면 정리한 이름, 아니면 이유.
+ * 이름 속 숫자 상한(architecture.md 3-5-2 — 전화번호 방지). 구분자(공백·점·하이픈·가운뎃점 등 글자도 숫자도 아닌 것)를 뺀 뒤
+ * 이어진 숫자(\p{Nd} — 전각·다른 문자 체계 숫자 포함)가 이만큼을 넘으면 거부. 글자가 끼면 끊긴다(B2 리뷰 m4)
  */
-export function normalizeName(raw: string): { ok: true; text: string } | { ok: false; reason: 'empty' | 'chars' | 'length' } {
+export const NAME_MAX_DIGIT_RUN = 6;
+const DIGIT_RUN = new RegExp(`\\p{Nd}{${NAME_MAX_DIGIT_RUN + 1},}`, 'u');
+
+/** 숫자 규칙 판정: 글자(\p{L})·숫자(\p{Nd})만 남기고 나머지(구분자)를 지운 뒤 이어진 숫자를 센다 */
+export function hasLongDigitRun(text: string): boolean {
+  return DIGIT_RUN.test(text.normalize('NFC').replace(/[^\p{L}\p{Nd}]/gu, ''));
+}
+
+export type NameRejectReason = 'empty' | 'chars' | 'length' | 'digits';
+
+/** 모양 검사(문자·길이) — 세이브를 불러올 때 쓰는 기준. 숫자 규칙은 여기 넣지 않는다(이미 저장된 이름이 있는 세이브를 깨지 않게) */
+function nameShape(raw: string): { ok: true; text: string } | { ok: false; reason: Exclude<NameRejectReason, 'digits'> } {
   const text = raw.normalize('NFC').trim().replace(/\s+/g, ' ');
   if (text === '') return { ok: false, reason: 'empty' };
   if (!/^[\uAC00-\uD7A3A-Za-z0-9 ·]+$/.test(text)) return { ok: false, reason: 'chars' };
@@ -174,6 +185,17 @@ export function normalizeName(raw: string): { ok: true; text: string } | { ok: f
   const max = /[\uAC00-\uD7A3]/.test(text) ? NAME_LIMITS.hangul : NAME_LIMITS.latin;
   if (n > max) return { ok: false, reason: 'length' };
   return { ok: true, text };
+}
+
+/**
+ * 이름 검사(2-2): 한글 완성형·라틴·숫자·공백·가운뎃점만, 한글이 들면 6자, 아니면 12자. 앞뒤 공백·겹공백은 정리한다.
+ * 구분자를 뺀 숫자가 7개 이상 이어지면 거부한다(`digits`, 3-5-2 — 앱 이름 입력·서버 공개 검사(B3)가 반드시 이 함수).
+ * 맞으면 정리한 이름, 아니면 이유.
+ */
+export function normalizeName(raw: string): { ok: true; text: string } | { ok: false; reason: NameRejectReason } {
+  // 숫자 규칙을 먼저 본다 — 전각 숫자·'010·1234·5678'처럼 문자·길이 검사에 먼저 걸릴 꼴도 이유가 'digits'로 나오게(입력 화면 안내)
+  if (hasLongDigitRun(raw)) return { ok: false, reason: 'digits' };
+  return nameShape(raw);
 }
 
 // ── 결 이름(temperamentLabel) ─────────────────────────────
@@ -293,7 +315,8 @@ const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFin
 const isU32 = (v: unknown): v is number => isNum(v) && v === v >>> 0;
 /** 불러온 이름도 다시 검사한다(조작·손상된 세이브가 길이·문자 제한을 넘지 않게) */
 const nameIsClean = (text: string) => {
-  const n = normalizeName(text);
+  // 불러오기는 모양 검사만(숫자 규칙 전에 지은 이름이 있는 세이브도 그대로 열린다). 새 이름은 setName이 normalizeName으로 막는다
+  const n = nameShape(text);
   return n.ok && n.text === text;
 };
 const isNumArr = (v: unknown, n: number) => Array.isArray(v) && v.length === n && v.every(isNum);

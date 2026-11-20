@@ -9,8 +9,11 @@ import { AppModule } from './app.module';
 import type { Env } from './config/env';
 import { genReqId, ROUTE_TEMPLATE } from './common/logging';
 
-/** Fastify 본문 상한 — 세이브 512KB + JSON 여유. 파일은 서명 URL로 Storage에 직접 올리므로 API는 작다 */
-export const BODY_LIMIT = 768 * 1024;
+/**
+ * Fastify 본문 상한. 세이브 상한 512KB는 **이스케이프 전** 문자열 기준이라, JSON 안에 문자열로 실리면 따옴표·역슬래시가
+ * 두 배가 될 수 있다 → 512KB × 2 + 여유(B2 리뷰 m8). 파일은 서명 URL로 Storage에 직접 올리므로 API는 작다
+ */
+export const BODY_LIMIT = 2 * 512 * 1024 + 64 * 1024;
 
 /** 모든 응답의 기본 보안 헤더. `/m` HTML의 CSP는 B3에서 그 경로에만 */
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {

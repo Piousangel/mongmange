@@ -2,7 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { validateEnv } from '../src/config/env';
 
 const base = { DATABASE_URL: 'postgresql://u:secret-pw@db:5432/mong' };
-const prod = { ...base, NODE_ENV: 'production', TRUSTED_PROXY_HOPS_API: '1', TRUSTED_PROXY_HOPS_WEB: '2', READY_TOKEN: 'r'.repeat(24) };
+const prod = {
+  ...base,
+  NODE_ENV: 'production',
+  TRUSTED_PROXY_HOPS_API: '1',
+  TRUSTED_PROXY_HOPS_WEB: '2',
+  READY_TOKEN: 'r'.repeat(24),
+  SUPABASE_URL: 'https://abcd.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: 'k'.repeat(40),
+  RECOVERY_PEPPER: 'p'.repeat(40),
+  CRON_AUDIENCE: 'https://mong-api-abc-du.a.run.app',
+  CRON_SA_EMAIL: 'scheduler@mong-prod.iam.gserviceaccount.com',
+};
 
 describe('환경 변수 검증(zod)', () => {
   it('기본값을 채운다', () => {
@@ -53,6 +64,27 @@ describe('환경 변수 검증(zod)', () => {
     it('READY_TOKEN이 없으면 부팅 거부', () => {
       const { READY_TOKEN: _t, ...rest } = prod;
       expect(() => validateEnv(rest)).toThrow(/READY_TOKEN/);
+    });
+    it.each(['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'RECOVERY_PEPPER', 'CRON_AUDIENCE', 'CRON_SA_EMAIL'])('B2: %s가 없으면 부팅 거부', (k) => {
+      const { [k as keyof typeof prod]: _drop, ...rest } = prod;
+      expect(() => validateEnv(rest)).toThrow(new RegExp(k));
+    });
+    it('B2: 운영 Supabase 주소는 https만, pepper는 32자 이상(값은 오류에 싣지 않음)', () => {
+      expect(() => validateEnv({ ...prod, SUPABASE_URL: 'http://abcd.supabase.co' })).toThrow(/SUPABASE_URL/);
+      try {
+        validateEnv({ ...prod, RECOVERY_PEPPER: 'short-secret-pepper' });
+        expect.unreachable();
+      } catch (e) {
+        expect(String(e)).toMatch(/RECOVERY_PEPPER/);
+        expect(String(e)).not.toMatch(/short-secret-pepper/);
+      }
+    });
+    it('B2 pepper 회전: 옛 판은 `판:값`(32자+), 지금 판보다 작고 겹치지 않아야 한다', () => {
+      const old = 'o'.repeat(40);
+      expect(validateEnv({ ...prod, RECOVERY_PEPPER_V: '2', RECOVERY_PEPPERS_PREVIOUS: `1:${old}` }).RECOVERY_PEPPERS_PREVIOUS).toEqual([{ v: 1, value: old }]);
+      expect(() => validateEnv({ ...prod, RECOVERY_PEPPER_V: '2', RECOVERY_PEPPERS_PREVIOUS: `2:${old}` })).toThrow(/RECOVERY_PEPPERS_PREVIOUS/);
+      expect(() => validateEnv({ ...prod, RECOVERY_PEPPER_V: '3', RECOVERY_PEPPERS_PREVIOUS: `1:${old},1:${old}` })).toThrow(/RECOVERY_PEPPERS_PREVIOUS/);
+      expect(() => validateEnv({ ...prod, RECOVERY_PEPPER_V: '2', RECOVERY_PEPPERS_PREVIOUS: '1:short' })).toThrow(/RECOVERY_PEPPERS_PREVIOUS/);
     });
     it('개발에서는 hops 0·토큰 없음 허용', () => {
       expect(() => validateEnv({ ...base, NODE_ENV: 'development' })).not.toThrow();

@@ -337,3 +337,141 @@ export const motifFileSchema = z
     }),
   );
 export type MotifFile = z.infer<typeof motifFileSchema>;
+
+// ───────────────────────── 맡겨 두기·계정·삭제(B2 — architecture.md v2.2 3-2·3-3·3-4·3-4-1·3-8) ─────────────────────────
+// 요청은 서버가 이 스키마로 읽고(strict — 모르는 키는 400), 응답은 앱이 이 스키마로 읽는다(C11·C12).
+// 개인정보 최소(5-2): 요청에 기기 값·이름·이메일·태어난 해·달이 들어갈 칸이 없다 — 계약 시험이 고정한다.
+
+/** 연령 확인 판(3-3 ③ '중립형 — 태어난 해·달, 기기에서 판정'). 서버는 판 번호와 통과만 받는다 */
+export const AGE_GATE_VERSION = 2;
+/** `{v, ok:true}` — 미달(ok:false)은 기기 밖으로 나가지 않으므로 받을 칸 자체가 없다(서버에 under14가 존재할 수 없음) */
+export const ageGateSchema = z.strictObject({ v: int(1, 999), ok: z.literal(true) });
+export type AgeGate = z.infer<typeof ageGateSchema>;
+
+/** 인장 코드(= 링크 키) 8자, Crockford base32(서버 난수 40비트) */
+export const CREATURE_CODE_RE = /^[0-9A-HJKMNP-TV-Z]{8}$/;
+/** 사람이 옮겨 적은 인장 코드 → 정규 8자(글귀와 같은 Crockford 읽기: 대소문자·공백·하이픈 무시, I·L → 1, O → 0). 틀리면 null */
+export function normalizeCreatureCode(raw: string): string | null {
+  if (raw.length > 16) return null;
+  const s = raw.toUpperCase().replace(/[\s-]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0');
+  return CREATURE_CODE_RE.test(s) ? s : null;
+}
+
+export const bootstrapRequestSchema = z.strictObject({ ageGate: ageGateSchema });
+export type BootstrapRequest = z.infer<typeof bootstrapRequestSchema>;
+export const bootstrapResponseSchema = z.object({ userId: z.string(), creature: z.object({ code: str(CREATURE_CODE_RE) }) });
+export type BootstrapResponse = z.infer<typeof bootstrapResponseSchema>;
+
+/** 세이브 본문 상한(3-4-1 '남용 상한'): 압축 전 UTF-8 512KB, gzip 뒤 256KB → 넘으면 413 */
+export const SAVE_MAX_BYTES = 512 * 1024;
+export const SAVE_MAX_GZIP_BYTES = 256 * 1024;
+/** 몽망이당 하루(UTC) 새로 쓰는 본문 바이트(압축 뒤) → 넘으면 429 save_quota */
+export const SAVE_DAILY_GZIP_BYTES = 4 * 1024 * 1024;
+/** 이력 칸별 개수 상한(3-4-1, weekly 4 = '주 1벌 최대 4주'). 기간 상한 28일·30일은 PUT 안 + pg_cron 두 겹 */
+export const SAVE_VERSION_KEEP = { overwritten: 3, weekly: 4, conflict: 3, pre_restore: 3 } as const;
+/** 이력 기간 상한(일) — 처리방침 6절 '최대 4주'·'충돌·복원 전 본 30일' */
+export const SAVE_VERSION_MAX_DAYS = { overwritten: 28, weekly: 28, conflict: 30, pre_restore: 30 } as const;
+export const SAVE_VERSION_REASONS = ['overwritten', 'weekly', 'conflict', 'pre_restore'] as const;
+export type SaveVersionReason = (typeof SAVE_VERSION_REASONS)[number];
+
+/** ISO 8601 시각(UTC `Z` 또는 오프셋). 표시용 — 서버는 판단에 쓰지 않는다(3-4 '시계') */
+export const isoDateTime = str(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/).check(
+  z.refine((s) => {
+    const t = Date.parse(s);
+    return Number.isFinite(t) && t >= Date.UTC(2025, 0, 1) && t < Date.UTC(2100, 0, 1);
+  }, '시각 범위 밖'),
+);
+
+/**
+ * `PUT /saves/main`(헤더 `If-Match: <rev>` 또는 처음은 `If-None-Match: *`).
+ * body = core `serializeState` 문자열 그대로. 크기는 스키마가 아니라 서버가 바이트로 재서 413을 낸다.
+ * resolve `keep_mine` = 409 뒤 '이 기기 몽망이'를 골랐을 때 — 덮이는 서버 본은 conflict 칸(30일)으로 간다.
+ */
+export const saveUploadSchema = z.strictObject({
+  body: z.string().check(z.minLength(2)),
+  clientSavedAt: isoDateTime,
+  resolve: z.optional(z.literal('keep_mine')),
+});
+export type SaveUpload = z.infer<typeof saveUploadSchema>;
+/** `POST /saves/main/conflicts` — 서버 본을 골랐을 때 이 기기의 진 본을 30일 맡긴다 */
+export const conflictUploadSchema = z.strictObject({ body: z.string().check(z.minLength(2)), clientSavedAt: isoDateTime });
+export type ConflictUpload = z.infer<typeof conflictUploadSchema>;
+
+/** sha = 본문(UTF-8) SHA-256 소문자 16진. 앱은 자기 본의 sha와 비교해 빨리 감기·반쯤 성공을 판단한다(3-4) */
+export const SHA256_HEX_RE = /^[0-9a-f]{64}$/;
+export const saveMetaSchema = z.object({
+  rev: int(1),
+  sha: str(SHA256_HEX_RE),
+  clientSavedAt: z.string(),
+  /** 미래 판 본(validated=false)은 서버가 못 읽어 null */
+  dayIndex: z.nullable(int(0)),
+  strokesTotal: z.nullable(int(0)),
+  envelopeVer: int(0),
+  simVer: int(0),
+  validated: z.boolean(),
+});
+export type SaveMeta = z.infer<typeof saveMetaSchema>;
+export const saveWithBodySchema = z.extend(saveMetaSchema, { body: z.string() });
+export type SaveWithBody = z.infer<typeof saveWithBodySchema>;
+export const saveWriteResponseSchema = z.object({ rev: int(1), sha: str(SHA256_HEX_RE) });
+export type SaveWriteResponse = z.infer<typeof saveWriteResponseSchema>;
+/** 409의 `error.details` — 서버 사본을 잃었으면(백업 복원 등) server = null → 앱은 If-None-Match: *로 다시 */
+export const saveConflictDetailsSchema = z.object({ server: z.nullable(saveMetaSchema) });
+export type SaveConflictDetails = z.infer<typeof saveConflictDetailsSchema>;
+
+/** 이력 한 행. id = 행의 uuid(public_id) — 순번은 내보내지 않는다(3-4-1) */
+export const saveVersionSchema = z.object({
+  id: z.string(),
+  reason: z.enum(SAVE_VERSION_REASONS),
+  rev: int(1),
+  clientSavedAt: z.string(),
+  dayIndex: z.nullable(int(0)),
+  strokesTotal: z.nullable(int(0)),
+  validated: z.boolean(),
+  createdAt: z.string(),
+});
+export type SaveVersion = z.infer<typeof saveVersionSchema>;
+export const saveVersionWithBodySchema = z.extend(saveVersionSchema, { body: z.string() });
+export type SaveVersionWithBody = z.infer<typeof saveVersionWithBodySchema>;
+
+/**
+ * 되찾기 글귀(3-3 ⑤): 80비트 보안 난수 = Crockford base32 16자, `XXXX-XXXX-XXXX-XXXX`로 보여 준다.
+ * 사람이 옮겨 적으므로 읽을 때는 대소문자·하이픈·공백을 무시하고 I·L → 1, O → 0으로 읽는다(Crockford 규칙).
+ */
+export const RECOVERY_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+export const RECOVERY_CODE_RE = /^[0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){3}$/;
+/** 사람이 넣은 글귀 → 정규 16자(틀린 글자·길이면 null). 서버 해시·앱 입력 칸이 같은 함수를 쓴다 */
+export function normalizeRecoveryCode(raw: string): string | null {
+  if (raw.length > 64) return null;
+  const s = raw.toUpperCase().replace(/[\s-]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0');
+  return /^[0-9A-HJKMNP-TV-Z]{16}$/.test(s) ? s : null;
+}
+/** 정규 16자 → 보여 줄 꼴 */
+export function formatRecoveryCode(code16: string): string {
+  return code16.match(/.{4}/g)!.join('-');
+}
+export const recoveryCodeResponseSchema = z.object({ code: str(RECOVERY_CODE_RE) });
+export type RecoveryCodeResponse = z.infer<typeof recoveryCodeResponseSchema>;
+/** `POST /recover` — 새 기기는 bootstrap 없이 이것만 부른다(3-3 ⑤). 연령 확인은 새 기기에서 다시 한다 */
+export const recoverRequestSchema = z.strictObject({ code: z.string().check(z.maxLength(64)), ageGate: ageGateSchema });
+export type RecoverRequest = z.infer<typeof recoverRequestSchema>;
+export const recoverResponseSchema = z.object({
+  creature: z.object({ code: str(CREATURE_CODE_RE) }),
+  save: z.nullable(saveMetaSchema),
+  newCode: str(RECOVERY_CODE_RE),
+});
+export type RecoverResponse = z.infer<typeof recoverResponseSchema>;
+
+/** 삭제 영수증(3-8): 128비트 난수 base64url 22자. 서버는 해시만, 24시간 */
+export const DELETION_RECEIPT_RE = /^[A-Za-z0-9_-]{22}$/;
+export const DELETION_RECEIPT_TTL_HOURS = 24;
+export const deleteMeResponseSchema = z.object({ receipt: str(DELETION_RECEIPT_RE) });
+export type DeleteMeResponse = z.infer<typeof deleteMeResponseSchema>;
+export const deletionStatusSchema = z.object({ state: z.enum(['pending', 'done']) });
+export type DeletionStatus = z.infer<typeof deletionStatusSchema>;
+/**
+ * 웹 `/delete`(3-8 ② — 앱 없이 지우기): 인장 코드와 되찾기 글귀가 **둘 다** 같은 몽망이를 가리킬 때만 처리한다.
+ * 코드는 링크 주소에 공개된 값이라 그것만으로는 본인 확인이 안 된다(A4 리뷰 I5).
+ */
+export const webDeletionRequestSchema = z.strictObject({ code: z.string().check(z.maxLength(16)), phrase: z.string().check(z.maxLength(64)) });
+export type WebDeletionRequest = z.infer<typeof webDeletionRequestSchema>;
