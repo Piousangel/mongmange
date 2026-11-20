@@ -21,5 +21,7 @@ export default defineConfig({
       },
     },
   ],
-  test: { include: ['test/**/*.test.ts', 'test/**/*.test.tsx'], environment: 'node' },
+  // 시험은 기기 현지 시각을 서울로 고정한다(시험 고정값이 KST 기준). CI 러너는 UTC라 이것 없이는
+  // 재우기 가능 시각 판정이 달라져 깨진다(11-20 첫 ci.yml 실행). 시간대별 동작은 core 시험이 tz 인자로 따로 본다.
+  test: { include: ['test/**/*.test.ts', 'test/**/*.test.tsx'], environment: 'node', env: { TZ: 'Asia/Seoul' } },
 });
