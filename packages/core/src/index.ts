@@ -39,3 +39,5 @@ export * from './moon/phase';
 export * from './moon/motifs';
 /** MVP 시뮬레이션(State·Event·tick·reduce·세이브). 기존 이름(tick·Phase 등)과 겹치지 않게 네임스페이스로 낸다 */
 export * as sim from './sim/index';
+/** 공개 스냅숏 snap:1 읽기·정규화(B3, architecture 3-5-1) — 서버 검증·웹 뷰어가 같은 함수 */
+export * from './snap/publicSnapshot';

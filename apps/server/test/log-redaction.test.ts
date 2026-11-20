@@ -49,7 +49,10 @@ function hit(method: 'get' | 'post', path: string, xff: string) {
 describe('로그에 남지 않는 것', () => {
   it('IP·헤더·쿼리·링크 코드 0건, 요청 로그 키는 화이트리스트, route는 템플릿', async () => {
     const xff = `${SECRETS.spoofIp}, ${SECRETS.clientIp}, ${SECRETS.proxyIp}`;
-    await hit('get', `/m/${SECRETS.code}?t=${SECRETS.query}`, xff).expect(200);
+    // DB 없는 시험: 형식이 맞는 코드는 조회 실패 → 503(캐시 안 함), 그래도 코드는 로그에 없다
+    await hit('get', `/m/${SECRETS.code}?t=${SECRETS.query}`, xff).expect(503);
+    await hit('post', `/m/${SECRETS.code}/seen`, xff).expect(204);
+    await hit('get', `/m/${SECRETS.code}/get?p=ios`, xff).expect(302);
     await hit('post', `/api/v1/saves/validate?token=${SECRETS.query}`, `${SECRETS.ipv6}`).send({ save: '{"sim":{}}' }).expect(422);
     await hit('get', `/nope/${SECRETS.code}?sig=${SECRETS.query}`, xff).expect(404);
     await hit('get', `/boom?k=${SECRETS.query}`, xff).expect(500);
@@ -73,7 +76,7 @@ describe('로그에 남지 않는 것', () => {
       if (o.res) expect(Object.keys(o.res as object)).toEqual(['statusCode']);
     }
     const routes = reqLogs.map((o) => (o.req as { route: string | null }).route);
-    expect(routes).toEqual(expect.arrayContaining(['/m/:code', '/api/v1/saves/validate', null, '/boom', '/api/v1/ping']));
+    expect(routes).toEqual(expect.arrayContaining(['/m/:code', '/m/:code/seen', '/m/:code/get', '/api/v1/saves/validate', null, '/boom', '/api/v1/ping']));
     // 500은 스택과 함께 error 한 줄(경로·IP 없이)
     const err = lines.map((l) => JSON.parse(l) as Record<string, unknown>).find((o) => o.message === '처리하지 못한 오류');
     expect(err?.exception).toMatchObject({ type: 'Error', stack: expect.stringContaining('Error') });

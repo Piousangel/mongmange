@@ -104,6 +104,20 @@ export const envSchema = z
     CRON_SA_EMAIL: z.email().optional(),
     /** 웹 `/delete` 페이지 출처(CORS 허용 하나, 3-8 ②) */
     WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default('https://mongmang.ink'),
+    /**
+     * B3 파일 저장소. `none` = 설정 안 됨(링크 API 503, 삭제 대기열은 다음 시도로 — 운영 기본, 실제 Supabase Storage는 B6),
+     * `local` = 파일 시스템(개발·시험 전용 — 운영에서는 부팅 거부: Cloud Run 디스크는 인스턴스와 함께 사라진다)
+     */
+    STORAGE_DRIVER: z.enum(['none', 'local']).default('none'),
+    /** local 드라이버 루트 폴더 */
+    STORAGE_LOCAL_DIR: z.string().min(1).default('.storage-local'),
+    /** local 드라이버의 바깥 주소(서명 업로드·공개 파일 주소의 앞). 비우면 http://localhost:{PORT} */
+    STORAGE_LOCAL_BASE_URL: z.url({ protocol: /^https?$/ }).optional(),
+    /** 사이트 출처(/m 페이지의 live.js·config 경로, 링크 주소). 경로 없이 */
+    SITE_ORIGIN: z.url({ protocol: /^https?$/ }).default('https://mongmang.ink'),
+    /** App Store 앱 id(숫자) — /m 스토어 버튼. 없으면 App Store 첫 화면으로 */
+    APP_STORE_ID: z.string().regex(/^\d{6,12}$/).optional(),
+    ANDROID_PACKAGE: z.string().regex(/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/).default('com.piousangel.mongmange'),
   })
   .superRefine((e, ctx) => {
     if (e.RECOVERY_PEPPERS_PREVIOUS.some((p) => p.v >= e.RECOVERY_PEPPER_V)) {
@@ -125,6 +139,7 @@ export const envSchema = z
     if (!e.SUPABASE_SERVICE_ROLE_KEY) ctx.addIssue({ code: 'custom', path: ['SUPABASE_SERVICE_ROLE_KEY'], message: '운영에서는 필수입니다(Auth Admin)' });
     if (!e.RECOVERY_PEPPER) ctx.addIssue({ code: 'custom', path: ['RECOVERY_PEPPER'], message: '운영에서는 필수입니다(32자 이상)' });
     if (!e.CRON_AUDIENCE?.startsWith('https://')) ctx.addIssue({ code: 'custom', path: ['CRON_AUDIENCE'], message: '운영에서는 서비스 URL(https, 경로 없음)이 필수입니다' });
+    if (e.STORAGE_DRIVER === 'local') ctx.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: '운영에서는 local 저장소를 쓸 수 없습니다(B6 전까지 none)' });
     if (!e.CRON_SA_EMAIL) ctx.addIssue({ code: 'custom', path: ['CRON_SA_EMAIL'], message: '운영에서는 Scheduler 서비스 계정 이메일이 필수입니다' });
   })
   .transform((e) => ({ ...e, TRUSTED_PROXY_HOPS_API: e.TRUSTED_PROXY_HOPS_API ?? 0, TRUSTED_PROXY_HOPS_WEB: e.TRUSTED_PROXY_HOPS_WEB ?? 0 }));

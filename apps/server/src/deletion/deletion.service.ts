@@ -1,8 +1,10 @@
 // 계정 삭제(architecture.md v2.2 3-8 '삭제(파기) 절차' — 연쇄 목록의 정본):
-//  ① 지울 Storage 경로를 모은다 — 지금(B2)은 그 몽망이의 storage_gc 대기 항목. B3가 public_pages(path_prefix·pending_prefix)·격리본을 더한다.
-//  ② 한 트랜잭션: deletion_log(영수증 해시, 24시간) → storage_gc를 지금으로 당기고 deletion_id 표시 → auth_gc에 이 사용자의 모든 sub
-//     (살아 있는 것 + 되찾기로 끊긴 것) → users 삭제(CASCADE: user_auth·creatures·saves·save_versions). link_daily 삭제는 B3(표가 B3).
-//  ③⑤ 커밋 뒤 요청 안에서 한 번 시도(gc.service), 실패분은 Scheduler가 재시도. ④ /m CDN 무효화는 B3(공개 페이지가 B3).
+//  ① 지울 Storage 경로를 모은다(B3): 몽망이 접두 public_pages.store_key 아래를 공개·staging·격리 세 버킷 모두(판마다가 아니라 접두째 —
+//     이동 중 고아까지, B3 리뷰 I1), 그리고 그 몽망이의 storage_gc 대기 항목(지난 판 2시간 유예분·커밋 전 6시간분 포함).
+//  ② 한 트랜잭션: 모은 경로를 storage_gc(deletion)로 → deletion_log(영수증 해시, 24시간) → storage_gc를 지금으로 당기고 deletion_id 표시 →
+//     그 코드의 link_daily 삭제 → auth_gc에 이 사용자의 모든 sub(살아 있는 것 + 되찾기로 끊긴 것) →
+//     users 삭제(CASCADE: user_auth·creatures·saves·save_versions·public_pages).
+//  ③⑤ 커밋 뒤 요청 안에서 한 번 시도(gc.service), 실패분은 Scheduler가 재시도. ④ 공개 페이지가 있었으면 /m CDN 무효화(1분 묶음, cdn-purge.ts).
 //  ⑥ 대기열이 비면 completed_at → 영수증 'done'.
 //  남기는 것: metric_*(식별자 없음), reports(B5, 코드만 1년), 백업 속 사본(7일 뒤 소멸).
 //  백업 복원 대비(B2 리뷰 m2): deletion_log.subject_hmac = HMAC(pepper 파생 키, user id)를 백업 보관 기간(7일)만 둔다.
@@ -16,6 +18,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { newReceipt, receiptHash } from '../account/codes';
 import { RecoveryPepper } from '../account/recovery-pepper';
 import { GcService } from './gc.service';
+import { CdnPurgeQueue } from '../cdn/cdn-purge';
+import { BUCKETS } from '../storage/object-store';
 
 export type DeletionSource =
   | { channel: 'app'; kind: 'user_request' }
@@ -39,16 +43,29 @@ export class DeletionService {
     private readonly clock: Clock,
     private readonly gc: GcService,
     private readonly pepper: RecoveryPepper,
+    private readonly cdn: CdnPurgeQueue,
   ) {}
 
   async deleteUser(userId: string, source: DeletionSource): Promise<{ receipt: string }> {
     const now = new Date(this.clock.now());
     const { receipt, hash } = newReceipt();
-    const deletionId = await this.prisma.$transaction(async (tx) => {
+    const { deletionId, hadPage } = await this.prisma.$transaction(async (tx) => {
       // 같은 사용자의 삭제가 동시에 둘 오면 하나만 — 사용자 행을 잠근다
       const [u] = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM app.users WHERE id = ${userId}::uuid FOR UPDATE`;
       if (!u) throw new NotFoundException({ code: 'no_account', message: '이미 지워졌습니다' });
-      const creature = await tx.creature.findUnique({ where: { userId }, select: { id: true } });
+      const creature = await tx.creature.findUnique({ where: { userId }, select: { id: true, code: true } });
+      // ① 공개 페이지 경로 모으기(B3). 페이지 행을 잠가 진행 중인 commit(행 잠금 안에서 이동)이 끝나기를 기다린다(B3 리뷰 I1).
+      //    지울 단위는 판 폴더가 아니라 **몽망이 접두(store_key)** — 공개·staging·격리 세 버킷을 통째로 훑는다(마지막 그물: 이동이
+      //    일부만 됐거나 대기 행이 없는 고아도 여기서 지워진다). 판별 대기 행(지난 판·커밋 전)도 아래에서 deletion으로 당겨진다
+      const [page] = creature
+        ? await tx.$queryRaw<Array<{ state: string; store_key: string }>>`
+            SELECT state, store_key FROM app.public_pages WHERE creature_id = ${creature.id}::uuid FOR UPDATE`
+        : [];
+      if (creature && page) {
+        await tx.storageGc.createMany({
+          data: [BUCKETS.public, BUCKETS.staging, BUCKETS.quarantine].map((bucket) => ({ bucket, prefix: page.store_key, creatureId: creature.id, reason: 'deletion' as const, notBefore: now })),
+        });
+      }
       const subs = await tx.userAuth.findMany({ where: { userId }, select: { sub: true } });
       const [counts] = await tx.$queryRaw<{ saves: number; versions: number; files: number }[]>`
         SELECT (SELECT count(*) FROM app.saves WHERE creature_id = ${creature?.id ?? null}::uuid)::int AS saves,
@@ -70,18 +87,27 @@ export class DeletionService {
       });
       if (creature) {
         await tx.storageGc.updateMany({ where: { creatureId: creature.id }, data: { notBefore: now, deletionId: log.id, reason: 'deletion' } });
+        // ② 링크 통계: 그 코드의 행을 바로(30일 말기를 기다리지 않는다, 3-1)
+        await tx.linkDaily.deleteMany({ where: { code: creature.code } });
       }
       if (subs.length) {
         await tx.authGc.createMany({ data: subs.map((s) => ({ sub: s.sub, deletionId: log.id, notBefore: now })), skipDuplicates: true });
       }
       await tx.user.delete({ where: { id: userId } });
-      return log.id;
+      return { deletionId: log.id, hadPage: !!page && (page.state === 'live' || page.state === 'quarantined') };
     });
     try {
       await this.gc.drainDeletion(deletionId);
     } catch (e) {
       // 응답은 202 그대로 — 남은 일은 Scheduler가 이어 한다
       this.log.warn({ code: 'deletion_drain_failed', type: e instanceof Error ? e.name : 'unknown' }, '삭제 뒤처리 지연');
+    }
+    if (hadPage) {
+      try {
+        await this.cdn.request();
+      } catch (e) {
+        this.log.warn({ code: 'deletion_purge_failed', type: e instanceof Error ? e.name : 'unknown' }, 'CDN 무효화 지연(바닥 5분)');
+      }
     }
     return { receipt };
   }

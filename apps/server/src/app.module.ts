@@ -15,6 +15,7 @@ import { HealthModule } from './health/health.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SavesModule } from './saves/saves.module';
+import { LocalStorageModule } from './storage/local-storage.module';
 
 @Global()
 @Module({ providers: [ClientIpService], exports: [ClientIpService] })
@@ -48,6 +49,8 @@ class CommonModule {}
     CloudModule,
     // 예시 엔드포인트(세이브 검사)는 개발·테스트 전용 — 운영(NODE_ENV=production)에는 모듈 자체가 없다(B1 리뷰 I7)
     ConditionalModule.registerWhen(SavesModule, devEndpointsEnabled),
+    // 로컬 파일 저장소의 서명 업로드·공개 읽기 주소(STORAGE_DRIVER=local — 운영에서는 env가 local을 거부한다)
+    ConditionalModule.registerWhen(LocalStorageModule, (env: NodeJS.ProcessEnv) => env.STORAGE_DRIVER === 'local'),
   ],
   providers: [
     { provide: APP_GUARD, useClass: ClientIpThrottlerGuard },

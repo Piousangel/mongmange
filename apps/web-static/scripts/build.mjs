@@ -14,14 +14,65 @@
 // config/v1.json strict 스키마 · content/v1.json 스키마 + 모티프 파일 존재·바이트·sha256·스키마 1 ·
 // HTML에 외부 스크립트·분석·비콘·허용 밖 외부 주소 없음(링크 코드가 새지 않게).
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { gzipSync } from 'node:zlib';
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contentManifestSchema, motifFileSchema, remoteConfigStrictSchema } from '@mong/contract';
+import { buildSync } from 'esbuild';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = join(HERE, '..');
 const APP_JSON = join(ROOT, '../mobile/app.json');
+
+const require = createRequire(import.meta.url);
+/** CanvasKit 판(경로 /w/ck/{판}/ — 판마다 새 경로라 immutable) */
+export const CK_VERSION = JSON.parse(readFileSync(require.resolve('canvaskit-wasm/package.json'), 'utf8')).version;
+/** live.js 예산(gzip). 정본 추정 약 40KB(3-5 2) — 넘으면 빌드 실패 */
+export const LIVE_GZIP_BUDGET = 60 * 1024;
+
+/**
+ * /w 웹 뷰어(B3, 3-5 '페이지' 2·3): live/live.ts(+ @mong/core)를 한 파일로 묶어 /w/live.<sha256 앞 10자>.js,
+ * CanvasKit(canvaskit-wasm 그대로)을 /w/ck/<판>/, 둘의 경로를 /w/manifest.json에 쓴다(페이지 스크립트가 이 파일로 live.js를 찾는다).
+ * 크기(바이트·gzip)를 돌려준다 — 보고·예산 검사용
+ */
+export function buildLive(outDir) {
+  const r = buildSync({
+    entryPoints: [join(ROOT, 'live/live.ts')],
+    bundle: true,
+    minify: true,
+    format: 'iife',
+    target: 'es2020',
+    platform: 'browser',
+    legalComments: 'none',
+    write: false,
+    logLevel: 'silent',
+  });
+  const js = Buffer.from(r.outputFiles[0].contents);
+  const live = `/w/live.${createHash('sha256').update(js).digest('hex').slice(0, 10)}.js`;
+  mkdirSync(join(outDir, 'w/ck', CK_VERSION), { recursive: true });
+  writeFileSync(join(outDir, live.slice(1)), js);
+  const ckDir = dirname(require.resolve('canvaskit-wasm/bin/canvaskit.js'));
+  for (const f of ['canvaskit.js', 'canvaskit.wasm']) cpSync(join(ckDir, f), join(outDir, 'w/ck', CK_VERSION, f));
+  const ck = `/w/ck/${CK_VERSION}/`;
+  writeFileSync(join(outDir, 'w/manifest.json'), JSON.stringify({ live, ck }) + '\n');
+  return { live, liveBytes: js.length, liveGzip: gzipSync(js, { level: 9 }).length, ...ckSizes(ckDir) };
+}
+
+/** CanvasKit 크기는 판마다 같다 — 한 번만 잰다(7MB gzip이 빌드 시간의 대부분) */
+let ckSizeMemo;
+function ckSizes(ckDir) {
+  if (!ckSizeMemo) {
+    const wasm = readFileSync(join(ckDir, 'canvaskit.wasm'));
+    ckSizeMemo = {
+      ckJsGzip: gzipSync(readFileSync(join(ckDir, 'canvaskit.js')), { level: 9 }).length,
+      wasmBytes: wasm.length,
+      wasmGzip: gzipSync(wasm, { level: 6 }).length,
+    };
+  }
+  return ckSizeMemo;
+}
 
 const FP = /^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$/;
 /**
@@ -150,13 +201,15 @@ export function build({
     files.push(rel);
   }
 
+  let live;
   try {
-    check(outDir, { ...values, iosBundle, androidPackage, firebaseJson: readFirebaseJson(firebaseJsonPath) });
+    live = buildLive(outDir);
+    check(outDir, { ...values, iosBundle, androidPackage, firebaseJson: readFirebaseJson(firebaseJsonPath), live });
   } catch (e) {
     rmSync(outDir, { recursive: true, force: true });
     throw e;
   }
-  return { files: files.sort(), warnings };
+  return { files: files.sort(), warnings, live };
 }
 
 const read = (out, rel) => readFileSync(join(out, rel), 'utf8');
@@ -259,16 +312,35 @@ export function check(out, v) {
   // ⑤ 검색(리뷰 I6): robots.txt가 /m/를 막으면 noindex를 못 읽는다. /m/** 응답에 X-Robots-Tag noindex 헤더가 있어야 한다
   const robots = existsSync(join(out, 'robots.txt')) ? read(out, 'robots.txt') : '';
   if (/^\s*Disallow:\s*\/m(\/|\s*$)/im.test(robots)) problems.push('robots.txt가 /m/를 막는다(noindex를 못 읽게 됨)');
-  const m = existsSync(join(out, 'm/index.html')) ? read(out, 'm/index.html') : '';
-  if (m && !/<meta name="robots" content="noindex">/.test(m)) problems.push('m/index.html: meta robots noindex가 없다');
+  if (existsSync(join(out, 'm'))) problems.push('m/: /m/**는 Cloud Run(mong-api)이 답한다 — 정적 /m 파일을 두지 않는다(B3)');
   if (v.firebaseJson) {
     const fb = v.firebaseJson.hosting ?? {};
-    const mh = (fb.headers ?? []).find((h) => h.source === '/m/**')?.headers ?? [];
-    if (!mh.some((h) => h.key === 'X-Robots-Tag' && /noindex/.test(h.value))) problems.push('firebase.json: /m/** 응답에 X-Robots-Tag noindex가 없다');
+    // B3: /m/** → Cloud Run 서울 mong-api(맨 앞 rewrite)
+    const mr = (fb.rewrites ?? []).find((r) => r.source === '/m/**');
+    if (mr?.run?.serviceId !== 'mong-api' || mr?.run?.region !== 'asia-northeast3') problems.push('firebase.json: /m/**는 Cloud Run mong-api(asia-northeast3)로 rewrite해야 한다');
+    if ((fb.rewrites ?? []).findIndex((r) => r.source === '/m/**') !== 0) problems.push('firebase.json: /m/** rewrite가 맨 앞이 아니다');
+    const mh = (fb.headers ?? []).find((h) => h.source === '/m/*')?.headers ?? [];
+    if (!mh.some((h) => h.key === 'X-Robots-Tag' && /noindex/.test(h.value))) problems.push('firebase.json: /m/* 응답에 X-Robots-Tag noindex가 없다');
+    // 캐시의 정본은 서버 응답 헤더 하나(B3 리뷰 I3): live 300·사라진 링크 60·503·429 no-store. Hosting 헤더가 rewrite 응답을 덮으면
+    // 429·503이 5분 캐시되어 한 IP가 링크를 모두에게 막을 수 있다 → firebase.json `/m/*`에는 Cache-Control을 두지 않는다
+    if (mh.some((h) => /^cache-control$/i.test(h.key))) problems.push('firebase.json: /m/*에 Cache-Control을 두지 않는다(서버가 상태별로 정한다)');
+    if ((fb.headers ?? []).some((h) => h.source === '/m/**')) problems.push('firebase.json: /m/** 헤더는 /m/{code}/get·seen(no-store)까지 덮는다 — /m/*만');
     // ignore에 점 파일 패턴이 있으면 .well-known(AASA·assetlinks)이 배포에서 조용히 빠진다(리뷰 m6)
     const hidesDot = (g) => /(^|\/)\.\*|(^|\/)\.well-known|^\*\*$|^\*$/.test(g);
     if ((fb.ignore ?? []).some(hidesDot)) problems.push('firebase.json: ignore가 점 파일(.well-known)을 뺄 수 있다');
     if (fb.public !== 'public') problems.push('firebase.json: public 폴더가 public이 아니다');
+  }
+  // ⑥ 웹 뷰어(B3): manifest → live.<hash>.js(이름의 해시 = 내용) + CanvasKit, 예산
+  if (v.live) {
+    const mf = json('w/manifest.json');
+    if (mf) {
+      if (!/^\/w\/live\.[0-9a-f]{10}\.js$/.test(mf.live ?? '') || !existsSync(join(out, mf.live.slice(1)))) problems.push('w/manifest.json: live 경로가 없다');
+      else if (!mf.live.includes(createHash('sha256').update(readFileSync(join(out, mf.live.slice(1)))).digest('hex').slice(0, 10))) problems.push('w/live.*.js: 이름의 해시가 내용과 다르다');
+      for (const f of ['canvaskit.js', 'canvaskit.wasm']) if (!existsSync(join(out, (mf.ck ?? '').slice(1), f))) problems.push(`w/ck: ${f}가 없다`);
+    }
+    if (v.live.liveGzip > LIVE_GZIP_BUDGET) problems.push(`live.js gzip ${v.live.liveGzip}B가 예산 ${LIVE_GZIP_BUDGET}B를 넘는다`);
+    const js = readFileSync(join(out, v.live.live.slice(1)), 'utf8');
+    if (/innerHTML|document\.write|sendBeacon|localStorage|document\.cookie/.test(js)) problems.push('w/live.*.js: 금지 API(innerHTML·write·비콘·저장소·쿠키)');
   }
   if (problems.length) throw new BuildError(problems);
 }
@@ -276,9 +348,10 @@ export function check(out, v) {
 // CLI
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   try {
-    const { files, warnings } = build();
+    const { files, warnings, live } = build();
     for (const w of warnings) console.warn(`경고: ${w}`);
-    console.log(`정적 빌드 완료: public/ ${files.length}개 파일 — ${files.join(', ')}`);
+    console.log(`정적 빌드 완료: public/ ${files.length}개 원본 파일 — ${files.join(', ')}`);
+    console.log(`웹 뷰어: ${live.live} ${live.liveBytes}B (gzip ${live.liveGzip}B), CanvasKit ${CK_VERSION} js gzip ${live.ckJsGzip}B · wasm ${live.wasmBytes}B (gzip ${live.wasmGzip}B)`);
   } catch (e) {
     console.error(e instanceof BuildError ? e.message : String(e));
     process.exit(1);

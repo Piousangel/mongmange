@@ -1,0 +1,27 @@
+{
+  "webLiveOn": {
+    "fcp": 20,
+    "lcp": 20,
+    "htmlBytes": 5296,
+    "canvas": true
+  },
+  "none": {
+    "fcpMs": 20,
+    "lcpMs": 28,
+    "htmlTransferBytes": 5296
+  },
+  "slow4g_cpu4x": {
+    "fcpMs": 200,
+    "lcpMs": 456,
+    "htmlTransferBytes": 5296
+  },
+  "bundle": {
+    "live": "/w/live.b245d2a2c1.js",
+    "liveBytes": 17259,
+    "liveGzip": 7457,
+    "ckJsGzip": 37281,
+    "wasmBytes": 7155822,
+    "wasmGzip": 2895589
+  },
+  "errors": []
+}

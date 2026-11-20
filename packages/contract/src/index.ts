@@ -475,3 +475,75 @@ export type DeletionStatus = z.infer<typeof deletionStatusSchema>;
  */
 export const webDeletionRequestSchema = z.strictObject({ code: z.string().check(z.maxLength(16)), phrase: z.string().check(z.maxLength(64)) });
 export type WebDeletionRequest = z.infer<typeof webDeletionRequestSchema>;
+
+// ───────────────────────── 공유 링크·웹 뷰어(B3 — architecture.md v2.2 3-2 링크 행·3-5·3-5-1~3-5-3·3-9) ─────────────────────────
+
+/**
+ * 공개 파일 셋(3-5 표): 포스터·OG·루프는 앱이 만들어 **비공개 page-staging**에 서명 URL로 올리고, snap.json은 서버가 쓴다.
+ * 콘텐츠 유형은 파일마다 하나로 고정(버킷 allowed_mime_types와 같음). 해상도·길이는 commit 검사 값.
+ */
+export const PAGE_FILES = {
+  poster: { name: 'poster.jpg', contentType: 'image/jpeg', maxBytes: 250 * 1024, width: 1080, height: 1350 },
+  og: { name: 'og.jpg', contentType: 'image/jpeg', maxBytes: 150 * 1024, width: 1200, height: 630 },
+  loop: { name: 'loop.mp4', contentType: 'video/mp4', maxBytes: 600 * 1024, width: 540, height: 676 },
+} as const;
+export type PageFileKind = keyof typeof PAGE_FILES;
+/** 루프 540×676(PM 11-20 개정: 540×675 → 676 — H.264 4:2:0은 홀수 높이를 못 만든다). 길이 허용 범위(초) — 3-5-3 ③ */
+export const LOOP_SECONDS = { min: 7.5, max: 8.5 } as const;
+/** 서명 업로드 URL 수명(초) — 3-8 '서명 URL 1회·5분' */
+export const UPLOAD_URL_TTL_SEC = 300;
+/** 사용자당 하루 PUT page 상한(3-8) */
+export const PAGE_PUT_PER_DAY = 20;
+/** 공개 스냅숏 본문 상한(3-5-1 ①, 넘으면 413). core SNAP_LIMITS.bytes와 같은 값 */
+export const SNAP_MAX_BYTES = 32 * 1024;
+
+const fileDecl = <K extends PageFileKind>(k: K) =>
+  z.strictObject({ contentType: z.literal(PAGE_FILES[k].contentType), bytes: int(1, PAGE_FILES[k].maxBytes) });
+
+/**
+ * `PUT /creature/page` — 링크 켜기·다시 만들기. snapshot은 여기서 모양만(객체) 보고, 내용은 서버가 core parsePublicSnapshot으로 본다
+ * (core가 정본, contract에 형식을 두 벌 두지 않는다). name은 nameVisible일 때만 보낸다(3-5-2)
+ */
+export const pagePutRequestSchema = z.strictObject({
+  snapshot: z.record(z.string(), z.unknown()),
+  nameVisible: z.boolean(),
+  name: z.optional(z.string().check(z.maxLength(64))),
+  lang: z.enum(['ko', 'en']),
+  files: z.strictObject({ poster: fileDecl('poster'), og: fileDecl('og'), loop: z.optional(fileDecl('loop')) }),
+});
+export type PagePutRequest = z.infer<typeof pagePutRequestSchema>;
+export const uploadSlotSchema = z.object({ signedUrl: z.string(), token: z.string(), contentType: z.string(), maxBytes: z.number() });
+export type UploadSlot = z.infer<typeof uploadSlotSchema>;
+export const pagePutResponseSchema = z.object({
+  ver: int(1),
+  nameAllowed: z.boolean(),
+  url: z.string(),
+  upload: z.object({ poster: uploadSlotSchema, og: uploadSlotSchema, loop: z.optional(uploadSlotSchema) }),
+});
+export type PagePutResponse = z.infer<typeof pagePutResponseSchema>;
+
+export const PAGE_STATES = ['live', 'off', 'quarantined', 'removed'] as const;
+export type PageState = (typeof PAGE_STATES)[number];
+/** `GET /creature`·`PATCH /creature` 응답 — 앱 안 표시는 이 값(즉시, no-store) */
+export const creatureInfoSchema = z.object({
+  code: str(CREATURE_CODE_RE),
+  linkEnabled: z.boolean(),
+  nameVisible: z.boolean(),
+  page: z.nullable(z.object({ ver: int(0), state: z.enum(PAGE_STATES) })),
+});
+export type CreatureInfo = z.infer<typeof creatureInfoSchema>;
+export const creaturePatchSchema = z.strictObject({ nameVisible: z.boolean() });
+export type CreaturePatch = z.infer<typeof creaturePatchSchema>;
+/** commit 실패 `422 {file, reason}`의 이유 */
+export const COMMIT_REJECT_REASONS = [
+  'missing',
+  'too_big',
+  'signature',
+  'dimensions',
+  'not_faststart',
+  'duration',
+  'tracks',
+  'audio',
+  'box',
+] as const;
+export type CommitRejectReason = (typeof COMMIT_REJECT_REASONS)[number];

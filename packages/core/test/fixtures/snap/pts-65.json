@@ -1,0 +1,31 @@
+{
+ "snap": 1,
+ "traitV": 1,
+ "born": {
+  "date": "2026-12-22",
+  "shape": 1,
+  "comb": 2
+ },
+ "ink": "songyeon",
+ "texture": "tempoNeg",
+ "dayAtPublish": 9,
+ "lang": "ko",
+ "coreScale": 1310,
+ "combGrowth": {
+  "protrude": 640,
+  "thick": 820
+ },
+ "strokes": [
+  {
+   "st": 0,
+   "fixed": 1,
+   "base": 1,
+   "lv": 1,
+   "tp": 0,
+   "anc": 11,
+   "n": 65,
+   "pts": "AIA4/0+EXf+eiIL/7Yyn/zyRzP+LlfH/2pkWACmeOwB4omAAx6aFABarqgBlr88AtLP0AAO4GQFSvD4BocBjAfDEiAE/ya0Bjs3SAd3R9wEs1hwCe9pBAsreZgIZ44sCaOewArfr1QIG8PoCVfQfA6T4RAPz/GkDQgGOA5EFswPgCdgDLw79A34SIgTNFkcEHBtsBGsfkQS6I7YECSjbBFgsAAWnMCUF9jRKBUU5bwWUPZQF40G5BTJG3gWBSgMG0E4oBh9TTQZuV3IGvVuXBgxgvAZbZOEGqmgGB/lsW/9IcYD/l3Wl/+Z5yv81fu//hIIUANOGOQAii14AcY+DAMCTqAA="
+  }
+ ],
+ "soak": []
+}

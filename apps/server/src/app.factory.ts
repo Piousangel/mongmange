@@ -42,6 +42,8 @@ export async function createApp(
   fastify.addHook('onRequest', async (request) => {
     (request.raw as unknown as Record<symbol, unknown>)[ROUTE_TEMPLATE] = request.routeOptions?.url ?? null;
   });
+  // 로컬 저장소 서명 업로드(STORAGE_DRIVER=local)만 이진 본문을 받는다 — 상한은 버킷 상한(600KB)보다 조금 크게, 판정은 저장소가
+  fastify.addContentTypeParser(['image/jpeg', 'video/mp4'], { parseAs: 'buffer', bodyLimit: 700 * 1024 }, (_req, body, done) => done(null, body));
   fastify.addHook('onSend', async (_request, reply) => {
     for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (!reply.hasHeader(k)) reply.header(k, v);
   });

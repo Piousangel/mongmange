@@ -125,8 +125,9 @@ describe('레이트 리밋 — IP 접두당 전역 카운터, 경로 그룹별 X
   });
   it('/m/**(web)은 오른쪽에서 2번째, API는 1번째를 클라이언트로 본다', async () => {
     // web: [위조, 클라이언트, Firebase 엣지] → 클라이언트 5.5.5.5. 엣지 주소가 바뀌어도 같은 키
-    for (let i = 1; i <= 5; i++) await http().get('/m/K7M3QX9P').set('x-forwarded-for', `6.6.6.${i}, 5.5.5.5, 35.0.0.${i}`).expect(200);
-    await http().get('/m/K7M3QX9P').set('x-forwarded-for', '6.6.6.9, 5.5.5.5, 35.0.0.9').expect(429);
+    // 형식이 틀린 코드는 DB를 보지 않고 '사라진 링크'(200) — DB 없는 시험에서도 실제 /m 경로로 센다
+    for (let i = 1; i <= 5; i++) await http().get('/m/k7m3qx9p').set('x-forwarded-for', `6.6.6.${i}, 5.5.5.5, 35.0.0.${i}`).expect(200);
+    await http().get('/m/k7m3qx9p').set('x-forwarded-for', '6.6.6.9, 5.5.5.5, 35.0.0.9').expect(429);
     // 같은 헤더라도 API 그룹은 오른쪽 끝(35.0.0.x)을 클라이언트로 본다 → 5.5.5.5 한도와 무관
     await http().post('/api/v1/saves/validate').set('x-forwarded-for', '6.6.6.9, 5.5.5.5, 35.0.0.77').send({}).expect(400);
   });

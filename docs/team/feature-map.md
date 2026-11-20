@@ -55,6 +55,7 @@
 | 웹 `/delete`(앱 없이 지우기: 인장 코드 + 되찾기 글귀) | — | architecture.md 3-8 ②, 처리방침 12절 | `apps/web-static/src/delete/index.html`, `apps/web-static/scripts/build.mjs`(`deleteScript`·`API_ORIGIN`) | `apps/web-static/test/build.test.mjs`(connect-src 한 출처·fetch 대상·처리방침 링크), verify `static-empty`(API_ORIGIN 빈 값 실패) | — | — (배포 B6) | 11-20 시험 |
 | 이름 숫자 규칙(7개 이상 연속 거부) | ② | architecture.md 3-5-2 | `c/sim/pillars.ts` `normalizeName` | `ct/name-rules`(구분자·전각 숫자 우회 막음, 하위 호환: 옛 이름 세이브는 열림) | — | — | 11-20 시험 |
 | 세이브 검사 엔드포인트(개발 전용, 운영 404) | — | D-13, architecture.md | `s/saves/*` | `st/save-contract`, `st/production.e2e`(운영 404) | `NODE_ENV` | — | 11-20 문서 |
+| B3 공유 링크·웹 뷰어(`/m/{code}` HTML·업로드 commit 검사·링크 끄기·이름 공개·CDN 무효화·삭제 연쇄 ①②④) | ② | DECISIONS 'B3 구현 결정', architecture 3-5·3-5-1~3-5-3·3-9, A-3 #37~#52 | `s/pages/*`·`s/storage/*`·`s/cdn/cdn-purge.ts`, `c/snap/publicSnapshot.ts`, `apps/web-static/live/live.ts`·`scripts/build.mjs` | `st/m-html`·`media-check`·`local-store`, `st/b3.db`(test:db), `ct/public-snapshot`, web-static `build.test` | 서버 스위치 `link`·`webLive` = 끔(config/v1.json), `STORAGE_DRIVER=none`(운영) | `pnpm --filter server build && DATABASE_URL=… node scripts/b3-capture.mjs` → `docs/app/b3/`(한·영·사라진 링크·webLive, `metrics.json` FCP·LCP·번들 크기) | 11-20 웹(캡처) |
 
 ## 4. 일일 대조 방법
 

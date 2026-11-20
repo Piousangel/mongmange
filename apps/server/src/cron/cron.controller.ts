@@ -1,6 +1,7 @@
 // `POST /internal/cron/{job}` — Cloud Scheduler만(architecture.md 2-4·3-2). Storage·Auth를 건드리는 정기 작업(DB만 건드리는 솎기는 pg_cron).
 // 인증 = Google OIDC ID 토큰: iss accounts.google.com, aud = CRON_AUDIENCE(서비스 URL), email = CRON_SA_EMAIL(검증된 것), RS256만.
 // 설정이 없거나 토큰이 틀리면 404 — 경로가 있는지도 알리지 않는다(/readyz와 같은 방식). 공개 OpenAPI에 싣지 않는다.
+import { CdnPurgeQueue, type FlushResult } from '../cdn/cdn-purge';
 import { Controller, Headers, HttpCode, Injectable, NotFoundException, Param, Post } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiExcludeController } from '@nestjs/swagger';
@@ -42,16 +43,19 @@ export class CronController {
     private readonly auth: CronAuth,
     private readonly gc: GcService,
     private readonly deletion: DeletionService,
+    private readonly cdn: CdnPurgeQueue,
   ) {}
 
   @Post(':job')
   @HttpCode(200)
-  async run(@Param('job') job: string, @Headers('authorization') authorization: string | undefined): Promise<GcReport | { reapplied: number }> {
+  async run(@Param('job') job: string, @Headers('authorization') authorization: string | undefined): Promise<GcReport | { reapplied: number } | { cdn: FlushResult }> {
     await this.auth.check(authorization);
     // 백업 복원 뒤 한 번(운영자가 Scheduler '지금 실행' — docs/ops/restore-runbook.md). 정기 예약은 하지 않는다
     if (job === 'reapply-deletions') return this.deletion.reapplyAfterRestore();
     // 매일 04:30 KST: Storage 대기열·Auth 사용자 삭제 재시도·되찾기로 끊긴 옛 기기 30일(B2). 격리본 처리는 B5에서 같은 작업에 더한다
     if (job === 'storage-gc') return this.gc.runDue();
+    // 1분마다(B6 등록): 1분 묶음에 걸려 기다리는 /m CDN 무효화를 낸다(B3, 3-9)
+    if (job === 'cdn-purge') return { cdn: await this.cdn.flush() };
     throw new NotFoundException();
   }
 }

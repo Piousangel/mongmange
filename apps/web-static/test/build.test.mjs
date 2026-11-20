@@ -1,10 +1,10 @@
 // 정적 빌드 검사(B0). 값이 비거나 자리표시자면 배포가 실패하는지, 만들어진 파일이 정본과 맞는지, 링크 코드가 새지 않는지.
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { build, BuildError, check, readFirebaseJson, readInjected, ROOT } from '../scripts/build.mjs';
+import { build, BuildError, check, CK_VERSION, LIVE_GZIP_BUDGET, readFirebaseJson, readInjected, ROOT } from '../scripts/build.mjs';
 
 const FP1 = Array.from({ length: 32 }, (_, i) => (i * 7 + 16).toString(16).toUpperCase().padStart(2, '0')).join(':');
 const FP2 = Array.from({ length: 32 }, (_, i) => (255 - i * 3).toString(16).toUpperCase().padStart(2, '0')).join(':');
@@ -24,7 +24,8 @@ function srcCopy() {
   return d;
 }
 afterEach(() => {
-  dirs.length = 0;
+  // 빌드마다 CanvasKit(약 7MB)이 복사된다 — 임시 폴더를 남기지 않는다
+  for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
 });
 
 function fails(env, srcDir = join(ROOT, 'src')) {
@@ -83,7 +84,7 @@ describe('정상 빌드', () => {
     expect(al[0].target.sha256_cert_fingerprints).toEqual([FP1, FP2]);
   });
 
-  it('파일 목록: 딥링크 둘·config·content·/m·랜딩·robots (src/.gitkeep 제외)', () => {
+  it('파일 목록: 딥링크 둘·config·content·/delete·랜딩·robots (src/.gitkeep 제외, /m은 Cloud Run이라 정적 파일 없음)', () => {
     const { r } = out();
     expect(r.files).toEqual([
       '.well-known/apple-app-site-association',
@@ -92,27 +93,20 @@ describe('정상 빌드', () => {
       'content/v1.json',
       'delete/index.html',
       'index.html',
-      'm/index.html',
       'robots.txt',
     ]);
   });
 
-  it('/m 페이지: 한·영 문구, OG, noindex, no-referrer, 스토어 링크(코드 없음), 외부 스크립트 0, CSP 해시가 인라인 스크립트와 맞음', () => {
-    const { read } = out();
-    const html = read('m/index.html');
-    expect(html).toContain('<section lang="ko">');
-    expect(html).toContain('<section lang="en">');
-    for (const p of ['og:title', 'og:description', 'og:type', 'og:locale']) expect(html).toContain(`property="${p}"`);
-    expect(html).toContain('<meta name="robots" content="noindex">');
-    expect(html).toContain('<meta name="referrer" content="no-referrer">');
-    expect(html).toContain('https://apps.apple.com/app/id6739012345?ct=m_link');
-    expect(html).toMatch(/https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.piousangel\.mongmange&amp;referrer=/);
-    expect(html).not.toMatch(/<script[^>]+src=/);
-    expect(html).not.toMatch(/location\.(pathname|href)|document\.URL|sendBeacon|fetch\(/); // 주소(코드)를 읽지도 보내지도 않는다
-    const script = /<script>([^<]*)<\/script>/.exec(html)[1];
-    const hash = createHash('sha256').update(script).digest('base64');
-    expect(html).toContain(`script-src 'sha256-${hash}'`);
-    expect(html).toMatch(/default-src 'none'/); // connect-src도 'none' — 페이지에서 어떤 통신도 못 한다
+  it('/w 웹 뷰어(B3): manifest → live.<내용 해시>.js + CanvasKit, live.js gzip 예산 안, 금지 API 없음, 정적 /m 없음', () => {
+    const { o, r, read } = out();
+    const mf = JSON.parse(read('w/manifest.json'));
+    expect(mf).toEqual({ live: r.live.live, ck: `/w/ck/${CK_VERSION}/` });
+    const js = readFileSync(join(o, mf.live.slice(1)));
+    expect(mf.live).toBe(`/w/live.${createHash('sha256').update(js).digest('hex').slice(0, 10)}.js`);
+    expect(existsSync(join(o, `w/ck/${CK_VERSION}/canvaskit.wasm`))).toBe(true);
+    expect(r.live.liveGzip).toBeLessThanOrEqual(LIVE_GZIP_BUDGET);
+    expect(js.toString()).not.toMatch(/innerHTML|sendBeacon|localStorage/);
+    expect(existsSync(join(o, 'm'))).toBe(false);
   });
 
   it('/delete 페이지(B2): 한·영, 코드+글귀 폼, 글귀는 API_ORIGIN의 삭제 API로만, CSP connect-src = 그 출처 하나, 처리방침 링크', () => {
@@ -131,8 +125,8 @@ describe('정상 빌드', () => {
     expect(html).toMatch(/이메일로 보내지 마세요/); // 처리방침 12절 '글귀를 이메일에 적지 마세요'와 같은 약속
     const script = /<script>([\s\S]*?)<\/script>/.exec(html)[1];
     expect(html).toContain(`script-src 'sha256-${createHash('sha256').update(script).digest('base64')}'`);
-    // 랜딩·/m은 여전히 어떤 통신도 못 한다
-    const m = read('m/index.html');
+    // 랜딩은 여전히 어떤 통신도 못 한다(/m은 B3부터 Cloud Run — 서버 시험 m-html.test.ts)
+    const m = read('index.html');
     expect(m).not.toMatch(/fetch\(/);
     expect(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(m)[1]).not.toContain('connect-src');
   });
@@ -179,10 +173,10 @@ describe('그럴듯한 오답 — 검사가 잡아야 하는 고장', () => {
     writeFileSync(join(d, 'content/v1.json'), JSON.stringify({ v: 1, seq: 1, motifs: [{ ...entry, url: '/content/motifs/w2027-06-crane.00000000.json' }], revoked: [] }));
     expect(fails(ENV, d)).toMatch(/파일 .* 없다/);
   });
-  it('/m 페이지에 분석 스크립트·비콘·외부 주소가 들어오면 실패', () => {
+  it('랜딩 페이지에 분석 스크립트·비콘·외부 주소가 들어오면 실패', () => {
     for (const inject of ['<script src="https://www.googletagmanager.com/gtag/js"></script>', '<img src="https://tracker.example/p.gif">', '<!-- navigator.sendBeacon -->']) {
       const d = srcCopy();
-      const p = join(d, 'm/index.html');
+      const p = join(d, 'index.html');
       writeFileSync(p, readFileSync(p, 'utf8').replace('</main>', `${inject}</main>`));
       expect(fails(ENV, d), inject).toMatch(/외부 스크립트|분석|허용 밖 외부 주소/);
     }
@@ -221,16 +215,16 @@ describe('check() — 만들어진 산출물을 고장 내면 잡는다', () => 
   });
   it('referrer no-referrer를 빼면 실패', () => {
     const { o, v } = built();
-    expect(breaks(o, v, 'm/index.html', '<meta name="referrer" content="no-referrer">', '')).toMatch(/referrer/);
+    expect(breaks(o, v, 'index.html', '<meta name="referrer" content="no-referrer">', '')).toMatch(/referrer/);
   });
   it('CSP meta를 빼거나 default-src를 풀면 실패', () => {
     const { o, v } = built();
-    expect(breaks(o, v, 'm/index.html', "default-src 'none'", "default-src *")).toMatch(/CSP/);
+    expect(breaks(o, v, 'index.html', "default-src 'none'", "default-src *")).toMatch(/CSP/);
   });
   it('ping= 속성·작은따옴표·프로토콜 상대 주소로 우회해도 실패', () => {
     for (const inject of [' ping="https://evil.example/p"', " data-x='https://evil.example/x'", ' srcset="//evil.example/a.png 1x"']) {
       const { o, v } = built();
-      expect(breaks(o, v, 'm/index.html', '<nav class="stores">', `<nav class="stores"${inject}>`), inject).toMatch(/분석|허용 밖 외부 주소/);
+      expect(breaks(o, v, 'index.html', '</main>', `<a${inject}></a></main>`), inject).toMatch(/분석|허용 밖 외부 주소/);
     }
   });
   it('/delete: connect-src를 넓히거나, 다른 곳으로 fetch하거나, innerHTML을 쓰거나, 처리방침 링크를 빼면 실패', () => {
@@ -244,30 +238,48 @@ describe('check() — 만들어진 산출물을 고장 내면 잡는다', () => 
       expect(breaks(o, v, 'delete/index.html', from, to), String(to)).toMatch(re);
     }
   });
-  it('/m 페이지에 fetch를 넣으면 여전히 실패(예외는 /delete 하나)', () => {
+  it('랜딩에 fetch를 넣으면 여전히 실패(예외는 /delete 하나)', () => {
     const { o, v } = built();
-    expect(breaks(o, v, 'm/index.html', '</main>', "<script>fetch('/x')</script></main>")).toMatch(/분석·통신/);
+    expect(breaks(o, v, 'index.html', '</main>', "<script>fetch('/x')</script></main>")).toMatch(/분석·통신/);
   });
   it('robots.txt가 /m/를 막으면 실패(I6)', () => {
     const { o, v } = built();
     expect(breaks(o, v, 'robots.txt', 'Disallow: /config/', 'Disallow: /m/\nDisallow: /config/')).toMatch(/robots\.txt가 \/m\//);
   });
-  it('meta robots noindex를 빼면 실패', () => {
+  it('정적 /m 파일이 다시 생기면 실패(B3: /m/**는 Cloud Run이 답한다)', () => {
     const { o, v } = built();
-    expect(breaks(o, v, 'm/index.html', '<meta name="robots" content="noindex">', '')).toMatch(/noindex/);
+    mkdirSync(join(o, 'm'));
+    writeFileSync(join(o, 'm/index.html'), '<!doctype html>');
+    expect(() => check(o, v)).toThrow(/정적 \/m 파일/);
   });
-  it('firebase.json: /m/** X-Robots-Tag가 없거나 ignore가 점 파일을 빼면 실패', () => {
+  it('firebase.json: /m/** rewrite가 Cloud Run이 아니거나, /m/*에 Cache-Control을 두거나(서버 헤더를 덮음), /m/** 헤더가 seen·get까지 덮으면 실패', () => {
     const { o, v } = built();
     const fb = structuredClone(v.firebaseJson);
-    fb.hosting.headers = fb.hosting.headers.map((h) => (h.source === '/m/**' ? { ...h, headers: h.headers.filter((x) => x.key !== 'X-Robots-Tag') } : h));
+    fb.hosting.rewrites[0] = { source: '/m/**', destination: '/m/index.html' };
+    expect(() => check(o, { ...v, firebaseJson: fb })).toThrow(/Cloud Run/);
+    const fb2 = structuredClone(v.firebaseJson);
+    fb2.hosting.headers = fb2.hosting.headers.map((h) =>
+      h.source === '/m/*' ? { ...h, headers: [...h.headers, { key: 'Cache-Control', value: 'public, max-age=60, s-maxage=300' }] } : h,
+    );
+    expect(() => check(o, { ...v, firebaseJson: fb2 })).toThrow(/Cache-Control을 두지 않는다/);
+    const fb3 = structuredClone(v.firebaseJson);
+    fb3.hosting.headers.push({ source: '/m/**', headers: [] });
+    expect(() => check(o, { ...v, firebaseJson: fb3 })).toThrow(/seen/);
+  });
+  it('firebase.json: /m/* X-Robots-Tag가 없거나 ignore가 점 파일을 빼면 실패', () => {
+    const { o, v } = built();
+    const fb = structuredClone(v.firebaseJson);
+    fb.hosting.headers = fb.hosting.headers.map((h) => (h.source === '/m/*' ? { ...h, headers: h.headers.filter((x) => x.key !== 'X-Robots-Tag') } : h));
     expect(() => check(o, { ...v, firebaseJson: fb })).toThrow(/X-Robots-Tag/);
     const fb2 = structuredClone(v.firebaseJson);
     fb2.hosting.ignore = ['firebase.json', '**/.*'];
     expect(() => check(o, { ...v, firebaseJson: fb2 })).toThrow(/ignore/);
   });
-  it('실제 firebase.json: /m/**에 X-Robots-Tag noindex, ignore에 점 파일 패턴 없음, robots.txt는 /m을 막지 않음', () => {
+  it('실제 firebase.json: /m/*에 X-Robots-Tag noindex·Cache-Control 없음(서버가 정함), /m/**는 Cloud Run, ignore에 점 파일 패턴 없음, robots.txt는 /m을 막지 않음', () => {
     const fb = readFirebaseJson(join(ROOT, 'firebase.json')).hosting;
-    expect(fb.headers.find((h) => h.source === '/m/**').headers).toContainEqual({ key: 'X-Robots-Tag', value: 'noindex' });
+    expect(fb.headers.find((h) => h.source === '/m/*').headers).toContainEqual({ key: 'X-Robots-Tag', value: 'noindex' });
+    expect(fb.headers.find((h) => h.source === '/m/*').headers.map((h) => h.key)).toEqual(['X-Robots-Tag', 'X-Frame-Options']);
+    expect(fb.rewrites[0]).toEqual({ source: '/m/**', run: { serviceId: 'mong-api', region: 'asia-northeast3' } });
     expect(fb.ignore).toEqual(['**/.DS_Store']);
     expect(readFileSync(join(ROOT, 'src/robots.txt'), 'utf8')).not.toMatch(/^Disallow:\s*\/m/m);
   });

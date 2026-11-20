@@ -1,0 +1,81 @@
+{
+ "snap": 1,
+ "traitV": 1,
+ "born": {
+  "date": "2026-12-22",
+  "shape": 1,
+  "comb": 2
+ },
+ "ink": "songyeon",
+ "texture": "tempoNeg",
+ "dayAtPublish": 9,
+ "lang": "ko",
+ "coreScale": 1310,
+ "combGrowth": {
+  "protrude": 640,
+  "thick": 820
+ },
+ "strokes": [
+  {
+   "st": 0,
+   "fixed": 1,
+   "base": 1,
+   "lv": 1,
+   "tp": 0,
+   "anc": 11,
+   "n": 48,
+   "pts": "AIA4/0+EXf+eiIL/7Yyn/zyRzP+LlfH/2pkWACmeOwB4omAAx6aFABarqgBlr88AtLP0AAO4GQFSvD4BocBjAfDEiAE/ya0Bjs3SAd3R9wEs1hwCe9pBAsreZgIZ44sCaOewArfr1QIG8PoCVfQfA6T4RAPz/GkDQgGOA5EFswPgCdgDLw79A34SIgTNFkcEHBtsBGsfkQS6I7YECSjbBFgsAAWnMCUF9jRKBUU5bwWUPZQF40G5BTJG3gWBSgMG"
+  },
+  {
+   "st": 1,
+   "fixed": 1,
+   "base": 0,
+   "lv": 2,
+   "tp": 1,
+   "anc": 11,
+   "n": 48,
+   "pts": "0YND/yCIaP9vjI3/vpCy/w2V1/9cmfz/q50hAPqhRgBJpmsAmKqQAOeutQA2s9oAhbf/ANS7JAEjwEkBcsRuAcHIkwEQzbgBX9HdAa7VAgL92ScCTN5MApvicQLq5pYCOeu7Aojv4ALX8wUDJvgqA3X8TwPEAHQDEwWZA2IJvgOxDeMDABIIBE8WLQSeGlIE7R53BDwjnASLJ8EE2ivmBCkwCwV4NDAFxzhVBRY9egVlQZ8FtEXEBQNK6QVSTg4G"
+  },
+  {
+   "st": 2,
+   "fixed": 0,
+   "base": 0,
+   "lv": 3,
+   "tp": 0,
+   "anc": 11,
+   "n": 48,
+   "pts": "oodO//GLc/9AkJj/j5S9/96Y4v8tnQcAfKEsAMulUQAaqnYAaa6bALiywAAHt+UAVrsKAaW/LwH0w1QBQ8h5AZLMngHh0MMBMNXoAX/ZDQLO3TICHeJXAmzmfAK76qECCu/GAlnz6wKo9xAD9/s1A0YAWgOVBH8D5AikAzMNyQOCEe4D0RUTBCAaOARvHl0EviKCBA0npwRcK8wEqy/xBPozFgVJODsFmDxgBedAhQU2RaoFhUnPBdRN9AUjUhkG"
+  },
+  {
+   "st": 3,
+   "fixed": 0,
+   "base": 1,
+   "lv": 1,
+   "tp": 1,
+   "anc": 11,
+   "n": 48,
+   "pts": "c4tZ/8KPfv8RlKP/YJjI/6+c7f/+oBIATaU3AJypXADrrYEAOrKmAIm2ywDYuvAAJ78VAXbDOgHFx18BFMyEAWPQqQGy1M4BAdnzAVDdGAKf4T0C7uViAj3qhwKM7qwC2/LRAir39gJ5+xsDyP9AAxcEZQNmCIoDtQyvAwQR1ANTFfkDohkeBPEdQwRAImgEjyaNBN4qsgQtL9cEfDP8BMs3IQUaPEYFaUBrBbhEkAUHSbUFVk3aBaVR/wX0VSQG"
+  },
+  {
+   "st": 0,
+   "fixed": 0,
+   "base": 0,
+   "lv": 2,
+   "tp": 0,
+   "anc": 11,
+   "n": 48,
+   "pts": "RI9k/5OTif/il67/MZzT/4Cg+P/PpB0AHqlCAG2tZwC8sYwAC7axAFq61gCpvvsA+MIgAUfHRQGWy2oB5c+PATTUtAGD2NkB0tz+ASHhIwJw5UgCv+ltAg7ukgJd8rcCrPbcAvv6AQNK/yYDmQNLA+gHcAM3DJUDhhC6A9UU3wMkGQQEcx0pBMIhTgQRJnMEYCqYBK8uvQT+MuIETTcHBZw7LAXrP1EFOkR2BYlImwXYTMAFJ1HlBXZVCgbFWS8G"
+  },
+  {
+   "st": 1,
+   "fixed": 0,
+   "base": 0,
+   "lv": 3,
+   "tp": 1,
+   "anc": 11,
+   "n": 48,
+   "pts": "FZNv/2SXlP+zm7n/AqDe/1GkAwCgqCgA76xNAD6xcgCNtZcA3Lm8ACu+4QB6wgYBycYrARjLUAFnz3UBttOaAQXYvwFU3OQBo+AJAvLkLgJB6VMCkO14At/xnQIu9sICffrnAsz+DAMbAzEDagdWA7kLewMIEKADVxTFA6YY6gP1HA8ERCE0BJMlWQTiKX4EMS6jBIAyyATPNu0EHjsSBW0/NwW8Q1wFC0iBBVpMpgWpUMsF+FTwBUdZFQaWXToG"
+  }
+ ],
+ "soak": []
+}

@@ -1,13 +1,13 @@
 // 삭제 뒤처리 대기열(3-8 ③⑤⑥, 2-4 Cloud Scheduler `storage-gc`):
-//  - storage_gc: Storage 파일. auth_gc: Supabase auth.users(sub). 성공하면 행째 지운다 — 남는 흔적이 없게.
+//  - storage_gc: Storage 파일(지우기, 격리 이동 quarantine_move는 옮기기). auth_gc: Supabase auth.users(sub). 성공하면 행째 지운다 — 남는 흔적이 없게.
 //  - 실패하면 attempts + 1, 다음 시도는 not_before를 미뤄 Scheduler(04:30 KST)가 다시 한다.
 //  - 한 삭제(deletion_log)의 대기 행이 모두 없어지면 completed_at → 영수증 조회가 'done'.
 //  - 되찾기로 끊긴 옛 기기 로그인(user_auth.revoked_at)은 30일 뒤 auth_gc로 옮겨 같은 길로 지운다(3-3 ⑤ 단계 5).
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AuthAdmin } from '../auth/auth-admin';
 import { Clock } from '../common/clock';
 import { PrismaService } from '../prisma/prisma.service';
-import { StorageRemover } from './storage-remover';
+import { OBJECT_STORE, type Bucket, type ObjectStore } from '../storage/object-store';
 
 /** 옛 기기 로그인 보관(3-3 ⑤, 처리방침 6절 '옛 계정 30일') */
 export const REVOKED_KEEP_DAYS = 30;
@@ -32,7 +32,7 @@ export class GcService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
-    private readonly storage: StorageRemover,
+    @Inject(OBJECT_STORE) private readonly storage: ObjectStore,
     private readonly auth: AuthAdmin,
   ) {}
 
@@ -42,6 +42,12 @@ export class GcService {
     await this.processStorage({ deletionId }, now);
     await this.processAuth({ deletionId }, now);
     await this.completeDeletions(now, deletionId);
+  }
+
+  /** 방금 넣은 대기 행 몇 개를 요청 안에서 바로 처리(링크 끄기 '공개 파일 즉시 삭제', 3-5-3 ⑥). 실패분은 대기열에 남는다 */
+  async drainIds(ids: bigint[]): Promise<{ done: number; failed: number }> {
+    if (!ids.length) return { done: 0, failed: 0 };
+    return this.processStorage({ ids }, new Date(this.clock.now()));
   }
 
   /** Scheduler 작업 하나(기한이 된 대기열 전부 + 옛 기기 로그인 30일 + 완료 판정) */
@@ -57,9 +63,9 @@ export class GcService {
     return r;
   }
 
-  private async processStorage(sel: { deletionId: bigint } | { due: true }, now: Date): Promise<{ done: number; failed: number }> {
+  private async processStorage(sel: { deletionId: bigint } | { ids: bigint[] } | { due: true }, now: Date): Promise<{ done: number; failed: number }> {
     const rows = await this.prisma.storageGc.findMany({
-      where: 'deletionId' in sel ? { deletionId: sel.deletionId } : { notBefore: { lte: now } },
+      where: 'deletionId' in sel ? { deletionId: sel.deletionId } : 'ids' in sel ? { id: { in: sel.ids } } : { notBefore: { lte: now } },
       take: BATCH,
       orderBy: { id: 'asc' },
     });
@@ -67,12 +73,24 @@ export class GcService {
     let failed = 0;
     for (const r of rows) {
       try {
-        await this.storage.removePrefix(r.bucket, r.prefix);
-        await this.prisma.storageGc.delete({ where: { id: r.id } });
+        if (r.reason === 'quarantine_move') {
+          // 격리 이동(B3 리뷰 M5): 공개 버킷에 남은 파일을 모두 quarantine으로 — 일부만 됐어도 다음 시도가 나머지를 옮긴다
+          for (const key of await this.storage.list(r.bucket as Bucket, r.prefix)) await this.storage.move(r.bucket as Bucket, 'quarantine', key);
+        } else {
+          await this.storage.removePrefix(r.bucket as Bucket, r.prefix);
+        }
+        await this.prisma.storageGc.deleteMany({ where: { id: r.id } });
+        // 커밋하지 않은 판을 지웠으면 그 판의 공개 값 사본(pending_meta — 이름 포함)도 비운다(B3 리뷰 L9)
+        if (r.reason === 'uncommitted' && r.bucket === 'page-staging') {
+          await this.prisma.$executeRaw`
+            UPDATE app.public_pages SET pending_ver = NULL, pending_prefix = NULL, pending_meta = NULL, pending_name_shown = NULL, pending_has_loop = NULL
+             WHERE pending_prefix IS NOT NULL AND store_key || '/' || pending_prefix = ${r.prefix}`;
+        }
         done++;
       } catch {
         failed++;
-        await this.prisma.storageGc.update({ where: { id: r.id }, data: { attempts: { increment: 1 }, notBefore: new Date(now.getTime() + RETRY_MS) } });
+        // updateMany: 다른 인스턴스(겹친 Scheduler·요청 안 처리)가 이미 지운 행이면 조용히 지나간다
+        await this.prisma.storageGc.updateMany({ where: { id: r.id }, data: { attempts: { increment: 1 }, notBefore: new Date(now.getTime() + RETRY_MS) } });
       }
     }
     return { done, failed };
