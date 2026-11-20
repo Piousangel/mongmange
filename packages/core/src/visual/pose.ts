@@ -7,7 +7,8 @@ import { buildRibbon, strokeWidths, type Ribbon, type RibbonOptions } from '../g
 import { simplifyStroke } from '../geometry/simplify';
 import { quantizeRaw } from '../save/envelope';
 import { CURRENT_MESH_VERSION } from '../geometry/simplify';
-import type { AttachLevel, RawPoint, StrokeRecord } from '../geometry/types';
+import type { AttachLevel, BodyShape, RawPoint, StrokeRecord } from '../geometry/types';
+import { BODY_SHAPES } from '../geometry/shape';
 
 export type StrokeLabel = 'wrap' | 'base' | 'other';
 
@@ -30,14 +31,15 @@ export function strokeLabel(theta: number, length: number): StrokeLabel {
  * 가면 획 안쪽 가장자리가 표면에서 gap만큼 떨어지도록 점을 몸 바깥(광선 방향)으로 민다. 이미 더 멀리 있는 점은 그대로.
  * 몸을 감싼 획이 "윤곽이 두꺼워진 몸"이 아니라 "몸 곁에 얹힌 붓자국"으로 읽히게 하는 규칙. 세이브와 무관한 파생 값.
  */
-export function openGap(pts: readonly RawPoint[], widths: readonly number[], s: number, gap: number, ramp: number): RawPoint[] {
+export function openGap(pts: readonly RawPoint[], widths: readonly number[], s: number, gap: number, ramp: number, shape?: BodyShape): RawPoint[] {
   'worklet';
+  const cp = shape ? shape.core : undefined;
   const n = pts.length;
   if (n === 0 || gap <= 0) return pts.slice();
   let ai = 0;
   let best = 1e9;
   for (let i = 0; i < n; i++) {
-    const d = coreSdf(pts[i]!.x, pts[i]!.y, s);
+    const d = coreSdf(pts[i]!.x, pts[i]!.y, s, cp);
     if (d < best) {
       best = d;
       ai = i;
@@ -56,7 +58,7 @@ export function openGap(pts: readonly RawPoint[], widths: readonly number[], s: 
     let x = p.x;
     let y = p.y;
     for (let it = 0; it < 3; it++) {
-      const sd = coreSdf(x, y, s);
+      const sd = coreSdf(x, y, s, cp);
       const want = sd + Math.max(0, target - sd) * g;
       const push = want - sd;
       if (push <= 1e-5) break;
@@ -75,19 +77,24 @@ export function openGap(pts: readonly RawPoint[], widths: readonly number[], s: 
 
 /**
  * 한 획의 스파인과 점별 폭(W). k = 부착 진행(0 = 손이 그은 자리, 1 = 붙음), sNow = 지금 핵 크기.
- * g = 획 문법(render-03: 폭·끝 최소 폭·몸과의 틈). 주지 않으면 채택안.
+ * g = 획 문법(render-03: 폭·끝 최소 폭·몸과의 틈). 주지 않으면 채택안. shape = 그 개체의 몸(M1 체형), 없으면 기본형.
  */
 export function strokeSpine(
   rec: StrokeRecord,
   sNow: number,
   k: number = 1,
   simplified?: readonly RawPoint[],
-  g: StrokeGrammar = GRAMMARS[DEFAULT_GRAMMAR],
+  gIn?: StrokeGrammar,
+  shape?: BodyShape,
 ): { pts: RawPoint[]; widths: number[]; label: StrokeLabel; opts: RibbonOptions } {
   'worklet';
+  const g = gIn ?? GRAMMARS[DEFAULT_GRAMMAR];
   // raw는 불변이라 단순화 결과는 획마다 한 번만 만들어 넘겨도 된다(렌더러 캐시)
   const pts = simplified ?? simplifyStroke(rec.raw, STROKE.simplifiedMax, rec.meshVersion);
-  const placed = strokeLocal(pts, rec.attach, rec.drawnAtCoreScale, sNow, k);
+  // 획은 부착 당시 체형의 핵 표면에 놓는다(Attach.body, 리뷰 M2). 기록이 없으면(빌드 1·플래그 꺼짐 부착) 지금 그리는 몸에
+  const b = rec.attach.body;
+  const placeShape = b === 0 || b === 1 || b === 2 ? BODY_SHAPES[b] : shape;
+  const placed = strokeLocal(pts, rec.attach, rec.drawnAtCoreScale, sNow, k, placeShape);
   let L = 0;
   for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y);
   const label = strokeLabel(rec.attach.theta, L * rec.attach.scale);
@@ -102,7 +109,7 @@ export function strokeSpine(
   };
   const w0 = strokeWidths(placed, opts);
   // 받침(바닥 아래 짧은 획)은 띄우지 않는다 — 띄우면 몸 아래 떠 있는 발·부스러기로 읽힌다
-  const local = label === 'base' ? placed : openGap(placed, w0, sNow, g.gap * k, g.gapRamp);
+  const local = label === 'base' ? placed : openGap(placed, w0, sNow, g.gap * k, g.gapRamp, shape);
   return { pts: local, widths: strokeWidths(local, opts), label, opts };
 }
 
@@ -113,18 +120,21 @@ export function strokeRibbon(
   k: number = 1,
   simplified?: readonly RawPoint[],
   gIn?: StrokeGrammar,
+  shape?: BodyShape,
 ): Ribbon {
   'worklet';
   const g = gIn ?? GRAMMARS[DEFAULT_GRAMMAR];
-  const sp = strokeSpine(rec, sNow, k, simplified, g);
+  const sp = strokeSpine(rec, sNow, k, simplified, g, shape);
   return buildRibbon(sp.pts, { ...sp.opts, widths: sp.widths });
 }
 
-/** 손가락 정본 점열을 붙여 기록 하나를 만든다. n = 이 획 전 획 수 */
-export function makeRecord(raw: readonly RawPoint[], n: number, level: AttachLevel): StrokeRecord {
+/** 손가락 정본 점열을 붙여 기록 하나를 만든다. n = 이 획 전 획 수, shape = 그 개체의 몸(M1, 없으면 기본형) */
+export function makeRecord(raw: readonly RawPoint[], n: number, level: AttachLevel, shape?: BodyShape): StrokeRecord {
   const q = quantizeRaw(raw);
   const s = coreScale(n);
-  return { raw: q, attach: attachStroke(q, s, level, n), drawnAtCoreScale: s, meshVersion: CURRENT_MESH_VERSION };
+  const attach = attachStroke(q, s, level, n, shape);
+  if (shape) attach.body = shape.body;
+  return { raw: q, attach, drawnAtCoreScale: s, meshVersion: CURRENT_MESH_VERSION };
 }
 
 /** 합성 손획(테스트 자극물·7일차 포즈용). 극좌표 호를 사람 손처럼 시간·떨림을 넣어 점열로 */
@@ -155,7 +165,7 @@ function lineRaw(x0: number, y0: number, x1: number, y1: number, ms: number): Ra
  * 7일차 기준 포즈(아트 1-2, `02a` 가운데): 두름 1(등) + 받침 2 + 짧은 두름 3 + 두름 1 = 7획, 핵 1.25W, 빗 완성.
  * 모두 실제 부착 경로(attachStroke, 기본 L2)를 거친다.
  */
-export function day7Records(level: AttachLevel = 2): StrokeRecord[] {
+export function day7Records(level: AttachLevel = 2, shape?: BodyShape): StrokeRecord[] {
   // 등 쪽 허용 띠는 250°~335°(꼬리 자리 200~250°, 정수리 −25~45°는 금지)
   const raws: RawPoint[][] = [
     arcRaw(312, 252, 0.6, 0.57, 900, 0.004, 1), // 두름 1(첫 두름, 등을 감쌈)
@@ -166,7 +176,7 @@ export function day7Records(level: AttachLevel = 2): StrokeRecord[] {
     arcRaw(142, 162, 0.6, 0.58, 300, 0.003, 4), // 짧은 두름(앞, 작게)
     arcRaw(292, 266, 0.63, 0.6, 380, 0.003, 3), // 짧은 두름(등 아래)
   ];
-  return raws.map((r, i) => makeRecord(r, i, level));
+  return raws.map((r, i) => makeRecord(r, i, level, shape));
 }
 
 /** 결정적 의사 난수(시드 고정) — 서툰 손 자극물용 */
@@ -229,7 +239,7 @@ function clumsyRaw(ctrl: readonly (readonly [number, number])[], ms: number, see
  * 서툰 손 7일차 세트(render-03): 실제 유저처럼 떨리고, 길이·자리가 제멋대로이고, 정수리·꼬리 자리·몸 한가운데에도 긋는다.
  * 그을 때 핵 크기는 획 순서대로 coreScale(i). 모두 같은 부착 경로(attachStroke)를 거친다.
  */
-export function day7ClumsyRecords(level: AttachLevel = 2): StrokeRecord[] {
+export function day7ClumsyRecords(level: AttachLevel = 2, shape?: BodyShape): StrokeRecord[] {
   const raws: RawPoint[][] = [
     clumsyRaw([[-0.62, -0.1], [-0.68, 0.12], [-0.55, 0.34], [-0.3, 0.46]], 1100, 11, 0.014, 0.9), // 왼쪽을 크게 쓸고 바닥에서 꺾임
     clumsyRaw([[-0.1, -0.62], [0.12, -0.66], [0.3, -0.58]], 520, 12, 0.01), // 정수리 위에 가로로(금지 자리 ①)
@@ -239,5 +249,5 @@ export function day7ClumsyRecords(level: AttachLevel = 2): StrokeRecord[] {
     clumsyRaw([[0.62, -0.32], [0.78, -0.3], [0.66, -0.18], [0.82, -0.12], [0.7, -0.02]], 900, 16, 0.01), // 앞 위 지그재그 낙서
     clumsyRaw([[-0.66, -0.36], [-0.5, -0.56], [-0.22, -0.66], [0.02, -0.64]], 800, 17, 0.013), // 등에서 정수리까지 길게
   ];
-  return raws.map((r, i) => makeRecord(r, i, level));
+  return raws.map((r, i) => makeRecord(r, i, level, shape));
 }

@@ -18,6 +18,8 @@ import {
   serializeSave,
   CURRENT_MESH_VERSION,
   type AttachLevel,
+  type MongLook,
+  type sim,
   type RawPoint,
   type StrokeRecord,
 } from '@mong/core';
@@ -69,6 +71,10 @@ export interface StrokeGame {
   screenReader?: boolean;
   /** 오늘 아직 안 그었으면 몽망이 둘레에 옅은 젖은 자국(아트 11절 19~24초, 지시문 대신) */
   wetMark: boolean;
+  /** M1 그 아이(체형·빗 모양·고른 먹). 없으면 기본형 */
+  look?: MongLook;
+  /** 획마다 먹(H2, 첫 밤 뒤 바꾸기는 새 획에만) */
+  strokeInks?: readonly (sim.InkId | null)[];
 }
 
 export function StrokeScreen({ initial, game }: { initial: number; game?: StrokeGame }) {
@@ -78,6 +84,8 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
   const [level, setLevel] = useState<AttachLevel>(PARAMS.attach);
   const [localRecords, setRecords] = useState<StrokeRecord[]>(() => (game ? [] : (PARAMS.pose === 'clumsy' ? day7ClumsyRecords : day7Records)(PARAMS.attach).slice(0, initial)));
   const records = game ? game.records : localRecords;
+  // M1: 그 개체의 몸 높이 — 화면의 핵 중심과 입력 정규화(D-13 핵 중심 원점)가 같은 몸을 본다
+  const bodyH = game?.look?.shape.core.h;
   const gameRef = useRef(game);
   gameRef.current = game;
   // 대체 입력(D-08): choice = 자리·방향·길이·휨 고르기(스크린리더 경로, C10-③), points = 화면을 두 번 눌러 시작·끝점(보이는 사용자)
@@ -114,23 +122,23 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
     let rec: StrokeRecord;
     const game0 = gameRef.current;
     if (game0) {
-      const got = game0.onStroke(normalizeRaw(pts, L.cx, L.oyFor(s0), L.wpx), lv);
+      const got = game0.onStroke(normalizeRaw(pts, L.cx, L.oyFor(s0, bodyH), L.wpx), lv);
       if (!got) {
         live.value = [];
         return;
       }
       rec = got;
     } else {
-      const q = quantizeRaw(normalizeRaw(pts, L.cx, L.oyFor(s0), L.wpx));
+      const q = quantizeRaw(normalizeRaw(pts, L.cx, L.oyFor(s0, bodyH), L.wpx));
       rec = { raw: q, attach: attachStroke(q, s0, lv, n0), drawnAtCoreScale: s0, meshVersion: CURRENT_MESH_VERSION };
     }
     const { raw, attach } = rec;
     const now = clock.value;
     attachedAt.value = [...attachedAt.value, now];
     // 금지 자리에서 미끄러진 획(v1.2): 가장 가까운 허용 자리에 붙고, 몸이 그쪽으로 조금 더(6° → 9°) 기운다
-    const sl = slideOf(raw, attach);
+    const sl = slideOf(raw, attach, game0?.look?.shape);
     lastAttach.value = { at: now, side: sl.side, lean: sl.slid ? 9 : 6 };
-    gaze.value = { x: L.cx + Math.sin(attach.theta) * L.wpx, y: L.oyFor(s0) - Math.cos(attach.theta) * L.wpx * 0.6, at: now, holdMs: 1200 };
+    gaze.value = { x: L.cx + Math.sin(attach.theta) * L.wpx, y: L.oyFor(s0, bodyH) - Math.cos(attach.theta) * L.wpx * 0.6, at: now, holdMs: 1200 };
     if (!game0) setRecords((r) => [...r, rec]);
     setInfo(
       `L${lv} · ${raw.length}점 · ${(raw.at(-1)!.t / 1000).toFixed(2)}s · θ ${((attach.theta * 180) / Math.PI).toFixed(0)}° · 회전 ${((attach.rot * 180) / Math.PI).toFixed(0)}° · 축소 ${attach.scale.toFixed(2)} · 휨 ${attach.bend}`, // i18n-ignore: 스파이크 계측 표시
@@ -151,10 +159,10 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
   // 접근성 대체 입력(D-08). 점 → 화면 좌표(지금 핵 중심·W)
   const toScreen = (raw: RawPoint[]): Pt[] => {
     const s0 = coreScale(nRef.current);
-    return raw.map((p) => ({ x: L.cx + p.x * L.wpx, y: L.oyFor(s0) + p.y * L.wpx, t: p.t }));
+    return raw.map((p) => ({ x: L.cx + p.x * L.wpx, y: L.oyFor(s0, bodyH) + p.y * L.wpx, t: p.t }));
   };
   const assistPts = (st: AssistState): Pt[] | null => {
-    if (st.mode === 'choice') return toScreen(assistStroke(st.c, coreScale(nRef.current)));
+    if (st.mode === 'choice') return toScreen(assistStroke(st.c, coreScale(nRef.current), gameRef.current?.look?.shape));
     if (!st.a || !st.b) return null;
     return pointsStroke(st.a, st.b, st.bend);
   };
@@ -248,7 +256,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
     const sg = n > 0 ? (RM ? 1 : ease((t - (at[n - 1] ?? -1e9) - 600) / 800)) : 1;
     const s = sPrev + (sNow - sPrev) * sg;
     const b = RM ? 0 : breathAt(t, 3200);
-    const g = gazeOffset(gaze.value, t, L.cx, L.oyFor(s), L.wpx);
+    const g = gazeOffset(gaze.value, t, L.cx, L.oyFor(s, bodyH), L.wpx);
     // 받는 쪽으로 6° 기욺(200~1400ms). 금지 자리에서 옮겨 붙은 획이면 9°
     const lean = RM ? 0 : la.side * ((la.lean * Math.PI) / 180) * Math.sin(clamp01((dLast - 150) / 1300) * Math.PI);
     // 기쁨(정착 뒤): 눈 ^ ^, 작은 튐, 빗 2회 튕김(+120ms)
@@ -287,7 +295,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
     return {
       ...REST_FRAME,
       ox: L.cx,
-      oy: L.oyFor(s),
+      oy: L.oyFor(s, bodyH),
       wpx: L.wpx,
       s,
       combN: n,
@@ -348,7 +356,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
                 <BlurMask blur={14} style="normal" />
               </Oval>
             )}
-            <Mongmangi frame={frame} records={records} live={live} mode={PARAMS.body} grammar={grammar} />
+            <Mongmangi frame={frame} records={records} live={live} mode={PARAMS.body} grammar={grammar} look={game?.look} strokeInks={game?.strokeInks} />
             <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={halfDim} />
           </Canvas>
           <ObjectLabels width={width} y={L.objectsY} color={PALETTE.day.textSub} labels={labels} />

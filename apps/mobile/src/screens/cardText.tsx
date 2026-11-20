@@ -58,7 +58,7 @@ export function ShareBar({ input, ireState, dark = false }: { input: DreamCardIn
     setNote('');
     let r: Awaited<ReturnType<typeof shareDreamCard>>;
     try {
-      r = kind === 'ire' && ireState ? await shareIreScroll(ireState) : await shareDreamCard(input, kind === 'story' ? '9:16' : '4:5');
+      r = kind === 'ire' && ireState ? await shareIreScroll(ireState, input.look) : await shareDreamCard(input, kind === 'story' ? '9:16' : '4:5');
     } finally {
       lock.current = false;
     }

@@ -1,5 +1,5 @@
 import { BlurMask, Canvas, Oval, RoundedRect } from '@shopify/react-native-skia';
-import { COMB_REST, PALETTE, grammarOf, selectVisual, sim } from '@mong/core';
+import { COMB_REST, PALETTE, grammarOf, selectVisual, sim, type MongLook } from '@mong/core';
 import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,8 +33,14 @@ export function MorningScreen({
   developed,
   onDevelop,
   onDone,
+  look,
+  strokeInks,
 }: {
   state: sim.State;
+  /** M1 그 아이(없으면 기본형) */
+  look?: MongLook;
+  /** 획마다 먹(H2) */
+  strokeInks?: readonly (sim.InkId | null)[];
   /** 현상된 카드(sim 효과). null이면 아직 물 위 */
   developed: { card: sim.DreamCard; line: sim.MorningLine } | null;
   onDevelop: () => void;
@@ -165,7 +171,7 @@ export function MorningScreen({
         <NightWater width={width} height={height} cx={width / 2} cy={mongY} />
       </Animated.View>
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Mongmangi frame={frame} records={state.strokes} mode={PARAMS.body} grammar={grammar} />
+        <Mongmangi frame={frame} records={state.strokes} mode={PARAMS.body} grammar={grammar} look={look} strokeInks={strokeInks} />
       </Canvas>
 
       {!developed && (
@@ -202,7 +208,7 @@ export function MorningScreen({
 
       {developed && (
         <Animated.View style={[styles.card, { top: cardTop, left: (width - cardW) / 2, width: cardW, height: cardH }, cardSt]} testID="dream-card">
-          {cardLive && <DreamCard card={developed.card} strokes={cardStrokes} labels={labels} width={cardW} a11yLabel={cardA11y(developed.card, text)} />}
+          {cardLive && <DreamCard card={developed.card} strokes={cardStrokes} labels={labels} width={cardW} a11yLabel={cardA11y(developed.card, text)} look={look} />}
         </Animated.View>
       )}
       {developed && (
@@ -212,7 +218,7 @@ export function MorningScreen({
             {text}
           </KText>
           {developed.card.nightsMerged > 1 && <KText style={styles.sub}>{t('morning.merged', { n: developed.card.nightsMerged })}</KText>}
-          {labels && <ShareBar input={{ card: developed.card, strokes: cardStrokes, labels }} ireState={developed.line.kind === 'seven-day' ? state : null} />}
+          {labels && <ShareBar input={{ card: developed.card, strokes: cardStrokes, labels, look }} ireState={developed.line.kind === 'seven-day' ? state : null} />}
         </Animated.View>
       )}
       {developed && (

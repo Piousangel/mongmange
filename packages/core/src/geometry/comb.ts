@@ -1,8 +1,8 @@
 // E 빗(종 표식, 시스템 전용): 정수리 오른쪽 1시 뿌리에서 몸에 붙어 돋는 가로획 세 가닥.
 // 뿌리는 몸 안으로 묻혀 몸 마스크와 한 덩어리가 된다(떠 있는 틱 금지, 아트 1-4).
 import { COMB, FORBIDDEN, coreScale, combGrowth } from '../visual/bodySpec';
-import { angleOf, coreRadius1, coreSdf, isForbidden, nearestAllowed } from './core';
-import type { RawPoint } from './types';
+import { CORE, angleOf, coreRadius1, coreSdf, isForbidden, nearestAllowed, type CoreParams } from './core';
+import type { BodyShape, RawPoint } from './types';
 
 export interface CombPose {
   /** 기본 각도(도, + = 위). 기쁨 +20, 졸림 −25 */
@@ -34,13 +34,18 @@ function thetaAtY(targetY: number, s: number): number {
   return (lo + hi) / 2;
 }
 
-/** 가닥 세 개의 스파인 점열(W, 핵 중심)과 점별 폭. n = 획 수, s = 핵 크기 */
-export function combStrands(n: number, s: number, pose: CombPose): { pts: RawPoint[]; widths: number[] }[] {
+/**
+ * 가닥 세 개의 스파인 점열(W, 핵 중심)과 점별 폭. n = 획 수, s = 핵 크기.
+ * shape = 그 개체의 몸(M1 타고남: 체형 → 핵, 빗 모양 → 길이비만). 없으면 기본형
+ */
+export function combStrands(n: number, s: number, pose: CombPose, shape?: BodyShape): { pts: RawPoint[]; widths: number[] }[] {
   'worklet';
+  const cp = shape ? shape.core : CORE;
+  const ratios = shape ? shape.combRatios : COMB.ratios;
   const g = combGrowth(n);
   const thick = g.thick * Math.max(pose.grow, 0.001);
   const th0 = COMB.topRootTheta;
-  const yTop = -Math.cos(th0) * coreRadius1(th0) * s;
+  const yTop = -Math.cos(th0) * coreRadius1(th0, cp) * s;
   void thetaAtY;
   const pitch = g.thick * (1 + COMB.gapRatio);
   const out: { pts: RawPoint[]; widths: number[] }[] = [];
@@ -57,12 +62,12 @@ export function combStrands(n: number, s: number, pose: CombPose): { pts: RawPoi
     let hi = 1.2;
     for (let i = 0; i < 30; i++) {
       const mid = (lo + hi) / 2;
-      if (coreSdf(x0 + ux * mid, yk + uy * mid, s) < 0) lo = mid;
+      if (coreSdf(x0 + ux * mid, yk + uy * mid, s, cp) < 0) lo = mid;
       else hi = mid;
     }
     const ex = x0 + ux * lo;
     const ey = yk + uy * lo;
-    const len = g.protrude * COMB.ratios[k]! * pose.grow;
+    const len = g.protrude * ratios[k]! * pose.grow;
     // 끝이 살짝 위로 휨(아트: 휨 반경 ≥ 0.5W). render-03: 휨을 0.5 → 0.2로 줄여 `01e`처럼 곧은 세 획에 가깝게(휜 가닥 셋 = 불꽃·손가락)
     const bendR = 1.1;
     const bendK = 0.2;
@@ -88,10 +93,10 @@ export function combStrands(n: number, s: number, pose: CombPose): { pts: RawPoi
 }
 
 /** 빗 가닥이 몸을 빠져나가는 뿌리 각도(θ, 라디안) 세 개 */
-export function combRootThetas(n: number, s: number, poseIn?: CombPose): number[] {
+export function combRootThetas(n: number, s: number, poseIn?: CombPose, shape?: BodyShape): number[] {
   'worklet';
   const pose = poseIn ?? COMB_REST;
-  const st = combStrands(n, s, pose);
+  const st = combStrands(n, s, pose, shape);
   const out: number[] = [];
   for (let k = 0; k < st.length; k++) out.push(angleOf(st[k]!.pts[1]!.x, st[k]!.pts[1]!.y));
   return out;
@@ -101,12 +106,14 @@ export function combRootThetas(n: number, s: number, poseIn?: CombPose): number[
  * D-12 금지 자리 ①을 빗 기하에서 파생(render-03, 리뷰 1-3 결정 1): 상한 = 0~7획 쉬는 빗의 맨 아래 가닥 뿌리 각 중 최대 + 여유.
  * 빗 길이·각도가 바뀌면 금지 자리도 따라간다. 하한(−25°)과 꼬리 자리 ②는 bodySpec 값 그대로.
  */
-export function deriveForbidden(marginIn?: number): (readonly [number, number])[] {
+export function deriveForbidden(marginIn?: number, coreIn?: CoreParams): (readonly [number, number])[] {
   'worklet';
   const margin = marginIn ?? COMB.forbiddenMargin;
+  // 뿌리 각도는 핵 모양(체형)에만 달렸다 — 빗 모양(길이비)은 뿌리를 바꾸지 않으므로 금지 자리 ①도 그대로(D-12 개정 ②)
+  const probe: BodyShape | undefined = coreIn ? { body: 1, core: coreIn, combRatios: COMB.ratios, forbidden: FORBIDDEN, ringWidth: 1.3, aspect: 0, coreU: [], coreKU: [] } : undefined;
   let hi = FORBIDDEN[0]![1];
   for (let n = 0; n <= 7; n++) {
-    const th = combRootThetas(n, coreScale(n));
+    const th = combRootThetas(n, coreScale(n), undefined, probe);
     for (let k = 0; k < th.length; k++) hi = Math.max(hi, th[k]! + margin);
   }
   const out: (readonly [number, number])[] = [[FORBIDDEN[0]![0], hi]];
@@ -117,14 +124,14 @@ export function deriveForbidden(marginIn?: number): (readonly [number, number])[
 /** 지금 쓰는 금지 자리(빗에서 파생) */
 export const FORBIDDEN_ZONES: readonly (readonly [number, number])[] = deriveForbidden();
 
-/** 파생 금지 자리 안인가(점 단위 판정에도 쓴다) */
-export function isForbiddenNow(theta: number): boolean {
+/** 파생 금지 자리 안인가(점 단위 판정에도 쓴다). shape = 그 개체의 체형 금지 자리 */
+export function isForbiddenNow(theta: number, shape?: BodyShape): boolean {
   'worklet';
-  return isForbidden(theta, FORBIDDEN_ZONES);
+  return isForbidden(theta, shape ? shape.forbidden : FORBIDDEN_ZONES);
 }
 
 /** 파생 금지 자리면 가장 가까운 허용 경계로 */
-export function nearestAllowedNow(theta: number): number {
+export function nearestAllowedNow(theta: number, shape?: BodyShape): number {
   'worklet';
-  return nearestAllowed(theta, undefined, FORBIDDEN_ZONES);
+  return nearestAllowed(theta, undefined, shape ? shape.forbidden : FORBIDDEN_ZONES);
 }

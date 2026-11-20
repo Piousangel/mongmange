@@ -19,7 +19,8 @@ import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, 
 import { rejectText } from './text';
 import { requestReview } from './review';
 import { createReviewAsker } from './reviewPolicy';
-import { isOn } from '../features';
+import { isOn, useFeature } from '../features';
+import { useMongLook, useStrokeInks } from './look';
 import { t } from '../i18n';
 import { useLocale } from '../i18n/react';
 
@@ -68,6 +69,10 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   useLocale();
   const snap = useGame();
   const { state, meta } = snap;
+  const look = useMongLook(state);
+  const strokeInks = useStrokeInks(state);
+  const [inkChanging, setInkChanging] = useState(false);
+  const inkChoiceOn = useFeature('inkChoice');
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const L = layout(width, height);
@@ -285,7 +290,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     if (kind === 'day' || kind === 'night') seenReveal.current = reveal;
   }, [kind, reveal]);
 
-  const toW = (x: number, y: number) => ({ x: (x - L.cx) / L.wpx, y: (y - L.oyFor(coreScale(state?.strokesTotal ?? 0))) / L.wpx });
+  const toW = (x: number, y: number) => ({ x: (x - L.cx) / L.wpx, y: (y - L.oyFor(coreScale(state?.strokesTotal ?? 0), look.shape.core.h)) / L.wpx });
 
   let body: ReactNode = null;
   if (snap.futureSave) {
@@ -330,6 +335,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       <MorningScreen
         state={state}
         developed={developed}
+        look={look}
+        strokeInks={strokeInks}
         onDevelop={() => dispatch({ type: 'developCard' })}
         onDone={() => {
           setDeveloped(null);
@@ -339,7 +346,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     );
   } else if (kind === 'stroke') {
     const onStroke = (raw: RawPoint[], level: AttachLevel): StrokeRecord | null => {
-      const eff = dispatch({ type: 'stroke', raw, level });
+      // M1: 타고남 플래그가 켜져 있으면 그 개체의 체형으로 부착(D-12 개정 ①)
+      const eff = dispatch({ type: 'stroke', raw, level, birthShape: isOn('birthTraits') });
       if (!eff.some((e) => e.type === 'strokeAccepted')) return null;
       return getSnapshot().state!.strokes.at(-1) ?? null;
     };
@@ -359,6 +367,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           assist: screenReader || meta.assistStroke,
           screenReader,
           wetMark: !state.ledger.strokeUsed,
+          look,
+          strokeInks,
           overlay:
             line !== '' ? (
               <KText style={[ui.line, styles.strokeLine, { top: insets.top + height * 0.16 }]} accessibilityLiveRegion="polite" pointerEvents="none">
@@ -378,6 +388,10 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         soothe={soothe}
         reveal={reveal}
         animateReveal={animateReveal}
+        look={look}
+        inkChoice={inkChoiceOn}
+        inkChanging={inkChanging}
+        strokeInks={strokeInks}
         actions={{
           onBrush: () => setMode('stroke'),
           onBrushBlocked: () => flash(t('line.brushBlocked'), 4000),
@@ -395,8 +409,23 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             } else dispatch({ type: 'tap', target: 'body', holdMs, moveSpeed, ...toW(x, y) });
           },
           onRubStart: () => sound.play('rub'),
-          onPaper: (x, y) => dispatch({ type: 'tap', target: 'paper', holdMs: 0, ...toW(x, y) }),
+          onPaper: (x, y) => {
+            setInkChanging(false); // 먹 바꾸기 중 종이를 누르면 네 자루를 거둔다(그대로 둠)
+            dispatch({ type: 'tap', target: 'paper', holdMs: 0, ...toW(x, y) });
+          },
           onNote: () => setNoteOpen(true),
+          onChooseInk: (ink) => {
+            // 먹 고르기(M1, H2): 첫날(첫 밤 전) = 몸의 먹(이미 그은 획도 다시 스밈), 그 뒤 = 먹 바꾸기(새 획에만). 규칙은 sim chooseInk.
+            // 이름은 화면에 쓰지 않고 스크린리더에만
+            const firstDay = state.dayIndex === 0;
+            sound.play('inkGrind');
+            setTimeout(() => sound.stop('inkGrind'), 700);
+            dispatch({ type: 'chooseInk', ink });
+            setInkChanging(false);
+            const name = t('ink.name', { ink });
+            AccessibilityInfo.announceForAccessibility(firstDay ? t('ink.chosen.a11y', { name }) : t('ink.changed.a11y', { name }));
+          },
+          onInkName: (ink) => flash(t('ink.name', { ink }), 2400),
         }}
       />
     );
@@ -435,6 +464,11 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           }}
           onNotif={onNotif}
           onTimes={(b, m) => dispatch({ type: 'setTimes', bedtimeLocalMin: b, morningLocalMin: m })}
+          onInkChange={() => {
+            setNoteOpen(false);
+            setMode('home');
+            setInkChanging(true);
+          }}
         />
       )}
       {__DEV__ && (

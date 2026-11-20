@@ -31,6 +31,19 @@ export const en: Messages = {
   'obj.inkstone.a11y': 'Inkstone. Grind ink — hold to keep grinding',
   'obj.dropper.a11y': `Water dropper. Put ${M} to sleep`,
   'obj.dropper.a11ySleepy': `Water dropper. ${M} is getting sleepy`,
+
+  // Ink choice (M1). Names are provisional — English names are the writer's call (D-17, art 4-1)
+  'ink.name': '{ink, select, songyeon {Pine-soot ink} yuyeon {Oil-soot ink} jayeon {Plum-smoke ink} other {Pine-pollen ink}}',
+  'ink.hue': '{ink, select, songyeon {a bluish black} yuyeon {a brownish black} jayeon {a purplish black} other {a pine-green black}}',
+  'ink.sticks.a11y': 'Four ink sticks beside the inkstone',
+  'ink.stick.a11y': '{name}, {hue}, {n} of 4',
+  'ink.stick.hint': `Picks this ink and grinds it. ${M}'s strokes will take this ink`,
+  'ink.list': 'Pick {name}',
+  'ink.chosen.a11y': 'You picked {name}. The strokes so far soak in this ink too',
+  'ink.kept.a11y': '{name} on the inkstone',
+  'ink.changed.a11y': 'Switched to {name}. New strokes take this ink',
+  'note.inkChange': 'Change ink · new strokes only',
+  'note.inkChange.a11y': 'Change ink. Lays four ink sticks by the inkstone. Strokes so far stay as they are',
   'obj.list': '{name} · {label}',
   'obj.list.hold': '{name} · {label} (press and hold)',
 

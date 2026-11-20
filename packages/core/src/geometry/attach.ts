@@ -1,10 +1,10 @@
 // D-12 "모양은 손, 자리는 몸": 회전 + 이동(+L2 균일 축소, L3 둘레 휨)만으로 획을 핵 표면에 붙인다.
 // 결정적: 같은 raw·같은 핵 크기·같은 단계 → 같은 Attach. worklet 호환(배열·숫자만).
 import { HEAD_ZONE, STROKE, lengthCap, protrusionCap } from '../visual/bodySpec';
-import { CORE, angleOf, coreRadius1, coreSdf, wrapPi } from './core';
+import { CORE, angleOf, coreRadius1, coreSdf, wrapPi, type CoreParams } from './core';
 import { isForbiddenNow as isForbidden, nearestAllowedNow as nearestAllowed } from './comb';
 import { simplifyStroke } from './simplify';
-import type { Attach, AttachLevel, RawPoint } from './types';
+import type { Attach, AttachLevel, BodyShape, RawPoint } from './types';
 
 /**
  * 2(render-03): 금지 자리 ①을 빗에서 파생, 금지 판정 가중치 2 → 6(점 단위), 머리 띠 돌출 상한(귀·후드), L3 = 진짜 감기(앵커 접선 좌표를 핵 둘레로 다시 놓음, bend 0.5 — 0.7은 손가락·후드).
@@ -18,8 +18,6 @@ const ATTACH_SIMPLIFY_VERSION = 1;
 const DEG = Math.PI / 180;
 /** 미끄러진 획의 몸통이 손 자리에서 멀어지는 비용(rad당). 금지 자리에서 시작한 획에만 */
 export const SLIDE_DRIFT_W = 0.6;
-/** 크기 1 핵 정수리 높이(−y) */
-const CORE_TOP = CORE.h / 2;
 
 /** 머리 띠(−80°~0°) 안의 점인가 */
 function inHead(x: number, y: number): boolean {
@@ -38,32 +36,42 @@ export interface PolarPoint {
   p?: number;
 }
 
-/** 크기 s 핵 표면 위 θ 점 */
-export function surfaceX(theta: number, s: number): number {
+/** shape → 핵 매개변수(없으면 기본형) */
+function coreOf(shape?: BodyShape): CoreParams {
   'worklet';
-  return Math.sin(theta) * coreRadius1(theta) * s;
+  return shape ? shape.core : CORE;
 }
-export function surfaceY(theta: number, s: number): number {
+
+/** 크기 s 핵 표면 위 θ 점. p = 그 개체의 핵(M1 체형), 없으면 기본형 */
+export function surfaceX(theta: number, s: number, p?: CoreParams): number {
   'worklet';
-  return -Math.cos(theta) * coreRadius1(theta) * s;
+  return Math.sin(theta) * coreRadius1(theta, p) * s;
+}
+export function surfaceY(theta: number, s: number, p?: CoreParams): number {
+  'worklet';
+  return -Math.cos(theta) * coreRadius1(theta, p) * s;
 }
 
 /** θ에서 표면 접선(θ가 커지는 쪽 = 시계 방향) 각도(화면 atan2(y, x)) */
-function tangentAngle(theta: number, s: number): number {
+function tangentAngle(theta: number, s: number, p?: CoreParams): number {
   'worklet';
   const h = 0.5 * DEG;
-  const x0 = surfaceX(theta - h, s);
-  const y0 = surfaceY(theta - h, s);
-  const x1 = surfaceX(theta + h, s);
-  const y1 = surfaceY(theta + h, s);
+  const x0 = surfaceX(theta - h, s, p);
+  const y0 = surfaceY(theta - h, s, p);
+  const x1 = surfaceX(theta + h, s, p);
+  const y1 = surfaceY(theta + h, s, p);
   return Math.atan2(y1 - y0, x1 - x0);
 }
 
-/** 변환 k(0..1, 애니메이션 진행)를 적용한 점. 행렬 보간: 이동·회전·축소를 각각 선형 보간 */
-export function placePoints(pts: readonly RawPoint[], a: Attach, s: number, k: number): RawPoint[] {
+/**
+ * 변환 k(0..1, 애니메이션 진행)를 적용한 점. 행렬 보간: 이동·회전·축소를 각각 선형 보간.
+ * shape = 그 개체의 몸(D-12 개정 ①: 저장된 attach를 그 개체의 핵 표면에 놓는다)
+ */
+export function placePoints(pts: readonly RawPoint[], a: Attach, s: number, k: number, shape?: BodyShape): RawPoint[] {
   'worklet';
-  const tx = surfaceX(a.theta, s) + Math.sin(a.theta) * STROKE.anchorInset;
-  const ty = surfaceY(a.theta, s) - Math.cos(a.theta) * STROKE.anchorInset;
+  const cp = coreOf(shape);
+  const tx = surfaceX(a.theta, s, cp) + Math.sin(a.theta) * STROKE.anchorInset;
+  const ty = surfaceY(a.theta, s, cp) - Math.cos(a.theta) * STROKE.anchorInset;
   const ox = a.ax + (tx - a.ax) * k;
   const oy = a.ay + (ty - a.ay) * k;
   const r = a.rot * k;
@@ -83,8 +91,9 @@ export function placePoints(pts: readonly RawPoint[], a: Attach, s: number, k: n
 }
 
 /** 놓인 점 → 핵 극좌표. bendK = 실제로 적용할 둘레 휨(0..0.3) */
-export function polarOf(pts: readonly RawPoint[], s: number, bendK: number, anchorIndex: number): PolarPoint[] {
+export function polarOf(pts: readonly RawPoint[], s: number, bendK: number, anchorIndex: number, shape?: BodyShape): PolarPoint[] {
   'worklet';
+  const cp = coreOf(shape);
   const out: PolarPoint[] = [];
   // 앵커에서 잰 호 길이 비율(휨 가중치)
   const acc: number[] = new Array(pts.length).fill(0);
@@ -95,7 +104,7 @@ export function polarOf(pts: readonly RawPoint[], s: number, bendK: number, anch
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i]!;
     const th = angleOf(p.x, p.y);
-    const r1 = coreRadius1(th);
+    const r1 = coreRadius1(th, cp);
     let d = Math.hypot(p.x, p.y) - r1 * s;
     if (d > 0 && bendK > 0) d *= 1 - bendK * (acc[i]! / maxAcc);
     const q: PolarPoint = { theta: th, d, r1, t: p.t };
@@ -135,7 +144,7 @@ function nearestIndex(pts: readonly RawPoint[], a: Attach): number {
 
 
 /** 크기 s 핵 둘레의 호 길이 표(θ 0..2π, n칸). [θ, 누적 길이] — 감기용 */
-function perimeterTable(s: number, n: number): { th: number[]; acc: number[]; total: number } {
+function perimeterTable(s: number, n: number, p?: CoreParams): { th: number[]; acc: number[]; total: number } {
   'worklet';
   const th: number[] = [];
   const acc: number[] = [];
@@ -144,8 +153,8 @@ function perimeterTable(s: number, n: number): { th: number[]; acc: number[]; to
   let total = 0;
   for (let i = 0; i <= n; i++) {
     const t = (i / n) * Math.PI * 2;
-    const x = surfaceX(t, s);
-    const y = surfaceY(t, s);
+    const x = surfaceX(t, s, p);
+    const y = surfaceY(t, s, p);
     if (i > 0) total += Math.hypot(x - px, y - py);
     th.push(t);
     acc.push(total);
@@ -186,32 +195,33 @@ function arcAtTheta(tab: { th: number[]; acc: number[]; total: number }, theta: 
  * 핵 둘레를 호 길이 u만큼 따라가 그 자리의 법선으로 v만큼 띄워 다시 놓는다. 곧은 획은 몸을 따라 휘고,
  * 손이 준 곡률은 몸 곡률 위에 그대로 얹힌다. beta = 섞는 비율(0 = 강체, 1 = 완전 감기).
  */
-export function wrapPoints(pts: readonly RawPoint[], anchor: number, s: number, beta: number): RawPoint[] {
+export function wrapPoints(pts: readonly RawPoint[], anchor: number, s: number, beta: number, shape?: BodyShape): RawPoint[] {
   'worklet';
   if (beta <= 0 || pts.length === 0) return pts.slice();
-  const tab = perimeterTable(s, 180);
+  const cp = coreOf(shape);
+  const tab = perimeterTable(s, 180, cp);
   const A = pts[anchor]!;
   const thA = angleOf(A.x, A.y);
   const arcA = arcAtTheta(tab, thA);
-  const tA = tangentAngle(thA, s);
+  const tA = tangentAngle(thA, s, cp);
   const Tx = Math.cos(tA);
   const Ty = Math.sin(tA);
   // 바깥 법선: 접선을 반시계 90°(화면 y 아래) — 정수리에서 T = (1, 0)이면 N = (0, −1)
   const Nx = Ty;
   const Ny = -Tx;
-  const dA = coreSdf(A.x, A.y, s);
+  const dA = coreSdf(A.x, A.y, s, cp);
   const out: RawPoint[] = [];
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i]!;
     const u = (p.x - A.x) * Tx + (p.y - A.y) * Ty;
     const v = (p.x - A.x) * Nx + (p.y - A.y) * Ny;
     const th = thetaAtArc(tab, arcA + u);
-    const ta = tangentAngle(th, s);
+    const ta = tangentAngle(th, s, cp);
     const nx = Math.sin(ta);
     const ny = -Math.cos(ta);
     const off = dA + v;
-    const wx = surfaceX(th, s) + nx * off;
-    const wy = surfaceY(th, s) + ny * off;
+    const wx = surfaceX(th, s, cp) + nx * off;
+    const wy = surfaceY(th, s, cp) + ny * off;
     const q: RawPoint = { x: p.x + (wx - p.x) * beta, y: p.y + (wy - p.y) * beta, t: p.t };
     if (p.p !== undefined) q.p = p.p;
     out.push(q);
@@ -223,27 +233,27 @@ export function wrapPoints(pts: readonly RawPoint[], anchor: number, s: number, 
  * 단순화 점열을 부착 진행 k로 놓고 지금 핵 크기에 맞춘 로컬 점열.
  * sThen = 그을 때 핵 크기, sNow = 지금 핵 크기.
  */
-export function strokeLocal(pts: readonly RawPoint[], a: Attach, sThen: number, sNow: number, k: number): RawPoint[] {
+export function strokeLocal(pts: readonly RawPoint[], a: Attach, sThen: number, sNow: number, k: number, shape?: BodyShape): RawPoint[] {
   'worklet';
-  const placed = placePoints(pts, a, sThen, k);
+  const placed = placePoints(pts, a, sThen, k, shape);
   if (k === 0 && sNow === sThen) return placed;
   const ai = nearestIndex(pts, a);
   if (a.attachVersion >= 2) {
-    const wrapped = a.bend > 0 ? wrapPoints(placed, ai, sThen, a.bend * k) : placed;
-    return polarToLocal(polarOf(wrapped, sThen, 0, ai), sNow);
+    const wrapped = a.bend > 0 ? wrapPoints(placed, ai, sThen, a.bend * k, shape) : placed;
+    return polarToLocal(polarOf(wrapped, sThen, 0, ai, shape), sNow);
   }
-  const polar = polarOf(placed, sThen, a.bend * k, ai);
+  const polar = polarOf(placed, sThen, a.bend * k, ai, shape);
   return polarToLocal(polar, sNow);
 }
 
 /** 정본 → 극좌표(시스템 7 스케치 시그니처) */
-export function toCorePolar(raw: readonly RawPoint[], a: Attach, coreScaleThen: number, meshVersion?: number): PolarPoint[] {
+export function toCorePolar(raw: readonly RawPoint[], a: Attach, coreScaleThen: number, meshVersion?: number, shape?: BodyShape): PolarPoint[] {
   'worklet';
   const pts = simplifyStroke(raw, STROKE.simplifiedMax, meshVersion);
-  const placed = placePoints(pts, a, coreScaleThen, 1);
+  const placed = placePoints(pts, a, coreScaleThen, 1, shape);
   const ai = nearestIndex(pts, a);
-  if (a.attachVersion >= 2) return polarOf(a.bend > 0 ? wrapPoints(placed, ai, coreScaleThen, a.bend) : placed, coreScaleThen, 0, ai);
-  return polarOf(placed, coreScaleThen, a.bend, ai);
+  if (a.attachVersion >= 2) return polarOf(a.bend > 0 ? wrapPoints(placed, ai, coreScaleThen, a.bend, shape) : placed, coreScaleThen, 0, ai, shape);
+  return polarOf(placed, coreScaleThen, a.bend, ai, shape);
 }
 
 interface Score {
@@ -257,15 +267,18 @@ interface Score {
  * 회전 중심 = 몸에 가장 가까운 점. 자리 후보(θ ± 48°)·접선 두 방향·회전 여유(±24°)를 결정적으로 훑어
  * 몸을 감싸고(안으로 묻히지 않고, 멀리 뜨지 않고) 금지 자리를 피하며 손이 그은 자리·방향에서 덜 움직이는 것을 고른다.
  */
-export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachLevel, n: number = 0): Attach {
+export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachLevel, n: number = 0, shape?: BodyShape): Attach {
   'worklet';
+  // M1(D-12 개정 ①): 그 개체의 체형으로 부착을 계산한다 — 핵 표면·접선·금지 자리 ①(빗 뿌리 파생)이 체형마다 다르다
+  const cp = coreOf(shape);
+  const coreTop = cp.h / 2;
   const pts = simplifyStroke(raw, STROKE.simplifiedMax, ATTACH_SIMPLIFY_VERSION);
   const base: Attach = { level, attachVersion: ATTACH_VERSION, ax: 0, ay: 0, theta: 0, rot: 0, scale: 1, bend: 0, taper: 0 };
   if (pts.length === 0) return base;
   let ai = 0;
   let best = 1e9;
   for (let i = 0; i < pts.length; i++) {
-    const d = coreSdf(pts[i]!.x, pts[i]!.y, s);
+    const d = coreSdf(pts[i]!.x, pts[i]!.y, s, cp);
     if (d < best) {
       best = d;
       ai = i;
@@ -294,16 +307,16 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
   // 금지 자리에서 미끄러진 획(v1.2 앱 흐름): 손이 그은 자리(무게 중심)에서 가장 가까운 허용 자리 쪽에 몸통이 남게 한다.
   // 이 항이 없으면 접선 정렬이 획을 옆구리 아래로 눕혀, 오른쪽 위 짧은 획이 바닥 쪽으로 흘러내려 안 붙은 것처럼 보였다.
   const handC = angleOf(cx, cy);
-  const slidCase = isForbidden(theta0) || isForbidden(handC);
-  const driftTarget = nearestAllowed(handC);
+  const slidCase = isForbidden(theta0, shape) || isForbidden(handC, shape);
+  const driftTarget = nearestAllowed(handC, shape);
 
-  let pick: Score = { cost: 1e9, theta: nearestAllowed(theta0), rot: 0 };
+  let pick: Score = { cost: 1e9, theta: nearestAllowed(theta0, shape), rot: 0 };
   const probe: Attach = { ...base };
   for (let kt = -6; kt <= 6; kt++) {
     const thRaw = theta0 + kt * 8 * DEG;
-    const th = nearestAllowed(thRaw);
+    const th = nearestAllowed(thRaw, shape);
     if (kt !== 0 && Math.abs(wrapPi(th - thRaw)) > 1e-6) continue; // 금지 자리 후보는 경계 하나로만 대표
-    const tan = tangentAngle(th, s);
+    const tan = tangentAngle(th, s, cp);
     // 회전 후보: 접선 정렬(두 방향) ± 여유, 그리고 손이 그은 방향 그대로(0) 근처
     const rots: number[] = [];
     for (let o = 0; o < 2; o++) {
@@ -315,7 +328,7 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
       const rot = rots[ri]!;
       probe.theta = th;
       probe.rot = rot;
-      const q = placePoints(pts, probe, s, 1);
+      const q = placePoints(pts, probe, s, 1, shape);
       let inside = 0;
       let far = 0;
       let forb = 0;
@@ -323,16 +336,16 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
       let head = 0;
       let farMax = 0;
       for (let i = 0; i < q.length; i++) {
-        const sd = coreSdf(q[i]!.x, q[i]!.y, s);
+        const sd = coreSdf(q[i]!.x, q[i]!.y, s, cp);
         // 몸을 감싸는 자리 = 리본 안쪽 가장자리가 표면에 닿는 거리(+0.04W)
         const e = sd - 0.04;
         inside += Math.max(0, -e);
         far += Math.max(0, e);
         farMax = Math.max(farMax, e);
         const ang = angleOf(q[i]!.x, q[i]!.y);
-        if (sd < 0.6 && isForbidden(ang)) forb += 1;
+        if (sd < 0.6 && isForbidden(ang, shape)) forb += 1;
         // 정수리보다 위로 솟는 점(귀·볏·꼬리로 읽힘)
-        crown += Math.max(0, -(q[i]!.y + (CORE_TOP + 0.02) * s));
+        crown += Math.max(0, -(q[i]!.y + (coreTop + 0.02) * s));
         // 머리 띠에서 크게 솟는 점(귀·뿔·후드로 읽힘)
         if (inHead(q[i]!.x, q[i]!.y)) head += Math.max(0, sd - HEAD_ZONE.cap);
       }
@@ -368,11 +381,11 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
       out.taper = 1;
     }
     for (let it = 0; it < 4; it++) {
-      const q = placePoints(pts, out, s, 1);
+      const q = placePoints(pts, out, s, 1, shape);
       // 점마다 상한(머리 띠는 HEAD_ZONE.cap)을 보고 가장 많이 넘는 비율만큼 균일 축소
       let ratio = 1;
       for (let i = 0; i < q.length; i++) {
-        const sd = coreSdf(q[i]!.x, q[i]!.y, s);
+        const sd = coreSdf(q[i]!.x, q[i]!.y, s, cp);
         if (sd <= 0) continue;
         const c = inHead(q[i]!.x, q[i]!.y) ? Math.min(cap, HEAD_ZONE.cap) : cap;
         ratio = Math.min(ratio, c / sd);
@@ -387,10 +400,11 @@ export function attachStroke(raw: readonly RawPoint[], s: number, level: AttachL
 }
 
 /** 놓인 획의 최대 돌출(W) — 검증·디버그용 */
-export function maxProtrusion(local: readonly RawPoint[], s: number): number {
+export function maxProtrusion(local: readonly RawPoint[], s: number, shape?: BodyShape): number {
   'worklet';
+  const cp = coreOf(shape);
   let m = -1e9;
-  for (let i = 0; i < local.length; i++) m = Math.max(m, coreSdf(local[i]!.x, local[i]!.y, s));
+  for (let i = 0; i < local.length; i++) m = Math.max(m, coreSdf(local[i]!.x, local[i]!.y, s, cp));
   return m;
 }
 
@@ -399,7 +413,7 @@ export function maxProtrusion(local: readonly RawPoint[], s: number): number {
  * 금지 자리에서 미끄러진 획이면 slid = true — 앱은 몸을 붙은 쪽으로 조금 더 기울이고 그쪽을 본다(아트 1-3 '가장 가까운 허용 자리').
  * side = 붙은 자리가 앞(+1, 화면 오른쪽)인가 뒤(−1)인가.
  */
-export function slideOf(raw: readonly RawPoint[], a: Attach): { slid: boolean; delta: number; side: 1 | -1 } {
+export function slideOf(raw: readonly RawPoint[], a: Attach, shape?: BodyShape): { slid: boolean; delta: number; side: 1 | -1 } {
   'worklet';
   let cx = 0;
   let cy = 0;
@@ -410,5 +424,5 @@ export function slideOf(raw: readonly RawPoint[], a: Attach): { slid: boolean; d
   const n = Math.max(raw.length, 1);
   const hand = angleOf(cx / n, cy / n);
   const delta = wrapPi(a.theta - hand);
-  return { slid: isForbidden(hand) && Math.abs(delta) > 6 * DEG, delta, side: Math.sin(a.theta) >= 0 ? 1 : -1 };
+  return { slid: isForbidden(hand, shape) && Math.abs(delta) > 6 * DEG, delta, side: Math.sin(a.theta) >= 0 ? 1 : -1 };
 }

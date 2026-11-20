@@ -3,7 +3,7 @@
 // 결과는 손획과 같은 정본 점열(핵 중심 원점, W 단위, t ms)이라 sim에는 같은 stroke 이벤트로 들어간다(D-13).
 // 모양은 고른 사람 것(D-02): 방향·길이·휨이 곧 손의 모양이고, 자리는 몸이 D-12 부착으로 고른다.
 import { coreRadius1 } from './core';
-import type { RawPoint } from './types';
+import type { BodyShape, RawPoint } from './types';
 
 export interface AssistChoice {
   /** 시작 자리: 몸 둘레 8곳(0 = 위, 시계 방향 45°씩 — 2 = 오른쪽(앞), 4 = 아래, 6 = 왼쪽(등)) */
@@ -50,11 +50,11 @@ export function clampChoice(c: AssistChoice): AssistChoice {
  * 고른 값 → 정본 점열(핵 중심, W 단위). s = 지금 핵 크기(시작점을 지금 몸 둘레에 둔다).
  * 결정적: 같은 고름·같은 s → 같은 점열. 점 41개, 시간은 부드럽게 가속·감속(smoothstep).
  */
-export function assistStroke(choice: AssistChoice, s: number): RawPoint[] {
+export function assistStroke(choice: AssistChoice, s: number, shape?: BodyShape): RawPoint[] {
   'worklet';
   const c = clampChoice(choice);
   const th = (c.place * Math.PI * 2) / ASSIST.places;
-  const r = coreRadius1(th) * s + ASSIST.startGap;
+  const r = coreRadius1(th, shape ? shape.core : undefined) * s + ASSIST.startGap;
   const ax = Math.sin(th) * r;
   const ay = -Math.cos(th) * r;
   const L = ASSIST.lens[c.len];

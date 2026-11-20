@@ -2,7 +2,7 @@
 // 카드 하나 = 마블링 셰이더 2~3개라 앨범에서 살아 있는 Canvas를 여러 장 띄우면 스크롤이 무겁다(카드 REPORT 4절 'Picture 캐시').
 // 캐시 키 = 카드 시드(카드 필드 + 획 점열, dreamCardSeed) + 픽셀 폭. 찍기는 한 번에 하나씩(줄 세우기) — 앨범을 열 때 프레임이 밀리지 않게.
 import { Canvas, Image as SkiaImage, drawAsImage, type SkImage } from '@shopify/react-native-skia';
-import { dreamCardSeed, type StrokeRecord, type sim } from '@mong/core';
+import { dreamCardSeed, type MongLook, type StrokeRecord, type sim } from '@mong/core';
 import { useEffect, useState } from 'react';
 import { PixelRatio, View } from 'react-native';
 import { DreamCardArt, makeDreamArt } from './DreamCard';
@@ -11,13 +11,15 @@ const CACHE_MAX = 48;
 const cache = new Map<string, SkImage>();
 let queue: Promise<unknown> = Promise.resolve();
 
-function keyOf(card: sim.DreamCard, strokes: readonly StrokeRecord[], px: number): string {
-  return `${dreamCardSeed(card, strokes)}:${card.motifId}:${px}`;
+function keyOf(card: sim.DreamCard, strokes: readonly StrokeRecord[], px: number, look?: MongLook): string {
+  // 그 아이(체형·빗 모양·몸의 먹)가 다르면 다른 그림
+  const lk = look ? `${look.shape.aspect}|${look.shape.combRatios.join(',')}|${look.ink.id ?? '-'}` : 'base';
+  return `${dreamCardSeed(card, strokes)}:${card.motifId}:${px}:${lk}`;
 }
 
 /** 캐시에 있으면 바로, 없으면 줄을 서서 찍는다. 실패하면 null(평평한 한지 자리로 둔다) */
-export function thumbImage(card: sim.DreamCard, strokes: readonly StrokeRecord[], px: number): Promise<SkImage | null> {
-  const key = keyOf(card, strokes, px);
+export function thumbImage(card: sim.DreamCard, strokes: readonly StrokeRecord[], px: number, look?: MongLook): Promise<SkImage | null> {
+  const key = keyOf(card, strokes, px, look);
   const hit = cache.get(key);
   if (hit) return Promise.resolve(hit);
   const job = queue.then(async () => {
@@ -25,7 +27,7 @@ export function thumbImage(card: sim.DreamCard, strokes: readonly StrokeRecord[]
     if (again) return again;
     try {
       // 표본 1(aa)·저해상도: 썸네일 크기에서는 계단이 안 보인다
-      const art = makeDreamArt({ card, strokes }, '4:5', px, 1);
+      const art = makeDreamArt({ card, strokes, look }, '4:5', px, 1);
       const img = await drawAsImage(<DreamCardArt art={art} />, { width: px, height: Math.round(art.H) });
       if (!img) return null;
       cache.set(key, img);
@@ -45,20 +47,20 @@ export function strokesForCard<T extends StrokeRecord & { day: number }>(strokes
   return strokes.filter((s) => s.day < card.night);
 }
 
-export function DreamCardThumb({ card, strokes, width }: { card: sim.DreamCard; strokes: readonly StrokeRecord[]; width: number }) {
+export function DreamCardThumb({ card, strokes, width, look }: { card: sim.DreamCard; strokes: readonly StrokeRecord[]; width: number; look?: MongLook }) {
   const height = width * 1.25;
   // 화면 밀도 반영, 최대 2배(저해상도 캐시)
   const px = Math.round(width * Math.min(PixelRatio.get(), 2));
-  const [img, setImg] = useState<SkImage | null>(() => cache.get(keyOf(card, strokes, px)) ?? null);
+  const [img, setImg] = useState<SkImage | null>(() => cache.get(keyOf(card, strokes, px, look)) ?? null);
   useEffect(() => {
     let alive = true;
-    void thumbImage(card, strokes, px).then((i) => {
+    void thumbImage(card, strokes, px, look).then((i) => {
       if (alive && i) setImg(i);
     });
     return () => {
       alive = false;
     };
-  }, [card, strokes, px]);
+  }, [card, strokes, px, look]);
   return (
     <View style={{ width, height, borderRadius: 3, overflow: 'hidden', backgroundColor: '#141A2C' }}>
       {img && (

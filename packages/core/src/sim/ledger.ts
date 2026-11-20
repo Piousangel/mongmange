@@ -1,7 +1,7 @@
 // 하루 입력 장부 → 측정값(0..1). systems 2.2 표. 정규화 상수는 전부 [팀 추정] 초기값(스파이크·플레이테스트로 보정).
 import { coreSdf } from '../geometry/core';
 import { polylineLength } from '../geometry/simplify';
-import type { Attach, RawPoint } from '../geometry/types';
+import type { Attach, BodyShape, RawPoint } from '../geometry/types';
 import type { DayLedger, Measures, Stroke, StrokeMeasure } from './types';
 
 export const LEDGER = {
@@ -50,12 +50,13 @@ function heading(raw: readonly RawPoint[]): number {
 }
 
 /** 획 측정: 속도·길이·몸과의 평균 거리·새로움(최근 획들과 붙는 각도·방향 차이의 평균) */
-export function measureStroke(raw: readonly RawPoint[], attach: Attach, coreScaleNow: number, prev: readonly Stroke[]): StrokeMeasure {
+/** shape = 그 개체의 체형(M1, 부착과 같은 몸). 없으면 기본형 — 체형이 '몸과의 거리'를 통해 결(성향)로 새지 않게(리뷰 M1) */
+export function measureStroke(raw: readonly RawPoint[], attach: Attach, coreScaleNow: number, prev: readonly Stroke[], shape?: BodyShape): StrokeMeasure {
   const L = polylineLength(raw);
   const durMs = Math.max(1, raw[raw.length - 1]!.t - raw[0]!.t);
   // 거리 = 점들이 몸 표면에서 떨어진 평균(몸 안쪽은 0). 최솟값은 몸에 대고 긋는 획을 모두 0으로 만들어 쏠린다(리뷰 1-5)
   let sumD = 0;
-  for (const p of raw) sumD += Math.max(0, coreSdf(p.x, p.y, coreScaleNow));
+  for (const p of raw) sumD += Math.max(0, coreSdf(p.x, p.y, coreScaleNow, shape?.core));
   const meanD = sumD / raw.length;
   // 새로움 = 최근 획 몇 개와의 차이 '평균'. 전체 최솟값은 획이 쌓일수록 0으로 흘러 curiosity가 음으로 쏠린다(리뷰 1-5)
   let novel = 0.5;

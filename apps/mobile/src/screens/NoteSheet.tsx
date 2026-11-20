@@ -1,4 +1,6 @@
-import { PALETTE, sim } from '@mong/core';
+import { PALETTE, sim, type MongLook } from '@mong/core';
+import { inkChangeAvailable, useMongLook } from '../game/look';
+import { useFeature } from '../features';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -28,6 +30,7 @@ export function NoteSheet({
   onMeta,
   onNotif,
   onTimes,
+  onInkChange,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -39,7 +42,11 @@ export function NoteSheet({
   /** 알림 켬/끔(끄면 예약 취소, 켜면 권한 확인은 GameApp) */
   onNotif: (on: boolean) => void;
   onTimes: (bedtimeLocalMin: number, morningLocalMin: number) => void;
+  /** M1 '먹 바꾸기'(첫 밤 뒤, 새 획에만): 노트를 닫고 벼루 옆에 네 자루를 놓는다 */
+  onInkChange?: () => void;
 }) {
+  const look = useMongLook(state);
+  const inkFlag = useFeature('inkChoice');
   const { width, height } = useWindowDimensions();
   const [viewing, setViewing] = useState<number | null>(null);
   useEffect(() => {
@@ -89,6 +96,11 @@ export function NoteSheet({
           <KText style={styles.section} serif="title">{t('note.today')}</KText>
           <KText style={styles.status}>{status}</KText>
           {saveError !== null && <KText style={[styles.status, { color: PALETTE.day.accent, marginTop: 6 }]}>{t('note.saveError')}</KText>}
+          {onInkChange && state.phase === 'awake' && inkChangeAvailable(state, inkFlag) && (
+            <Pressable style={styles.row} onPress={onInkChange} accessibilityRole="button" accessibilityLabel={t('note.inkChange.a11y')} testID="note-ink-change">
+              <KText style={styles.rowText}>{t('note.inkChange')}</KText>
+            </Pressable>
+          )}
 
           <KText style={styles.section} serif="title">{t('note.soundSection')}</KText>
           <Row label={t('note.sound')} value={s.soundEnabled} onChange={(v) => onMeta({ sound: { ...s, soundEnabled: v } })} />
@@ -110,10 +122,10 @@ export function NoteSheet({
 
           <KText style={styles.section} serif="title">{t('note.cards', { n: state.cards.length })}</KText>
           {state.cards.length === 0 && <KText style={styles.status}>{t('note.cardsEmpty')}</KText>}
-          <Album cards={state.cards} strokes={state.strokes} width={width} onOpen={setViewing} />
+          <Album cards={state.cards} strokes={state.strokes} width={width} onOpen={setViewing} look={look} />
         </ScrollView>
       </Animated.View>
-      {viewing !== null && state.cards[viewing] && <CardViewer card={state.cards[viewing]!} strokes={state.strokes} onClose={() => setViewing(null)} />}
+      {viewing !== null && state.cards[viewing] && <CardViewer card={state.cards[viewing]!} strokes={state.strokes} look={look} onClose={() => setViewing(null)} />}
     </Modal>
   );
 }
@@ -124,7 +136,7 @@ function pastLine(c: sim.DreamCard): string {
 }
 
 /** 인화 카드 앨범(도감 역할, 아트 7-2): 3열 썸네일. 썸네일은 저해상도 오프스크린 캐시(DreamCardThumb) */
-function Album({ cards, strokes, width, onOpen }: { cards: sim.DreamCard[]; strokes: sim.Stroke[]; width: number; onOpen: (i: number) => void }) {
+function Album({ cards, strokes, width, onOpen, look }: { cards: sim.DreamCard[]; strokes: sim.Stroke[]; width: number; onOpen: (i: number) => void; look: MongLook }) {
   const cols = width < 360 ? 2 : 3;
   const gap = 12;
   const tw = Math.floor((Math.min(width, 560) - 40 - gap * (cols - 1)) / cols);
@@ -134,7 +146,7 @@ function Album({ cards, strokes, width, onOpen }: { cards: sim.DreamCard[]; stro
     <View style={[styles.album, { gap }]}>
       {items.map(({ c, i, strokes: st }) => (
         <Pressable key={i} onPress={() => onOpen(i)} style={{ width: tw }} accessibilityRole="button" accessibilityLabel={t('note.thumb.a11y', { card: cardA11y(c, pastLine(c)) })} testID={`album-${i}`}>
-          <DreamCardThumb card={c} strokes={st} width={tw} />
+          <DreamCardThumb card={c} strokes={st} width={tw} look={look} />
           <KText style={styles.thumbText} numberOfLines={2} importantForAccessibility="no">
             {t(c.nightsMerged > 1 ? 'note.thumb.long' : 'note.thumb', { night: nightName(c), motif: motifName(c.motifId) ?? t('motif.fallback') })}
           </KText>
@@ -145,7 +157,7 @@ function Album({ cards, strokes, width, onOpen }: { cards: sim.DreamCard[]; stro
 }
 
 /** 지난 카드 크게 다시 보기(앨범 위에 겹침). 카드 그림은 아침 화면과 같은 DreamCard */
-function CardViewer({ card, strokes, onClose }: { card: sim.DreamCard; strokes: sim.Stroke[]; onClose: () => void }) {
+function CardViewer({ card, strokes, onClose, look }: { card: sim.DreamCard; strokes: sim.Stroke[]; onClose: () => void; look: MongLook }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const w = Math.max(160, Math.min(width - 40, 380, (height - insets.top - insets.bottom - 150) / 1.25));
@@ -153,9 +165,9 @@ function CardViewer({ card, strokes, onClose }: { card: sim.DreamCard; strokes: 
   const line = pastLine(card);
   return (
     <View style={[StyleSheet.absoluteFill, styles.viewer, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 12 }]} accessibilityViewIsModal testID="card-viewer">
-      <DreamCard card={card} strokes={st} labels={cardLabels(card, line)} width={w} a11yLabel={cardA11y(card, line)} />
+      <DreamCard card={card} strokes={st} labels={cardLabels(card, line)} width={w} a11yLabel={cardA11y(card, line)} look={look} />
       <View style={styles.viewerActions}>
-        <ShareBar dark input={{ card, strokes: st, labels: cardLabels(card, line) }} />
+        <ShareBar dark input={{ card, strokes: st, labels: cardLabels(card, line), look }} />
         <Pressable onPress={onClose} style={styles.viewerClose} accessibilityRole="button" accessibilityLabel={t('note.viewer.back.a11y')} testID="viewer-close">
           <KText style={[styles.closeText, { color: PALETTE.night.text, textDecorationLine: 'underline' }]}>{t('note.viewer.back')}</KText>
         </Pressable>

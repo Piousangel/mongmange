@@ -1,7 +1,7 @@
 // 눈 = 몸 마스크에서 빼는 두 구멍(낮). 표정은 같은 32점 구조의 다각형 사이 보간이라 경로 보간이 매끄럽다.
 // 점 순서: 앞 16점 = 위 가장자리(왼→오), 뒤 16점 = 아래 가장자리(오→왼).
 import { EYE } from '../visual/bodySpec';
-import { CORE } from './core';
+import { CORE, type CoreParams } from './core';
 
 export type EyeKind = 'open' | 'joy' | 'sleepy' | 'surprised' | 'closed';
 export const EYE_POINTS = 32;
@@ -100,9 +100,11 @@ export function eyeMix(a: readonly number[], b: readonly number[], t: number, bl
 }
 
 /** 두 눈 중심(크기 1 핵, W). 중심 높이 = 바닥에서 몸 높이의 38%, 간격 0.42W, 앞 기울기만큼 x 보정 */
-export function eyeCenters(): { lx: number; rx: number; y: number } {
+export function eyeCenters(pIn?: CoreParams): { lx: number; rx: number; y: number } {
   'worklet';
-  const y = CORE.h / 2 - CORE.h * EYE.heightFrac;
-  const leanAtY = (CORE.lean * (CORE.h / 2 - y)) / CORE.h;
+  // M1 체형: 눈 높이는 그 개체의 몸 높이 38%(간격 0.42W는 타고남에 넣지 않는다 — 아트 1-1)
+  const p = pIn ?? CORE;
+  const y = p.h / 2 - p.h * EYE.heightFrac;
+  const leanAtY = (p.lean * (p.h / 2 - y)) / p.h;
   return { lx: -EYE.spacing / 2 + leanAtY, rx: EYE.spacing / 2 + leanAtY, y };
 }

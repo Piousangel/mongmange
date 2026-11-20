@@ -1,6 +1,8 @@
 // MVP 시뮬레이션: createInitial · tick · reduce. 순수 함수, 시계는 인자(now)로만 받는다.
 import { coreScale } from '../visual/bodySpec';
 import { makeRecord } from '../visual/pose';
+import { shapeOf } from '../geometry/shape';
+import { traitsOf } from '../visual/traits';
 import { polylineLength } from '../geometry/simplify';
 import { pickCard } from './dream';
 import { LEDGER, emptyLedger, ledgerMeasures, measureStroke } from './ledger';
@@ -31,7 +33,10 @@ import {
   returnRelation,
   touchRelation,
   visitRelation,
+  currentInk,
+  INK_CHANGES_MAX,
   type BirthInput,
+  type InkId,
 } from './pillars';
 import { AXES, type AxisId, type AxisRecord, type Effect, type Event, type Measures, type MorningLine, type Millis, type Stage, type State, type Step } from './types';
 
@@ -275,6 +280,25 @@ export function grindLevel(s: State): number {
   return Math.min(1, s.ledger.grindMs / LEDGER.grindFullMs);
 }
 
+/**
+ * 먹 고르기(C-integrated 2-1·D-05, 팀 결정 11-20):
+ * - 첫날 깨어 있는 동안(첫 밤 전) = 몸의 먹을 정한다. 이미 그은 첫 두름도 이 먹으로 다시 스민다(같은 날 다시 골라도 덮음).
+ * - 첫 밤 뒤 = '먹 바꾸기': 새 획에만. 몸의 먹(번짐 고리·밤 몸)과 지난 획은 그대로 → changes에 덧붙인다.
+ * - seeded = 시스템(씨앗)이 정함 — 몸의 먹이 아직 없을 때만.
+ */
+function chooseInk(s: State, ink: InkId, at: Millis, seeded: boolean): State['ink'] {
+  if (seeded) return s.ink.id === null ? { id: ink, chosenAt: at, seeded: true } : s.ink;
+  if (s.ink.id === null || (s.dayIndex === 0 && s.phase === 'awake')) {
+    const out: State['ink'] = { id: ink, chosenAt: at, seeded: false };
+    if (s.ink.changes) out.changes = s.ink.changes;
+    return out;
+  }
+  if (currentInk(s.ink) === ink) return s.ink;
+  const changes = [...(s.ink.changes ?? []), { id: ink, at }];
+  if (changes.length > INK_CHANGES_MAX) changes.splice(INK_CHANGES_MAX - 1, changes.length - INK_CHANGES_MAX);
+  return { ...s.ink, changes };
+}
+
 function applyStroke(s: State, e: Extract<Event, { type: 'stroke' }>, at: Millis, effects: Effect[]): State {
   const block = strokeBlock(s);
   if (block) {
@@ -286,8 +310,9 @@ function applyStroke(s: State, e: Extract<Event, { type: 'stroke' }>, at: Millis
     return s;
   }
   const n = s.strokesTotal;
-  const rec = makeRecord(e.raw, n, e.level ?? 2);
-  const measure = measureStroke(rec.raw, rec.attach, coreScale(n), s.strokes);
+  const shape = e.birthShape ? shapeOf(traitsOf(s.birth.seed, s.birth.traitVersion)) : undefined;
+  const rec = makeRecord(e.raw, n, e.level ?? 2, shape);
+  const measure = measureStroke(rec.raw, rec.attach, coreScale(n), s.strokes, shape);
   const id = `s${s.dayIndex}-${at}`;
   const stroke = {
     ...rec,
@@ -385,8 +410,7 @@ export function reduce(state: State, e: Event): Step {
       break;
     }
     case 'chooseInk':
-      // 바꾸기: 씨앗이 정해 둔 먹 위에 유저가 고른 먹을 덮는다(같은 먹을 다시 골라도 '고름'으로 기록)
-      s = { ...s, ink: { id: e.ink, chosenAt: at, seeded: !!e.seeded } };
+      s = { ...s, ink: chooseInk(s, e.ink, at, !!e.seeded) };
       break;
     case 'setName': {
       const n = normalizeName(e.text);

@@ -1,4 +1,5 @@
 import { Skia, type SkRuntimeEffect } from '@shopify/react-native-skia';
+import { strokeInkSksl } from './strokeInkSrc';
 
 // 스파이크 02 셰이더. 스파이크 01의 방울(dropFx: 방사형 가시·외눈)과 획별 농도 셰이더는 폐기했다(BRIEF 0절).
 // 해시는 fract 기반 — mediump 줄무늬 위험(R2)은 실기기 측정 항목.
@@ -114,41 +115,8 @@ half4 main(float2 xy) {
 }
 `;
 
-/**
- * 획 칠(render-03 획 문법, D-11 비백 셰이더 복원): 몸 칠(단일 coverage) 위에 srcATop으로 얹어 **안쪽 농도·비백만** 바꾼다.
- * 가장자리 모양(블러·번짐)은 몸 마스크가 이미 정했으므로 여기서는 색만 낸다. Vertices 텍스처 좌표:
- * x = u + 2·획 번호(u = 획 길이 방향 0..1, 붓을 뗀 쪽이 1), y = 폭 방향 −1..1. 획 번호 ≥ 40 = E 빗(농도 0, 끝 비백만).
- */
-const STROKE_INK = /* sksl */ `
-uniform float3 ink;
-uniform float3 paper;
-uniform float tone;
-uniform float dry;
-${NOISE}
-half4 main(float2 t) {
-  float id = floor(t.x * 0.5);
-  float u = t.x - id * 2.0;
-  float v = clamp(t.y, -1.0, 1.0);
-  float av = abs(v);
-  bool comb = id >= 40.0;
-  float k = comb ? 0.0 : tone;
-  // 농담 결: 길이 방향으로만 아주 낮게 흔들린다(폭 방향 노이즈는 등고선처럼 보여서 뺐다)
-  k *= 0.92 + 0.16 * vnoise(float2(u * 3.0 + id * 7.7, id * 1.3));
-  // 비백: 붓털 자국 = 폭 방향으로 촘촘하고 길이 방향으로 길게 늘인 노이즈. 붓을 뗀 쪽(u → 1)에서만 열린다.
-  // 가장자리(|v| > 0.75)는 비우지 않아 실루엣은 매끈하게 남는다(털·톱니 금지)
-  // 붓털 한 올 = 폭 방향 1차원 노이즈(길이 방향으로는 곧게), 끊김 = 길이 방향 노이즈. 2차원 노이즈 문턱은 등고선처럼 굽어 보였다
-  float hair = vnoise(float2(v * 7.0 + id * 17.3, id * 2.9));
-  float brk = vnoise(float2(u * 5.0 + id * 5.1, v * 1.5));
-  // 둥근 캡(u = 0·1 고정, v = 방사)에서는 비백을 끈다 — 켜면 동심원 결이 생겨 끝이 구슬처럼 빛난다
-  float cap = 1.0 - smoothstep(0.985, 0.998, u);
-  // 리뷰 반영: 비백은 획 끝 30%에만(획 몸통에 물결 결이 생기면 물얼룩·지문으로 읽혔다)
-  float tail = comb ? smoothstep(0.72, 0.95, u) * 0.6 : smoothstep(0.7, 0.97, u);
-  float streak = smoothstep(0.64, 0.74, hair) * smoothstep(0.35, 0.55, brk + u * 0.3) * (1.0 - smoothstep(0.55, 0.75, av)) * tail * cap * dry;
-  k = k + (0.8 - k) * streak;
-  // 먹이 고인 테는 여기서 그리지 않는다 — 몸 마스크의 단일 테가 실루엣에만 생기고, 획끼리 겹친 안쪽에는 선이 안 생긴다
-  return half4(half3(mix(ink, paper, clamp(k, 0.0, 1.0))), 1.0);
-}
-`;
+/** 획 칠(render-03 획 문법, D-11 비백 셰이더 복원 + M1 먹 슬롯). 소스·uniform은 strokeInkSrc.ts(빌드 1 식 고정 테스트) */
+const STROKE_INK = strokeInkSksl(NOISE);
 
 /** 밤 수면(#141A2C). 1/4 해상도 별도 캔버스(D-11). octaves는 uniform(실기기에서 줄임). 대비 낮은 결로 무섭지 않게 */
 const NIGHT = /* sksl */ `

@@ -1,5 +1,5 @@
 // 공유 흐름(빌드 1): 그리기(renderImage) → 파일·공유 시트(native). 어떤 실패도 던지지 않고 결과로 돌려준다.
-import type { DreamAspect, sim } from '@mong/core';
+import type { DreamAspect, MongLook, sim } from '@mong/core';
 import { dayName, t } from '../i18n';
 import { PARAMS } from '../render/clock';
 import type { DreamCardInput } from '../render/dreamCard/DreamCard';
@@ -26,10 +26,10 @@ export async function shareDreamCard(input: DreamCardInput, aspect: DreamAspect)
 }
 
 /** 이레 두루마리에 들어갈 그림 재료(카드 7장 + 날 이름) */
-export function ireScrollInput(state: sim.State) {
+export function ireScrollInput(state: sim.State, look?: MongLook) {
   const cards = pickScrollCards(state.cards);
   return {
-    cards: cards.map((card) => ({ card, strokes: strokesForCard(state.strokes, card) })),
+    cards: cards.map((card) => ({ card, strokes: strokesForCard(state.strokes, card), look })),
     dayLabels: cards.map((c) => dayName(Math.max(0, c.night - 1))),
     title: t('scroll.title'),
     subtitle: t('scroll.subtitle'),
@@ -37,10 +37,10 @@ export function ireScrollInput(state: sim.State) {
   };
 }
 
-export async function shareIreScroll(state: sim.State): Promise<ShareResult> {
+export async function shareIreScroll(state: sim.State, look?: MongLook): Promise<ShareResult> {
   try {
     if (simulateFail()) throw new Error('simulated share failure');
-    const input = ireScrollInput(state);
+    const input = ireScrollInput(state, look);
     if (input.cards.length === 0) return 'failed';
     const img = await renderIreScrollImage(input, SHARE_WIDTH);
     const last = input.cards[input.cards.length - 1]!.card.night;

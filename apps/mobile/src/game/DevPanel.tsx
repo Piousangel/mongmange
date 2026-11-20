@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOUR_MS, devAdvance, devNextMorning, devReset, now, setMeta, useGame } from './store';
+import { setFeature, useFeature } from '../features';
 
 const SPIKES = [
   ['intro', 'screen=intro'],
@@ -17,6 +18,10 @@ export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; o
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const { state, meta, restoredFrom } = useGame();
+  // 빌드 2 M1(타고남 + 먹 고르기): 기본 꺼짐, 여기서 켜서 확인(재시작하면 기본값)
+  const ffTraits = useFeature('birthTraits');
+  const ffInk = useFeature('inkChoice');
+  const m1 = ffTraits && ffInk;
   const fmt = (t: number) => new Date(t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   return (
     <View style={[styles.wrap, { bottom: insets.bottom + 8 }]} pointerEvents="box-none">
@@ -34,6 +39,14 @@ export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; o
             <Btn label="+1h" id="dev-1h" onPress={() => devAdvance(HOUR_MS)} />
             <Btn label="+8h" id="dev-8h" onPress={() => devAdvance(8 * HOUR_MS)} />
             <Btn label="다음 아침" id="dev-morning" onPress={devNextMorning} />
+            <Btn
+              label={m1 ? 'M1 끄기' : 'M1 켜기'}
+              id="dev-m1"
+              onPress={() => {
+                setFeature('birthTraits', !m1);
+                setFeature('inkChoice', !m1);
+              }}
+            />
             <Btn label={meta.devCaptions ? '자막 끄기' : '소리 자막'} id="dev-captions" onPress={() => setMeta({ devCaptions: !meta.devCaptions })} />
             <Btn
               label="세이브 초기화"

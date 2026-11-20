@@ -105,19 +105,49 @@ describe('세 기둥 필드: 기능이 꺼져 있어도 값이 쌓인다', () =>
     expect(tl.since).toBe(kst(11, 26, 19) + 13 * H + 60_000);
   });
 
-  it('첫 잠에 씨앗이 먹을 정해 두고, 먹 고르기(빌드 2)는 그 위에 바꾼다', () => {
+  it('첫 잠에 씨앗이 먹을 정해 두고, 첫 밤 뒤 먹 바꾸기는 새 획에만(몸의 먹은 그대로, 11-20 팀 결정 H2)', () => {
     const s0 = sim.createInitial(kst(11, 20, 19), KST, 3);
     const slept = play(s0, [{ type: 'putToSleep', at: kst(11, 20, 23) }]).state;
     expect(slept.ink).toEqual({ id: sim.seededInk(s0.birth.seed), chosenAt: kst(11, 20, 23), seeded: true });
     // 다음 잠에는 다시 정하지 않는다
     const next = sim.tick(slept, kst(11, 22, 1)).state;
     expect(next.ink).toEqual(slept.ink);
+    const [a, b] = sim.INK_IDS.filter((k) => k !== slept.ink.id) as [sim.InkId, sim.InkId];
     const changed = play(slept, [
       { type: 'appForeground', at: kst(11, 21, 9), tzOffsetMin: KST },
-      { type: 'chooseInk', at: kst(11, 21, 9, 1), ink: 'jayeon' },
-      { type: 'chooseInk', at: kst(11, 21, 9, 2), ink: 'songhwa' },
+      { type: 'chooseInk', at: kst(11, 21, 9, 1), ink: a },
+      { type: 'chooseInk', at: kst(11, 21, 9, 2), ink: b },
     ]).state;
-    expect(changed.ink).toEqual({ id: 'songhwa', chosenAt: kst(11, 21, 9, 2), seeded: false });
+    // 몸의 먹(번짐 고리·밤 몸·지난 획)은 씨앗 먹 그대로, 바꾸기만 쌓인다
+    expect(changed.ink).toEqual({ ...slept.ink, changes: [{ id: a, at: kst(11, 21, 9, 1) }, { id: b, at: kst(11, 21, 9, 2) }] });
+    expect(sim.currentInk(changed.ink)).toBe(b);
+    expect(sim.inkOfStroke(changed.ink, kst(11, 20, 20))).toBe(slept.ink.id);
+    expect(sim.inkOfStroke(changed.ink, kst(11, 21, 9, 1) + 1)).toBe(a);
+    expect(sim.inkOfStroke(changed.ink, kst(11, 21, 10))).toBe(b);
+    // 같은 먹을 다시 고르면 기록하지 않는다
+    expect(play(changed, [{ type: 'chooseInk', at: kst(11, 21, 11), ink: b }]).state.ink).toEqual(changed.ink);
+    // 세이브 왕복·검증 통과
+    expect(sim.parseState(sim.serializeState(changed, kst(11, 21, 12))).ink).toEqual(changed.ink);
+  });
+
+  it('첫날(첫 밤 전) 먹 고르기는 몸의 먹을 정한다 — 다시 골라도 덮고(다시 스밈), 바꾸기 기록은 없다', () => {
+    const s0 = sim.createInitial(kst(11, 20, 19), KST, 3);
+    const r = play(s0, [
+      { type: 'chooseInk', at: kst(11, 20, 19, 5), ink: 'yuyeon' },
+      { type: 'chooseInk', at: kst(11, 20, 19, 6), ink: 'songhwa' },
+    ]).state;
+    expect(r.ink).toEqual({ id: 'songhwa', chosenAt: kst(11, 20, 19, 6), seeded: false });
+    // 고른 먹이 있으면 첫 잠의 씨앗 먹은 덮지 않는다
+    expect(play(r, [{ type: 'putToSleep', at: kst(11, 20, 23) }]).state.ink.id).toBe('songhwa');
+  });
+
+  it('잘못된 바꾸기 기록은 세이브 검증에서 거절(모르는 먹·시각 없음·상한 초과)', () => {
+    const s0 = sim.createInitial(kst(11, 20, 19), KST, 3);
+    const bad = (changes: unknown) => sim.invalidPillarField({ ...s0, ink: { ...s0.ink, changes } } as unknown as Record<string, unknown>);
+    expect(bad([{ id: 'songyeon', at: 1 }])).toBeNull();
+    expect(bad([{ id: 'nope', at: 1 }])).toBe('ink');
+    expect(bad([{ id: 'songyeon' }])).toBe('ink');
+    expect(bad(Array.from({ length: sim.INK_CHANGES_MAX + 1 }, (_, i) => ({ id: 'songyeon', at: i })))).toBe('ink');
   });
 
   it('이름(빌드 2 이벤트): 검사를 통과한 것만', () => {

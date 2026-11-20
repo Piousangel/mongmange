@@ -18,9 +18,11 @@ export function layout(width: number, height: number) {
     groundY,
     /** 핵 크기 s일 때 핵 중심 y(바닥은 고정) */
     // UI 스레드(useDerivedValue 등)에서도 부르므로 worklet이어야 한다(11-20 S25: "Tried to synchronously call a Remote Function oyFor")
-    oyFor: (s: number) => {
+    // M1: h = 그 개체의 몸 높이(체형). 바닥(groundY)은 체형과 상관없이 같은 자리에 앉는다
+    oyFor: (s: number, hIn?: number) => {
       'worklet';
-      return groundY - (CORE.h / 2) * s * wpx;
+      const h = hIn ?? CORE.h;
+      return groundY - (h / 2) * s * wpx;
     },
     objectsY: height * 0.84,
   };

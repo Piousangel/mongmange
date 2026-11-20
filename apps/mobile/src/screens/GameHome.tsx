@@ -1,5 +1,5 @@
 import { Canvas, Group, Path, Rect, Shader } from '@shopify/react-native-skia';
-import { COMB_REST, PALETTE, grammarOf, selectVisual, sim } from '@mong/core';
+import { BASE_LOOK, COMB_REST, PALETTE, grammarOf, selectVisual, sim, type MongLook } from '@mong/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue } from 'react-native-reanimated';
@@ -13,6 +13,8 @@ import { SEAL_GLYPH, dayName, nightName, t, wakeClock } from '../i18n';
 import { KText, track, useFontScale } from '../ui/type';
 import { NightRings, NightWater } from './HomeScreen';
 import { ObjectIcons, Paper, SANS, SERIF, VerticalTitle, inkPool, layout, styles as ui } from './ui';
+import { InkList, InkSticks, KeptStick } from './InkSticks';
+import { inkPickerOpen } from '../game/look';
 
 const RM = PARAMS.rm;
 const TIDE_MS = RM ? 400 : 2400;
@@ -30,6 +32,10 @@ export interface HomeActions {
   onRubStart: () => void;
   onPaper: (x: number, y: number) => void;
   onNote: () => void;
+  /** M1 먹 고르기: 네 자루 중 하나를 집음 */
+  onChooseInk?: (ink: sim.InkId) => void;
+  /** 먹 자루를 길게 누름 = 이름 한 줄 */
+  onInkName?: (ink: sim.InkId) => void;
 }
 
 /** 첫 30초 뒤 사물이 차례로 나온다(아트 11절, 리뷰 U6): 'first' = 첫 획 전(붓만), 'all' = 그 뒤 */
@@ -48,6 +54,10 @@ export function GameHome({
   soothe,
   reveal,
   animateReveal,
+  look: mong = BASE_LOOK,
+  inkChoice = false,
+  inkChanging = false,
+  strokeInks,
 }: {
   state: sim.State;
   now: number;
@@ -60,6 +70,14 @@ export function GameHome({
   reveal: RevealStage;
   /** 이 단계에 처음 들어왔으면 차례로 나타나는 연출 */
   animateReveal: boolean;
+  /** M1 그 아이(체형·빗 모양·고른 먹). 없으면 기본형 */
+  look?: MongLook;
+  /** M1 먹 고르기 플래그 */
+  inkChoice?: boolean;
+  /** 공방 노트 '먹 바꾸기'로 네 자루를 연 상태(첫 밤 뒤, 새 획에만) */
+  inkChanging?: boolean;
+  /** 획마다 먹(useStrokeInks) */
+  strokeInks?: readonly (sim.InkId | null)[];
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -73,7 +91,7 @@ export function GameHome({
   const ox = L.cx;
   // 목록으로 보기: 버튼 목록이 길어지면(글자 200%·영어) 몽망이가 목록 위로 비켜 앉는다(리뷰 P1-3, 320×568에서 첫 버튼을 덮었음)
   const [listTop, setListTop] = useState<number | null>(null);
-  const baseOy = L.oyFor(s);
+  const baseOy = L.oyFor(s, mong.shape.core.h);
   const bodyBottom = baseOy + 0.75 * s * L.wpx;
   const lift = listView && !asleep && listTop !== null ? Math.max(0, bodyBottom + 14 - listTop) : 0;
   const oy = Math.max(insets.top + height * 0.2, baseOy - lift);
@@ -100,12 +118,22 @@ export function GameHome({
   const rubbing = useSharedValue(0);
   const ripple = useSharedValue({ x: 0, y: 0, at: -1e9 });
   const mountAt = useSharedValue(animateReveal ? clock.value : -1e9);
+  // 첫날 먹을 고른 순간(다시 스밈 번짐). 첫 밤 뒤 바꾸기는 새 획에만이라 번짐 없음
+  const soakAt = useSharedValue(-1e9);
+  const soakKey = state.dayIndex === 0 && state.ink.id !== null && !state.ink.seeded ? `${state.ink.id}|${state.ink.chosenAt}` : '';
+  const prevSoak = useRef(soakKey);
+  useEffect(() => {
+    if (soakKey !== '' && soakKey !== prevSoak.current) soakAt.value = clock.value;
+    prevSoak.current = soakKey;
+  }, [soakKey, soakAt]);
 
   const level = useDerivedValue(() => (RM ? clamp01((clock.value - tideAt.value) / TIDE_MS) : ease((clock.value - tideAt.value) / TIDE_MS)));
   const nightK = useDerivedValue(() => (RM ? level.value : clamp01((level.value - 0.3) / 0.35)));
 
   const frame = useDerivedValue<BodyFrame>(() => {
     const t = clock.value;
+    const sd0 = t - soakAt.value;
+    const soakK = RM || sd0 < 0 || sd0 > 1200 ? 0 : sd0 < 150 ? sd0 / 150 : 1 - (sd0 - 150) / 1050;
     const nk = nightK.value;
     const b = RM ? 0 : breathAt(t, nk > 0.5 ? 4400 : 3200);
     const g = gazeOffset(gaze.value, t, ox, oy, L.wpx);
@@ -147,7 +175,8 @@ export function GameHome({
       bleed,
       ringAlpha: 1 - nk,
       attachK: records.map(() => 1),
-      fresh: records.map(() => 0),
+      // 첫날 먹 고르기 = 이미 그은 획이 고른 먹으로 다시 스민다: 짧은 번짐 1200ms 한 번(아트 판정 항목, 모션 줄이기면 없음)
+      fresh: records.map(() => soakK),
     };
   });
 
@@ -261,6 +290,12 @@ export function GameHome({
   });
   const objTop = L.objectsY - 32;
   const bigText = fs >= 1.5;
+  // M1 먹 고르기(아트 11절 v1.3): 첫 획 뒤 사물이 다 나온 낮, 아직 유저가 고르지 않았으면(씨앗 먹이어도 = '바꾸기') 벼루 옆에 네 자루
+  // M1 먹 고르기(H2): 첫날(첫 밤 전) 아직 안 골랐으면 벼루 옆에 네 자루, 그 뒤에는 공방 노트 '먹 바꾸기'로 연 때만
+  const pickInk = reveal === 'all' && shown[1] && !!actions.onChooseInk && inkPickerOpen(state, { flag: inkChoice, changing: inkChanging });
+  const currentInk = sim.currentInk(state.ink);
+  const keptInk = inkChoice && !asleep && reveal === 'all' && !pickInk ? currentInk : null;
+  const sticksAt = useMemo(() => clock.value + (animateReveal ? 2400 : 0), [pickInk, animateReveal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <View style={[styles.root, { backgroundColor: PALETTE.night.bg }]} testID="game-home">
@@ -273,7 +308,7 @@ export function GameHome({
           </Rect>
         </Group>
         {asleep && <NightRings frameOx={ox} frameOy={oy} wpx={L.wpx} s={s} nightK={nightK} ripple={ripple} strokes={records.length} />}
-        <Mongmangi frame={frame} records={records} mode={PARAMS.body} grammar={grammar} />
+        <Mongmangi frame={frame} records={records} mode={PARAMS.body} grammar={grammar} look={mong} strokeInks={strokeInks} />
         {!listView && <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={dim} alpha={alpha} />}
         {!listView && !asleep && grindK > 0 && shown[1] && (
           <Group transform={[{ translateX: xs[1]! - 18 }, { translateY: L.objectsY - 18 }]}>
@@ -345,9 +380,15 @@ export function GameHome({
           ) : null,
         )}
 
+      {pickInk && !listView && (
+        <InkSticks cx={xs[1]!} top={objTop - 56} shownAt={sticksAt} current={currentInk} onChoose={actions.onChooseInk!} onName={(ink) => actions.onInkName?.(ink)} />
+      )}
+      {keptInk && !listView && <KeptStick ink={keptInk} x={xs[1]! + Math.min(objW / 2, 40)} y={objTop + 8} />}
+
       {/* 목록으로 보기(D-08): 사물 UI 대신 평범한 버튼 */}
       {listView && !asleep && (
         <View style={[styles.list, { bottom: insets.bottom + 24 }]} onLayout={(e) => setListTop(e.nativeEvent.layout.y)}>
+          {pickInk && <InkList current={currentInk} onChoose={actions.onChooseInk!} />}
           {objs.map((o, i) => (
             <Pressable
               key={o.id}

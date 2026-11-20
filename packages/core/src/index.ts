@@ -18,6 +18,9 @@ export * from './visual/pose';
 export * from './visual/selectVisual';
 export * from './visual/grammar';
 export * from './visual/dreamCard';
+export * from './visual/traits';
+export * from './visual/ink';
+export * from './visual/look';
 export * from './geometry/types';
 export * from './geometry/core';
 export * from './geometry/simplify';
@@ -26,6 +29,7 @@ export * from './geometry/assist';
 export * from './geometry/ribbon';
 export * from './geometry/comb';
 export * from './geometry/eyes';
+export * from './geometry/shape';
 export * from './save/envelope';
 export * from './save/slots';
 /** MVP 시뮬레이션(State·Event·tick·reduce·세이브). 기존 이름(tick·Phase 등)과 겹치지 않게 네임스페이스로 낸다 */

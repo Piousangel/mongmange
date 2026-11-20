@@ -10,6 +10,7 @@
 //  5) 마지막에 몸보다 조금 큰 맑은 물(몽망이가 앉는 자리). 이불·찻잔은 그림(그릇)으로 얹는다. 획 옷은 그리지 않는다(밤새 물에 풀렸다)
 // 방울 연산은 넓이를 보존하는 정확한 사상(Jaffer & Lu, "Mathematical Marbling")이라 픽셀마다 역사상으로 되짚어 색을 찾는다.
 // 결정성: 같은 카드 + 같은 획 기록 → 같은 시드 → 같은 장면(Math.random·시각 사용 금지).
+import { hexRgb, mixHex, type InkLook } from './ink';
 import { simplifyStroke } from '../geometry/simplify';
 import type { RawPoint, StrokeRecord } from '../geometry/types';
 import { MOTIFS } from '../sim/dream';
@@ -213,12 +214,14 @@ export interface DreamSceneInput {
   aspect?: DreamAspect;
   /** 테스트용(상한 동작 확인). 기본 DREAM_LIMITS */
   limits?: { pre: number; post: number; segs: number };
+  /** M1 몸의 먹(카드 마블링의 옅은 쪽 먹빛). 없거나 기본 먹이면 빌드 1 카드 그대로 */
+  ink?: InkLook;
 }
 
 /** 뒤 조작 우선순위: 낮은 것부터 뺀다(빈 자리·달·창 같은 형상은 끝까지 남김) */
 type Prio = 0 | 1 | 2 | 3 | 4;
 
-export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_LIMITS }: DreamSceneInput): DreamScene {
+export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_LIMITS, ink: inkIn }: DreamSceneInput): DreamScene {
   const seed = dreamCardSeed(card, strokes);
   const rnd = makeRng(seed ^ 0x9e3779b9);
   const lay = dreamCardLayout(aspect);
@@ -550,7 +553,8 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
   }
   if (segs.length > limits.segs) trimmed += segs.length - limits.segs;
 
-  const c0 = [0x3a, 0x42, 0x52];
+  // 옅은 먹(inkTone 0) = 회청 #3A4252. 고른 먹이 있으면 그 먹의 담묵 획 토큰을 몸 먹 쪽으로 35% 당긴 색(명도가 #3A4252와 비슷 — 카드 농담 범위 유지)
+  const c0 = inkIn && inkIn.id ? hexRgb(mixHex(inkIn.strokeDay, inkIn.dayBody, 0.35)) : [0x3a, 0x42, 0x52];
   const c1 = [0x1b, 0x1a, 0x18];
   const ink = [0, 1, 2].map((i) => (c0[i]! + (c1[i]! - c0[i]!) * B) / 255) as [number, number, number];
 

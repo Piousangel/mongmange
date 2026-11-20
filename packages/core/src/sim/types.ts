@@ -155,7 +155,8 @@ export interface State {
 }
 
 export type Event =
-  | { type: 'stroke'; at: Millis; raw: RawPoint[]; level?: AttachLevel }
+  /** birthShape = M1 타고남 플래그가 켜진 앱: 그 개체의 체형으로 부착(D-12 개정 ①). 없으면 기본형 — 빌드 1과 같다 */
+  | { type: 'stroke'; at: Millis; raw: RawPoint[]; level?: AttachLevel; birthShape?: boolean }
   | { type: 'washStroke'; at: Millis }
   | { type: 'grind'; at: Millis; durationMs: number }
   /** 몽망이 탭 = 쓰다듬기, holdMs ≥ 500 = 문지르기(길게 누르기). 종이 탭 = 그쪽을 봄 */

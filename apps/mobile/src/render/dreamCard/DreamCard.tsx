@@ -35,6 +35,8 @@ import {
   type DreamTextItem,
   type DreamVessel,
   type Ribbon,
+  type BodyShape,
+  type MongLook,
   type StrokeRecord,
   type sim,
 } from '@mong/core';
@@ -60,6 +62,8 @@ export interface DreamCardInput {
   /** 그 아침까지의 몽망이 획 기록(D-13 정본) */
   strokes: readonly StrokeRecord[];
   labels?: DreamCardLabels;
+  /** M1 그 아이(체형·빗 모양 → 카드 속 몸, 몸의 먹 → 마블링 옅은 먹빛). 없으면 기본형(빌드 1 카드 그대로, H3) */
+  look?: MongLook;
 }
 
 export function defaultLabels(card: sim.DreamCard): DreamCardLabels {
@@ -177,10 +181,10 @@ function deckleRect(x: number, y: number, w: number, h: number, amp: number, ste
 }
 
 /** 몽망이(감은 눈 — 꿈꾸는 중) 기하. 단위 W, 핵 중심 원점. 획 옷은 그리지 않는다 — 밤새 물에 풀려 마블링(획 빗질)이 됐다 */
-function bodyGeometry(nStrokes: number, s: number, comb = true) {
-  const core = polyPath(coreOutline(s, 160));
-  const combs = comb ? combStrands(nStrokes, s, COMB_REST).map((st) => buildRibbon(st.pts, { widths: st.widths, roundStart: true, roundEnd: true })) : [];
-  const ec = eyeCenters();
+function bodyGeometry(nStrokes: number, s: number, comb = true, shape?: BodyShape) {
+  const core = polyPath(coreOutline(s, 160, shape?.core));
+  const combs = comb ? combStrands(nStrokes, s, COMB_REST, shape).map((st) => buildRibbon(st.pts, { widths: st.widths, roundStart: true, roundEnd: true })) : [];
+  const ec = eyeCenters(shape?.core);
   const sh = eyeShape('closed');
   const ep = Skia.PathBuilder.Make();
   for (const cx of [ec.lx * s, ec.rx * s]) {
@@ -298,7 +302,8 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
 }
 
 export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx: number, aa: number): DreamArt {
-  const scene = buildDreamScene({ card: input.card, strokes: input.strokes, aspect });
+  const scene = buildDreamScene({ card: input.card, strokes: input.strokes, aspect, ink: input.look?.ink });
+  const shape = input.look?.shape;
   const layout = dreamCardLayout(aspect);
   const W = widthPx;
   const H = widthPx * layout.height;
@@ -313,14 +318,14 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   const uniforms = marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim);
   const wpx = scene.body.w * W;
   const vessels = scene.vessels.map((v) => vesselArt(v, c0, W, scene, (sft) => marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, sft), wpx));
-  const body = bodyGeometry(input.strokes.length, scene.body.s);
+  const body = bodyGeometry(input.strokes.length, scene.body.s, true, shape);
   const friend = scene.friend
     ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false) }
     : null;
   // 낙관: 주사 인면에 몽망이(빗 포함)를 양각으로 새김 — 글꼴 없이 그리는 이 앱만의 인장
   const sl = layout.seal;
   const plate = deckleRect(u(sl.x), u(sl.y), u(sl.size), u(sl.size), u(0.0016), u(0.003), scene.seed & 0xff);
-  const fig = bodyGeometry(0, 1.0);
+  const fig = bodyGeometry(0, 1.0, true, shape);
   const night = Math.max(1, input.card.night);
   const idx = (night - 1) % 7;
   const d = layout.dots;
@@ -579,8 +584,9 @@ export function DreamCard({
   width,
   aspect = '4:5',
   a11yLabel,
+  look,
 }: DreamCardInput & { width: number; aspect?: DreamAspect; /** 스크린리더 설명(모티프·아침 문장). 없으면 이름·문장 */ a11yLabel?: string }) {
-  const art = useMemo(() => makeDreamArt({ card, strokes }, aspect, width, 2), [card, strokes, aspect, width]);
+  const art = useMemo(() => makeDreamArt({ card, strokes, look }, aspect, width, 2), [card, strokes, aspect, width, look]);
   const lb = labels ?? defaultLabels(card);
   const H = art.H;
   return (

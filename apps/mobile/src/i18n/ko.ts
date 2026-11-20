@@ -28,6 +28,19 @@ export const ko = {
   'obj.inkstone.a11y': '벼루, 먹 갈기. 누르고 있는 동안 먹을 갑니다',
   'obj.dropper.a11y': '연적, 물 한 방울, 재우기',
   'obj.dropper.a11ySleepy': '연적, 물 한 방울, 몽망이가 졸려 해요',
+
+  // ── 먹 고르기(M1, 아트 7-1·11절 v1.3): 화면에 라벨 없음 — 이름은 길게 누를 때·스크린리더·목록으로 보기에만 ──
+  'ink.name': '{ink, select, songyeon {송연먹} yuyeon {유연먹} jayeon {자연먹} other {송화먹}}',
+  'ink.hue': '{ink, select, songyeon {푸른 기가 도는 먹} yuyeon {갈색 기가 도는 먹} jayeon {자줏빛이 도는 먹} other {솔잎 빛이 도는 먹}}',
+  'ink.sticks.a11y': '벼루 옆 먹 네 자루',
+  'ink.stick.a11y': '{name}, {hue}, 네 자루 중 {n}번째',
+  'ink.stick.hint': '이 먹을 골라 갈아요. 몽망이의 획이 이 먹으로 스며요',
+  'ink.list': '{name} 고르기',
+  'ink.chosen.a11y': '{name, josa, 을/를} 골랐어요. 지금까지 그은 획도 이 먹으로 스며요',
+  'ink.kept.a11y': '벼루 위 {name}',
+  'ink.changed.a11y': '{name, josa, 으로/로} 바꿨어요. 새로 긋는 획부터 이 먹이에요',
+  'note.inkChange': '먹 바꾸기 · 새 획부터',
+  'note.inkChange.a11y': '먹 바꾸기. 벼루 옆에 먹 네 자루를 놓아요. 지금까지 그은 획은 그대로예요',
   'obj.list': '{name} · {label}',
   'obj.list.hold': '{name} · {label} (누르고 있기)',
 

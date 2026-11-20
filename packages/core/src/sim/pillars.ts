@@ -119,6 +119,33 @@ export interface InkChoice {
   chosenAt: Millis | null;
   /** 유저가 고르지 않아 씨앗이 정한 먹 */
   seeded: boolean;
+  /**
+   * 첫 밤 뒤 '먹 바꾸기'(공방 노트, C-integrated 2-1·D-05): **새 획에만** 쓰는 먹. id(몸의 먹 — 번짐 고리·밤 몸·지난 획)는 그대로다.
+   * 획의 먹 = 그 획을 그은 시각(createdAt) 이전의 마지막 바꾸기, 없으면 id. 없으면 바꾼 적 없음(옛 세이브 호환)
+   */
+  changes?: InkChange[];
+}
+
+export interface InkChange {
+  id: InkId;
+  at: Millis;
+}
+
+/** 바꾸기 기록 상한(세이브 크기·조작 방지). 넘으면 오래된 것부터 버리지 않고 마지막 것을 덮는다 */
+export const INK_CHANGES_MAX = 32;
+
+/** 한 획의 먹(바꾸기 반영). 몸의 먹이 아직 없으면 null */
+export function inkOfStroke(ink: InkChoice, strokeAt: Millis): InkId | null {
+  let id = ink.id;
+  const ch = ink.changes;
+  if (ch) for (const c of ch) if (c.at <= strokeAt) id = c.id;
+  return id;
+}
+
+/** 지금 새 획에 쓰일 먹(벼루 위에 남은 한 자루) */
+export function currentInk(ink: InkChoice): InkId | null {
+  const ch = ink.changes;
+  return ch && ch.length > 0 ? ch[ch.length - 1]!.id : ink.id;
 }
 
 /** 씨앗이 고르는 먹(빌드 2: 첫 밤까지 고르지 않으면) */
@@ -277,6 +304,13 @@ export function invalidPillarField(s: Record<string, unknown>): string | null {
   if (!b || !isU32(b.seed) || !isU32(b.sealSeed) || !isNum(b.at) || !isNum(b.traitVersion) || (b.source !== 'tap' && b.source !== 'migrated')) return 'birth';
   const ink = s.ink as Record<string, unknown> | undefined;
   if (!ink || (ink.id !== null && !(INK_IDS as readonly unknown[]).includes(ink.id)) || (ink.chosenAt !== null && !isNum(ink.chosenAt)) || typeof ink.seeded !== 'boolean') return 'ink';
+  if (
+    ink.changes !== undefined &&
+    (!Array.isArray(ink.changes) ||
+      ink.changes.length > INK_CHANGES_MAX ||
+      !ink.changes.every((c) => c && (INK_IDS as readonly unknown[]).includes((c as InkChange).id) && isNum((c as InkChange).at)))
+  )
+    return 'ink';
   const nm = s.name as Record<string, unknown> | null | undefined;
   if (nm === undefined || (nm !== null && (typeof nm.text !== 'string' || !isNum(nm.at) || !nameIsClean(nm.text)))) return 'name';
   const tl = s.temperamentLabel as Record<string, unknown> | null | undefined;

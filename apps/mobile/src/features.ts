@@ -31,7 +31,33 @@ export const FEATURE_DEFAULTS = {
 
 export type FeatureId = keyof typeof FEATURE_DEFAULTS;
 
-let overrides: Partial<Record<FeatureId, boolean>> = {};
+let overrides: Partial<Record<FeatureId, boolean>> = fromQuery(typeof window !== 'undefined' && window.location ? window.location.search : '');
+
+/**
+ * 웹 확인용 쿼리(`?ff=birthTraits,inkChoice`, `?ff=m1` = M1 둘 다). 기본값은 그대로 두고 켜기만 한다.
+ * 네이티브는 window.location이 없어 늘 빈 값 → 개발 메뉴에서 켠다.
+ */
+export function fromQuery(search: string): Partial<Record<FeatureId, boolean>> {
+  // 배포 웹에서 쿼리로 미출시 기능이 켜지지 않게 개발 빌드에서만(테스트 환경은 __DEV__ 없음 → 허용, 리뷰 L4)
+  if (typeof __DEV__ !== 'undefined' && !__DEV__) return {};
+  const m = /[?&]ff=([^&]*)/.exec(search);
+  if (!m) return {};
+  let list: string;
+  try {
+    list = decodeURIComponent(m[1]!);
+  } catch {
+    return {}; // 잘못된 % 인코딩이 모듈 로드(앱 전체)를 죽이지 않게
+  }
+  const out: Partial<Record<FeatureId, boolean>> = {};
+  for (const raw of list.split(',')) {
+    const id = raw.trim();
+    if (id === 'm1') {
+      out.birthTraits = true;
+      out.inkChoice = true;
+    } else if (id in FEATURE_DEFAULTS) out[id as FeatureId] = true;
+  }
+  return out;
+}
 const subs = new Set<() => void>();
 
 export function isOn(id: FeatureId): boolean {
