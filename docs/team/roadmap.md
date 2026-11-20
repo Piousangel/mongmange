@@ -15,7 +15,7 @@
 - [x] A7 (D-24) 소형 렌더 LOD 구현 + 눈 사라짐 결함 조사 + 카드 몸 폭 10% 보장 + 아트 바이블 v1.4 개정 9건 — aa502c1
 
 ## B. 서버 (빌드 2, 12-10 목표)
-- [ ] B0 서버 1순위(11-23~12-03): 식별자 없는 집계 핑 + `config/v1.json` + `/m/{code}` 정적 페이지 + AASA·assetlinks — 측정 시계를 먼저 켠다
+- [x] B0 서버 1순위(11-23~12-03): 식별자 없는 집계 핑 + `config/v1.json` + `/m/{code}` 정적 페이지 + AASA·assetlinks — 측정 시계를 먼저 켠다 — 2240ff2
 - [x] B1 apps/server 골격: NestJS + Prisma + Supabase(로컬 CLI) + Docker(compose) + 헬스체크 + CI — a817d30
 - [ ] B2 필요할 때 익명 계정 + 14세 확인 + 세이브 맡겨 두기(리비전·이력 최대 4주·충돌본 30일)·되찾기 글귀·`DELETE /me`·`/delete`
 - [ ] B3 `/m` 정적 HTML(첫 페인트 1초) + 앱이 올린 OG·8초 루프 + CanvasKit 지연 로드(플래그 `webLive`) + AASA·assetlinks. 서버 렌더 없음. 공개 값은 링크 켤 때 고정
