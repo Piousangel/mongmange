@@ -10,6 +10,8 @@
 - [ ] A4 서버 아키텍처 v1 2차 = 기획 v2.2 6-2 표 '더할 것' 열(이력 4주, `public_meta` 파생 획 스냅숏·`nameVisibility`·8초 루프 슬롯, 핑 차원 `nt`·`wg`·`moon`, 플래그 키 5개, 모티프 팩 매니페스트) → 독립 리뷰
 - [ ] A5 빌드 1 운영 빌드(AAB) EAS + Play Console 앱 생성·비공개 테스트 트랙(오너: Play Console 로그인·신원 확인)
 
+- [ ] A6 (스승 원칙 7-1~3) 모바일 ESLint + CI(타입·테스트·린트), 리뷰 지적 → 린트 규칙 승격(useEffect·setTimeout 범주 규칙), `pnpm verify` 하나로 캡처 검증 통합, docs/team/feature-map.md(기능 지도)
+
 ## B. 서버 (빌드 2, 12-10 목표)
 - [ ] B0 서버 1순위(11-23~12-03): 식별자 없는 집계 핑 + `config/v1.json` + `/m/{code}` 정적 페이지 + AASA·assetlinks — 측정 시계를 먼저 켠다
 - [ ] B1 apps/server 골격: NestJS + Prisma + Supabase(로컬 CLI) + Docker(compose) + 헬스체크 + CI
