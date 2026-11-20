@@ -36,7 +36,7 @@
 - [x] C4 보름밤: `packages/core` 달 위상 순수 함수(현지 날짜) + 번들 모티프 3 + 원격 모티프 팩. 숫자 없음 — 679c4d1
 - [ ] C5 (E2로 옮김 — 1.0 직후)
 - [x] C6 꿈 모티프 25개 + 이레 이후 30일 콘텐츠 — e5ee2cf
-- [ ] C7 이레 두루마리 영상(자체 인코더, 12-05까지 실패 시 이미지판)
+- [ ] C7 이레 두루마리 영상(자체 인코더, 12-05까지 실패 시 이미지판) — 1단계 3e3b07f(타임라인·렌더·계약), 남은 것: 인코더 모듈(C10)·12-05 실기기
 - [ ] C8 아이콘 3안·미리보기 영상·스토어 스크린샷(실제 화면, 주연 = 얼굴·'획 → 몸'·아침 카드)
 - [ ] C9 iOS 빌드·TestFlight(오너: Apple Developer)
 - [ ] C10 빌드 2 네이티브 묶음 한 번: `expo-updates`(채널·롤백 규칙), `associatedDomains`, `intentFilters`(EAS 서명 키 + Play 앱 서명 키), 위젯 타깃(`@bacons/apple-targets`·App Group·로컬 Expo 모듈), `react-native-android-widget` → 12-05 전후 EAS 리허설 빌드
