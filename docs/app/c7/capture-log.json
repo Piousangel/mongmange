@@ -1,0 +1,131 @@
+{
+  "log": {
+    "share-name-on": [
+      {
+        "file": "share-name-on-f000.png",
+        "i": 0,
+        "w": 1080,
+        "h": 1920,
+        "ms": 204,
+        "bytes": 48168
+      },
+      {
+        "file": "share-name-on-f012.png",
+        "i": 12,
+        "w": 1080,
+        "h": 1920,
+        "ms": 225,
+        "bytes": 110211
+      },
+      {
+        "file": "share-name-on-f060.png",
+        "i": 60,
+        "w": 1080,
+        "h": 1920,
+        "ms": 206,
+        "bytes": 188241
+      },
+      {
+        "file": "share-name-on-f120.png",
+        "i": 120,
+        "w": 1080,
+        "h": 1920,
+        "ms": 211,
+        "bytes": 284334
+      },
+      {
+        "file": "share-name-on-f165.png",
+        "i": 165,
+        "w": 1080,
+        "h": 1920,
+        "ms": 217,
+        "bytes": 345258
+      },
+      {
+        "file": "share-name-on-f195.png",
+        "i": 195,
+        "w": 1080,
+        "h": 1920,
+        "ms": 202,
+        "bytes": 345690
+      },
+      {
+        "file": "share-name-on-f215.png",
+        "i": 215,
+        "w": 1080,
+        "h": 1920,
+        "ms": 266,
+        "bytes": 364575
+      },
+      {
+        "file": "share-name-on-f239.png",
+        "i": 239,
+        "w": 1080,
+        "h": 1920,
+        "ms": 225,
+        "bytes": 368520
+      }
+    ],
+    "share-name-off": [
+      {
+        "file": "share-name-off-f215.png",
+        "i": 215,
+        "w": 1080,
+        "h": 1920,
+        "ms": 250,
+        "bytes": 362520
+      },
+      {
+        "file": "share-name-off-f239.png",
+        "i": 239,
+        "w": 1080,
+        "h": 1920,
+        "ms": 245,
+        "bytes": 365748
+      }
+    ],
+    "loop": [
+      {
+        "file": "loop-f000.png",
+        "i": 0,
+        "w": 540,
+        "h": 675,
+        "ms": 184,
+        "bytes": 9918
+      },
+      {
+        "file": "loop-f060.png",
+        "i": 60,
+        "w": 540,
+        "h": 675,
+        "ms": 124,
+        "bytes": 31521
+      },
+      {
+        "file": "loop-f120.png",
+        "i": 120,
+        "w": 540,
+        "h": 675,
+        "ms": 101,
+        "bytes": 34848
+      },
+      {
+        "file": "loop-f181.png",
+        "i": 181,
+        "w": 540,
+        "h": 675,
+        "ms": 117,
+        "bytes": 35229
+      },
+      {
+        "file": "loop-f191.png",
+        "i": 191,
+        "w": 540,
+        "h": 675,
+        "ms": 112,
+        "bytes": 20862
+      }
+    ]
+  },
+  "errors": []
+}

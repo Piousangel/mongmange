@@ -3,6 +3,9 @@ import type { ShareResult } from './native';
 
 export type { ShareResult } from './native';
 
+/** 네이티브와 같은 이름(웹은 캐시 폴더가 없어 쓰지 않는다 — 영상 계약의 dir 값 맞춤) */
+export const SHARE_DIR = 'mong-share';
+
 export function shareSupported(): boolean {
   return typeof document !== 'undefined';
 }
@@ -45,4 +48,9 @@ export async function sharePng(base64: string, fileName: string, dialogTitle: st
     console.warn('[share] 실패:', e);
     return 'failed';
   }
+}
+
+/** 웹에는 영상 인코더가 없다(이레 영상은 네이티브 전용) — 호출되면 이미지판으로 떨어지게 'unavailable'(시트를 열기 전 실패) */
+export async function shareFile(_uri: string, _mimeType: string, _uti: string, _dialogTitle: string): Promise<ShareResult> {
+  return 'unavailable';
 }

@@ -41,6 +41,7 @@
 | M5 함께 숨 쉬기(빌드 3) | ③ | D-20 | 미구현 | — | `breathe` = 끔 | — | — |
 | C6 꿈 콘텐츠(모티프 25·점적 해금·반복 방지 R1~R5·카드 캡션·처음 꾼 꿈) | ②③ | D-25(C6 줄 2), dreams-30days v1.1 1~3절 | `c/sim/dreamMotifs.ts`·`dream.ts`(`pickNightCard`)·`reduce.ts`(doWake·`nightCtx`), `m/game/text.ts`(`dreamCaption`)·`store.ts`(`nightFields`), `m/screens/MorningScreen.tsx`·`NoteSheet.tsx` | `ct/dream-rules`(정본 시뮬 한 밤씩 대조·200회 표, 문서 2000회 표는 `--heavy`), `ct/dream-wake`(켬→끔 복귀·해금 변이), `ct/dream-card`(제품 plain), `ct/motif-distinct`(64px 틀, C14 전 대상 0 단언), `mt/dream-text` | `dreamContent` = 끔(`?ff=dreamContent`). 새 15개는 형상(C14) 전이라 제품 빌드에서 안 고름 | `dream-card-capture`(개발 빌드 임시 형상) | 11-20 웹(카드) |
 | 보름밤(달 위상·번들 모티프, C4 679c4d1 + C6 doWake 연결) | ②③ | D-25 보름 사흘, 로드맵 C4 | `c/moon/*`, `c/sim/dream.ts`, `c/sim/reduce.ts` | `ct/moon-phase`·`moon-motifs`·`moon-night-card`·`dream-wake`, `mt/moon-contract.test.ts` | `moonNight` = 끔(`?ff=moonNight`, 보름 캡션은 이 플래그만으로도). 번들 3은 자리표시 형상·en 장면 초안이라 제품 빌드에서 안 고름 | — (자리표시 형상, C14) | 11-20 문서 |
+| C7 이레 두루마리 영상(타임라인·프레임 렌더·인코더 계약, 실패·미등록 = 두루마리 PNG) | ② | DECISIONS 'C7', D-20, B-identity-share 4-2 ③, architecture 3-5-3 | `c/visual/ireScroll.ts`, `m/render/ireVideo/*`, `m/share/ireVideo.ts`(`IreEncoder` 계약), `m/screens/IreFramesBoard.tsx`(개발) | `ct/ire-scroll`, `mt/ire-video`(가짜 인코더 분기·계약), `mt/skia/ire-frames`(1080은 `--heavy`) | `ireVideo` = 끔. 인코더 네이티브 모듈 미구현(C10) — 켜도 이미지판 | `c7-capture` → `docs/app/c7/`(비고: 인코더는 원시 RGBA·차례·동시 2장, 파일명·메타는 앱 고정, 아트 판정 `ART-CHECK.md`) | 11-20 웹 캡처 |
 
 ## 3. 서버·정적 배포(B0·B1)
 

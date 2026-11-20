@@ -112,6 +112,8 @@ export interface DreamArt {
   friend: { t: object[]; geo: BodyGeo } | null;
   ringPx: { x: number; y: number; r: number };
   seal: { plate: SkPath; figure: SkPath; combs: Verts; eyes: SkPath };
+  /** 낙관을 그리나(이레 영상 카드 줄은 끔 — 주사는 한 화면 한 곳) */
+  showSeal: boolean;
   dots: { x: number; y: number; r: number; kind: 'past' | 'now' | 'future' }[];
   /** 장치 px 하한을 건 블러(그림 단위): 그림자·이불 접힘 그늘 */
   blur: { shadow: number; fold: number };
@@ -125,6 +127,8 @@ export interface DreamArtOpts {
   ptPerUnit?: number;
   /** 그림 1단위 = 몇 장치 px(화면 Canvas = 화면 밀도, 오프스크린 = 1) */
   devicePerUnit?: number;
+  /** 낙관(주사) 그리기, 기본 켬. 끄는 곳: 이레 영상 카드 칸(큰 인장 하나만, C7 리뷰 M-4) */
+  seal?: boolean;
 }
 
 const GOLD_HEX = '#C9A45C';
@@ -369,6 +373,7 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
     friend,
     ringPx: { x: c0.x + u(scene.ringC.x), y: c0.y + u(scene.ringC.y), r: u(pr.r) },
     seal: { plate, figure: fig.core, combs: fig.combs, eyes: fig.eyes },
+    showSeal: opts.seal ?? true,
     dots,
     // 블러 마스크 장치 0.5px 하한(눈 소실 결함과 같은 GPU 문턱). 큰 카드는 입력 그대로
     blur: { shadow: blurFloorPt(W * 0.012, opts.devicePerUnit ?? 1), fold: blurFloorPt(W * 0.003, opts.devicePerUnit ?? 1) },
@@ -477,14 +482,16 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
           ),
         )}
         {/* 낙관(주사, 한 화면 한 곳) */}
-        <Group opacity={0.93}>
-          <Path path={art.seal.plate} color={PALETTE.day.accent} />
-          <Group transform={sealT}>
-            <Path path={art.seal.figure} color={PALETTE.day.bg} />
-            <Vertices vertices={art.seal.combs.vertices} indices={art.seal.combs.indices} mode="triangles" color={PALETTE.day.bg} />
-            <Path path={art.seal.eyes} color={PALETTE.day.accent} />
+        {art.showSeal && (
+          <Group opacity={0.93}>
+            <Path path={art.seal.plate} color={PALETTE.day.accent} />
+            <Group transform={sealT}>
+              <Path path={art.seal.figure} color={PALETTE.day.bg} />
+              <Vertices vertices={art.seal.combs.vertices} indices={art.seal.combs.indices} mode="triangles" color={PALETTE.day.bg} />
+              <Path path={art.seal.eyes} color={PALETTE.day.accent} />
+            </Group>
           </Group>
-        </Group>
+        )}
       </Group>
     </Group>
   );

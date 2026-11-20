@@ -7,7 +7,7 @@ type Sharing = typeof import('expo-sharing');
 const FileSystem = optionalModule<FS>(() => require('expo-file-system'));
 const ExpoSharing = optionalModule<Sharing>(() => require('expo-sharing'));
 /** 공유 임시 파일 전용 캐시 폴더. **다음 공유 전에** 통째로 비운다(받는 앱이 아직 읽는 중일 수 있어 공유 직후에는 지우지 않음, 리뷰 L-3) */
-const SHARE_DIR = 'mong-share';
+export const SHARE_DIR = 'mong-share';
 
 export type ShareResult = 'shared' | 'saved' | 'unavailable' | 'failed';
 
@@ -30,6 +30,19 @@ export async function sharePng(base64: string, fileName: string, dialogTitle: st
     return 'shared';
   } catch (e) {
     console.warn('[share] 실패:', e);
+    return 'failed';
+  }
+}
+
+/** 이미 파일로 있는 결과물(이레 영상 MP4 — 인코더가 SHARE_DIR에 씀)을 공유 시트로. 그 폴더는 다음 공유 전에 비운다. unavailable = 시트를 열기 전, failed = 시트를 연 뒤 실패 */
+export async function shareFile(uri: string, mimeType: string, uti: string, dialogTitle: string): Promise<ShareResult> {
+  if (!ExpoSharing) return 'unavailable';
+  try {
+    if (!(await ExpoSharing.isAvailableAsync())) return 'unavailable';
+    await ExpoSharing.shareAsync(uri, { mimeType, UTI: uti, dialogTitle });
+    return 'shared';
+  } catch (e) {
+    console.warn('[share] 파일 공유 실패:', e);
     return 'failed';
   }
 }

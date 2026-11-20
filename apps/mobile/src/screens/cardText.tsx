@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { DreamCardInput, DreamCardLabels } from '../render/dreamCard/DreamCard';
 import { useFeature } from '../features';
-import { shareDreamCard, shareIreScroll, shareSupported } from '../share/shareCard';
+import { useStrokeInks } from '../game/look';
+import { shareIre, type IreShareResult } from '../share/ireVideo';
+import { shareDreamCard, shareSupported } from '../share/shareCard';
 import { appendA11y, motifName, motifScene } from '../game/text';
 import { dayName, nightName as nightOf, t } from '../i18n';
 import { KText } from '../ui/type';
@@ -46,9 +48,13 @@ export function ShareBar({ input, ireState, dark = false }: { input: DreamCardIn
   // 연타 잠금: state(busy)는 다시 그리기 전까지 옛 값이라 같은 틱의 두 번째 누름을 못 막는다(리뷰 M-4)
   const lock = useRef(false);
   const mounted = useRef(true);
+  // 이레 영상 인코딩(최대 15초) 중에 화면을 떠나면 펌프를 멈추고 시트도 열지 않는다(C7 리뷰 M-2)
+  const abort = useRef<AbortController | null>(null);
+  const strokeInks = useStrokeInks(ireState);
   useEffect(
     () => () => {
       mounted.current = false;
+      abort.current?.abort();
       if (noteTimer.current) clearTimeout(noteTimer.current);
     },
     [],
@@ -59,11 +65,14 @@ export function ShareBar({ input, ireState, dark = false }: { input: DreamCardIn
     lock.current = true;
     setBusy(kind);
     setNote('');
-    let r: Awaited<ReturnType<typeof shareDreamCard>>;
+    let r: IreShareResult;
+    const ac = new AbortController();
+    abort.current = ac;
     try {
-      r = kind === 'ire' && ireState ? await shareIreScroll(ireState, input.look) : await shareDreamCard(input, kind === 'story' ? '9:16' : '4:5');
+      r = kind === 'ire' && ireState ? await shareIre(ireState, input.look, { strokeInks, signal: ac.signal }) : await shareDreamCard(input, kind === 'story' ? '9:16' : '4:5');
     } finally {
       lock.current = false;
+      if (abort.current === ac) abort.current = null;
     }
     if (!mounted.current) return;
     setBusy(null);

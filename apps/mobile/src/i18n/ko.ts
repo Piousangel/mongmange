@@ -113,6 +113,8 @@ export const ko = {
   'update.title': '새 버전이 필요해요',
   'update.body': '몽망이는 더 새 버전의 앱에서 지내고 있어요. 스토어에서 앱을 업데이트하면 그대로 이어져요.',
   'scroll.subtitle': '몽망이의 일곱 밤',
+  // 결 이름 8(B 2-3·기획 2-5 가안, 작가가 언어별로 다시 쓴다 — D-17). 이레 두루마리 영상 꼬리표(C7)가 먼저 쓴다
+  'temper.name': '{key, select, tempoNeg {느긋결} tempoPos {날랜결} boldnessNeg {여린결} boldnessPos {굳센결} closenessNeg {홀로결} closenessPos {곁결} curiosityNeg {아늑결} other {먼눈결}}',
   'card.rendering': '인화 중…',
 
   // ── 공방 노트(아트 7-2) ──

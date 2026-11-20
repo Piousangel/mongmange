@@ -115,6 +115,8 @@ export const en: Messages = {
   'update.title': 'A newer version is needed',
   'update.body': `Your ${M} lives in a newer version of the app. Update from the store and everything carries on.`,
   'scroll.subtitle': `${M}’s seven nights`,
+  // 가안 v1.1(기획 2-5) — 원어민 2명 이상 검수 전
+  'temper.name': '{key, select, tempoNeg {Slow-spread} tempoPos {Quick-breath} boldnessNeg {Fine-tip} boldnessPos {Firm-stroke} closenessNeg {Own-pace} closenessPos {Close-by} curiosityNeg {Homebody} other {Far-gazer}}',
   'card.rendering': 'Developing…',
 
   // ── studio notebook ──

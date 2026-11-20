@@ -41,6 +41,11 @@ export const FEATURE_DEFAULTS = {
    * 제품 빌드에서는 켜도 고르지 않는다(`moonMotifBlockers`). 원격 rollout·받아 둔 원격 보름 id는 B4 로더가 넘길 자리
    */
   moonNight: false,
+  /**
+   * C7 이레 두루마리 **영상**(9:16·8초·240프레임). 인코더 네이티브 모듈(C10 묶음, 미구현)이 등록되어야 실제로 영상이 나오고,
+   * 없거나 실패하면 같은 버튼이 두루마리 이미지(빌드 1)로 떨어진다. 12-05 관문(중급 Android 8초 + 소리 15초 안) 통과 뒤 켠다
+   */
+  ireVideo: false,
   // ── 빌드 3(12-19) ──
   /** M5 함께 숨 쉬기 */
   breathe: false,

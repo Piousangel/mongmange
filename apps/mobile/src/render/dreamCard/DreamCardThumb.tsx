@@ -12,18 +12,18 @@ const CACHE_MAX = 48;
 const cache = new Map<string, SkImage>();
 let queue: Promise<unknown> = Promise.resolve();
 
-function keyOf(card: sim.DreamCard, strokes: readonly StrokeRecord[], px: number, look?: MongLook, ptPerPx = 1, lod = false): string {
+function keyOf(card: sim.DreamCard, strokes: readonly StrokeRecord[], px: number, look?: MongLook, ptPerPx = 1, lod = false, seal = true): string {
   // 그 아이(체형·빗 모양·몸의 먹)가 다르면 다른 그림
   const lk = look ? `${look.shape.aspect}|${look.shape.combRatios.join(',')}|${look.ink.id ?? '-'}` : 'base';
-  return `${dreamCardSeed(card, strokes)}:${card.motifId}:${px}:${lk}:${lod ? `lod${ptPerPx.toFixed(3)}` : '-'}`;
+  return `${dreamCardSeed(card, strokes)}:${card.motifId}:${px}:${lk}:${lod ? `lod${ptPerPx.toFixed(3)}` : '-'}${seal ? '' : ':noseal'}`;
 }
 
 /**
  * 캐시에 있으면 바로, 없으면 줄을 서서 찍는다. 실패하면 null(평평한 한지 자리로 둔다).
- * ptPerPx = 화면 pt / 이미지 px(썸네일 LOD가 몸 폭을 pt로 잰다), lod = 플래그 thumbLod
+ * ptPerPx = 화면 pt / 이미지 px(썸네일 LOD가 몸 폭을 pt로 잰다), lod = 플래그 thumbLod, seal = 낙관(이레 영상 카드 줄은 false)
  */
-export function thumbImage(card: sim.DreamCard, strokes: readonly StrokeRecord[], px: number, look?: MongLook, ptPerPx = 1, lod = false): Promise<SkImage | null> {
-  const key = keyOf(card, strokes, px, look, ptPerPx, lod);
+export function thumbImage(card: sim.DreamCard, strokes: readonly StrokeRecord[], px: number, look?: MongLook, ptPerPx = 1, lod = false, seal = true): Promise<SkImage | null> {
+  const key = keyOf(card, strokes, px, look, ptPerPx, lod, seal);
   const hit = cache.get(key);
   if (hit) return Promise.resolve(hit);
   const job = queue.then(async () => {
@@ -31,7 +31,7 @@ export function thumbImage(card: sim.DreamCard, strokes: readonly StrokeRecord[]
     if (again) return again;
     try {
       // 표본 1(aa)·저해상도: 썸네일 크기에서는 계단이 안 보인다
-      const art = makeDreamArt({ card, strokes, look }, '4:5', px, 1, { lod, ptPerUnit: ptPerPx, devicePerUnit: 1 });
+      const art = makeDreamArt({ card, strokes, look }, '4:5', px, 1, { lod, ptPerUnit: ptPerPx, devicePerUnit: 1, seal });
       const img = await drawAsImage(<DreamCardArt art={art} />, { width: px, height: Math.round(art.H) });
       if (!img) return null;
       cache.set(key, img);

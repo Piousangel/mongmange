@@ -10,7 +10,7 @@ export type { DreamCardImage, DreamCardImageOptions, IreScrollInput } from './re
 
 let provider: Promise<SkTypefaceFontProvider | null> | null = null;
 /** 앱 번들 명조(한국어 Gowun Batang, 영어 Cormorant 두 벌)를 Skia 글꼴 공급자에 한 번 등록. 실패하면 null(시스템 글꼴로 계속) */
-function cardFonts(): Promise<SkTypefaceFontProvider | null> {
+export function cardFonts(): Promise<SkTypefaceFontProvider | null> {
   if (!provider) {
     provider = (async () => {
       try {
@@ -38,7 +38,7 @@ function cardFonts(): Promise<SkTypefaceFontProvider | null> {
   return provider;
 }
 
-function drawText(canvas: SkCanvas, fonts: SkTypefaceFontProvider | null, family: string, text: string, x: number, y: number, size: number, color: string, align: 'left' | 'center' | 'right', width: number, spacing: number) {
+export function drawText(canvas: SkCanvas, fonts: SkTypefaceFontProvider | null, family: string, text: string, x: number, y: number, size: number, color: string, align: 'left' | 'center' | 'right', width: number, spacing: number) {
   const pb = Skia.ParagraphBuilder.Make({ textAlign: align === 'center' ? TextAlign.Center : align === 'right' ? TextAlign.Right : TextAlign.Left }, fonts ?? undefined);
   pb.pushStyle({ color: Skia.Color(color), fontSize: size, fontFamilies: [family, CARD_FONT, 'serif'], letterSpacing: spacing });
   pb.addText(text);
@@ -132,7 +132,7 @@ export async function renderIreScrollImage(input: IreScrollInput, width = 1080):
 }
 
 /** surface → PNG base64, 그리고 스냅숏·surface를 바로 놓는다(GC에 맡기지 않음) */
-function encodeAndDispose(surface: SkSurface, width: number, height: number): DreamCardImage {
+export function encodeAndDispose(surface: SkSurface, width: number, height: number): DreamCardImage {
   const snap = surface.makeImageSnapshot();
   try {
     return { width, height, mime: 'image/png', base64: snap.encodeToBase64() };

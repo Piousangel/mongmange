@@ -12,6 +12,7 @@ import { IntroScreen } from './src/screens/IntroScreen';
 import { StrokeScreen } from './src/screens/StrokeScreen';
 import { DreamCardPreview } from './src/render/dreamCard/DreamCardPreview';
 import { M1Board } from './src/screens/M1Board';
+import { IreFramesBoard } from './src/screens/IreFramesBoard';
 import { NetBridge } from './src/net/NetBridge';
 
 // 기본 = 앱 흐름(GameApp). 스파이크 캡처용 URL은 그대로: ?screen=day|night|intro|stroke &day=0|7 &attach=1|2|3 &body=A|B &rm=1 &vclock=1 &clean=1
@@ -40,6 +41,7 @@ function Root() {
       {screen === 'intro' && <IntroScreen />}
       {screen === 'card' && <DreamCardPreview />}
       {screen === 'm1' && <M1Board />}
+      {screen === 'ire' && <IreFramesBoard />}
       {screen === 'stroke' && <StrokeScreen initial={p.day} />}
       {(screen === 'day' || screen === 'night') && <HomeScreen day={p.day} startNight={screen === 'night'} />}
       {spike !== null && (
