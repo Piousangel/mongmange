@@ -12,6 +12,7 @@ on:
     paths: &paths
       - 'apps/server/**'
       - 'packages/core/**'
+      - 'packages/contract/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/server-ci.yml'
@@ -113,6 +114,8 @@ jobs:
           curl -fsS -H 'x-ready-token: local-ready-token-0000' localhost:8080/readyz
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/readyz)" = 404
           test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/api/v1/saves/validate)" = 404
+          # B0 집계 핑: 엉터리 본문도 조용히 204(받음과 버림을 구별하지 않는다)
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"deviceId":"x"}' localhost:8080/api/v1/ping)" = 204
       - if: failure()
         run: docker compose -f apps/server/compose.yaml logs
       - if: always()

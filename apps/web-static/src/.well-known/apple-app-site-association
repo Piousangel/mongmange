@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["{{APPLE_TEAM_ID}}.{{IOS_BUNDLE_ID}}"],
+        "components": [{ "/": "/m/*", "comment": "공유 링크만 앱으로 연다(architecture.md 3-5). 랜딩·정적 파일은 웹" }]
+      }
+    ]
+  }
+}

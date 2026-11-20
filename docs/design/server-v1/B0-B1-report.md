@@ -1,4 +1,6 @@
-# B1 서버 골격 결과 보고 (2026-11-20)
+# B1 서버 골격 · B0 측정 시계 결과 보고 (2026-11-20)
+
+> B0(측정 시계)는 맨 아래 **7절**. 1~6절은 B1 기록.
 
 - 범위: 로드맵 B1(`apps/server` 골격: NestJS + Prisma + 로컬 DB + Docker·compose + 헬스체크 + CI). B0(집계 핑·`config/v1.json`·`/m` 임시 정적·AASA·assetlinks)는 **하지 않았다**. 골격 위에 얹는 다음 작업이다(아래 '남은 일').
 - 정본: `architecture.md` v2 2-5·3-1·3-2·3-8·6절, DECISIONS D-21·D-23. 서버 v2 독립 리뷰가 진행 중이라 테이블 열은 최소로 두었고, 리뷰에서 먼저 나온 네 항목(아래 3절)은 반영했다.
@@ -105,3 +107,86 @@
 | GitHub Actions | 실행 못 함(푸시 안 함) |
 
 - compose에서 하나 고침: Postgres 초기화 SQL을 도는 임시 서버가 유닉스 소켓만 열어 `pg_isready`(소켓)가 init 도중 healthy가 되고, migrate가 재시작 틈에 붙어 실패했다 → 헬스체크를 TCP(`-h 127.0.0.1`)로 바꾸고 `start_period: 120s`(이 Mac의 Docker가 느림). CI 서비스 헬스체크도 TCP로.
+
+## 7. B0 측정 시계 (2026-11-20, 커밋 전)
+
+- 범위: 로드맵 B0 — 식별자 없는 집계 핑 + `config/v1.json` + `content/v1.json`(빈 목록) + `/m/{code}` 임시 정적 페이지 + AASA·assetlinks. **배포·계정 작업 없음**(B6, 오너 승인 필요). 결정은 DECISIONS 'B0 측정 시계 구현 결정'.
+- 정본: architecture.md v2.1 3-2·3-5·3-6·3-7·3-9·3-10·4-1·5-2, dreams-30days v1.1 5-2(스키마 1), 처리방침 3-1, B1 리뷰의 IP·로그·레이트 리밋 규칙.
+
+### 7-1. 만든 것
+
+| 영역 | 내용 | 파일 |
+|---|---|---|
+| 계약(새 패키지) | `@mong/contract`(zod 4.6.7, 한 파일): 핑 스키마(모든 객체 strict·이벤트 화이트리스트 10 + `open`·차원 3·날짜는 일 단위·appVer/lang/platform 닫힌 형식), `pingDateOk`(서버 날짜 ±2일), `pingToCells`, config(앱 lenient / CI strict), content 매니페스트, 모티프 파일 스키마 1(zone·family 정식, scene 필수, ko 12·22·45 / en 32·45·100, 3-7 금지어, 경로 데이터만) | `packages/contract/` |
+| 서버 | `POST /api/v1/ping` → 204·`no-store`. 검증 실패·날짜 밖은 조용히 204. 칸 메모리 합산 → **요청 안 flush**(10초) + 종료 때 flush(`beforeApplicationShutdown`, Prisma 끊기는 `onApplicationShutdown`으로 옮김), 실패 시 메모리에 되돌림, 칸 상한 5000. IP 접두당 20/분(같은 전역 카운터). 컨트롤러는 요청 객체를 받지 않는다 | `apps/server/src/metrics/*` |
+| DB | `app.metric_daily`(PK = day·event·cohort_day·day_n·platform·app_ver·lang·nt·wg·moon, count) + RLS + Data API 롤 권한 회수. 한 문장 `unnest` UPSERT | `prisma/schema.prisma`, `migrations/20261120120000_metric_daily` |
+| 앱 | `src/net/`: 핑 클라이언트(아웃박스 `mong.net.outbox` 128개 상한, 7일 지난 것·4xx 버림, 5xx·429·오프라인은 다음 기회, 같은 차원끼리 32개씩 배치, 열기 하루 한 번, 평생 한 번 이벤트, 설정 끄기 = 아웃박스 비움, 보내기 전 contract 스키마로 한 번 더 거름), `deriveEvents`(세이브 변화 → first_tap·first_night·ire7·name_set·ink_chosen, 화면 코드 수정 없음), 원격 설정 로더(캐시·실패 시 마지막 캐시/번들 기본값·minAppBuild·minBundle·rollout·TTL 1시간·포그라운드 15분), `NetBridge`(그리지 않는 컴포넌트). 주소(`EXPO_PUBLIC_API_BASE`·`EXPO_PUBLIC_STATIC_BASE`)가 비면 no-op = **기본 꺼짐**. 웹은 핑 안 보냄 | `apps/mobile/src/net/*`, `App.tsx` 한 줄 |
+| 정적 | `apps/web-static/`(정본 6-1 위치): `src/`(config·content·AASA·assetlinks·`/m/index.html`·랜딩·robots) → `scripts/build.mjs`가 `public/`로. 팀 ID·지문·App Store id 주입, **비었거나 자리표시자 모양이면 실패**(firebase.json predeploy), app.json 번들 id·패키지와 대조, config strict·매니페스트·모티프 파일(존재·바이트·sha256·이름 해시·스키마 1) 검사, HTML 외부 스크립트·분석·비콘·허용 밖 주소 금지. `/m`은 주소를 읽지 않고 `no-referrer`·noindex·CSP(인라인 해시 하나, connect 금지), 스토어 링크 캠페인 값에 코드 없음 | `apps/web-static/*` |
+| CI | `server-ci.yml` 경로에 contract 추가 + compose 스모크에 핑 204. 새 `static-ci.yml`(contract typecheck·test, web-static 시험, 값 없이 빌드하면 실패 확인). Dockerfile·check-bundle에 contract(번들 안, zod 버전 서버와 일치 검사) | `.github/workflows/*`, `Dockerfile`, `scripts/check-bundle.mjs` |
+
+### 7-2. 그럴듯한 오답 판별 검사(OPERATING 8-1)
+
+| 그럴듯한 오답 | 떨어뜨리는 검사 |
+|---|---|
+| 서버가 모르는 키(기기 id·씨앗·ms 시각·IP)를 '무시하고' 핑을 받아 준다 | contract 17종 거부 + 서버 e2e 9종: 칸 0개·DB 쓰기 0 |
+| DB로 가는 값에 시각·씨앗·IP 모양이 섞인다 | e2e: UPSERT 값이 일 단위 날짜·열거·버전·작은 정수뿐(9자리 이상 숫자·IPv4 없음) |
+| 집계 표에 사람·시각을 담을 열이 생긴다 | test:db: `metric_daily` 열 목록 고정 + timestamp·uuid·inet·json 열 없음 |
+| 앱 핑에 세이브 씨앗·인장 씨앗·설치 ms가 실린다 | mobile: 서로 다른 세이브 200개에서 보낸 핑 JSON에 그 값 0회, 6자리 이상 숫자 0, 키 7개 고정 |
+| 로그에 IP·본문이 남는다 | log-redaction에 식별 값을 실은 핑 추가 → IP·코드·쿼리 0건, route `/api/v1/ping` |
+| 팀 ID·지문이 빈 채로 AASA가 배포된다 | web-static: 빈 값·`XXXXXXXXXX`·0000… 지문·중복 지문 → 빌드 실패, `public/` 남기지 않음 |
+| `/m` 페이지가 코드를 분석·외부로 흘린다 | web-static: 외부 스크립트·비콘·허용 밖 주소 주입 시 실패, 페이지가 `location`을 읽지 않음, CSP 해시 일치 |
+| 모티프 매니페스트가 없는 파일·틀린 해시·금지어 문구를 가리킨다 | web-static·contract 고장 사본 시험 |
+
+### 7-3. 검증(실행 명령과 결과)
+
+| 명령 | 결과 |
+|---|---|
+| `pnpm typecheck`(루트) | contract·core·server·mobile 모두 Done |
+| `pnpm --filter @mong/contract test` | 36개 통과(식별 값 거부 17종 포함) |
+| `pnpm --filter server test` | 8파일 **58개 통과**(핑 e2e 6 추가, 로그 가림에 핑 포함) |
+| `pnpm --filter server build && check:bundle` | dist 4개, `@mong/core`·`@mong/contract` import 0건, contract의 zod 버전 서버와 일치 |
+| compose db + `prisma migrate deploy`(prisma 롤) + `test:db` | 마이그레이션 2개 적용, **9개 통과**(metric_daily 열 고정·실제 UPSERT 합산·anon 거부·RLS) |
+| `prisma migrate diff … --exit-code` | No difference detected |
+| `docker build -f apps/server/Dockerfile` | 성공(contract 포함) |
+| compose 스모크 | `/healthz` 200, 엉터리 핑 204, 정상 핑 2회 204(10초 안 → 메모리) → `docker compose stop`(SIGTERM) 뒤 `metric_daily`에 open·first_tap 각 count 2(종료 flush 확인), 엉터리 핑은 행 없음, api 로그에 `/api/v1/ping` 3줄·IP·deviceId 0건 |
+| `pnpm --filter mobile exec vitest run` | 14파일 **116개 통과**(net 17개 추가, skia 포함 전부 통과) |
+| `packages/core vitest run --testTimeout=200000` | 17파일 229개 통과 |
+| `pnpm --filter web-static test` | 11개 통과 |
+| `node apps/web-static/scripts/build.mjs`(값 없음 / 가짜 값) | exit 1(세 이름 나열) / 7개 파일 생성 |
+| Playwright 390px `/m` ko·en | 언어 전환 확인, 콘솔 오류 0 — `docs/design/server-v1/b0/m-page-{ko,en}.png` |
+| GitHub Actions | 실행 못 함(푸시 안 함) |
+
+### 7-4. 남은 일·주의
+
+- **오너 값 대기**: `APPLE_TEAM_ID`(11-26)·`ANDROID_CERT_SHA256`(EAS 업로드 키 + 11-30 Play 앱 서명 키 — 정본은 둘 다)·`APP_STORE_ID`. 지금 빌드는 하나만 있어도 통과한다(Play 서명 키는 콘솔 생성 뒤 추가).
+- **앱 네이티브(빌드 2 묶음, 이번에 안 함)**: `ios.associatedDomains: applinks:mongmang.ink`, Android `intentFilters autoVerify` — app.json 변경은 Apple 캐퍼빌리티가 필요해 지금 EAS 리허설을 깨뜨릴 수 있어 앱 레인과 함께. 딥링크 수신 화면(이름표 시트)도 앱 레인.
+- **연결 대기**: ① 설정 화면 '이용 통계 보내기' 토글(`pingClient.setEnabled`) — 처리방침 3-1이 약속하므로 빌드 2 전 필수(공방 노트 화면은 다른 작업자 영역이라 손대지 않음) ② `features.ts`의 `isOn`에 `remoteConfig.remoteFlag`를 가운데 층으로 끼우기(A7 작업 중인 파일이라 미룸, 원격 키 9개와 FEATURE_DEFAULTS 키 이름이 달라 대응표가 필요 — PM) ③ `isMoonWindow`(core 달 위상, 로드맵 core 함수) — 그 전까지 `moon`은 늘 '0'으로 간다 ④ `widgetCount`(위젯 모듈, 빌드 2) — 그 전 기기는 7일째에 '-'로 고정 ⑤ share_*·cloud_on·restore_ok는 해당 기능 코드가 `pingClient.track`을 불러야 한다.
+- appVer의 빌드 번호는 `expo-application`(expo-notifications의 하위 의존으로 이미 바이너리에 있음)을 선택적으로 읽는다. 빌드 2 묶음에서 앱 package.json에 직접 선언 권고.
+- OG 이미지(`src/og.jpg`)는 아트 대기 — 없으면 og:image 없이 빌드(경고). `/m` 문구('누군가 자기 몽망이를 보여 주고 싶었나 봐요')는 임시, 작가 검수 필요.
+- App Store 캠페인 `ct=m_link`는 `pt`(제공자 토큰) 없이는 집계되지 않을 수 있다 [확인 필요].
+- 90일 뒤 월 단위 말기(`pg_cron`)·판정 SQL(`docs/ops/metrics/*.sql`)은 B6 이후.
+
+## 8. B0 독립 리뷰 반영(2026-11-20, 커밋 전)
+
+리뷰 `docs/team/reviews/2026-11-20-b0-review.md`('고친 뒤 커밋 가능', 중요 7·사소 11)와 v2.2-applied 4절(처리방침↔구현 10건)을 팀 결정대로 반영했다. 7절과 다르면 이 절이 맞다.
+
+| 항목 | 반영 | 검사(테스트로 고정) |
+|---|---|---|
+| I1 처리방침 3-1 | ko·en 3-1 항목을 실제 페이로드로: 앱을 연 날(하루 한 번)·사건 10가지와 그 날·되풀이 사건 횟수·출시 판·'모름' 값. IP는 ① 레이트 리밋 메모리 약 1분 ② 앱 로그 없음 ③ 클라우드 접속 기록 7일로 나눔. 2절 기기 저장 표에 '보내기 전 통계(최대 7일치)·보낸 사건 표시'와 '화면 실험 군'. 6절 행 정정, 8절 Google 행에 '요청 시각'(m11) | contract 테스트 설명에 'open = 처리방침 3-1 앱을 연 날' 짝 표시 |
+| I2 재식별 | appVer = 출시 판 `1.0`. 원표는 서비스 롤만, 뷰 `metric_daily_k5`(count ≥ 5)와 조회 롤 `metrics_reader`. 법률 질문 B-17. 운영 규칙(테스터 기간 원표 열람 금지·내보내기 금지) `docs/ops/metrics/README.md` | contract `1.0.0(14)` 거부, test:db 조회 롤은 원표 permission denied·뷰에 4는 안 보이고 5만 |
+| I3 첫 밤 누락 | 평생 한 번 사건을 세이브 상태에서 뽑음(`onceEventsFromState`), '보냄' 영구 표시, 날짜는 세이브의 사건 시각 | mobile: 앱을 닫은 채 첫 밤 → 다음 날 boot 정산 → first_tap·first_night가 dayN 0으로 한 번, 새 클라이언트에서도 재전송 없음 |
+| I4 중복 | 서버 요청 안 flush 최대 1.5초(넘으면 뒤에서 계속, 204), 앱 제한 10초·응답 받음/시간 초과 = 보냄, 연결 실패만 재전송 | server e2e: 느린 DB 6초에도 응답 < 2초·칸 합 정확, mobile: 4xx·5xx·429·시간 초과 재전송 0, 연결 실패만 재전송 |
+| I5 칸 폭주 | 서버 출시 판 목록 `METRIC_APP_VERSIONS`, 인스턴스당 하루 새 칸 상한 `METRIC_NEW_CELLS_PER_DAY`(로그는 개수만), `docs/ops/metrics/monotonic-check.sql`, 한계(인스턴스 수만큼 느슨) 문서화 | server e2e: 모르는 판 버림·상한 초과 버림·경고 `{dropped: n}`·다음 날 초기화, test:db: 단조 검사가 n일째 열기·이름 짓기 과다 코호트를 잡음 |
+| I6 robots | `Disallow: /m/` 삭제, `/m/**` X-Robots-Tag + meta noindex | web-static: robots가 /m 막으면·헤더·meta 빠지면 실패 |
+| I7 nt 위치 | `game/abGroup.ts`가 `install()`·`boot()`에서 정함(통계와 무관), 핑은 읽기만 | mobile: 군 고정·핑 클라이언트는 군을 만들지 않음 |
+| m1 게이트 | 핑 켜짐 = 주소 AND 동의(`gate.ts`, 토글 연결 전 늘 false), https만(개발 예외) | mobile net-gate: 주소가 있어도 fetch 0회 |
+| m2 종료 유실 | flush가 진행 중 쓰기를 기다린 뒤 그사이 쌓인 칸도 씀, 종료 때 최대 3번 | server e2e |
+| m3 변이 생존 4건 | appVer 앞뒤 고정 사례, 되돌림 합산(진행 중 실패 + 같은 칸 새로 도착 → 2), `check()` 직접 호출로 referrer·CSP·`ping=` 시험 | 각 변이가 이제 실패함 |
+| m4·m5 | 외부 주소 검사를 모든 속성·작은따옴표·`//`로, CSP meta 필수, 자리표시자에 연속값·두 글자 반복·예시 낱말 | web-static |
+| m6 `.well-known` | `ignore`를 `["**/.DS_Store"]`로(점 파일 패턴 없음), build가 점 파일을 빼는 패턴을 거부. 배포 뒤 curl 확인은 로드맵 B6 | web-static |
+| m7 CI | 값 없이 빌드 → 종료 코드 1 + 세 문구 확인 | 로컬 재현 code=1, 문구 3개 |
+| m8 번들 | contract를 `zod/mini`로. esbuild 측정: 트리 셰이킹 없이(Metro 근사) contract 전체 **min 101KB / gzip 28.7KB**(전체 zod는 gzip 92.5KB), 셰이킹 시 gzip 11.5KB | — |
+| m9 원격 설정 | 쓰는 곳이 없어 `refresh` 호출을 뺐다. 크래시 루프 탈출·content 해시 검증은 소비 단계 관문 | — |
+| m10 moon | 연결 전에는 핑을 켜지 않는다(게이트) + 운영 문서에 '연결 전 moon 미사용' | — |
+| 90일 말기 | **구현**: `metric_monthly` + `app.rollup_metric_daily()`(삭제·월 합계 한 문장), 예약은 B6 | test:db: cutoff 전 행만 옮기고 합계 정확 |
+| B6 체크 | 로그 7일 버킷·`_Default` 끄기·`/m` 제외, pg_cron 말기, 조회 롤·GRANT, `.well-known` curl | `docs/team/roadmap.md` B6 하위 항목 |

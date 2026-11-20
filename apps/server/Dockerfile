@@ -11,11 +11,12 @@ ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
 RUN npm install -g pnpm@12.16.1 --no-fund --no-audit && pnpm --version
 WORKDIR /repo
 
-# 의존성 매니페스트만 먼저(소스가 바뀌어도 이 층은 캐시). 워크스페이스 전체 lockfile을 쓰되 server와 그 의존(core)만 설치
+# 의존성 매니페스트만 먼저(소스가 바뀌어도 이 층은 캐시). 워크스페이스 전체 lockfile을 쓰되 server와 그 의존(core·contract)만 설치
 FROM base AS manifests
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/server/package.json apps/server/
 COPY packages/core/package.json packages/core/
+COPY packages/contract/package.json packages/contract/
 COPY apps/mobile/package.json apps/mobile/
 
 FROM manifests AS deps
@@ -26,6 +27,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 FROM deps AS build
 COPY packages/core/tsconfig.json packages/core/
 COPY packages/core/src packages/core/src
+COPY packages/contract/src packages/contract/src
 COPY apps/server apps/server
 RUN pnpm --filter server exec prisma generate && pnpm --filter server run build
 

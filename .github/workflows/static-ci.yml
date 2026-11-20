@@ -1,0 +1,53 @@
+# 정적 사이트·원격 계약 CI(로드맵 B0, architecture.md 6-4의 ci.yml '모티프·플래그 JSON 검증' 몫). 배포(deploy-static.yml)는 B6.
+# 비밀값 없음: 빌드 검사는 시험용 가짜 팀 ID·지문으로 돌고, '값이 비면 실패'도 시험이 확인한다.
+# 실제 배포 때는 firebase.json predeploy가 같은 scripts/build.mjs를 진짜 값(GitHub Environments)으로 부른다 — 비면 배포가 멈춘다.
+name: static-ci
+
+on:
+  pull_request:
+    paths: &paths
+      - 'apps/web-static/**'
+      - 'packages/contract/**'
+      - 'apps/mobile/app.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/static-ci.yml'
+  push:
+    branches: [main]
+    paths: *paths
+
+concurrency:
+  group: static-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: contract · web-static 시험
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "web-static..."
+      - name: typecheck(contract)
+        run: pnpm --filter @mong/contract run typecheck
+      - name: test(contract · web-static 빌드 검사)
+        run: pnpm --filter "web-static..." run test
+      - name: 주입 값 없이 빌드하면 '값이 비었다'로 실패해야 한다(다른 이유의 실패·통과는 이 단계의 실패)
+        run: |
+          set +e
+          out="$(node apps/web-static/scripts/build.mjs 2>&1)"; code=$?
+          set -e
+          echo "$out"
+          test "$code" -eq 1
+          echo "$out" | grep -q 'APPLE_TEAM_ID가 비어 있다'
+          echo "$out" | grep -q 'ANDROID_CERT_SHA256이 비어 있다'
+          echo "$out" | grep -q 'APP_STORE_ID가 비어 있다'

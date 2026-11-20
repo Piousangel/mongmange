@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+# /m/ 는 막지 않는다 — 막으면 크롤러가 noindex(헤더·meta)를 읽지 못해 주소(링크 코드)만 색인될 수 있다(B0 리뷰 I6)
+Disallow: /config/
+Disallow: /content/

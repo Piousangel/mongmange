@@ -64,3 +64,45 @@ model Save {
   @@map("saves")
   @@schema("app")
 }
+
+/// 식별자 없는 집계(architecture.md v2.1 3-1·3-6, B0). 사람·기기·IP·시각 열이 **없다** — 칸(날짜·차원)과 개수뿐.
+/// day = 그 이벤트가 일어난 현지 날짜(= cohort_day + day_n). 90일 뒤 월 단위로 말기(5-5)는 pg_cron(B6 이후).
+/// 열 목록은 test/db.db.test.ts가 고정한다(열을 더하면 처리방침 3-1을 함께 고쳐야 한다).
+model MetricDaily {
+  day       DateTime @db.Date
+  event     String   @db.VarChar(16)
+  cohortDay DateTime @map("cohort_day") @db.Date
+  dayN      Int      @map("day_n") @db.SmallInt
+  platform  String   @db.VarChar(8)
+  appVer    String   @map("app_ver") @db.VarChar(24)
+  lang      String   @db.Char(2)
+  /// 이름 시점 군 A·B
+  nt        String   @db.Char(1)
+  /// 7일째 위젯 1·0, 그 전 '-'
+  wg        String   @db.Char(1)
+  /// 보름 창 1·0
+  moon      String   @db.Char(1)
+  count     Int
+
+  @@id([day, event, cohortDay, dayN, platform, appVer, lang, nt, wg, moon])
+  @@map("metric_daily")
+  @@schema("app")
+}
+
+/// 90일 지난 집계를 월 단위로 만 것(처리방침 6절 '90일 뒤 월 합계', B0 리뷰 반영). 날짜·보름·위젯 칸을 버려 더 굵다.
+/// app.rollup_metric_daily()가 metric_daily에서 옮긴다(삭제와 삽입이 한 문장). 실행 예약(pg_cron 매일)은 B6.
+model MetricMonthly {
+  month       DateTime @db.Date
+  cohortMonth DateTime @map("cohort_month") @db.Date
+  event       String   @db.VarChar(16)
+  dayN        Int      @map("day_n") @db.SmallInt
+  platform    String   @db.VarChar(8)
+  appVer      String   @map("app_ver") @db.VarChar(24)
+  lang        String   @db.Char(2)
+  nt          String   @db.Char(1)
+  count       Int
+
+  @@id([month, cohortMonth, event, dayN, platform, appVer, lang, nt])
+  @@map("metric_monthly")
+  @@schema("app")
+}

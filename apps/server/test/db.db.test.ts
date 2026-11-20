@@ -7,7 +7,10 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.factory';
+import { MetricAggregator } from '../src/metrics/metric-aggregator';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { pingSchema, pingToCells } from '@mong/contract';
+import { readFileSync } from 'node:fs';
 
 let app: NestFastifyApplication;
 let prisma: PrismaService;
@@ -50,7 +53,7 @@ describe('실제 DB', () => {
       select rolname, rolsuper, rolbypassrls from pg_roles where rolname = current_user`;
     expect(me).toMatchObject({ rolsuper: false, rolbypassrls: false });
     const owners = await prisma.$queryRaw<{ tableowner: string }[]>`select tableowner from pg_tables where schemaname = 'app'`;
-    expect(owners.length).toBe(3);
+    expect(owners.length).toBe(5);
     for (const o of owners) expect(o.tableowner).toBe(me!.rolname);
   });
 
@@ -69,6 +72,8 @@ describe('실제 DB', () => {
       where n.nspname = 'app' and c.relkind = 'r' order by c.relname`;
     expect(rows).toEqual([
       { relname: 'creatures', relrowsecurity: true },
+      { relname: 'metric_daily', relrowsecurity: true },
+      { relname: 'metric_monthly', relrowsecurity: true },
       { relname: 'saves', relrowsecurity: true },
       { relname: 'users', relrowsecurity: true },
     ]);
@@ -105,6 +110,126 @@ describe('실제 DB', () => {
       expect(seen.other).toBe(0);
     } finally {
       await prisma.user.delete({ where: { id: userId } });
+    }
+  });
+
+  // 그럴듯한 오답 판별(OPERATING 8-1): 집계 표에 사람·기기·IP·시각을 담을 '자리'가 생기면 실패한다.
+  // 열을 더하려면 이 목록과 처리방침 3-1을 함께 고쳐야 한다.
+  it('metric_daily 열은 칸(날짜·차원)과 개수뿐이고 시각(timestamp) 열이 없다', async () => {
+    const cols = await prisma.$queryRaw<{ column_name: string; data_type: string }[]>`
+      select column_name, data_type from information_schema.columns
+      where table_schema = 'app' and table_name = 'metric_daily' order by ordinal_position`;
+    expect(cols.map((c) => c.column_name)).toEqual(['day', 'event', 'cohort_day', 'day_n', 'platform', 'app_ver', 'lang', 'nt', 'wg', 'moon', 'count']);
+    for (const c of cols) expect(c.data_type).not.toMatch(/timestamp|time|inet|uuid|bytea|json/);
+  });
+
+  it('집계 UPSERT: 같은 칸은 더해지고 다른 칸은 따로, 행에는 칸 값과 개수만', async () => {
+    const agg = app.get(MetricAggregator);
+    const cohort = '2001-01-01'; // 다른 시험·실데이터와 겹치지 않는 날짜
+    const p = pingSchema.parse({
+      cohortDay: cohort,
+      dayN: 3,
+      platform: 'ios',
+      appVer: '9.9',
+      lang: 'en',
+      dims: { nt: 'B', wg: '-', moon: '1' },
+      events: [
+        { e: 'open', dayN: 3 },
+        { e: 'open', dayN: 3 },
+        { e: 'first_night', dayN: 1 },
+      ],
+    });
+    try {
+      agg.add(pingToCells(p));
+      await agg.flush();
+      agg.add(pingToCells(p));
+      await agg.flush();
+      const rows = await prisma.$queryRaw<Record<string, unknown>[]>`
+        select to_char(day, 'YYYY-MM-DD') as day, event, day_n, nt, wg, moon, count from app.metric_daily
+        where cohort_day = ${cohort}::date order by event`;
+      expect(rows).toEqual([
+        { day: '2001-01-02', event: 'first_night', day_n: 1, nt: 'B', wg: '-', moon: '1', count: 2 },
+        { day: '2001-01-04', event: 'open', day_n: 3, nt: 'B', wg: '-', moon: '1', count: 4 },
+      ]);
+    } finally {
+      await prisma.$executeRaw`delete from app.metric_daily where cohort_day = ${cohort}::date`;
+    }
+  });
+
+  it('Data API 롤(anon)은 metric_daily도 읽을 수 없다', async () => {
+    const err = await inRolledBackTx(async (tx) => {
+      await tx.$executeRawUnsafe('SET LOCAL ROLE anon');
+      try {
+        await tx.$queryRawUnsafe('select count(*) from app.metric_daily');
+        return null;
+      } catch (e) {
+        return String(e);
+      }
+    }).catch((e: unknown) => String(e));
+    expect(err).toMatch(/permission denied/i);
+  });
+
+  it('조회 롤(metrics_reader)은 원표를 못 읽고, 뷰에서는 count 5 미만 칸이 안 보인다(I2)', async () => {
+    const cohort = '2001-02-01';
+    try {
+      await prisma.$executeRaw`insert into app.metric_daily values
+        (${cohort}::date, 'open', ${cohort}::date, 0, 'ios', '9.9', 'ko', 'A', '-', '0', 4),
+        (${cohort}::date, 'open', ${cohort}::date, 0, 'ios', '9.9', 'ko', 'B', '-', '0', 5)`;
+      const r = await inRolledBackTx(async (tx) => {
+        await tx.$executeRawUnsafe('SET LOCAL ROLE metrics_reader');
+        const view = await tx.$queryRawUnsafe<{ nt: string; count: number }[]>(`select nt, count from app.metric_daily_k5 where cohort_day = '${cohort}'`);
+        let raw: string | null = null;
+        try {
+          await tx.$queryRawUnsafe('select count(*) from app.metric_daily');
+        } catch (e) {
+          raw = String(e);
+        }
+        return { view, raw };
+      });
+      expect(r.view).toEqual([{ nt: 'B', count: 5 }]);
+      expect(r.raw).toMatch(/permission denied/i);
+    } finally {
+      await prisma.$executeRaw`delete from app.metric_daily where cohort_day = ${cohort}::date`;
+    }
+  });
+
+  it('단조 검사 SQL(docs/ops/metrics/monotonic-check.sql)이 분자만 부풀린 코호트를 잡는다(I5)', async () => {
+    const cohort = '2001-03-01';
+    const sql = readFileSync(new URL('../../../docs/ops/metrics/monotonic-check.sql', import.meta.url), 'utf8');
+    try {
+      await prisma.$executeRaw`insert into app.metric_daily values
+        (${cohort}::date, 'open', ${cohort}::date, 0, 'android', '9.9', 'en', 'A', '-', '0', 10),
+        ('2001-03-08'::date, 'open', ${cohort}::date, 7, 'android', '9.9', 'en', 'A', '1', '0', 3),
+        ('2001-03-15'::date, 'open', ${cohort}::date, 14, 'android', '9.9', 'en', 'A', '1', '0', 40),
+        ('2001-03-02'::date, 'name_set', ${cohort}::date, 1, 'android', '9.9', 'en', 'A', '-', '0', 11)`;
+      const bad = (await prisma.$queryRawUnsafe<{ cohort_day: Date; rule: string }[]>(sql)).filter((b) => b.cohort_day.toISOString().startsWith(cohort));
+      expect(bad.map((b) => b.rule).sort()).toEqual(['name_set', 'open_d14']);
+    } finally {
+      await prisma.$executeRaw`delete from app.metric_daily where cohort_day = ${cohort}::date`;
+    }
+  });
+
+  it('90일 말기: cutoff 이전 일 단위 행을 지우며 월 합계로 옮긴다(처리방침 6절), 그 뒤 행은 그대로', async () => {
+    const cohort = '2001-04-28';
+    try {
+      await prisma.$executeRaw`insert into app.metric_daily values
+        ('2001-04-28'::date, 'open', ${cohort}::date, 0, 'ios', '9.9', 'ko', 'A', '-', '0', 3),
+        ('2001-04-29'::date, 'open', ${cohort}::date, 1, 'ios', '9.9', 'ko', 'A', '-', '1', 2),
+        ('2001-05-03'::date, 'open', ${cohort}::date, 5, 'ios', '9.9', 'ko', 'A', '-', '0', 1),
+        ('2001-05-03'::date, 'open', ${cohort}::date, 1, 'ios', '9.9', 'ko', 'A', '-', '0', 4)`;
+      const [r] = await prisma.$queryRaw<{ n: number }[]>`select app.rollup_metric_daily('2001-05-01'::date) as n`;
+      expect(r!.n).toBe(2);
+      const left = await prisma.$queryRaw<{ n: bigint }[]>`select count(*) as n from app.metric_daily where cohort_day = ${cohort}::date`;
+      expect(Number(left[0]!.n)).toBe(2); // 5월 행은 남는다
+      const monthly = await prisma.$queryRaw<{ month: string; day_n: number; count: number }[]>`
+        select to_char(month, 'YYYY-MM-DD') as month, day_n, count from app.metric_monthly where cohort_month = '2001-04-01' and app_ver = '9.9' order by day_n`;
+      expect(monthly).toEqual([
+        { month: '2001-04-01', day_n: 0, count: 3 },
+        { month: '2001-04-01', day_n: 1, count: 2 },
+      ]);
+    } finally {
+      await prisma.$executeRaw`delete from app.metric_daily where cohort_day = ${cohort}::date`;
+      await prisma.$executeRaw`delete from app.metric_monthly where cohort_month = '2001-04-01' and app_ver = '9.9'`;
     }
   });
 });

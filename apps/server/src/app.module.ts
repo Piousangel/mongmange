@@ -11,6 +11,7 @@ import { AllExceptionsFilter } from './common/http-exception.filter';
 import { loggerParams } from './common/logging';
 import { ClientIpThrottlerGuard } from './common/throttler.guard';
 import { HealthModule } from './health/health.module';
+import { MetricsModule } from './metrics/metrics.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SavesModule } from './saves/saves.module';
 
@@ -40,6 +41,8 @@ class CommonModule {}
     CommonModule,
     PrismaModule,
     HealthModule,
+    // B0 집계 핑(식별자 없음, 3-6)
+    MetricsModule,
     // 예시 엔드포인트(세이브 검사)는 개발·테스트 전용 — 운영(NODE_ENV=production)에는 모듈 자체가 없다(B1 리뷰 I7)
     ConditionalModule.registerWhen(SavesModule, devEndpointsEnabled),
   ],

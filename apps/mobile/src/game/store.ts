@@ -8,6 +8,7 @@ import { DEFAULT_SOUND_SETTINGS, type SoundSettings } from '../audio/soundMap';
 import { setLanguagePref, type LanguagePref } from '../i18n';
 import { kv as defaultKV } from './storage';
 import { entropy32 } from './entropy';
+import { ensureNameTimingGroup } from './abGroup';
 
 type State = sim.State;
 type Effect = sim.Effect;
@@ -149,6 +150,7 @@ export function boot() {
     return;
   }
   emit({ restoredFrom: r.source, lostSave: false });
+  ensureNameTimingGroup(kv); // 빌드 1에서 설치한 기기(군이 아직 없음) — 이름 A/B 군(B0 리뷰 I7)
   apply(sim.reduce(r.state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow() }), null, true);
 }
 
@@ -160,6 +162,7 @@ export function install(firstTap?: { x: number; y: number }) {
   const at = now();
   const birth: sim.BirthInput = { x: firstTap?.x ?? 0, y: firstTap?.y ?? 0, ms: at, installAt: at, entropy: entropy32().value };
   const state = sim.createInitial(at, tzOffsetNow(), seed, { birth });
+  ensureNameTimingGroup(kv); // 설치 순간 이름 A/B 군을 정한다(통계 켜짐과 무관, B0 리뷰 I7)
   emit({ state, restoredFrom: 'fresh', lostSave: false });
   persist(state, false);
 }

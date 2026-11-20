@@ -29,6 +29,8 @@ The following is stored on your device. It is not sent to us unless you turn on 
 | Game progress (temperament, stroke count, morning card history, your Mongmangi's name and ink, days together, favorite petting spots) | So you can continue where you left off |
 | **Usual visit hours** (which hours of the day you open the App), **time away** (latest and longest), last visit time, install time | So your Mongmangi can seem to recognize you |
 | Settings (notifications, sound, reduced motion, sending usage statistics, etc.) | To keep your preferences |
+| Design test group (A or B, picked at random when you install) | For a test of the naming screen. It stays on your device even if usage statistics are off |
+| Usage statistics waiting to be sent (up to 7 days' worth) and a record of game events already sent | To send them together after a lost connection, and so the same event is not counted twice. Turning off usage statistics deletes what is waiting |
 | Age check result (only "under age" and the date, if you are under 14) | So we do not ask again the same day |
 
 - Device tilt is used in the moment to make your Mongmangi glance around. It is not stored.
@@ -37,11 +39,20 @@ The following is stored on your device. It is not sent to us unless you turn on 
 ## 3. Information sent to a server
 
 ### 3-1. Usage statistics (everyone; can be turned off)
-- **What**: install date, days since install, platform (iOS or Android), app version, language, design test group (A or B), whether a home screen widget was in use on day 7, whether the day is around a full moon, and whether certain game events happened (10 fixed events such as first touch, first night, naming).
+- **What** (dates only; we never send times of day):
+  - install date (by your device's calendar) and **the days you open the App** (once a day, as the number of days since install)
+  - platform (iOS or Android), app release (for example 1.0 — no detailed build number), language
+  - design test group (A or B), whether a home screen widget was in use on day 7 ("unknown" before day 7 or if it cannot be checked), whether the day is around a full moon
+  - whether 10 fixed game events happened (first touch, first night, day seven, naming, choosing an ink, opening, link and image sharing, turning on Keep it safe, restoring a record) **and the day each happened** (days since install). For events that can repeat, such as sharing, we also count how many times
 - **No identifiers**: we attach no account or device identifier; the server only adds up counts for each combination. The statistics contain no value showing who sent them, although the IP address used for the connection stays briefly in request logs as described below. [Legal review: whether these statistics are personal information]
 - **Why**: to measure how many people keep playing and to improve the game.
-- **Turn off**: Studio Notebook > Settings > "Send usage statistics".
-- Your IP address reaches the server as part of the connection and stays in the server request log for **7 days** before deletion (section 6). We do not store IP addresses in our database together with these statistics.
+- **Turn off**: Studio Notebook > Settings > "Send usage statistics". Nothing is sent after that, and statistics waiting on your device are deleted.
+- **How it is sent**: if there is no connection, up to 7 days' worth is kept on your device and sent together later; anything older than 7 days is deleted unsent (section 2).
+- **IP address**: your IP address reaches the server as part of the connection.
+  - To block excessive requests, the server uses your IP address (for IPv6, the first 64 bits) in memory **for about one minute** only to count requests, and does not store it.
+  - Our own server records (app logs) do not include IP addresses.
+  - The cloud provider's access logs record the IP address, request path and time, and are deleted after **7 days** (sections 6 and 8).
+  - We do not store IP addresses in our database together with these statistics.
 
 ### 3-2. App update checks (everyone)
 - To ship bug fixes quickly, the App asks an update service (Expo's EAS Update, United States) for a new version **once a day, starting from the second launch**. It does not ask on first launch.
@@ -110,8 +121,8 @@ The following is stored on your device. It is not sent to us unless you turn on 
 | Sign-in session records (3-4) | [To verify: whether recorded and retention] |
 | Age check pass record | Until you delete your account |
 | Link page load counts | After 30 days, rolled into totals without the link code |
-| Usage statistics (no identifiers) | After 90 days, rolled into monthly totals |
-| Server request logs (including IP) | 7 days |
+| Usage statistics (no identifiers) | After 90 days, rolled into monthly totals (dropping the date, full-moon and widget details) |
+| Cloud access logs (IP address, request path, time) | 7 days. Our own server records (app logs) contain no IP addresses |
 | Report records | 1 year (to spot repeat problems with the same page). Reporter pseudonymous values up to 7 days per reported page |
 | Copies in database backups | Expire after 7 days |
 | Emails with questions or requests | Deleted within [period — owner to decide] after the request is handled |
@@ -140,7 +151,7 @@ Our data is stored in the Seoul (Republic of Korea) region, but because the prov
 | Recipient (contact) | Country | Items | When and how | Purpose | Retention |
 |---|---|---|---|---|---|
 | Supabase, Inc. ([contact — to verify]) | United States (company). Stored in the Seoul region; remote access for operations is possible | Items in 3-4 and 3-5 | From when you turn on "Share by link" or "Keep it safe", as you use them; encrypted (TLS) | Storage and authentication | As in section 6 |
-| Google LLC ([contact — to verify]) — Cloud Run, Cloud Logging, Cloud Scheduler | United States (company). Processed and stored in the Seoul region | Request data (IP, request path) and what is sent under 3-1, 3-4 and 3-5 | While you use the App; TLS | Running the server, logs | Logs 7 days |
+| Google LLC ([contact — to verify]) — Cloud Run, Cloud Logging, Cloud Scheduler | United States (company). Processed and stored in the Seoul region | Request data (IP, request path, request time) and what is sent under 3-1, 3-4 and 3-5 | While you use the App; TLS | Running the server, logs | Logs 7 days |
 | Google LLC — Firebase Hosting | Content delivery servers near you (country cannot be specified) | IP address, public page content | On file and page requests; TLS | Delivering web pages and files | No logs kept by us; per Google's policy [to verify] |
 | 650 Industries, Inc. ([contact — to verify]) | United States | Platform and app version information, IP address, installation identifier [to verify] | Once a day from the second launch; TLS | Delivering app updates | Per Expo's policy [to verify] |
 | [Email service provider — owner to fill; complete this row if it is a foreign company] | | Email address, message content | When you email us | Handling your request | As in section 6 |

@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "ttlSec": 3600,
+  "flags": {
+    "cloud": false,
+    "link": false,
+    "remoteMotifs": false,
+    "webLive": false
+  },
+  "rollout": {},
+  "minBundle": {},
+  "minAppBuild": { "ios": 0, "android": 0 },
+  "dreamUnlock": {}
+}

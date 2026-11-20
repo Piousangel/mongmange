@@ -46,6 +46,17 @@ export const envSchema = z
     TRUSTED_PROXY_HOPS_WEB: hops.optional(),
     /** 전역 레이트 리밋(IP 접두당 하나의 카운터, 60초 창). 경로별 더 낮은 한도는 각 B 항목에서 @Throttle로 */
     RATE_LIMIT_PER_MIN: z.coerce.number().int().min(1).max(10_000).default(120),
+    /**
+     * 집계 핑이 받는 출시 판 목록(쉼표, 예 `1.0,1.1`). 밖의 appVer는 조용히 버린다(B0 리뷰 I5: 칸 수 폭주 방지).
+     * 새 판을 낼 때 이 값을 먼저 늘린다(배포 체크리스트).
+     */
+    METRIC_APP_VERSIONS: z
+      .string()
+      .default('1.0')
+      .transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean))
+      .pipe(z.array(z.string().regex(/^\d{1,2}\.\d{1,2}$/)).min(1)),
+    /** 인스턴스당 하루(UTC) 새 집계 칸 상한. 넘는 새 칸은 버리고 개수만 로그(I5) */
+    METRIC_NEW_CELLS_PER_DAY: z.coerce.number().int().min(1).max(1_000_000).default(20_000),
     /** /healthz의 ver. CI가 이미지 빌드 때 git sha를 넣는다 */
     APP_VERSION: z.string().min(1).default('dev'),
   })

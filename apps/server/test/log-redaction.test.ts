@@ -54,6 +54,10 @@ describe('로그에 남지 않는 것', () => {
     await hit('post', `/api/v1/saves/validate?token=${SECRETS.query}`, `${SECRETS.ipv6}`).send({ save: '{"sim":{}}' }).expect(422);
     await hit('get', `/nope/${SECRETS.code}?sig=${SECRETS.query}`, xff).expect(404);
     await hit('get', `/boom?k=${SECRETS.query}`, xff).expect(500);
+    // B0 집계 핑: 식별 값을 실은 본문(버려짐)도 본문·IP가 로그에 남지 않는다
+    await hit('post', `/api/v1/ping?d=${SECRETS.query}`, xff)
+      .send({ cohortDay: '2026-12-22', dayN: 3, deviceId: SECRETS.code, ip: SECRETS.clientIp, events: [{ e: 'open', dayN: 3 }] })
+      .expect(204);
     await new Promise((r) => setTimeout(r, 50));
 
     const all = lines.join('\n');
@@ -70,7 +74,7 @@ describe('로그에 남지 않는 것', () => {
       if (o.res) expect(Object.keys(o.res as object)).toEqual(['statusCode']);
     }
     const routes = reqLogs.map((o) => (o.req as { route: string | null }).route);
-    expect(routes).toEqual(expect.arrayContaining(['/m/:code', '/api/v1/saves/validate', null, '/boom']));
+    expect(routes).toEqual(expect.arrayContaining(['/m/:code', '/api/v1/saves/validate', null, '/boom', '/api/v1/ping']));
     // 500은 스택과 함께 error 한 줄(경로·IP 없이)
     const err = lines.map((l) => JSON.parse(l) as Record<string, unknown>).find((o) => o.message === '처리하지 못한 오류');
     expect(err?.exception).toMatchObject({ type: 'Error', stack: expect.stringContaining('Error') });

@@ -330,3 +330,17 @@
 - 꿈 문장은 아침 문장과 분리해 카드 캡션. 감정 단정 대신 몸짓 관찰.
 - 보름 사흘은 당일 밤 현지 월 모티프, 처음 3장 보호. 달항아리는 원격 조건부(과녁 위험), 번들은 달빛 그네.
 - 원격 모티프 스키마 1: `zone`·`family` 정식 필드, `scene` 필수, `line` 상한 ko 22·en 45. 서버 아키텍처 3-10은 이 정의를 따른다.
+
+## 2026-11-20 B0 측정 시계 구현 결정 [잠정 — 리뷰 반영, 핑 켜기 전 관문 있음]
+- 근거: docs/design/server-v1/B0-B1-report.md 7·8절, architecture.md v2.1 3-6·3-7·3-10, B0 독립 리뷰(docs/team/reviews/2026-11-20-b0-review.md '고친 뒤 커밋 가능') 팀 결정.
+- **원격 계약은 `packages/contract`(@mong/contract, `zod/mini` 4.6.7) 한 파일**: 집계 핑·config/v1.json·content/v1.json·모티프 파일 스키마 1을 앱·서버·정적 CI가 같은 코드로 검사한다. 버린 안: core에 넣기(core는 런타임 의존성 0 계약), 앱만 손검사기(판정이 갈림), 전체 zod(앱 gzip 약 95KB → mini 약 29KB, 리뷰 m8). 정적 빌드 스크립트가 Node 타입 지우기로 바로 import하므로 한 파일·지울 수 있는 문법만.
+- **핑 모양**: '열기'는 이벤트 목록 안의 `open` 항목(보내는 날 ±2일, 이벤트는 7일 안). 모든 객체 strict, 모르는 키 하나면 통째로 조용히 버림(204). **appVer = 출시 판 `1.0`(빌드 번호 없음)**, 서버는 설정 `METRIC_APP_VERSIONS`의 판만 받는다(리뷰 I2·I5).
+- **평생 한 번 사건은 세이브 상태에서 뽑는다**(실행 중 전이 관찰 아님, 리뷰 I3): 시작·상태 변화 때 `onceEventsFromState`, '보냄' 표시 영구 저장, 날짜는 세이브의 사건 시각(첫 밤은 sleepAt 또는 설치 뒤 첫 잠 시각).
+- **중복보다 유실**(리뷰 I4): 서버는 요청 안 쓰기를 최대 1.5초만 기다리고 204, 앱은 10초 제한·응답을 받았거나 시간 초과면 '보냄', 연결 실패만 재전송.
+- **칸 보호**(리뷰 I5): 인스턴스당 하루 새 칸 상한(기본 2만, 넘으면 버리고 개수만 로그), 판정 전 단조 검사(docs/ops/metrics/monotonic-check.sql). 레이트 리밋·상한은 인스턴스 수만큼 느슨해진다(한계, docs/ops/metrics/README.md).
+- **원표 접근**(리뷰 I2): `metric_daily`는 서비스 롤만, 사람은 count 5 미만을 숨긴 뷰 `metric_daily_k5`(조회 롤 `metrics_reader`)만. 원표 내보내기 금지, 테스터 기간 원표 열람 금지. 법률 질문 B-17.
+- **90일 말기는 구현으로 맞춘다**(처리방침 문구를 바꾸지 않음): `app.rollup_metric_daily()`(삭제·월 합계 한 문장) + `metric_monthly`(날짜·보름·위젯 칸 없음). 실행 예약(pg_cron)은 B6 체크 항목. 까닭: 문구를 '일 단위 영구'로 바꾸면 재식별 위험(I2)이 오래 남고, 함수는 작고 시험 가능하다.
+- **이름 A/B 군(nt)은 설치 순간 `game/abGroup.ts`가 정해 기기에 저장**(통계와 무관, 리뷰 I7). 핑은 읽기만.
+- **핑 켜짐 = 서버 주소 AND 사용자 동의**(gate.ts). 설정 토글 연결 전에는 `METRICS_SETTING_CONNECTED = false`로 늘 꺼짐(시험이 고정). API·정적 주소는 https만(개발 빌드 예외).
+- **config 플래그는 빼도 된다**: 빠진 키 = 번들 기본값. 서버 스위치 4개(cloud·link·remoteMotifs·webLive)만 CI가 명시 요구. 앱 lenient / CI strict, `minAppBuild` 미달이면 원격 무시. 로더는 읽는 곳이 생길 때(크래시 루프 탈출과 함께)까지 받지 않는다.
+- **`/m/**`는 B0 동안 Firebase 정적 한 파일로 rewrite**(B3에서 Cloud Run). 주소를 읽지 않고 외부 자원 0, `no-referrer`, CSP 해시. 검색은 `X-Robots-Tag`+meta noindex로만 막고 **robots.txt로 막지 않는다**(막으면 noindex를 못 읽음, 리뷰 I6). 팀 ID·지문·App Store id가 비었거나 자리표시자 모양이면 `firebase deploy`(predeploy)가 멈춘다.
