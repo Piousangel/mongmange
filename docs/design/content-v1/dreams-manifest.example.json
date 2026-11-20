@@ -1,0 +1,9 @@
+{ "v": 1, "seq": 3,
+  "motifs": [
+    { "id": "w2027-06-crane", "kind": "weekly", "from": "2027-02-08", "schema": 1, "minAppBuild": 14,
+      "url": "/content/motifs/w2027-06-crane.3f9a1c7e.json", "sha256": "…", "bytes": 9123 },
+    { "id": "w2027-07-wind-bell", "kind": "weekly", "from": "2027-02-15", "schema": 1, "minAppBuild": 14,
+      "url": "/content/motifs/w2027-07-wind-bell.8be20d11.json", "sha256": "…", "bytes": 8740 },
+    { "id": "moon-03", "kind": "moon", "month": 3, "schema": 1, "minAppBuild": 14,
+      "url": "/content/motifs/moon-03.a1b2c3d4.json", "sha256": "…", "bytes": 11204 } ],
+  "revoked": [] }
