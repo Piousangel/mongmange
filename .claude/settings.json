@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease *)",
+      "Bash(git reset --hard origin*)",
+      "Bash(prisma migrate reset*)",
+      "Bash(pnpm prisma migrate reset*)",
+      "Bash(npx prisma migrate reset*)",
+      "Bash(supabase db reset --linked*)",
+      "Bash(npx supabase db reset --linked*)",
+      "Bash(supabase projects delete*)",
+      "Bash(gcloud run services delete*)",
+      "Bash(gcloud projects delete*)",
+      "Bash(eas build --profile production --auto-submit*)",
+      "Bash(eas submit*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-gate.sh",
+            "timeout": 180
+          }
+        ]
+      }
+    ]
+  }
+}
