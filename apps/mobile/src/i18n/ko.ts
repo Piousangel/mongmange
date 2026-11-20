@@ -83,8 +83,23 @@ export const ko = {
   'card.a11y.merged': ' 밤 {n}개를 한 장에 모았어요.',
   'card.a11y.fallback': '꿈 인화 카드. {name}. {line}',
   'card.defaultLine': '간밤의 꿈을 한지에 찍었어요',
-  'card.share': '보내기 · 곧 열려요',
-  'card.share.a11y': '카드 보내기, 다음 업데이트에서 열려요',
+  // ── 공유(빌드 1): 꿈 카드 4:5·9:16, 이레 두루마리. 이미지 아래 띠에는 앱 이름·스토어만(인장 코드 없음) ──
+  'share.card': '카드로 보내기',
+  'share.card.a11y': '꿈 카드를 4:5 이미지로 보내기',
+  'share.story': '세로로 보내기',
+  'share.story.a11y': '꿈 카드를 9:16 세로 이미지로 보내기',
+  'share.ire': '이레 두루마리 보내기',
+  'share.ire.a11y': '일곱 밤의 꿈 카드를 이은 두루마리 이미지 보내기',
+  'share.busy': '인화하는 중이에요',
+  'share.failed': '보내지 못했어요. 잠시 뒤 다시 해 볼까요',
+  'share.saved': '이미지를 내려받았어요',
+  'share.dialog': '꿈 카드 보내기',
+  'share.footer': '몽망이 키우기 · App Store · Google Play',
+  'scroll.title': '첫 이레',
+  // ── 옛 빌드로 내려감(세이브가 더 새 버전): 아무것도 덮어쓰지 않고 업데이트만 안내 ──
+  'update.title': '새 버전이 필요해요',
+  'update.body': '몽망이는 더 새 버전의 앱에서 지내고 있어요. 스토어에서 앱을 업데이트하면 그대로 이어져요.',
+  'scroll.subtitle': '몽망이의 일곱 밤',
   'card.rendering': '인화 중…',
 
   // ── 공방 노트(아트 7-2) ──

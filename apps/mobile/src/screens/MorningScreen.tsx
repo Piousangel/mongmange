@@ -16,7 +16,7 @@ import { NightWater } from './HomeScreen';
 import { Paper, SANS, SERIF, layout, styles as ui } from './ui';
 import { DreamCard } from '../render/dreamCard/DreamCard';
 import { strokesForCard } from '../render/dreamCard/DreamCardThumb';
-import { cardLabels, cardA11y, SharePlaceholder } from './cardText';
+import { cardLabels, cardA11y, ShareBar } from './cardText';
 
 const RM = PARAMS.rm;
 /** 물 빠짐 1600ms + 카드 800ms(아트 5·8절). Reduce Motion은 페이드 300ms */
@@ -212,7 +212,7 @@ export function MorningScreen({
             {text}
           </KText>
           {developed.card.nightsMerged > 1 && <KText style={styles.sub}>{t('morning.merged', { n: developed.card.nightsMerged })}</KText>}
-          <SharePlaceholder />
+          {labels && <ShareBar input={{ card: developed.card, strokes: cardStrokes, labels }} ireState={developed.line.kind === 'seven-day' ? state : null} />}
         </Animated.View>
       )}
       {developed && (

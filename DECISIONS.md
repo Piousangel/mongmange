@@ -43,7 +43,7 @@
 - 버린 안: 메시 저장(알고리즘이 고정됨), 단순화 점열만 저장(원본을 잃어 나중 개선이 불가).
 - 11-20 render-03 주석: "한 번만 칠한다"는 **가장자리(알파 모양)**에 대한 규칙으로 좁힌다. 유저 획의 안쪽 농도·비백은 같은 마스크 위에 덧칠한다(D-12 '획의 칠과 자리'). 세이브 형식은 바뀌지 않고, `attachVersion` 2(L3 감기)만 새로 생겼다(1은 옛 방식으로 그린다). 금지 자리 ①은 빗 수치에서 파생하므로 빗을 바꾸면 **새로 붙는 획**의 자리만 달라지고, 저장된 `attach`는 그대로 그린다(다시 계산하는 마이그레이션은 하지 않는다). 하위 호환은 `body.test.ts` 'attachVersion 1' 테스트가 지킨다.
 - 확정 조건: 스파이크 02에서 같은 정본 점열로 meshVersion 1·2를 만들어도 세이브가 깨지지 않는 마이그레이션 테스트 1건, 세이브 크기 24획 기준 64KB 이하.
-- **[개정 11-20, D-20] 세이브 v2 = 다섯 묶음 추가.** `birth { seed, at, traitVersion }`(첫 탭 씨앗, 평생 고정) · `ink { id, chosenAt | seeded }`(고른 먹, 첫 밤까지 안 고르면 씨앗이 고름) · `name { text, at }` · `temperamentLabel { axis, sign, since }`(결 이름) · `relation { jeongDays, spot[6], hour[24], lastSeenAt }`(정·손 기억). **빌드 1(11-29)부터 기록**한다(기능이 꺼져 있어도 값이 쌓임). v1 → v2 마이그레이션 1회(옛 세이브는 `birth.seed`를 설치 시각 + 보안 난수로 만들고 `ink`는 `seeded`). 정본 점열·`attach` 규칙은 바뀌지 않는다.
+- **[개정 11-20, D-20] 세이브 v2 = 다섯 묶음 추가.** `birth { seed, at, traitVersion }`(첫 탭 씨앗, 평생 고정) · `ink { id, chosenAt | seeded }`(고른 먹, 첫 밤까지 안 고르면 씨앗이 고름) · `name { text, at }` · `temperamentLabel { axis, sign, since }`(결 이름) · `relation { jeongDays, spot[6], hour[24], lastSeenAt }`(정·손 기억). **빌드 1(11-29)부터 기록**한다(기능이 꺼져 있어도 값이 쌓임). v1 → v2 마이그레이션 1회(옛 세이브의 씨앗은 결정적 — createdAt + 'migr' FNV-1a, source 'migrated', 재현 가능하므로 비밀 값으로 쓰지 않음. 첫 밤을 지난 세이브는 씨앗 먹). 새 몽망이도 첫 잠에 씨앗 먹을 정하고 빌드 2 먹 고르기는 '바꾸기'. 새 씨앗은 expo-crypto 보안 난수(11-20 빌드 1 코드 리뷰 반영). 정본 점열·`attach` 규칙은 바뀌지 않는다.
   - 근거: C-integrated v1.1 4-1. 변경 이력: 11-20 D-20 개정(9절 #10).
 
 ## 2026-11-19 D-12 몸과 획의 문법 = "모양은 손, 자리는 몸" [잠정] (11-20 render-03 개정)

@@ -7,7 +7,7 @@ import { morningLine, motifName } from '../game/text';
 import { LANGUAGE_NAMES, clockTime, dayName, t, type LanguagePref } from '../i18n';
 import { DreamCard } from '../render/dreamCard/DreamCard';
 import { DreamCardThumb, strokesForCard } from '../render/dreamCard/DreamCardThumb';
-import { SharePlaceholder, cardA11y, cardLabels, nightName } from './cardText';
+import { ShareBar, cardA11y, cardLabels, nightName } from './cardText';
 import type { Meta } from '../game/store';
 import { PARAMS } from '../render/clock';
 import { KText, track } from '../ui/type';
@@ -155,7 +155,7 @@ function CardViewer({ card, strokes, onClose }: { card: sim.DreamCard; strokes: 
     <View style={[StyleSheet.absoluteFill, styles.viewer, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 12 }]} accessibilityViewIsModal testID="card-viewer">
       <DreamCard card={card} strokes={st} labels={cardLabels(card, line)} width={w} a11yLabel={cardA11y(card, line)} />
       <View style={styles.viewerActions}>
-        <SharePlaceholder dark />
+        <ShareBar dark input={{ card, strokes: st, labels: cardLabels(card, line) }} />
         <Pressable onPress={onClose} style={styles.viewerClose} accessibilityRole="button" accessibilityLabel={t('note.viewer.back.a11y')} testID="viewer-close">
           <KText style={[styles.closeText, { color: PALETTE.night.text, textDecorationLine: 'underline' }]}>{t('note.viewer.back')}</KText>
         </Pressable>

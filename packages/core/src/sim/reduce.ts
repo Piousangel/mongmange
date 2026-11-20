@@ -18,9 +18,25 @@ import {
   zeroAxes,
 } from './temperament';
 import { TIME, canPutToSleep, dryness, initialLastWake, nextTransition, resolveNow } from './time';
+import {
+  birthSeedOf,
+  fnv1a,
+  seededInk,
+  splitMs,
+  foldRelationDay,
+  initRelation,
+  labelOf,
+  makeBirth,
+  normalizeName,
+  returnRelation,
+  touchRelation,
+  visitRelation,
+  type BirthInput,
+} from './pillars';
 import { AXES, type AxisId, type AxisRecord, type Effect, type Event, type Measures, type MorningLine, type Millis, type Stage, type State, type Step } from './types';
 
-export const SIM_SCHEMA_VERSION = 1;
+/** sim 블록 버전. 2 = 세이브 v2(세 기둥 필드: birth·ink·name·temperamentLabel·relation) */
+export const SIM_SCHEMA_VERSION = 2;
 /** 물로 씻기 허용 시간 */
 export const WASH_WINDOW_MS = 5000;
 /** MVP 끝 표식 = 7획 '이레' */
@@ -32,6 +48,8 @@ const MAX_TRANSITIONS_PER_TICK = 64;
 export interface InitialOptions {
   bedtimeLocalMin?: number;
   morningLocalMin?: number;
+  /** 첫 탭(설치 순간) — 타고남 씨앗 재료. 없으면 seed·시각에서 결정적으로(테스트·개발 메뉴) */
+  birth?: BirthInput;
 }
 
 /** 설치 세션: 깨어 있고, 앱이 앞에 있다. lastWakeAt = min(설치, 직전 아침)(첫날 예외) */
@@ -65,6 +83,11 @@ export function createInitial(now: Millis, tzOffsetMin: number, seed: number, op
     cards: [],
     recentChannels: [],
     ire7LineShown: false,
+    birth: makeBirth(opts.birth ? birthSeedOf(opts.birth) : fnv1a([seed | 0, ...splitMs(now)]), now, 'tap'),
+    ink: { id: null, chosenAt: null, seeded: false },
+    name: null,
+    temperamentLabel: null,
+    relation: visitRelation(initRelation(now), now, tzOffsetMin),
   };
 }
 
@@ -96,6 +119,8 @@ const dirOf = (x: number) => (x >= 0 ? 'plus' : 'minus');
 /** 잠들기 = 밤 정산. 입력이 없던 날은 축·습관을 움직이지 않는다 */
 function doSleep(s: State, at: Millis, effects: Effect[]): State {
   let next: State = { ...s, phase: 'asleep', sleepAt: at };
+  // 첫 잠까지 먹을 고르지 않았으면 씨앗이 정해 둔다(빌드 1부터 값이 쌓임, 리뷰 M-2). 먹 고르기(빌드 2)는 이 값을 '바꾼다'
+  if (s.ink.id === null) next = { ...next, ink: { id: seededInk(s.birth.seed), chosenAt: at, seeded: true } };
   effects.push({ type: 'slept', at });
   if (s.ledger.inputs === 0) return next;
   const m = ledgerMeasures(s.ledger);
@@ -163,6 +188,7 @@ function doWake(s: State, at: Millis, effects: Effect[]): State {
     ledger: emptyLedger(),
     rng: picked.rng,
     pendingCard: card,
+    relation: foldRelationDay(s.relation),
   };
 }
 
@@ -225,6 +251,7 @@ function rebase(s: State, now: Millis): State {
     lastCareAt: s.lastCareAt + d,
     backgroundSince: sh(s.backgroundSince),
     ledger: { ...s.ledger, lastStrokeAt: sh(s.ledger.lastStrokeAt) },
+    relation: { ...s.relation, lastSeenAt: s.relation.lastSeenAt + d },
   };
 }
 
@@ -299,6 +326,7 @@ function applyWash(s: State, at: Millis, effects: Effect[]): State {
 
 function applyTap(s: State, e: Extract<Event, { type: 'tap' }>): State {
   if (s.phase === 'asleep') return s; // 수면을 건드리면 잔물결만
+  if (e.target === 'body') s = { ...s, relation: touchRelation(s.relation, s.dayIndex, e.x, e.y, e.holdMs) };
   const l = s.ledger;
   const taps = [...l.taps, { x: e.x, y: e.y }].slice(-LEDGER.maxTaps);
   if (e.target === 'body' && e.holdMs >= LEDGER.holdMinMs) {
@@ -338,6 +366,8 @@ export function reduce(state: State, e: Event): Step {
       const { line, ire7 } = finalLine(s);
       effects.push({ type: 'cardDeveloped', card: s.pendingCard!, line });
       s = { ...s, cards: [...s.cards, s.pendingCard!], pendingCard: null, pendingLine: null, ire7LineShown: s.ire7LineShown || ire7 };
+      // 결 이름은 이레 아침에 처음 정한다(2-5). 전환(히스테리시스)은 1.0 직후라 그 뒤로는 그대로 둔다
+      if (ire7 && !s.temperamentLabel) s = { ...s, temperamentLabel: { ...labelOf(s.temperament), since: at } };
       break;
     }
     case 'setTimes': {
@@ -348,12 +378,26 @@ export function reduce(state: State, e: Event): Step {
       if (s.dayIndex === 0 && s.phase === 'awake') s = { ...s, lastWakeAt: initialLastWake(s.createdAt, e.morningLocalMin, s.clock.tzOffsetMin) };
       break;
     }
-    case 'appForeground':
-      s = { ...s, backgroundSince: null, clock: { ...s.clock, tzOffsetMin: e.tzOffsetMin } };
+    case 'appForeground': {
+      let rel = s.backgroundSince !== null ? returnRelation(s.relation, s.backgroundSince, at) : s.relation;
+      rel = visitRelation(rel, at, e.tzOffsetMin);
+      s = { ...s, backgroundSince: null, clock: { ...s.clock, tzOffsetMin: e.tzOffsetMin }, relation: rel };
       break;
+    }
+    case 'chooseInk':
+      // 바꾸기: 씨앗이 정해 둔 먹 위에 유저가 고른 먹을 덮는다(같은 먹을 다시 골라도 '고름'으로 기록)
+      s = { ...s, ink: { id: e.ink, chosenAt: at, seeded: !!e.seeded } };
+      break;
+    case 'setName': {
+      const n = normalizeName(e.text);
+      if (n.ok) s = { ...s, name: { text: n.text, at } };
+      break;
+    }
     case 'appBackground':
       if (s.backgroundSince === null) s = advance({ ...s, backgroundSince: at }, at, effects);
       break;
   }
+  // 유저가 앞에 있던 마지막 시각(감정 상태 입력). 정산만 하는 tick은 건드리지 않는다
+  if (s.relation.lastSeenAt !== at) s = { ...s, relation: { ...s.relation, lastSeenAt: at } };
   return { state: s, effects };
 }

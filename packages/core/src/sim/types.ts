@@ -1,5 +1,6 @@
 // MVP 시뮬레이션 상태·이벤트·효과 타입(systems-v1 7절 스케치 기반). 순수 데이터만.
 import type { AttachLevel, RawPoint, StrokeRecord } from '../geometry/types';
+import type { Birth, InkChoice, InkId, NameRecord, Relation, TemperamentLabel } from './pillars';
 
 export type Millis = number;
 export type AxisId = 'tempo' | 'boldness' | 'closeness' | 'curiosity';
@@ -140,6 +141,17 @@ export interface State {
   /** 최근 결과 채널 `${axis}.${channel}` (5일 안 겹치지 않게) */
   recentChannels: string[];
   ire7LineShown: boolean;
+  // ── 세이브 v2(sim 2): 세 기둥 필드. 빌드 1은 기능 없이 값만 쌓는다(C-integrated 4-1) ──
+  /** 타고남 씨앗·인장 씨앗(첫 탭에 한 번) */
+  birth: Birth;
+  /** 고른 먹(빌드 2 기능) */
+  ink: InkChoice;
+  /** 지은 이름(빌드 2 기능). null = 아직 */
+  name: NameRecord | null;
+  /** 결 이름. 이레 아침에 처음 정한다(전환은 1.0 직후) */
+  temperamentLabel: TemperamentLabel | null;
+  /** 정·손 기억·감정 상태 입력 */
+  relation: Relation;
 }
 
 export type Event =
@@ -154,7 +166,11 @@ export type Event =
   | { type: 'developCard'; at: Millis }
   | { type: 'setTimes'; at: Millis; bedtimeLocalMin: number; morningLocalMin: number }
   | { type: 'appForeground'; at: Millis; tzOffsetMin: number }
-  | { type: 'appBackground'; at: Millis };
+  | { type: 'appBackground'; at: Millis }
+  /** 먹 고르기·바꾸기(빌드 2). 첫 잠에 씨앗이 정해 둔 먹을 덮는다 */
+  | { type: 'chooseInk'; at: Millis; ink: InkId; seeded?: boolean }
+  /** 이름 짓기(빌드 2). 검사(normalizeName)를 통과한 이름만 받는다 */
+  | { type: 'setName'; at: Millis; text: string };
 
 export type Effect =
   | { type: 'slept'; at: Millis }

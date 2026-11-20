@@ -5,6 +5,22 @@ import { capRaw } from '../geometry/simplify';
 import { CURRENT_MESH_VERSION } from '../geometry/simplify';
 
 export const SCHEMA_VERSION = 2;
+
+/**
+ * 이 앱보다 새 버전이 쓴 세이브(옛 빌드로 내려간 경우). 손상과 구별해야 한다:
+ * 앱은 이때 아무것도 덮어쓰지 않고 '업데이트해 주세요'만 보인다(리뷰 M-5).
+ */
+export class FutureSaveError extends Error {
+  readonly futureVersion = true;
+  constructor(what: string, version: number) {
+    super(`알 수 없는 ${what} 버전 ${version}(이 앱보다 새 버전)`);
+    this.name = 'FutureSaveError';
+  }
+}
+
+export function isFutureSaveError(e: unknown): e is FutureSaveError {
+  return !!e && typeof e === 'object' && (e as { futureVersion?: unknown }).futureVersion === true;
+}
 /** 좌표 양자화: 1W = 4096 → ±8W, 해상도 0.00024W */
 const XY_Q = 4096;
 const P_Q = 32767;
@@ -125,6 +141,7 @@ export function migrate(obj: { schemaVersion: number; strokes: unknown[] }): { s
     });
     cur = { schemaVersion: 2, strokes };
   }
+  if (typeof cur.schemaVersion === 'number' && cur.schemaVersion > SCHEMA_VERSION) throw new FutureSaveError('세이브', cur.schemaVersion);
   if (cur.schemaVersion !== SCHEMA_VERSION) throw new Error(`알 수 없는 세이브 버전 ${cur.schemaVersion}`);
   return cur as { schemaVersion: number; strokes: SerializedStrokeV2[] };
 }

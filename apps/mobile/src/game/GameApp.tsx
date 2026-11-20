@@ -17,6 +17,9 @@ import { DevPanel } from './DevPanel';
 import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
 import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, onEffects, setMeta, tickNow, useGame } from './store';
 import { rejectText } from './text';
+import { requestReview } from './review';
+import { createReviewAsker } from './reviewPolicy';
+import { isOn } from '../features';
 import { t } from '../i18n';
 import { useLocale } from '../i18n/react';
 
@@ -34,6 +37,16 @@ const INTRO_BEAT_SOUND: Record<IntroBeat, Parameters<typeof sound.play>[0]> = {
   joy: 'mongJoy',
   pet: 'pet',
 };
+
+/** 평점 요청 1회 보장(앱 전체에 하나) */
+const reviewAsker = createReviewAsker({
+  getAsked: () => getSnapshot().meta.reviewAsked,
+  markAsked: () => setMeta({ reviewAsked: true }),
+  featureOn: () => isOn('review'),
+  isActive: () => AppState.currentState === 'active' || AppState.currentState == null,
+  request: requestReview,
+  setTimer: (fn, ms) => setTimeout(fn, ms),
+});
 
 let booted = false;
 function ensureBoot() {
@@ -100,6 +113,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     const sub = AppState.addEventListener('change', (st) => {
       if (st === 'active') {
         goForeground();
+        reviewAsker.onActive();
         sound.resume();
         setNowT(now());
       } else if (st === 'background') {
@@ -164,6 +178,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             case 'cardDeveloped':
               sound.play('morningLift');
               setDeveloped({ card: e.card, line: e.line });
+              // 평점 요청: 이레 아침 카드를 건져 올린 직후 딱 한 번(먼저 기록 → 거절·실패해도 다시 묻지 않음)
+              reviewAsker.onCardDeveloped(e.line);
               break;
             default:
               break;
@@ -272,6 +288,17 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const toW = (x: number, y: number) => ({ x: (x - L.cx) / L.wpx, y: (y - L.oyFor(coreScale(state?.strokesTotal ?? 0))) / L.wpx });
 
   let body: ReactNode = null;
+  if (snap.futureSave) {
+    // 옛 빌드로 내려감: 인트로(첫 탭 = 설치)로 가면 본 세이브를 덮어쓴다 → 안내만(리뷰 M-5)
+    return (
+      <View style={[styles.fill, styles.update, { backgroundColor: PALETTE.day.bg }]} testID="update-required" accessibilityRole="alert">
+        <KText style={styles.updateTitle} serif="title" accessibilityRole="header">
+          {t('update.title')}
+        </KText>
+        <KText style={styles.updateBody}>{t('update.body')}</KText>
+      </View>
+    );
+  }
   if (kind === 'intro') {
     body = (
       <IntroScreen
@@ -281,7 +308,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           onFirstTap: (x, y) => {
             setIntroPlaying(true);
             const lost = getSnapshot().lostSave;
-            if (!getSnapshot().state) install();
+            if (!getSnapshot().state) install(toW(x, y));
             if (lost) setTimeout(() => flash(t('line.lostSave'), 6000), 9000);
             dispatch({ type: 'tap', target: 'body', holdMs: 0, ...toW(x, y) });
           },
@@ -441,6 +468,9 @@ function scheduleForBackground() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  update: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, gap: 14 },
+  updateTitle: { fontFamily: SERIF, fontSize: 20, color: PALETTE.day.text, textAlign: 'center', letterSpacing: track.serif(20) },
+  updateBody: { fontFamily: SANS, fontSize: 15, lineHeight: 23, color: PALETTE.day.textSub, textAlign: 'center' },
   strokeLine: { color: PALETTE.day.textSub },
   prompt: { position: 'absolute', left: 20, right: 20, paddingVertical: 18, paddingHorizontal: 18, borderRadius: 12, backgroundColor: 'rgba(13,17,32,0.82)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(233,226,210,0.35)' },
   promptText: { fontFamily: SERIF, fontSize: 16, color: PALETTE.night.text, textAlign: 'center', letterSpacing: track.serif(16) },

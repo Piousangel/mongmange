@@ -14,7 +14,7 @@
     "bytes": 1963504,
     "w": 1080,
     "h": 1350,
-    "ms": 881
+    "ms": 1089
   },
   "share-ire-card-9x16.ko.png": {
     "fileName": "mongmangi-card-7-9x16.png",
@@ -22,7 +22,7 @@
     "bytes": 2187978,
     "w": 1080,
     "h": 1920,
-    "ms": 5002
+    "ms": 1266
   },
   "share-ire-scroll-9x16.ko.png": {
     "fileName": "mongmangi-ire-7-9x16.png",
@@ -30,7 +30,7 @@
     "bytes": 1152870,
     "w": 1080,
     "h": 1920,
-    "ms": 4393
+    "ms": 1850
   },
   "day3": {
     "reviewCalls": 0,
@@ -42,7 +42,7 @@
     "bytes": 1929583,
     "w": 1080,
     "h": 1350,
-    "ms": 1197
+    "ms": 1249
   },
   "fail": {
     "note": "보내지 못했어요. 잠시 뒤 다시 해 볼까요"
@@ -53,7 +53,7 @@
     "bytes": 1963265,
     "w": 1080,
     "h": 1350,
-    "ms": 860
+    "ms": 851
   },
   "share-ire-card-9x16.en.png": {
     "fileName": "mongmangi-card-7-9x16.png",
@@ -61,7 +61,7 @@
     "bytes": 2186876,
     "w": 1080,
     "h": 1920,
-    "ms": 945
+    "ms": 876
   },
   "share-ire-scroll-9x16.en.png": {
     "fileName": "mongmangi-ire-7-9x16.png",
@@ -69,7 +69,7 @@
     "bytes": 1153806,
     "w": 1080,
     "h": 1920,
-    "ms": 1685
+    "ms": 1650
   },
   "errors": []
 }

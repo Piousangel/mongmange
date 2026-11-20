@@ -29,6 +29,8 @@ export interface Params {
   cap: boolean;
   /** 웹 캡처용 스크린리더 흉내(?sr=1): 웹은 스크린리더 감지를 믿을 수 없어 이 값으로만 켠다 */
   sr: boolean;
+  /** 캡처: 공유 실패 흉내(웹 개발 확인용) */
+  shareFail: boolean;
 }
 
 export function readParams(): Params {
@@ -55,6 +57,7 @@ export function readParamsFrom(search: string): Params {
     fs: Number(q.get('fs') ?? 1) || 1,
     cap: q.get('cap') === '1',
     sr: q.get('sr') === '1',
+    shareFail: q.get('shareFail') === '1',
   };
 }
 

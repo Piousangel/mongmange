@@ -55,7 +55,7 @@ describe('sim 세이브', () => {
     expect(() => sim.parseState(JSON.stringify({ ...json, sim: { ...json.sim, state: noWake } }))).toThrow(/lastWakeAt/);
     expect(() => sim.parseState(JSON.stringify({ ...json, sim: { ...json.sim, state: { ...json.sim.state, phase: 'dead' } } }))).toThrow(/phase/);
     expect(() => sim.parseState(JSON.stringify({ ...json, sim: { ...json.sim, state: { ...json.sim.state, temperament: { tempo: 0 } } } }))).toThrow(/temperament/);
-    expect(() => sim.parseState(JSON.stringify({ ...json, sim: { ...json.sim, state: { ...json.sim.state, schemaVersion: 2 } } }))).toThrow(/버전 불일치/);
+    expect(() => sim.parseState(JSON.stringify({ ...json, sim: { ...json.sim, state: { ...json.sim.state, schemaVersion: sim.SIM_SCHEMA_VERSION + 1 } } }))).toThrow(/버전 불일치/);
   });
 
   it('기존 봉투와 통합: 새 세이브를 기존 parseSave로 읽으면 같은 정본 점열이 나온다', () => {

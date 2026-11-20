@@ -7,6 +7,7 @@ import { useSyncExternalStore } from 'react';
 import { DEFAULT_SOUND_SETTINGS, type SoundSettings } from '../audio/soundMap';
 import { setLanguagePref, type LanguagePref } from '../i18n';
 import { kv as defaultKV } from './storage';
+import { entropy32 } from './entropy';
 
 type State = sim.State;
 type Effect = sim.Effect;
@@ -33,6 +34,8 @@ export interface Meta {
   lang: LanguagePref;
   /** 개발 메뉴 시간 가속(ms). 늘기만 한다(되돌리면 sim이 역행으로 본다) */
   devOffsetMs: number;
+  /** 평점 요청(이레 아침 1회)을 이미 했는가. 거절·실패해도 true — 다시 묻지 않는다(D-18 ⑤) */
+  reviewAsked: boolean;
 }
 
 export const HOUR_MS = 3_600_000;
@@ -48,6 +51,7 @@ export const DEFAULT_META: Meta = {
   devCaptions: false,
   lang: 'system',
   devOffsetMs: 0,
+  reviewAsked: false,
 };
 
 export interface Snapshot {
@@ -57,12 +61,14 @@ export interface Snapshot {
   restoredFrom: 'main' | 'backup' | 'none' | 'fresh';
   /** 세이브가 있었는데 본·백업 모두 못 읽음(복구 안내) */
   lostSave: boolean;
+  /** 본이 이 앱보다 새 버전(옛 빌드로 내려감) → '업데이트해 주세요' 화면, 설치·저장 안 함 */
+  futureSave: boolean;
   saveError: string | null;
 }
 
 let kv: KV = defaultKV;
 let clockFn: () => number = () => Date.now();
-let snap: Snapshot = { state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, saveError: null };
+let snap: Snapshot = { state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null };
 const subs = new Set<() => void>();
 type EffectFn = (effects: Effect[], ev: Event | null, state: State) => void;
 const effectSubs = new Set<EffectFn>();
@@ -71,7 +77,7 @@ const effectSubs = new Set<EffectFn>();
 export function __configureForTest(opts: { kv: KV; now?: () => number }) {
   kv = opts.kv;
   clockFn = opts.now ?? (() => Date.now());
-  snap = { state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, saveError: null };
+  snap = { state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null };
   effectSubs.clear();
 }
 
@@ -134,6 +140,10 @@ export function boot() {
   snap = { ...snap, meta };
   const r = readSave(kv);
   if (r.error) console.warn('[save] 본 세이브 손상 → ', r.source, r.error);
+  if (r.futureVersion) {
+    emit({ state: null, restoredFrom: 'none', lostSave: false, futureSave: true });
+    return;
+  }
   if (!r.state) {
     emit({ state: null, restoredFrom: r.source, lostSave: r.hadSave });
     return;
@@ -142,10 +152,14 @@ export function boot() {
   apply(sim.reduce(r.state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow() }), null, true);
 }
 
-/** 설치(첫 탭 순간). 깨어 있고 앱이 앞에 있다 */
-export function install() {
+/** 설치(첫 탭 순간). 깨어 있고 앱이 앞에 있다. 첫 탭 좌표(W, 핵 원점)는 타고남 씨앗 재료(C-integrated 2-1) */
+export function install(firstTap?: { x: number; y: number }) {
+  // 새 버전 세이브가 있는 옛 빌드에서는 설치하지 않는다(본을 덮어쓰지 않음, 리뷰 M-5)
+  if (snap.futureSave) return;
   const seed = (Math.random() * 0x7fffffff) | 0;
-  const state = sim.createInitial(now(), tzOffsetNow(), seed);
+  const at = now();
+  const birth: sim.BirthInput = { x: firstTap?.x ?? 0, y: firstTap?.y ?? 0, ms: at, installAt: at, entropy: entropy32().value };
+  const state = sim.createInitial(at, tzOffsetNow(), seed, { birth });
   emit({ state, restoredFrom: 'fresh', lostSave: false });
   persist(state, false);
 }
@@ -227,5 +241,5 @@ export function devReset() {
   } catch {
     /* 무시 */
   }
-  emit({ state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, saveError: null });
+  emit({ state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null });
 }
