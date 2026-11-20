@@ -10,7 +10,7 @@
 - [ ] A4 서버 아키텍처 v1 2차 = 기획 v2.2 6-2 표 '더할 것' 열(이력 4주, `public_meta` 파생 획 스냅숏·`nameVisibility`·8초 루프 슬롯, 핑 차원 `nt`·`wg`·`moon`, 플래그 키 5개, 모티프 팩 매니페스트) → 독립 리뷰
 - [ ] A5 빌드 1 운영 빌드(AAB) EAS + Play Console 앱 생성·비공개 테스트 트랙(오너: Play Console 로그인·신원 확인)
 
-- [ ] A6 (스승 원칙 7-1~3) 모바일 ESLint + CI(타입·테스트·린트), 리뷰 지적 → 린트 규칙 승격(useEffect·setTimeout 범주 규칙), `pnpm verify` 하나로 캡처 검증 통합, docs/team/feature-map.md(기능 지도)
+- [x] A6 (스승 원칙 7-1~3) 모바일 ESLint + CI(타입·테스트·린트), 리뷰 지적 → 린트 규칙 승격(useEffect·setTimeout 범주 규칙), `pnpm verify` 하나로 캡처 검증 통합, docs/team/feature-map.md(기능 지도) — 0c74b6e
 
 - [x] A7 (D-24) 소형 렌더 LOD 구현 + 눈 사라짐 결함 조사 + 카드 몸 폭 10% 보장 + 아트 바이블 v1.4 개정 9건 — aa502c1
 
