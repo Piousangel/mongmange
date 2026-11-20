@@ -9,7 +9,6 @@ import {
   Path,
   RadialGradient,
   Rect,
-  RoundedRect,
   Shader,
   Skia,
   Vertices,
@@ -19,7 +18,6 @@ import {
 } from '@shopify/react-native-skia';
 import {
   COMB_REST,
-  CORE,
   PALETTE,
   buildDreamScene,
   buildRibbon,
@@ -31,7 +29,6 @@ import {
   blurFloorPt,
   bodyLod,
   GRAMMARS,
-  strokeSpine,
   type DreamAspect,
   type DreamLayout,
   type DreamScene,
@@ -48,7 +45,7 @@ import { PixelRatio, Platform, StyleSheet, Text, View } from 'react-native';
 import { useFeature } from '../../features';
 import { paperFx } from '../shaders';
 import { dayName, getLocale, t } from '../../i18n';
-import { EN_SERIF_SCALE, serifFamily } from '../../ui/type';
+import { EN_SERIF_SCALE } from '../../ui/type';
 import { getMarbleFx, marbleUniforms } from './marble';
 
 /** 카드 위 글(문장은 앱이 언어별로 만들어 넘긴다 — 시스템 2.6) */

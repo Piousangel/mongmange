@@ -36,6 +36,7 @@ import { sound } from '../audio/sound';
 import { Caption, ObjectIcons, ObjectLabels, Paper, SANS, layout } from './ui';
 import { t } from '../i18n';
 import { KText, useFontScale } from '../ui/type';
+import { StrokeDevBar, StudyMark } from './StrokeDevBar';
 
 const RM = PARAMS.rm;
 type Pt = { x: number; y: number; t: number };
@@ -414,31 +415,17 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
       )}
       {game?.overlay}
       {!clean && !game && (
-        <View style={styles.dev}>
-          {([1, 2, 3] as const).map((l) => (
-            <Pressable key={l} onPress={() => setLevel(l)} style={[styles.btn, level === l && styles.on]}>
-              <Text style={styles.btnText}>L{l}</Text>
-            </Pressable>
-          ))}
-          <Pressable onPress={exportJson} style={styles.btn}>
-            <Text style={styles.btnText}>raw JSON</Text>{/* i18n-ignore: 스파이크 개발 버튼 */}
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              setRecords([]);
-              attachedAt.value = [];
-            }}
-            style={styles.btn}
-          >
-            <Text style={styles.btnText}>비우기</Text>{/* i18n-ignore: 스파이크 개발 버튼 */}
-          </Pressable>
-        </View>
+        <StrokeDevBar
+          level={level}
+          onLevel={setLevel}
+          onExport={exportJson}
+          onClear={() => {
+            setRecords([]);
+            attachedAt.value = [];
+          }}
+        />
       )}
-      {PARAMS.study !== '' && (
-        <Text style={styles.study} pointerEvents="none">
-          L{level}
-        </Text>
-      )}
+      {PARAMS.study !== '' && <StudyMark level={level} />}
       {!clean && !game && info !== '' && (
         <Text style={styles.info} pointerEvents="none">
           {info}
@@ -572,10 +559,6 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   objHit: { position: 'absolute', width: 80, height: 72, alignItems: 'center' },
   jarRing: { marginTop: 6, width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: PALETTE.day.textSub },
-  dev: { position: 'absolute', top: 8, left: 8, flexDirection: 'row', gap: 4 },
-  btn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.25)' },
-  on: { backgroundColor: 'rgba(0,0,0,0.6)' },
-  btnText: { color: '#fff', fontSize: 11 },
   info: { position: 'absolute', top: 40, left: 10, right: 10, fontSize: 10, color: '#7a7066', fontFamily: SANS },
   assistBar: { position: 'absolute', top: 54, right: 12, flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '70%' },
   assistBtn: { minHeight: 44, minWidth: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(43,42,40,0.08)' },
@@ -590,5 +573,4 @@ const styles = StyleSheet.create({
   panelValue: { flex: 1, textAlign: 'center', fontFamily: SANS, fontSize: 14, color: PALETTE.day.text },
   panelActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   commitBtn: { backgroundColor: 'rgba(43,42,40,0.14)' },
-  study: { position: 'absolute', top: 14, right: 16, fontSize: 11, color: '#8a8076', fontFamily: SANS, letterSpacing: 1 },
 });

@@ -51,13 +51,18 @@ export function DreamCardPreview() {
       }, 300);
       return () => clearTimeout(id);
     }
+    let alive = true;
     renderDreamCardImage({ card, strokes, labels }, { aspect, width: 1080 })
       .then((r) => {
+        if (!alive) return;
         (window as unknown as { __dreamPng?: string }).__dreamPng = r.base64;
         setPng(r.base64);
       })
-      .catch((e) => setErr(String(e)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch((e) => alive && setErr(String(e)));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- labels는 card에서 매 렌더 새로 만드는 객체라 넣으면 매번 다시 인화한다(card가 바뀌면 labels도 바뀐다)
   }, [fontsReady, exportMode, card, strokes, aspect]);
 
   return (

@@ -13,6 +13,7 @@ import { StrokeScreen } from '../screens/StrokeScreen';
 import { SANS, SERIF, layout, styles as ui } from '../screens/ui';
 import { KText, track } from '../ui/type';
 import { PARAMS } from '../render/clock';
+import { useLater } from '../lib/useLater';
 import { DevPanel } from './DevPanel';
 import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
 import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, onEffects, setMeta, tickNow, useGame } from './store';
@@ -93,6 +94,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useSoundSettings(meta.sound);
+  const later = useLater();
 
   const flash = useCallback((text: string, ms = 3400) => {
     if (lineTimer.current) clearTimeout(lineTimer.current);
@@ -147,12 +149,12 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           switch (e.type) {
             case 'strokeAccepted':
               sound.play('strokeAttach');
-              setTimeout(() => sound.play('mongJoy'), 900);
+              later(() => sound.play('mongJoy'), 900);
               setWashOpen(true);
-              setTimeout(() => setWashOpen(false), sim.WASH_WINDOW_MS);
+              later(() => setWashOpen(false), sim.WASH_WINDOW_MS);
               if (returnTimer.current) clearTimeout(returnTimer.current);
               returnTimer.current = setTimeout(() => setMode('home'), STROKE_RETURN_MS);
-              if (st.strokesTotal === 1) setTimeout(() => flash(t('line.firstStroke'), 4000), 1800);
+              if (st.strokesTotal === 1) later(() => flash(t('line.firstStroke'), 4000), 1800);
               break;
             case 'strokeRejected':
               flash(e.reason === 'used' && washOpenRef.current ? t('line.washHint') : rejectText(e.reason));
@@ -191,7 +193,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           }
         }
       }),
-    [flash],
+    [flash, later],
   );
 
   /** 재우기 직후: 권한이 있으면 바로 예약. 처음이면 조수·안심 문구 뒤 앱 안 사전 문구 → (동의하면) OS 권한 창 */
@@ -292,7 +294,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
 
   const toW = (x: number, y: number) => ({ x: (x - L.cx) / L.wpx, y: (y - L.oyFor(coreScale(state?.strokesTotal ?? 0), look.shape.core.h)) / L.wpx });
 
-  let body: ReactNode = null;
+  let body: ReactNode;
   if (snap.futureSave) {
     // 옛 빌드로 내려감: 인트로(첫 탭 = 설치)로 가면 본 세이브를 덮어쓴다 → 안내만(리뷰 M-5)
     return (
@@ -314,7 +316,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             setIntroPlaying(true);
             const lost = getSnapshot().lostSave;
             if (!getSnapshot().state) install(toW(x, y));
-            if (lost) setTimeout(() => flash(t('line.lostSave'), 6000), 9000);
+            if (lost) later(() => flash(t('line.lostSave'), 6000), 9000);
             dispatch({ type: 'tap', target: 'body', holdMs: 0, ...toW(x, y) });
           },
           onPet: (x, y) => {
@@ -419,7 +421,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             // 이름은 화면에 쓰지 않고 스크린리더에만
             const firstDay = state.dayIndex === 0;
             sound.play('inkGrind');
-            setTimeout(() => sound.stop('inkGrind'), 700);
+            later(() => sound.stop('inkGrind'), 700, { flushOnUnmount: true }); // 루프 소리 — 화면이 사라져도 반드시 멈춘다
             dispatch({ type: 'chooseInk', ink });
             setInkChanging(false);
             const name = t('ink.name', { ink });

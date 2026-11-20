@@ -89,7 +89,7 @@ const ATTR_LITERAL = /\b(accessibilityLabel|accessibilityHint|placeholder|title)
 const JSX_TEXT_INLINE = /(?<![=-])>\s*[A-Za-z][^<>{}=;()]*<\//;
 const JSX_TEXT_LINE = /^\s*[A-Z][A-Za-z’']*( [A-Za-z’',.!?…·-]+)+\s*$/;
 /** 파일 통째 예외를 허용하는 파일(개발 빌드 전용) */
-const IGNORE_FILE_ALLOW = ['src/game/DevPanel.tsx'];
+const IGNORE_FILE_ALLOW = ['src/game/DevPanel.tsx', 'src/screens/StrokeDevBar.tsx'];
 
 function latinOffenders(): string[] {
   const bad: string[] = [];

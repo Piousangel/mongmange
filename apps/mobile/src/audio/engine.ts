@@ -238,9 +238,11 @@ export class SoundEngine {
     }
     this.recomputeDuck();
     this.applyVolumes();
-    cue.type === 'oneShot'
-      ? cue.layers.forEach((l, i) => !(l.delayMs && l.delayMs > 0) && voices[i]?.v.play())
-      : voices.forEach((x) => x.v.play());
+    if (cue.type === 'oneShot') {
+      cue.layers.forEach((l, i) => {
+        if (!(l.delayMs && l.delayMs > 0)) voices[i]?.v.play();
+      });
+    } else voices.forEach((x) => x.v.play());
     if (p.fade < 1) this.ensureTicker();
     return true;
   }

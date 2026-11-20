@@ -13,7 +13,6 @@ const reduceMotion =
   Platform.OS === 'web' ? Promise.resolve(false) : AccessibilityInfo.isReduceMotionEnabled().catch(() => false);
 const ready: Promise<ComponentType> = Promise.all([skiaReady(), reduceMotion]).then(([, rm]) => {
   if (rm) PARAMS.rm = true;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require('./App').default as ComponentType;
 });
 
@@ -21,7 +20,7 @@ function Boot() {
   const [App, setApp] = useState<ComponentType | null>(null);
   useEffect(() => {
     let alive = true;
-    ready.then((C) => {
+    void ready.then((C) => {
       if (alive) setApp(() => C);
     });
     return () => {

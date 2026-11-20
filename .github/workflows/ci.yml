@@ -1,0 +1,51 @@
+# 저장소 CI(로드맵 A6, architecture.md 6-4 ci.yml). 로컬과 같은 명령 하나 — `pnpm verify`:
+#   타입 검사(전 패키지) → ESLint(경고 0) → eslint 주석 규율(ESLint 밖) → 도구 시험 → 전 패키지 시험(RENDER_HEAVY 제외) → 서버 번들 검사 → 정적 빌드 빈 값 실패 확인
+# 옛 static-ci.yml(contract·web-static)은 전부 이 안으로 들어와 지웠다. server-ci.yml에는 이 워크플로가 못 하는 일만 남았다
+# (Postgres 서비스가 필요한 실제 DB 시험·마이그레이션 어긋남·OpenAPI 산출물·docker 스모크).
+# 비밀값 없음. 공급망: 액션은 커밋 SHA로 고정(주석의 태그는 사람이 읽는 용도), 설치는 frozen-lockfile.
+name: ci
+
+on:
+  pull_request:
+    paths: &paths
+      - 'apps/**'
+      - 'packages/**'
+      # 린트는 scripts·tools 전체를 본다(캡처·글꼴·소리 도구 포함) → 이것만 바뀐 PR도 돌아야 한다
+      - 'scripts/**'
+      - 'tools/**'
+      - 'eslint.config.mjs'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/ci.yml'
+  push:
+    branches: [main]
+    paths: *paths
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: pnpm verify(타입 · 린트 · 시험 · 번들 · 정적 빌드)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1 (버전은 package.json packageManager)
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      # 전 패키지 설치(모바일 시험·린트가 Expo·RN 타입을 본다). 설치 스크립트는 pnpm-workspace.yaml allowBuilds만
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm verify
+        run: pnpm verify
+        env:
+          VERIFY_VERBOSE: '1'

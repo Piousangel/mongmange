@@ -345,3 +345,12 @@
 - **핑 켜짐 = 서버 주소 AND 사용자 동의**(gate.ts). 설정 토글 연결 전에는 `METRICS_SETTING_CONNECTED = false`로 늘 꺼짐(시험이 고정). API·정적 주소는 https만(개발 빌드 예외).
 - **config 플래그는 빼도 된다**: 빠진 키 = 번들 기본값. 서버 스위치 4개(cloud·link·remoteMotifs·webLive)만 CI가 명시 요구. 앱 lenient / CI strict, `minAppBuild` 미달이면 원격 무시. 로더는 읽는 곳이 생길 때(크래시 루프 탈출과 함께)까지 받지 않는다.
 - **`/m/**`는 B0 동안 Firebase 정적 한 파일로 rewrite**(B3에서 Cloud Run). 주소를 읽지 않고 외부 자원 0, `no-referrer`, CSP 해시. 검색은 `X-Robots-Tag`+meta noindex로만 막고 **robots.txt로 막지 않는다**(막으면 noindex를 못 읽음, 리뷰 I6). 팀 ID·지문·App Store id가 비었거나 자리표시자 모양이면 `firebase deploy`(predeploy)가 멈춘다.
+
+## 2026-11-20 A6 검증 기반 = ESLint 한 설정 + `pnpm verify` + 단일 ci.yml [잠정 — 리뷰 조건부 통과, 반영 후 확정]
+- 근거: OPERATING 7-1~7-3, docs/team/mentors.md 적용안 1~3, 규칙별 근거 docs/team/lint-rules.md, 독립 리뷰 docs/team/reviews/2026-11-20-a6-review.md(M1~M4·L1~L6 반영).
+- **린트는 저장소 하나에 `eslint.config.mjs` 하나**(앱·서버·core·contract·스크립트). `expo lint`(eslint-config-expo) 대신 eslint·@eslint/js·typescript-eslint·eslint-plugin-react-hooks·globals 다섯(루트 devDependencies)으로 같은 규칙을 덮는다.
+- **경고 0 정책**: 규칙은 error 또는 끔. 예외는 줄 단위 `eslint-disable-next-line <규칙> -- <이유>`만. 이유 없는·규칙 이름 없는 disable과 인라인 설정 주석(`/* eslint 규칙: … */`·`/* global */`)은 `mong/eslint-comment-discipline` + verify `directives` 단계(ESLint 밖)가 막는다. `noInlineConfig`는 이유를 단 disable까지 꺼서 버림.
+- **범주 금지(OPERATING 7-2) + 첫 실행 실제 위반 → 로컬 규칙**(`tools/eslint/mong-plugin.mjs`): 타이머 핸들 버리기 금지(`useLater()`가 정답 길), effect가 타이머·구독·비동기를 시작하면 정리 함수 필수, JSX 글·접근성 속성 하드코딩 금지(라틴 포함), 땜질 변명 주석 금지. 설정 규칙: 앱 모듈 최상위 throw 금지, core 결정성(Math.random·Date.now 금지), 패키지 경계 import.
+- **`pnpm verify`가 검증 명령 하나**(타입 → 린트 → 주석 규율 → 도구 시험 → 전 패키지 시험 → 서버 번들 → 정적 빈 값 실패). 모르는 단계·빈 `--only`는 종료 코드 2, 0단계 실행은 실패. CI `ci.yml`이 같은 명령을 돈다. 옛 static-ci.yml은 흡수해 삭제, server-ci.yml에는 DB·docker 단계만 남김. 완료 관문 훅(타입만)은 그대로.
+- 버린 안: 경고로 시작(쌓이기만 함), `no-use-before-define`로 TDZ 막기(worklet-order 시험이 더 정확), 패키지별 ESLint 설정(규칙이 갈림).
+

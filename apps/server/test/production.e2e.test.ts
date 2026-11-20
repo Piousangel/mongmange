@@ -2,7 +2,7 @@
 import 'reflect-metadata';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, it } from 'vitest';
 import { startApp } from './support';
 
 let app: NestFastifyApplication;

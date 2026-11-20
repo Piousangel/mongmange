@@ -39,8 +39,7 @@ afterAll(async () => {
 });
 
 function hit(method: 'get' | 'post', path: string, xff: string) {
-  return request(app.getHttpServer())
-    [method](path)
+  return request(app.getHttpServer())[method](path)
     .set('x-forwarded-for', xff)
     .set('user-agent', SECRETS.ua)
     .set('authorization', `Bearer ${SECRETS.bearer}`)

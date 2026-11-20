@@ -37,6 +37,7 @@ export async function sharePng(base64: string, fileName: string, dialogTitle: st
     document.body.appendChild(a);
     a.click();
     a.remove();
+    // eslint-disable-next-line mong/no-floating-timer -- 컴포넌트 밖 일회 해제: state를 건드리지 않고, 다운로드가 URL을 읽을 시간만 준다
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     if (__DEV__) g.__mongLastShare = { fileName, bytes: blob.size, via: 'download', base64 };
     return 'saved';

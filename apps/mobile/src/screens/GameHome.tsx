@@ -295,7 +295,7 @@ export function GameHome({
   const pickInk = reveal === 'all' && shown[1] && !!actions.onChooseInk && inkPickerOpen(state, { flag: inkChoice, changing: inkChanging });
   const currentInk = sim.currentInk(state.ink);
   const keptInk = inkChoice && !asleep && reveal === 'all' && !pickInk ? currentInk : null;
-  const sticksAt = useMemo(() => clock.value + (animateReveal ? 2400 : 0), [pickInk, animateReveal]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sticksAt = useMemo(() => clock.value + (animateReveal ? 2400 : 0), [pickInk, animateReveal]); // eslint-disable-line react-hooks/exhaustive-deps -- clock.value는 공유값(렌더 의존 아님): 먹 자루가 나타나는 순간의 시각만 잡는다
 
   return (
     <View style={[styles.root, { backgroundColor: PALETTE.night.bg }]} testID="game-home">

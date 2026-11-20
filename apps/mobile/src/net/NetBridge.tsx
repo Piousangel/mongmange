@@ -23,6 +23,7 @@ export function NetBridge() {
     if (!ctx || !snap.state) return;
     const added = pingClient.syncOnce(snap.state, ctx);
     const opened = pingClient.recordOpen(ctx);
+    // eslint-disable-next-line mong/effect-needs-cleanup -- 집계 전송은 결과를 state에 쓰지 않고, 언마운트 때 취소하면 쌓인 칸을 잃는다(전송·재시도는 pingClient가 맡음)
     if (added > 0 || opened) void pingClient.flush(ctx);
   }, [snap]);
 

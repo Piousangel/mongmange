@@ -1,4 +1,5 @@
 # 서버 CI(로드맵 B1, architecture.md 6-4 ci.yml의 서버 몫). 배포는 B6(deploy-staging.yml·deploy-prod.yml)에서.
+# A6부터 서버 타입 검사·단위/e2e 시험·번들 검사는 ci.yml(pnpm verify)이 맡는다. 여기에는 Postgres 서비스·docker가 필요한 단계만 남긴다.
 # 비밀값 없음 — 이 워크플로는 저장소 밖으로 아무것도 보내지 않는다(이미지 push 없음).
 # B6에서 쓸 이름(정본 6-4, 값은 저장소에 두지 않는다):
 #   GitHub Environments(staging·production): DIRECT_URL_SESSION_POOLER — 세션 풀러 5432, 배포 단계에서 DIRECT_URL로 넘겨 migrate deploy
@@ -13,6 +14,7 @@ on:
       - 'apps/server/**'
       - 'packages/core/**'
       - 'packages/contract/**'
+      - 'package.json' # 루트 packageManager(pnpm 판)·devDependencies가 바뀌면 설치·docker가 달라진다
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/server-ci.yml'
@@ -29,7 +31,7 @@ permissions:
 
 jobs:
   check:
-    name: typecheck · test · DB 시험
+    name: DB 시험 · 마이그레이션 · OpenAPI
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -56,10 +58,6 @@ jobs:
           cache: pnpm
       # 서버와 그 의존(core)만 설치 — 모바일(Expo·RN) 의존성은 받지 않는다
       - run: pnpm install --frozen-lockfile --filter "server..."
-      - name: typecheck(core·server)
-        run: pnpm --filter "server..." run typecheck
-      - name: test(core·server — 단위·계약·e2e·로그 가림)
-        run: pnpm --filter "server..." run test
       - name: 롤 준비(슈퍼유저로 한 번)
         run: psql -v ON_ERROR_STOP=1 -h localhost -U mong -d mong -f apps/server/prisma/local/00-roles.sql
         env:
@@ -76,8 +74,6 @@ jobs:
         run: pnpm --filter server exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
         env:
           DIRECT_URL: ${{ env.PRISMA_URL }}
-      - name: 번들 검사 — dist에 @mong/core import 0건(core는 원본째 번들 안), core에 런타임 의존성 없음
-        run: pnpm --filter server run build && pnpm --filter server run check:bundle
       - name: OpenAPI 문서 생성
         run: pnpm --filter server run openapi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
