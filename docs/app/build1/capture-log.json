@@ -1,0 +1,75 @@
+{
+  "review": {
+    "before": 0,
+    "afterDevelop": 1,
+    "reviewAsked": true,
+    "afterReload": {
+      "calls": 0,
+      "reviewAsked": true
+    }
+  },
+  "share-ire-card-4x5.ko.png": {
+    "fileName": "mongmangi-card-7-4x5.png",
+    "via": "download",
+    "bytes": 1963504,
+    "w": 1080,
+    "h": 1350,
+    "ms": 881
+  },
+  "share-ire-card-9x16.ko.png": {
+    "fileName": "mongmangi-card-7-9x16.png",
+    "via": "download",
+    "bytes": 2187978,
+    "w": 1080,
+    "h": 1920,
+    "ms": 5002
+  },
+  "share-ire-scroll-9x16.ko.png": {
+    "fileName": "mongmangi-ire-7-9x16.png",
+    "via": "download",
+    "bytes": 1152870,
+    "w": 1080,
+    "h": 1920,
+    "ms": 4393
+  },
+  "day3": {
+    "reviewCalls": 0,
+    "ireButton": false
+  },
+  "share-day3-card-4x5.ko.png": {
+    "fileName": "mongmangi-card-6-4x5.png",
+    "via": "download",
+    "bytes": 1929583,
+    "w": 1080,
+    "h": 1350,
+    "ms": 1197
+  },
+  "fail": {
+    "note": "보내지 못했어요. 잠시 뒤 다시 해 볼까요"
+  },
+  "share-ire-card-4x5.en.png": {
+    "fileName": "mongmangi-card-7-4x5.png",
+    "via": "download",
+    "bytes": 1963265,
+    "w": 1080,
+    "h": 1350,
+    "ms": 860
+  },
+  "share-ire-card-9x16.en.png": {
+    "fileName": "mongmangi-card-7-9x16.png",
+    "via": "download",
+    "bytes": 2186876,
+    "w": 1080,
+    "h": 1920,
+    "ms": 945
+  },
+  "share-ire-scroll-9x16.en.png": {
+    "fileName": "mongmangi-ire-7-9x16.png",
+    "via": "download",
+    "bytes": 1153806,
+    "w": 1080,
+    "h": 1920,
+    "ms": 1685
+  },
+  "errors": []
+}
