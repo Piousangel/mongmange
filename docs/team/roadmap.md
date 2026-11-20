@@ -39,7 +39,7 @@
 - [ ] C7 이레 두루마리 영상(자체 인코더, 12-05까지 실패 시 이미지판) — 1단계 3e3b07f(타임라인·렌더·계약), 남은 것: 인코더 모듈(C10)·12-05 실기기
 - [ ] C8 아이콘 3안·미리보기 영상·스토어 스크린샷(실제 화면, 주연 = 얼굴·'획 → 몸'·아침 카드)
 - [ ] C9 iOS 빌드·TestFlight(오너: Apple Developer)
-- [ ] C10 빌드 2 네이티브 묶음 한 번: `expo-updates`(채널·롤백 규칙), `associatedDomains`, `intentFilters`(EAS 서명 키 + Play 앱 서명 키), 위젯 타깃(`@bacons/apple-targets`·App Group·로컬 Expo 모듈), `react-native-android-widget` → 12-05 전후 EAS 리허설 빌드
+- [ ] C10 빌드 2 네이티브 묶음 한 번: `expo-updates`(채널·롤백 규칙), `associatedDomains`, `intentFilters`(EAS 서명 키 + Play 앱 서명 키), 위젯 타깃(`@bacons/apple-targets`·App Group·로컬 Expo 모듈), `react-native-android-widget` → 12-05 전후 EAS 리허설 빌드 — 진행: 인코더 모듈 1dd856c(EAS 리허설·expo-updates·딥링크·위젯 남음)
 - [ ] C11 앱 net 모듈: 집계 핑 + 아웃박스, 플래그 로더(크래시 루프 탈출), 딥링크 수신 시트, 14세 확인, OG 1200×630 렌더·8초 루프 업로드(이름 공개 설정 반영)
 - [ ] C12 맡겨 두기 UI: 켜기·되찾기 글귀 표시·입력·충돌 시 나란히 고르기·복원 화면·지우기(다국어·200% 글자)
 - [ ] C13 자동 테스트: 기기 이동·충돌 시나리오 iOS·Android 각 20회+, 오프라인 7일, 느린 서버(Q5·Q9)
