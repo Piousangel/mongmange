@@ -1,0 +1,51 @@
+// 루트 모듈. 기능 모듈은 B 항목마다 붙인다(architecture.md 6-1: auth·saves·pages·web·metrics·reports·deletion·cron).
+// 관리 도구(admin)는 서버 v2 리뷰에 따라 소프트런칭 뒤로 미뤄 골격에 없다.
+import { Global, Module } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ConditionalModule, ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
+import { devEndpointsEnabled, validateEnv, type Env } from './config/env';
+import { ClientIpService } from './common/client-ip';
+import { AllExceptionsFilter } from './common/http-exception.filter';
+import { loggerParams } from './common/logging';
+import { ClientIpThrottlerGuard } from './common/throttler.guard';
+import { HealthModule } from './health/health.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { SavesModule } from './saves/saves.module';
+
+@Global()
+@Module({ providers: [ClientIpService], exports: [ClientIpService] })
+class CommonModule {}
+
+@Module({
+  imports: [
+    // .env 파일은 읽지 않는다 — 로컬은 compose의 environment / 셸, 운영은 Cloud Run 환경 변수·Secret Manager
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true, validate: validateEnv, cache: true }),
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (c: ConfigService<Env, true>) =>
+        loggerParams({
+          LOG_LEVEL: c.get('LOG_LEVEL', { infer: true }),
+          LOG_PRETTY: c.get('LOG_PRETTY', { infer: true }),
+          NODE_ENV: c.get('NODE_ENV', { infer: true }),
+        }),
+    }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (c: ConfigService<Env, true>) => [
+        { name: 'default', ttl: 60_000, limit: c.get('RATE_LIMIT_PER_MIN', { infer: true }) },
+      ],
+    }),
+    CommonModule,
+    PrismaModule,
+    HealthModule,
+    // 예시 엔드포인트(세이브 검사)는 개발·테스트 전용 — 운영(NODE_ENV=production)에는 모듈 자체가 없다(B1 리뷰 I7)
+    ConditionalModule.registerWhen(SavesModule, devEndpointsEnabled),
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ClientIpThrottlerGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
+})
+export class AppModule {}

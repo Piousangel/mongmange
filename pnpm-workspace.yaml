@@ -2,3 +2,10 @@ packages:
   - apps/*
   - packages/*
 nodeLinker: hoisted
+# 설치 스크립트 허용 목록(apps/server: Prisma 엔진·SWC·esbuild 바이너리). scarf는 텔레메트리라 막는다
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  '@swc/core': true
+  esbuild: true
+  '@scarf/scarf': false

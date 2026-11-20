@@ -1,0 +1,66 @@
+// 몽망이 서버 DB(architecture.md v2 3-1). 스키마 `app`(Data API 비노출, RLS 켜고 정책 0개 — 권한 판단은 Nest).
+// B1 골격: B2(맡겨 두기)·B3(링크) 첫 작업에 꼭 필요한 최소 3개만 둔다. 열 세부는 서버 v2 독립 리뷰 결과에 따라
+// B2·B3에서 새 마이그레이션으로 확장한다(확장 → 배포 → 축소). 나머지 표(save_versions·public_pages·reports·
+// metric_daily 등)는 해당 B 항목에서 만든다.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["app"]
+}
+
+/// 익명 계정(= Supabase auth.users.id). 이름·이메일 없음. 연령은 '14세 이상 확인을 거쳤다'는 기록만(3-3)
+model User {
+  id               String    @id @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// 그달 1일(5-5 장기 미사용 판단용, 월 단위)
+  lastActiveMonth  DateTime? @map("last_active_month") @db.Date
+  locale           String?   @db.Char(2)
+  ageGateV         Int?      @map("age_gate_v") @db.SmallInt
+  ageConfirmedOn   DateTime? @map("age_confirmed_on") @db.Date
+  creature         Creature?
+
+  @@map("users")
+  @@schema("app")
+}
+
+/// 몽망이 한 마리. 인장 코드 = 링크 키(서버 난수 40비트, 3-5). 링크·이름 공개는 기본 꺼짐
+model Creature {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// 사용자당 몽망이 하나(서버 v2 리뷰: DB 제약으로 둔다)
+  userId      String   @unique @map("user_id") @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code        String   @unique @db.Char(8)
+  linkEnabled Boolean  @default(false) @map("link_enabled")
+  nameVisible Boolean  @default(false) @map("name_visible")
+  hidden      Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  save        Save?
+
+  @@map("creatures")
+  @@schema("app")
+}
+
+/// 현재 세이브 한 벌(통째 스냅샷 + 리비전, 3-4). 본문은 gzip bytea, 서버는 아래 몇 열 말고는 본문에서 꺼내지 않는다(5-1)
+model Save {
+  creatureId    String   @id @map("creature_id") @db.Uuid
+  creature      Creature @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  rev           Int
+  body          Bytes
+  bodySha256    Bytes    @map("body_sha256")
+  envelopeVer   Int      @map("envelope_ver") @db.SmallInt
+  simVer        Int      @map("sim_ver") @db.SmallInt
+  validated     Boolean
+  clientSavedAt DateTime @map("client_saved_at") @db.Timestamptz(6)
+  dayIndex      Int      @map("day_index")
+  strokesTotal  Int      @map("strokes_total")
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("saves")
+  @@schema("app")
+}

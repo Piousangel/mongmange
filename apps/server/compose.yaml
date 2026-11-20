@@ -1,0 +1,60 @@
+# 로컬 실행(architecture.md 6-3). 저장소 루트에서:
+#   docker compose -f apps/server/compose.yaml up --build -d --wait db api
+#   curl localhost:8080/healthz
+#   curl -H 'x-ready-token: local-ready-token-0000' localhost:8080/readyz
+# DB는 Postgres 17 하나로 대신한다(이 Mac에 supabase CLI가 없음 — B2에서 Auth·Storage가 필요해지면
+# `pnpm dlx supabase start`로 바꾼다. B0-B1-report.md 참고). prisma/local/00-roles.sql이 Supabase의 롤 관계
+# (마이그레이션·런타임 = 비슈퍼유저 prisma 롤, Data API 롤 anon·authenticated)를 흉내 낸다.
+# api는 운영 이미지 그대로(NODE_ENV=production) — 운영 필수값(hops·READY_TOKEN)을 로컬 값으로 준다.
+# 여기 비밀번호·토큰은 로컬 전용 고정값이다(운영 값 아님).
+name: mong
+
+services:
+  db:
+    image: postgres:17-alpine@sha256:526f86d93c6ea08fd3f1fe5605650cacc781b2c6013169a0ad8f42c7d3d84f32
+    environment:
+      POSTGRES_USER: mong
+      POSTGRES_PASSWORD: mong-local
+      POSTGRES_DB: mong
+    ports: ['127.0.0.1:54329:5432']
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./prisma/local/00-roles.sql:/docker-entrypoint-initdb.d/00-roles.sql:ro
+    healthcheck:
+      # TCP로 확인한다 — 초기화 SQL을 돌리는 임시 서버는 유닉스 소켓만 열어서, 소켓 확인은 init 도중에 healthy가 된다
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U mong -d mong']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 120s
+
+  # 한 번 돌고 끝나는 마이그레이션(컨테이너 시작 때 마이그레이션하지 않는다는 원칙 — api와 분리)
+  migrate:
+    build: { context: ../.., dockerfile: apps/server/Dockerfile, target: build }
+    environment:
+      DIRECT_URL: postgresql://prisma:prisma-local@db:5432/mong
+    command: ['pnpm', '--filter', 'server', 'exec', 'prisma', 'migrate', 'deploy']
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/server/Dockerfile
+      args: { APP_VERSION: local-compose }
+    image: mong-api:local
+    environment:
+      DATABASE_URL: postgresql://prisma:prisma-local@db:5432/mong
+      LOG_LEVEL: info
+      OPENAPI_UI: 'true'
+      # 로컬은 프록시가 없지만 운영 필수값이라 1로 둔다(XFF가 없으면 소켓 주소로 떨어진다)
+      TRUSTED_PROXY_HOPS_API: '1'
+      TRUSTED_PROXY_HOPS_WEB: '2'
+      READY_TOKEN: local-ready-token-0000
+    ports: ['127.0.0.1:8080:8080']
+    depends_on:
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+volumes:
+  db-data:

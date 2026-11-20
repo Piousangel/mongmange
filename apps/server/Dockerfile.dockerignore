@@ -1,0 +1,16 @@
+# apps/server/Dockerfile 전용(BuildKit은 <Dockerfile>.dockerignore를 루트 .dockerignore보다 먼저 쓴다)
+**/node_modules
+**/.git
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+apps/server/src/generated
+apps/server/openapi.json
+apps/mobile/*
+!apps/mobile/package.json
+docs
+tools
+scripts
+.claude
+**/.DS_Store

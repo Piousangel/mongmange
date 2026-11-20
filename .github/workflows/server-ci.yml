@@ -1,0 +1,119 @@
+# 서버 CI(로드맵 B1, architecture.md 6-4 ci.yml의 서버 몫). 배포는 B6(deploy-staging.yml·deploy-prod.yml)에서.
+# 비밀값 없음 — 이 워크플로는 저장소 밖으로 아무것도 보내지 않는다(이미지 push 없음).
+# B6에서 쓸 이름(정본 6-4, 값은 저장소에 두지 않는다):
+#   GitHub Environments(staging·production): DIRECT_URL_SESSION_POOLER — 세션 풀러 5432, 배포 단계에서 DIRECT_URL로 넘겨 migrate deploy
+#   GitHub(WIF, 키 파일 없음): GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT
+#   Secret Manager(런타임): DATABASE_URL(트랜잭션 풀러), SUPABASE_SERVICE_ROLE_KEY, RECOVERY_PEPPER, READY_TOKEN
+# 공급망: 액션은 커밋 SHA로, 이미지는 다이제스트로 고정한다(주석의 태그는 사람이 읽는 용도).
+name: server-ci
+
+on:
+  pull_request:
+    paths: &paths
+      - 'apps/server/**'
+      - 'packages/core/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/server-ci.yml'
+  push:
+    branches: [main]
+    paths: *paths
+
+concurrency:
+  group: server-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: typecheck · test · DB 시험
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:526f86d93c6ea08fd3f1fe5605650cacc781b2c6013169a0ad8f42c7d3d84f32
+        env:
+          POSTGRES_USER: mong
+          POSTGRES_PASSWORD: mong-ci
+          POSTGRES_DB: mong
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U mong -d mong" --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      # 마이그레이션·런타임 모두 비슈퍼유저 prisma 롤(prisma/local/00-roles.sql) — Supabase 롤 관계 재현
+      PRISMA_URL: postgresql://prisma:prisma-local@localhost:5432/mong
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1 (버전은 package.json packageManager)
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      # 서버와 그 의존(core)만 설치 — 모바일(Expo·RN) 의존성은 받지 않는다
+      - run: pnpm install --frozen-lockfile --filter "server..."
+      - name: typecheck(core·server)
+        run: pnpm --filter "server..." run typecheck
+      - name: test(core·server — 단위·계약·e2e·로그 가림)
+        run: pnpm --filter "server..." run test
+      - name: 롤 준비(슈퍼유저로 한 번)
+        run: psql -v ON_ERROR_STOP=1 -h localhost -U mong -d mong -f apps/server/prisma/local/00-roles.sql
+        env:
+          PGPASSWORD: mong-ci
+      - name: 마이그레이션 적용(빈 DB, prisma 롤)
+        run: pnpm --filter server exec prisma migrate deploy
+        env:
+          DIRECT_URL: ${{ env.PRISMA_URL }}
+      - name: 실제 DB 시험(비슈퍼유저 런타임 롤 — RLS·소유자·anon 차단)
+        run: pnpm --filter server run test:db
+        env:
+          DATABASE_URL: ${{ env.PRISMA_URL }}
+      - name: 스키마와 마이그레이션이 어긋나지 않았는지(빈 diff)
+        run: pnpm --filter server exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+        env:
+          DIRECT_URL: ${{ env.PRISMA_URL }}
+      - name: 번들 검사 — dist에 @mong/core import 0건(core는 원본째 번들 안), core에 런타임 의존성 없음
+        run: pnpm --filter server run build && pnpm --filter server run check:bundle
+      - name: OpenAPI 문서 생성
+        run: pnpm --filter server run openapi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: openapi
+          path: apps/server/openapi.json
+
+  docker:
+    name: docker build · compose 스모크
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: 이미지 빌드(push 없음)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/server/Dockerfile
+          build-args: APP_VERSION=${{ github.sha }}
+          tags: mong-api:local
+          load: true
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: 이미지 크기
+        run: docker image ls mong-api:local
+      - name: compose up(Postgres + migrate + api) → /healthz·/readyz 200, 비공개·개발 전용 경로 404
+        run: |
+          docker compose -f apps/server/compose.yaml up -d --wait --wait-timeout 180 db api
+          curl -fsS localhost:8080/healthz
+          curl -fsS -H 'x-ready-token: local-ready-token-0000' localhost:8080/readyz
+          test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/readyz)" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/api/v1/saves/validate)" = 404
+      - if: failure()
+        run: docker compose -f apps/server/compose.yaml logs
+      - if: always()
+        run: docker compose -f apps/server/compose.yaml down -v
