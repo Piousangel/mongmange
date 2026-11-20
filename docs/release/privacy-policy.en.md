@@ -20,10 +20,11 @@ The following data is created while you play and is **stored only on your device
 |---|---|
 | Coordinates and timing of the strokes you draw | To draw your Mongmangi's body and growth |
 | Your sleep and morning times, and when your Mongmangi slept and woke | To work out each "day" (one sleep) |
-| Game progress (temperament, stroke count, morning card history) | So you can continue where you left off |
+| Game progress (temperament, stroke count, morning card history, the name you gave your Mongmangi and the ink you chose, days spent together, favorite petting spots and usual visit times) | So you can continue where you left off |
 | Settings (notifications, sound, reduced motion, etc.) | To keep your preferences |
 
 - Device tilt is used in the moment to make your Mongmangi glance around. It is not stored.
+- **"Send feedback" in the Studio Notebook only opens a web survey outside the App.** The App does not attach your game record or any device information. Anything you type into the survey is handled under that survey service's policy, and we use it only to improve the game. [Survey tool name and policy link — to fill once chosen]
 
 ## 3. Device backup and export
 
@@ -81,3 +82,4 @@ If we add crash reporting to help us fix crashes, we will update this policy bef
 We will post any change on this page and in the App before it takes effect.
 
 - Previous versions: none (first version)
+- Pre-publication draft change (2026-11-20, per D-20): added the name, ink and relationship values (stored on device) and the "Send feedback" web survey line to section 2. No change to what is collected.
