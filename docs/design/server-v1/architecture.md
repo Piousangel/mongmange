@@ -460,8 +460,8 @@ POST /api/v1/ping
 ```json
 { "v": 1, "seq": 31,
   "motifs": [
-    { "id": "w2026-52-crane", "kind": "weekly", "from": "2026-12-28", "schema": 1, "minAppBuild": 14,
-      "url": "/content/motifs/w2026-52-crane.3f9a1c7e.json", "sha256": "…", "bytes": 9123 },
+    { "id": "w2026-53-crane", "kind": "weekly", "from": "2026-12-28", "schema": 1, "minAppBuild": 14,
+      "url": "/content/motifs/w2026-53-crane.3f9a1c7e.json", "sha256": "…", "bytes": 9123 },
     { "id": "moon-01", "kind": "moon", "month": 1, "schema": 1, "minAppBuild": 14,
       "url": "/content/motifs/moon-01.a1b2c3d4.json", "sha256": "…", "bytes": 11204 } ],
   "revoked": [] }
@@ -470,7 +470,7 @@ POST /api/v1/ping
 **모티프 파일**(`immutable` 캐시, 이름에 내용 해시)
 
 ```json
-{ "schema": 1, "id": "w2026-52-crane",
+{ "schema": 1, "id": "w2026-53-crane",
   "paths": [ { "d": "M12 40 C …", "w": 1.4, "layer": "ink" } ],
   "shader": { "bleed": 0.35, "grain": 0.2, "tone": "night" },
   "text": { "ko": { "title": "…", "line": "…" }, "en": { "title": "…", "line": "…" } },
