@@ -65,9 +65,9 @@ function allFrames(src: IreShareSource | IreLoopSource, kind: IreOutputKind) {
 }
 
 describe('출력 규격 — 서버 루프 커밋 검사(3-5-3)·D-20', () => {
-  it('웹 루프: 540×675, 무음, 글 없음, 길이 7.5~8.5초 안(정확히 8초)', () => {
+  it('웹 루프: 540×676, 무음, 글 없음, 길이 7.5~8.5초 안(정확히 8초)', () => {
     const o = IRE_OUTPUTS.webLoop;
-    expect([o.width, o.height]).toEqual([540, 675]);
+    expect([o.width, o.height]).toEqual([540, 676]);
     expect(o.audio).toBe(false);
     expect(o.text).toBe(false);
     const ms = ireDurationMs('webLoop');

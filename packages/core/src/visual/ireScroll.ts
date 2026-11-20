@@ -1,6 +1,6 @@
 // 이레 두루마리 영상의 프레임 타임라인(로드맵 C7). 순수·결정적: 같은 세이브 → 같은 슬롯·같은 프레임.
 // 정본: B-identity-share 4-2 ③(9:16 1080×1920·8초·소리, 방울 0.6초 → 하루 0.7초씩 7획 → 기쁨·결 이름 → 끝 장),
-// C-integrated 2-5(공유 꼬리표 = 영상 끝 1.5초), D-20(8초·240프레임), server-v1 3-5-3(웹 루프 540×675·무음·7.5~8.5초).
+// C-integrated 2-5(공유 꼬리표 = 영상 끝 1.5초), D-20(8초·240프레임), server-v1 3-5-3(웹 루프 540×676·무음·7.5~8.5초 — PM 11-20: 675는 H.264 4:2:0 불가라 676).
 // 그리기는 앱(render/ireVideo), 인코딩은 네이티브 모듈(C10 묶음, 미구현). 이 파일은 '어느 프레임에 무엇이 얼마나 보이나'만 정한다.
 import { currentInk, type InkId } from '../sim/pillars';
 import type { AxisId, DreamCard, State } from '../sim/types';
@@ -12,11 +12,11 @@ export const IRE_SLOTS = 7;
 
 /**
  * 출력 규격. `share` = OS 공유 영상(D-20: 9:16, 8초, 240프레임, 소리), `webLoop` = `/m` 8초 루프(architecture 3-5-3:
- * H.264, 540×675, 무음, 24fps, 이름 없음, 커밋 검사 길이 7.5~8.5초). 길이 = frames / fps.
+ * H.264, 540×676(PM 11-20 개정, 675는 H.264 4:2:0 불가), 무음, 24fps, 이름 없음, 커밋 검사 길이 7.5~8.5초). 길이 = frames / fps.
  */
 export const IRE_OUTPUTS = {
   share: { width: 1080, height: 1920, fps: 30, frames: 240, audio: true, text: true },
-  webLoop: { width: 540, height: 675, fps: 24, frames: 192, audio: false, text: false },
+  webLoop: { width: 540, height: 676, fps: 24, frames: 192, audio: false, text: false },
 } as const;
 export type IreOutputKind = keyof typeof IRE_OUTPUTS;
 

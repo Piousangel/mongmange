@@ -377,7 +377,7 @@
 ## 2026-11-20 C7 이레 두루마리 영상 [잠정 — 12-05 실기기 관문 뒤 확정]
 - 근거: B-identity-share 4-2 ③, C-integrated 2-5·3-5, D-20, architecture 3-5-2·3-5-3, 독립 리뷰 `docs/team/reviews/2026-11-20-c7-review.md`(H2·M4·L 반영), PM 11-20 답.
 - **타임라인 = core `ireFrameAt`(결정적)**. 박자 방울 0.6 / 획 0.7×7 / 기쁨 1.0 / 꼬리표 1.5 = 8.0초 — B 4-2 '결 1.5+끝 1'과 C 2-5 '꼬리표 끝 1.5'는 결 이름을 꼬리표 안(6.5~7.3)에 넣어 맞춘다(**PM 확정**). 슬롯 = State.strokes 앞 일곱 획(시각으로 다시 정렬하지 않음), 날 = dayIndex(04:00 경계와 일치).
-- **출력 두 벌**: 공유 1080×1920·30fps·240프레임·AAC / 웹 루프 540×675·24fps·192프레임·무음·글 없음(3-5-3 그대로). 공유 해상도를 720×1280으로 낮출지는 **기기 측정 뒤**(PM).
+- **출력 두 벌**: 공유 1080×1920·30fps·240프레임·AAC / 웹 루프 **540×676**·24fps·192프레임·무음·글 없음(3-5-3, **PM 11-20 개정: 540×675 → 540×676** — H.264 4:2:0은 홀수 높이를 만들 수 없어 실제 인코더가 거부. 서버 검사 숫자는 B3가 고침). 공유 해상도를 720×1280으로 낮출지는 **기기 측정 뒤**(PM).
 - **이름**: OS로 공유하는 영상도 nameVisibility를 따른다(PM) — `naming` 플래그 그리고 이름 공개가 켜졌을 때만 재료에 `name`. 웹 루프 재료·`IrePrepared` 웹 루프 가지는 타입에 이름 칸이 없다.
 - **인코더 = 자체 Expo 모듈(iOS AVAssetWriter / Android MediaCodec + MediaMuxer), C10 빌드 2 네이티브 묶음에 넣는다(PM)**. 버린 안: 순수 JS H.264(I_PCM·인트라 전용 — 600KB·15초 불가), wasm(Hermes에 wasm 없음), 애니메이션 WebP·APNG·GIF(MP4가 아니라 인스타·틱톡·서버 루프 검사 불가).
 - **인코더 계약(C10 착수 전 고정, 코드 `apps/mobile/src/share/ireVideo.ts` `IreEncoder`·`IreVideoSpec`)**:
@@ -390,7 +390,8 @@
 - **분기**: 플래그 `ireVideo`(기본 끔) + 인코더 등록 → 영상. 시트를 **열기 전** 실패(준비·인코딩 실패, 공유 불가)만 이미지판(빌드 1 두루마리 PNG)으로, 시트를 연 뒤 실패는 이미지판으로 넘기지 않는다(시트 두 번 금지, 리뷰 M-3).
 - **15초 관문 추정**(중급 Android, 프레임당 예산 15000/240 ≈ 62ms) [팀 추정 — 12-05 실측으로 대체]: 프레임 렌더(Skia GPU, Mongmangi 블러 + 카드 7장 + 글) 15~35ms + 표면 복사 3~5ms + `readPixels` 8.3MB 8~15ms + JS→네이티브 넘김 0(공유 버퍼)~4ms(memcpy) = 직렬 26~59ms → 240장 6~14초, RGBA→YUV(4~8ms)·하드웨어 인코딩은 겹쳐 돈다(동시 2장), AAC·먹싱 약 1초. 경계선이라 넘으면 ① art를 바로 최종 표면에 그려 복사 1회 줄임 ② 720×1280(픽셀 2.25배 적음). 참고 실측: 데스크톱 웹(PNG 왕복 포함) 170~240ms/장, 헤드리스 CPU 6~10초/장 — 둘 다 기기 값이 아니다.
 - **주사 인장은 한 화면 한 곳**: 카드 줄 7장은 낙관 없는 썸네일(`DreamArtOpts.seal=false`, 캐시 키 분리), 꼬리표 큰 인장 하나만(리뷰 M-4). 큰 인장 위치·몸 아래 빈 공간은 아트 판정 대기(`docs/app/c7/ART-CHECK.md`).
-- 남은 것: 네이티브 인코더 모듈·AAC 섞기(C10), 12-05 실기기 관문, 이름 공개 설정 화면(C11), 영상 공유 대화 제목 문구(작가 몫, 지금은 `share.dialog`).
+- **C10 첫 조각(11-20, 로컬 모듈 `apps/mobile/modules/ire-encoder`)**: 네이티브는 '받은 차례대로 부호화해 파일에 쓴다'만 하고, faststart(moov 앞)·메타 0(udta·meta 삭제, mvhd·tkhd·mdhd 시각 0)·32비트 mdat 머리·tkhd 표시 크기는 **JS 마무리(`src/share/ireMp4.ts`)가 두 플랫폼 공통으로** 맞춘다(MediaMuxer는 moov를 뒤에·mdat을 64비트로 쓸 수 있어 서버 검사에 걸림). 인코딩 직후 서버 3-5-3 ③과 같은 규칙으로 **자체 검사**, 떨어지면 시트를 열지 않고 이미지판. `appendFrame`은 JS 스레드 동기 복사 1회(iOS vImage → CVPixelBuffer, Android direct buffer → Bitmap 풀 2장 → 입력 Surface), 대기열 상한 2. Android는 Canvas 프레임 시각을 못 정하므로 Baseline(B 프레임 없음) + 출력 n번째 = n/fps, 재정렬·프레임 버림은 실패 처리. 소리는 지금 무음 AAC — 섞은 PCM은 `setAudioPcm`으로 넘기게 자리만 둠(JS만 바꾸면 됨). 비트레이트 공유 4Mbps·루프 400kbps. 관문 절차 `docs/app/c7/device-gate.md`. **리뷰 반영(11-20, `docs/team/reviews/2026-11-20-c10-encoder-review.md`)**: 네이티브 세션 id(begin이 돌려주고 나머지가 받음, 다른 id는 무시), iOS는 DispatchGroup 없이 writer 직렬 큐 하나 + 상태 기계(모든 writer 호출 전 status 확인), Android 정리 순서 '그리기 중단 → 합류(상한 2초) → codec.stop → muxer.stop → 해제', JS 대기 상한(프레임 5초·finish 20초·begin 5초)과 중단 즉시 반영 → cancel·이미지판, 공유판 8MB 상한. Android 프레임 시각은 이번에 EGL로 바꾸지 않고 CBR + 부호화 중 크기 상한으로 막는다 — EGL 전환은 12-05 '렌더 시간 대비 파일 크기' 측정 뒤 결정.
+- 남은 것: AAC 소리 섞기(C10 다음 조각), 12-05 실기기 관문, 이름 공개 설정 화면(C11), 영상 공유 대화 제목 문구(작가 몫, 지금은 `share.dialog`).
 
 ## 2026-11-20 B3 공유 링크·웹 뷰어 구현 결정 [잠정 — 독립 리뷰 전]
 - 근거: architecture.md v2.2 3-2 링크 행·3-5·3-5-1~3-5-3·3-8 삭제·3-9(문서 ↔ 구현 차이는 부록 A-3 #37~#52), D-21·D-23, 처리방침 ko·en 3-4·5·6절. 코드 `apps/server/src/{pages,storage,cdn}`, 마이그레이션 `20261122000000_b3_public_pages`, core `snap/publicSnapshot.ts`, 계약 `@mong/contract` B3 절, `apps/web-static/{live,scripts/build.mjs,firebase.json}`.

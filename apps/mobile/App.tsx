@@ -14,6 +14,11 @@ import { DreamCardPreview } from './src/render/dreamCard/DreamCardPreview';
 import { M1Board } from './src/screens/M1Board';
 import { IreFramesBoard } from './src/screens/IreFramesBoard';
 import { NetBridge } from './src/net/NetBridge';
+import { registerIreEncoder } from './src/share/ireVideo';
+import { nativeIreEncoder } from './src/share/ireNativeEncoder';
+
+// 이레 영상 인코더(C10 로컬 모듈). 모듈이 없는 빌드·웹이면 null → 등록하지 않은 것과 같아 이미지판(C7 폴백)
+registerIreEncoder(nativeIreEncoder());
 
 // 기본 = 앱 흐름(GameApp). 스파이크 캡처용 URL은 그대로: ?screen=day|night|intro|stroke &day=0|7 &attach=1|2|3 &body=A|B &rm=1 &vclock=1 &clean=1
 // 네이티브 개발 빌드에서는 개발 메뉴의 '스파이크' 버튼이 같은 화면을 연다. 돌아가기 버튼은 개발 전용이라 영어 고정(i18n 밖).

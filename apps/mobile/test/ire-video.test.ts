@@ -73,9 +73,9 @@ afterEach(() => {
 });
 
 describe('인코더 계약 — 규격', () => {
-  it('웹 루프 규격 = 서버 커밋 검사(540×675, 무음, 7.5~8.5초), 파일 loop.mp4', () => {
+  it('웹 루프 규격 = 서버 커밋 검사(540×676, 무음, 7.5~8.5초), 파일 loop.mp4', () => {
     const s = ireVideoSpec(loopP);
-    expect([s.width, s.height, s.audio.length, s.fileName]).toEqual([540, 675, 0, 'loop.mp4']);
+    expect([s.width, s.height, s.audio.length, s.fileName]).toEqual([540, 676, 0, 'loop.mp4']);
     const ms = (s.frames / s.fps) * 1000;
     expect(ms).toBeGreaterThanOrEqual(LOOP_DURATION_RANGE_MS[0]);
     expect(ms).toBeLessThanOrEqual(LOOP_DURATION_RANGE_MS[1]);

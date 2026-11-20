@@ -1,6 +1,6 @@
 # C7 이레 두루마리 영상 — 아트 판정 항목 (크리에이티브 디렉터·오너)
 
-- 증거: 이 폴더의 `share-name-on-f*.png`(이름 공개 켬), `share-name-off-f*.png`(끔), `loop-f*.png`(웹 루프 540×675), `*-board.png`. 캡처 명령 `node scripts/c7-capture.mjs http://localhost:8131`(Expo 웹, 이레 세이브 고정물).
+- 증거: 이 폴더의 `share-name-on-f*.png`(이름 공개 켬), `share-name-off-f*.png`(끔), `loop-f*.png`(웹 루프 540×676 — 11-20 개정 전 캡처는 540×675), `*-board.png`. 캡처 명령 `node scripts/c7-capture.mjs http://localhost:8131`(Expo 웹, 이레 세이브 고정물).
 - 기계 검사로 이미 고정한 것(판정 대상 아님): 박자 8.0초, 안전 영역 세로 14~80%, 웹 루프 첫·끝 프레임 빈 한지, 이름 공개 끔이면 이름 0, **주사 인장은 꼬리표의 큰 인장 한 곳**(카드 썸네일 7장은 낙관 없는 판 — C7 리뷰 M-4 반영).
 
 | # | 판정할 것 | 지금 상태 | 선택지(예) |

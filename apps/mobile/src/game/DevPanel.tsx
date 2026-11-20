@@ -6,6 +6,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOUR_MS, devAdvance, devNextMorning, devReset, now, setMeta, useGame } from './store';
 import { setFeature, useFeature } from '../features';
+import { measureIreLoop } from '../share/ireVideoDev';
 
 const SPIKES = [
   ['intro', 'screen=intro'],
@@ -22,6 +23,9 @@ export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; o
   const ffTraits = useFeature('birthTraits');
   const ffInk = useFeature('inkChoice');
   const m1 = ffTraits && ffInk;
+  // C10 기기 관문: 이레 영상 공유 켜기 + 웹 루프 인코딩 측정(docs/app/c7/device-gate.md)
+  const ffIreVideo = useFeature('ireVideo');
+  const [loopMsg, setLoopMsg] = useState<string | null>(null);
   const fmt = (t: number) => new Date(t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   return (
     <View style={[styles.wrap, { bottom: insets.bottom + 8 }]} pointerEvents="box-none">
@@ -35,6 +39,7 @@ export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; o
             {state.pendingCard ? ' · 현상 대기' : ''} · 복원 {restoredFrom}
             {state.phase === 'asleep' ? ` · 깸 ${fmt(sim.wakeableAt(state))}` : ''}
           </Text>
+          {loopMsg && <Text style={styles.info}>{loopMsg}</Text>}
           <View style={styles.row}>
             <Btn label="+1h" id="dev-1h" onPress={() => devAdvance(HOUR_MS)} />
             <Btn label="+8h" id="dev-8h" onPress={() => devAdvance(8 * HOUR_MS)} />
@@ -45,6 +50,15 @@ export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; o
               onPress={() => {
                 setFeature('birthTraits', !m1);
                 setFeature('inkChoice', !m1);
+              }}
+            />
+            <Btn label={ffIreVideo ? '이레 영상 끄기' : '이레 영상 켜기'} id="dev-ire-video" onPress={() => setFeature('ireVideo', !ffIreVideo)} />
+            <Btn
+              label="루프 인코딩 측정"
+              id="dev-ire-loop"
+              onPress={() => {
+                setLoopMsg('…');
+                void measureIreLoop(state).then(setLoopMsg);
               }}
             />
             <Btn label={meta.devCaptions ? '자막 끄기' : '소리 자막'} id="dev-captions" onPress={() => setMeta({ devCaptions: !meta.devCaptions })} />

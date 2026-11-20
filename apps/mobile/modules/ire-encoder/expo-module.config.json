@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["IreEncoderModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.ireencoder.IreEncoderModule"]
+  }
+}

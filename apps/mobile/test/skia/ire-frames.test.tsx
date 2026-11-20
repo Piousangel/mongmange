@@ -60,9 +60,9 @@ function inked(rgba: Uint8Array): number {
 const DUMP = process.env.IRE_DUMP;
 
 describe('이레 영상 프레임 그림(헤드리스)', () => {
-  it('규격 크기: 공유 1080×1920, 웹 루프 540×675', () => {
+  it('규격 크기: 공유 1080×1920, 웹 루프 540×676', () => {
     expect(Art.ireSize('share')).toEqual({ width: 1080, height: 1920 });
-    expect(Art.ireSize('webLoop')).toEqual({ width: 540, height: 675 });
+    expect(Art.ireSize('webLoop')).toEqual({ width: 540, height: 676 });
     expect(Art.ireSize('share', 270)).toEqual({ width: 270, height: 480 });
   });
 

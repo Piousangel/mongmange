@@ -1,5 +1,5 @@
 // C7 이레 영상 프레임 캡처(웹): 이레 세이브(core 고정물 v1-ire-developed)를 넣고 ?screen=ire 보드가 실제 렌더 경로로 그린 프레임 PNG를 받는다.
-// 공유(9:16) 이름 공개 켬/끔 두 벌 + 웹 루프(540×675) 한 벌. 이름 끔 판에서 이름이 빠졌는지는 사람이 PNG로 본다(자동 검사는 core·앱 시험).
+// 공유(9:16) 이름 공개 켬/끔 두 벌 + 웹 루프(540×676) 한 벌. 이름 끔 판에서 이름이 빠졌는지는 사람이 PNG로 본다(자동 검사는 core·앱 시험).
 // 사용: node scripts/c7-capture.mjs [baseUrl=http://localhost:8131] → docs/app/c7/
 import { chromium } from 'playwright';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';

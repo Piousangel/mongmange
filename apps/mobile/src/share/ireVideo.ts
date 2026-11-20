@@ -56,6 +56,11 @@ export function registerIreEncoder(e: IreEncoder | null) {
   encoder = e;
 }
 
+/** 등록된 인코더(개발 메뉴의 기기 관문 측정용) */
+export function registeredIreEncoder(): IreEncoder | null {
+  return encoder;
+}
+
 export function ireVideoSpec(p: Pick<IrePrepared, 'kind' | 'src'>): IreVideoSpec {
   const o = IRE_OUTPUTS[p.kind];
   return {
