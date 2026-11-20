@@ -16,7 +16,7 @@
 
 ## B. 서버 (빌드 2, 12-10 목표)
 - [ ] B0 서버 1순위(11-23~12-03): 식별자 없는 집계 핑 + `config/v1.json` + `/m/{code}` 정적 페이지 + AASA·assetlinks — 측정 시계를 먼저 켠다
-- [ ] B1 apps/server 골격: NestJS + Prisma + Supabase(로컬 CLI) + Docker(compose) + 헬스체크 + CI
+- [x] B1 apps/server 골격: NestJS + Prisma + Supabase(로컬 CLI) + Docker(compose) + 헬스체크 + CI — a817d30
 - [ ] B2 필요할 때 익명 계정 + 14세 확인 + 세이브 맡겨 두기(리비전·이력 최대 4주·충돌본 30일)·되찾기 글귀·`DELETE /me`·`/delete`
 - [ ] B3 `/m` 정적 HTML(첫 페인트 1초) + 앱이 올린 OG·8초 루프 + CanvasKit 지연 로드(플래그 `webLive`) + AASA·assetlinks. 서버 렌더 없음. 공개 값은 링크 켤 때 고정
 - [ ] B4 원격 플래그(`config/v1.json`) + 원격 모티프 팩 + 식별자 없는 집계 핑(화이트리스트 10 + 차원 3)
