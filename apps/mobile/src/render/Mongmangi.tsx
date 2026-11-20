@@ -29,6 +29,10 @@ import {
   STROKE,
   simplifyStroke,
   inkLook,
+  bodyEdgePt,
+  bodyLod,
+  lodInkLook,
+  maskSigmaW,
   sim,
   strokeInkOf,
   strokeSpine,
@@ -41,6 +45,8 @@ import {
   type StrokeRecord,
 } from '@mong/core';
 import { useMemo, useState } from 'react';
+import { PixelRatio } from 'react-native';
+import { useFeature } from '../features';
 import { runOnJS, useAnimatedReaction, useDerivedValue, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { MAX_SEGS, bodySdfFx, hexToRgb, inkFillFx, strokeInkFx } from './shaders';
 import { strokeInkUniforms, strokeTexId } from './strokeInkSrc';
@@ -118,6 +124,10 @@ interface Props {
   look?: MongLook;
   /** 획마다 먹(records와 같은 순서, core inkOfStroke). 첫 밤 뒤 '먹 바꾸기'는 새 획에만(H2). 없으면 모두 몸의 먹 */
   strokeInks?: readonly (sim.InkId | null)[];
+  /** 썸네일 LOD(D-24). 없으면 플래그 thumbLod. 켜져 있어도 몸 폭(1W) 48pt 초과면 정본 그대로 */
+  lod?: boolean;
+  /** pt → 장치 px(블러 하한용). 기본 = 화면 밀도. 오프스크린(px 단위로 그림)은 1 */
+  pixelRatio?: number;
 }
 
 /** 획 칠 덧칠 리본을 몸 마스크보다 이만큼(pt) 넓힌다 — 0이면 닫힘·블러로 넓어진 몸 마스크의 검은 띠가 겹친 획 사이에 등고선처럼 남는다 */
@@ -204,7 +214,7 @@ function tint(hex: string | number[], input: SkImageFilter) {
  * 칠 레이어 페인트(D-13 단일 coverage): 레이어 안의 흰 마스크(핵 + 획 + 빗, 겹치면 1에서 포화)를
  * 블러 → 알파 램프로 가장자리·안쪽 테·바깥 번짐을 **한 번만** 만든다. 웹·네이티브 공통 필터만 쓴다.
  */
-function makeBodyPaint(night: number, bleed: number, ink: number, blurPt: number, closePt: number, dayBody: string, nightBody: string): SkPaint {
+function makeBodyPaint(night: number, bleed: number, ink: number, blurPt: number, closePt: number, dayBody: string, nightBody: string, grain = 1): SkPaint {
   // M1: 낮 몸은 늘 같은 검정, 밤 몸(풀린 먹)은 고른 먹의 토큰(D-20)
   const b = hexToRgb(dayBody);
   const nb = hexToRgb(nightBody);
@@ -215,7 +225,7 @@ function makeBodyPaint(night: number, bleed: number, ink: number, blurPt: number
   const m = Skia.ImageFilter.MakeBlur(blurPt, blurPt, TileMode.Decal, closed);
   const edge = Skia.ImageFilter.MakeColorFilter(ramp(5, -2), m); // c 0.4→0.6
   const inner = Skia.ImageFilter.MakeColorFilter(ramp(6, -4.6), m); // c 0.77→0.93: 안쪽 면
-  const fill = Skia.ImageFilter.MakeShader(inkFillFx.makeShader([...body, 0.1 * (1 - night)]));
+  const fill = Skia.ImageFilter.MakeShader(inkFillFx.makeShader([...body, 0.1 * (1 - night) * grain]));
   const innerCol = Skia.ImageFilter.MakeBlend(BlendMode.SrcIn, inner, fill);
   // 낮: 바깥(테) = 더 진한 먹, 안쪽 = 질감 먹. 밤: 테 = #E9E2D2 밝은 선, 안쪽 = 풀린 먹 #7E7973
   const rimHex = night > 0.5 ? PALETTE.night.bodyRim : body.map((v) => v * 0.5);
@@ -235,8 +245,12 @@ function makeBodyPaint(night: number, bleed: number, ink: number, blurPt: number
 }
 
 /** 몽망이 = 핵 + 빗 + 획을 하나의 coverage 마스크로 합친 뒤 한 번 칠하고, 눈을 뺀다(D-13·아트 12절) */
-export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, strokeInks }: Props) {
+export function Mongmangi({ frame, records, live, mode, grammar: grammarIn, look: lookIn, strokeInks, lod: lodProp, pixelRatio }: Props) {
   const look = lookIn ?? BASE_LOOK;
+  const dpr = pixelRatio ?? PixelRatio.get();
+  // 기본 = 기능 플래그(모든 화면이 같은 규칙). 캡처 보드·테스트는 직접 넘긴다
+  const lodFlag = useFeature('thumbLod');
+  const lodOn = lodProp ?? lodFlag;
   const shape = look.shape;
   const coreH = shape.core.h;
   // 체형 uniform은 BodyShape에 미리 만든 배열(렌더마다 새 배열 → worklet 재직렬화 방지, 리뷰 M3)
@@ -245,15 +259,31 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
   const shapeKey = `${shape.aspect}|${shape.combRatios.join(',')}`;
   const CORE_PATH = useMemo(() => corePathOf(shape), [shape]);
   const EYE_C = useMemo(() => eyeCenters(shape.core), [shape]);
-  const inkL = look.ink;
+  // 칠 페인트·LOD는 값이 바뀔 때만 다시 만든다(양자화 키, JS 스레드). 넷째 칸 = LOD용 몸 폭(0.5pt 단위, 48 초과는 48 한 키 = t 0, 꺼져 있으면 0)
+  const keyOf = (f: BodyFrame) => {
+    'worklet';
+    return `${Math.round(f.night * 20)}|${Math.round(f.bleed * 10)}|${Math.round(f.ink * 20)}|${lodOn ? Math.min(Math.round(f.wpx * 2) / 2, 48) : 0}`;
+  };
+  const [key, setKey] = useState(() => keyOf(frame.value));
+  useAnimatedReaction(
+    () => keyOf(frame.value),
+    (k, prev) => {
+      if (k !== prev) runOnJS(setKey)(k);
+    },
+  );
+  const bodyPt = Number(key.split('|')[3]);
+  // 썸네일 LOD(D-24): 48pt 초과·플래그 꺼짐이면 문법·먹·배율이 입력 그대로(같은 객체)
+  const L = useMemo(() => bodyLod(bodyPt, grammarIn, lodOn), [bodyPt, grammarIn, lodOn]);
+  const grammar = L.grammar;
+  const inkL = useMemo(() => lodInkLook(look.ink, L), [look.ink, L]);
   // 획 칠 색(문법 농도에 맞춘 먹 토큰, core strokeInkOf): 슬롯 0 = 몸의 먹, 1..4 = 먹 바꾸기로 그은 획(INK_IDS 순서)
   const slotRgb = useMemo(() => {
-    const looks = [inkL, ...sim.INK_IDS.map((id) => inkLook(id))];
+    const looks = [inkL, ...sim.INK_IDS.map((id) => lodInkLook(inkLook(id), L))];
     return {
       day: looks.map((lk) => hexToRgb(strokeInkOf(grammar, lk, false))),
       night: looks.map((lk) => hexToRgb(strokeInkOf(grammar, lk, true))),
     };
-  }, [grammar, inkL]);
+  }, [grammar, inkL, L]);
   // 획마다 슬롯(몸의 먹과 같으면 0). 기본 먹(고르기 전·플래그 꺼짐)은 모두 0 + 빌드 1 식
   const slots = useMemo(() => records.map((_, i) => {
     const id = strokeInks?.[i] ?? null;
@@ -261,21 +291,12 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
   }), [records, strokeInks, inkL]);
   const useStroke = inkL.id !== null;
   const bodyRgb = useMemo(() => ({ day: hexToRgb(inkL.dayBody), night: hexToRgb(inkL.nightBody) }), [inkL]);
-  // 칠 페인트는 값이 바뀔 때만 다시 만든다(양자화 키, JS 스레드)
-  const [key, setKey] = useState('0|10|20');
-  useAnimatedReaction(
-    () => {
-      const f = frame.value;
-      return `${Math.round(f.night * 20)}|${Math.round(f.bleed * 10)}|${Math.round(f.ink * 20)}`;
-    },
-    (k, prev) => {
-      if (k !== prev) runOnJS(setKey)(k);
-    },
-  );
   const paint = useMemo(() => {
     const [n, b, i] = key.split('|').map(Number) as [number, number, number];
-    return makeBodyPaint(n / 20, b / 10, i / 20, mode === 'A' ? EDGE.bleedPx * 0.4 : 0.8, grammar.closePt, inkL.dayBody, inkL.nightBody);
-  }, [key, mode, grammar, inkL]);
+    // 가장자리 효과: 정본은 pt 고정, LOD에서는 W 단위(블러 0.004W·닫힘 ≤ 틈/3, 블러 장치 0.5px 하한)
+    const e = bodyEdgePt(mode === 'A' ? EDGE.bleedPx * 0.4 : 0.8, grammar.closePt, bodyPt, L, dpr);
+    return makeBodyPaint(n / 20, b / 10, i / 20, e.blurPt, e.closePt, inkL.dayBody, inkL.nightBody, L.grain);
+  }, [key, mode, grammar, inkL, L, bodyPt, dpr]);
 
   const base = useDerivedValue(() => {
     const f = frame.value;
@@ -308,7 +329,7 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
     let changed = prev.length !== records.length;
     for (let i = 0; i < records.length; i++) {
       const k = f.attachK[i] ?? 1;
-      const key = `${grammar.id}|${shapeKey}|${f.s.toFixed(5)}|${k.toFixed(4)}`;
+      const key = `${grammar.id}|${grammar.gap}|${grammar.baseWidth}|${shapeKey}|${f.s.toFixed(5)}|${k.toFixed(4)}`;
       const old = prev[i];
       if (old && old.key === key) {
         out.push(old);
@@ -334,10 +355,11 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
   });
   // 빗은 프레임당 한 번만(리뷰 7번): 자세 키가 같으면 지난 프레임 것을 쓰고, 마스크 리본·덧칠 리본을 함께 만든다
   const combCache = useSharedValue<{ key: string; mask: Ribbon[]; ink: Ribbon[] }>({ key: '', mask: [], ink: [] });
+  const combScale = L.combScale;
   const combRibbons = useDerivedValue(() => {
     const f = frame.value;
     const c = f.comb;
-    const key = `${shapeKey}|${f.combN}|${f.s.toFixed(5)}|${f.wpx}|${c.angle.toFixed(3)}|${c.spread.toFixed(3)}|${c.grow.toFixed(4)}|${c.wobble0.toFixed(3)}|${c.wobble1.toFixed(3)}|${c.wobble2.toFixed(3)}`;
+    const key = `${shapeKey}|${combScale}|${f.combN}|${f.s.toFixed(5)}|${f.wpx}|${c.angle.toFixed(3)}|${c.spread.toFixed(3)}|${c.grow.toFixed(4)}|${c.wobble0.toFixed(3)}|${c.wobble1.toFixed(3)}|${c.wobble2.toFixed(3)}`;
     const prev = combCache.value;
     if (prev.key === key) return prev;
     const mask: Ribbon[] = [];
@@ -346,10 +368,12 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
       const strands = combStrands(f.combN, f.s, c, shape);
       const pad = (2 * OVERLAY_PAD_PT) / f.wpx;
       for (let i = 0; i < strands.length; i++) {
+        // LOD: 빗 굵기 ×1.3(22px에서 2px 이상 → 블러 뒤 안쪽 문턱을 넘는다). 정본은 배율 1(같은 배열)
+        const sw = combScale === 1 ? strands[i]!.widths : strands[i]!.widths.map((x) => x * combScale);
         // render-03: 빗 끝도 붓을 뗀 둥근 끝(실 테이퍼 금지)
-        mask.push(buildRibbon(strands[i]!.pts, { widths: strands[i]!.widths, roundStart: true, roundEnd: true }));
+        mask.push(buildRibbon(strands[i]!.pts, { widths: sw, roundStart: true, roundEnd: true }));
         const w: number[] = [];
-        for (let j = 0; j < strands[i]!.widths.length; j++) w.push(strands[i]!.widths[j]! + pad);
+        for (let j = 0; j < sw.length; j++) w.push(sw[j]! + pad);
         ink.push(buildRibbon(strands[i]!.pts, { widths: w, roundStart: true, roundEnd: true }));
       }
     }
@@ -464,13 +488,21 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
   const liveV = useDerivedValue(() => liveVerts.value.vertices);
   const liveI = useDerivedValue(() => liveVerts.value.indices);
 
+  const eyeScale = L.eyeScale;
   const eyes = useDerivedValue(() => {
     const f = frame.value;
-    const sh = eyeMix(eyeShapeCached(f.eyeA), eyeShapeCached(f.eyeB), f.eyeMix, f.blink);
+    const sh0 = eyeMix(eyeShapeCached(f.eyeA), eyeShapeCached(f.eyeB), f.eyeMix, f.blink);
+    // LOD: 눈 지름 ×1.3(22px에서 5.7px). 눈 중심 기준 배율이라 자리는 그대로
+    const sh = eyeScale === 1 ? sh0 : sh0.map((v) => v * eyeScale);
     const ey = EYE_C.y * f.s + f.gy;
     return eyePath(sh, [EYE_C.lx * f.s + f.gx, EYE_C.rx * f.s + f.gx], ey);
   });
   const eyeHoleOpacity = useDerivedValue(() => 1 - frame.value.night);
+  // 눈 소실 결함(D-24 조사): GPU Skia는 경로의 블러 마스크 장치 sigma가 약 0.33px 미만이면 경로를 아예 안 그린다.
+  // 0.006W는 몸 폭 22pt·2x에서 0.26px → 눈이 통째로 사라졌다. W 단위 블러는 모두 장치 0.5px 하한을 건다(core maskSigmaW)
+  const eyeBlur = useDerivedValue(() => maskSigmaW(0.006, frame.value.wpx, dpr));
+  const freshBlur = useDerivedValue(() => maskSigmaW(0.05, frame.value.wpx, dpr));
+  const groundBlur = useDerivedValue(() => maskSigmaW(0.02, frame.value.wpx, dpr));
   const eyeNightOpacity = useDerivedValue(() => frame.value.night);
 
   // 번짐 고리(바닥 아래 담묵 타원 1.3W × 0.18W @25%), 첫 획 안내 젖은 자국(1.6W, 12%)
@@ -551,7 +583,7 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
       <Group transform={base} opacity={freshOpacity}>
         <Group transform={anim}>
           <Vertices vertices={freshV} indices={freshI} mode="triangles" color={inkL.wash}>
-            <BlurMask blur={0.05} style="normal" />
+            <BlurMask blur={freshBlur} style="normal" />
           </Vertices>
         </Group>
       </Group>
@@ -559,7 +591,7 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
       <Group transform={base} opacity={groundOpacity}>
         <Group transform={anim}>
           <Oval rect={groundRect} color={groundColor}>
-            <BlurMask blur={0.02} style="normal" />
+            <BlurMask blur={groundBlur} style="normal" />
           </Oval>
         </Group>
       </Group>
@@ -603,7 +635,7 @@ export function Mongmangi({ frame, records, live, mode, grammar, look: lookIn, s
         <Group transform={base}>
           <Group transform={anim}>
             <Path path={eyes} color="black" blendMode="dstOut" opacity={eyeHoleOpacity}>
-              <BlurMask blur={0.006} style="normal" />
+              <BlurMask blur={eyeBlur} style="normal" />
             </Path>
             <Path path={eyes} color={PALETTE.night.eye} opacity={eyeNightOpacity} />
           </Group>

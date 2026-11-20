@@ -24,6 +24,12 @@ export const FEATURE_DEFAULTS = {
   relation: false,
   /** M4 서운 = 머뭇거림(비네트 테스트에 따라 끌 수 있음) */
   hesitation: false,
+  /**
+   * D-24 썸네일 LOD(몸 폭 48pt 이하에서 획 틈·폭·먹 채도·눈·빗 키움). 블라인드(12-05) 판정 뒤 켠다.
+   * 켜기 전 관문: S25 실기기 22·36pt 캡처, 꿈 카드 화면 ↔ 공유 PNG LOD 일치 확인(아트 1-5).
+   * 블러 하한(눈 소실 수정)은 플래그와 무관하고 장치 px 기준이라 1x·1.5x에서는 48pt 초과에도 걸린다(의도)
+   */
+  thumbLod: false,
   // ── 빌드 3(12-19) ──
   /** M5 함께 숨 쉬기 */
   breathe: false,

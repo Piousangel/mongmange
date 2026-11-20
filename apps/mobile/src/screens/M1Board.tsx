@@ -3,6 +3,7 @@
 //  ?screen=m1&view=ink&n=7                먹 4 비교(같은 타고남, 낮·밤 두 줄)
 //  ?screen=m1&view=thumb&night=0|1         48칸 썸네일 크기(블라인드 '썸네일' 조건: 몸 폭 약 22px)
 //  ?screen=m1&view=traits&n=0|7            타고남 12(먹 기본형) 크게 — 실루엣 판정
+//  ?screen=m1&view=a7                     A7 썸네일 비교: 사람마다 다른 손 12마리 × (몸 폭 36·22pt) × (현행 / LOD)
 import { Canvas, Fill, Group } from '@shopify/react-native-skia';
 import {
   BODY_ASPECTS,
@@ -12,6 +13,7 @@ import {
   PALETTE,
   coreScale,
   day7Records,
+  handRecords,
   grammarOf,
   inkLook,
   sim,
@@ -38,7 +40,7 @@ for (let b = 0; b < 3; b++) for (let c = 0; c < 4; c++) TRAITS.push({ body: b as
 /** 빗 모양 라벨은 코드 이름(층진·고른·가운데 긴·끝 긴) — 화면 문구가 아니라 개발 캡처 보드 표기 */
 const COMB_NAME = COMB_IDS;
 
-function Cell({ ox, oy, wpx, look, records, night }: { ox: number; oy: number; wpx: number; look: MongLook; records: StrokeRecord[]; night: number }) {
+function Cell({ ox, oy, wpx, look, records, night, lod }: { ox: number; oy: number; wpx: number; look: MongLook; records: StrokeRecord[]; night: number; lod?: boolean }) {
   const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
   const s = coreScale(records.length);
   const frame = useSharedValue<BodyFrame>({
@@ -57,7 +59,7 @@ function Cell({ ox, oy, wpx, look, records, night }: { ox: number; oy: number; w
     attachK: records.map(() => 1),
     fresh: records.map(() => 0),
   });
-  return <Mongmangi frame={frame} records={records} mode={PARAMS.body} grammar={grammar} look={look} />;
+  return <Mongmangi frame={frame} records={records} mode={PARAMS.body} grammar={grammar} look={look} lod={lod} />;
 }
 
 export function M1Board() {
@@ -66,9 +68,10 @@ export function M1Board() {
   const night = q('night', '0') === '1' ? 1 : 0;
   const n = Number(q('n', view === 'thumb' ? '7' : '7'));
   // 획은 체형마다 그 체형으로 부착(D-12 개정 ①) — 같은 손획 7개
+  const a7Hands = useMemo(() => Array.from({ length: 12 }, (_, i) => handRecords(i + 1, 7, shapeOf({ body: (i % 3) as 0, comb: ((i * 7) % 4) as 0, ring: 1 }))), []);
   const recsByBody = useMemo(() => [0, 1, 2].map((b) => (n > 0 ? day7Records(2, shapeOf({ body: b as 0, comb: 0, ring: 1 })).slice(0, n) : [])), [n]);
 
-  const cells: { key: string; ox: number; oy: number; wpx: number; look: MongLook; recs: StrokeRecord[]; night: number }[] = [];
+  const cells: { key: string; ox: number; oy: number; wpx: number; look: MongLook; recs: StrokeRecord[]; night: number; lod?: boolean }[] = [];
   const labels: { key: string; x: number; y: number; text: string; color: string; w: number }[] = [];
   const top = 34;
   const left = 70;
@@ -84,6 +87,27 @@ export function M1Board() {
       });
     });
     sim.INK_IDS.forEach((ink, r) => labels.push({ key: `r${r}`, x: 4, y: top + 20 + (r + 0.45) * ch, text: ink, color: txt, w: left - 6 }));
+  } else if (view === 'a7') {
+    // 사람마다 다른 손·타고남·먹(시드 1..12). 같은 열 = 같은 몽망이
+    const N = 12;
+    const cw = (width - 150) / N;
+    const rows: [number, boolean, string][] = [
+      [36, false, '36pt current'],
+      [36, true, '36pt LOD'],
+      [22, false, '22pt current'],
+      [22, true, '22pt LOD'],
+    ];
+    const rh = (height - top - 10) / rows.length;
+    rows.forEach(([wpx, lod, name], r) => {
+      labels.push({ key: `r${r}`, x: 4, y: top + r * rh + rh * 0.4, text: name, color: txt, w: 140 });
+      for (let i = 0; i < N; i++) {
+        const tr: Traits = { body: (i % 3) as 0, comb: ((i * 7) % 4) as 0, ring: 1 };
+        const sh = shapeOf(tr);
+        const ink = sim.INK_IDS[(i * 3 + Math.floor(i / 4)) % 4]!;
+        cells.push({ key: `a${r}-${i}`, ox: 150 + (i + 0.5) * cw, oy: top + r * rh + rh * 0.7, wpx, look: { traits: tr, shape: sh, ink: inkLook(ink) }, recs: a7Hands[i]!, night, lod });
+      }
+    });
+    for (let i = 0; i < N; i++) labels.push({ key: `c${i}`, x: 150 + i * cw, y: 6, text: `#${i + 1}`, color: txt, w: cw });
   } else if (view === 'ink') {
     const cw = (width - left - 8) / 4;
     const ch = (height - top - 20) / 2;
@@ -127,7 +151,7 @@ export function M1Board() {
           <Paper width={width} height={height} />
         )}
         {cells.map((c) => (
-          <Cell key={c.key} ox={c.ox} oy={c.oy} wpx={c.wpx} look={c.look} records={c.recs} night={c.night} />
+          <Cell key={c.key} ox={c.ox} oy={c.oy} wpx={c.wpx} look={c.look} records={c.recs} night={c.night} lod={c.lod} />
         ))}
       </Canvas>
       {labels.map((l) => (

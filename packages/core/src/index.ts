@@ -21,6 +21,7 @@ export * from './visual/dreamCard';
 export * from './visual/traits';
 export * from './visual/ink';
 export * from './visual/look';
+export * from './visual/lod';
 export * from './geometry/types';
 export * from './geometry/core';
 export * from './geometry/simplify';

@@ -28,6 +28,9 @@ import {
   dreamCardLayout,
   eyeCenters,
   eyeShape,
+  blurFloorPt,
+  bodyLod,
+  GRAMMARS,
   strokeSpine,
   type DreamAspect,
   type DreamLayout,
@@ -41,7 +44,8 @@ import {
   type sim,
 } from '@mong/core';
 import { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { PixelRatio, Platform, StyleSheet, Text, View } from 'react-native';
+import { useFeature } from '../../features';
 import { paperFx } from '../shaders';
 import { dayName, getLocale, t } from '../../i18n';
 import { EN_SERIF_SCALE, serifFamily } from '../../ui/type';
@@ -112,6 +116,18 @@ export interface DreamArt {
   ringPx: { x: number; y: number; r: number };
   seal: { plate: SkPath; figure: SkPath; combs: Verts; eyes: SkPath };
   dots: { x: number; y: number; r: number; kind: 'past' | 'now' | 'future' }[];
+  /** 장치 px 하한을 건 블러(그림 단위): 그림자·이불 접힘 그늘 */
+  blur: { shadow: number; fold: number };
+}
+
+/** 카드 그림 단위와 화면의 관계(썸네일 LOD·블러 하한). 기본 = 화면 Canvas(그림 단위 = pt) */
+export interface DreamArtOpts {
+  /** 썸네일 LOD(D-24, 플래그 thumbLod) */
+  lod?: boolean;
+  /** 그림 1단위 = 몇 pt(오프스크린 썸네일은 px로 그리므로 1/배율) */
+  ptPerUnit?: number;
+  /** 그림 1단위 = 몇 장치 px(화면 Canvas = 화면 밀도, 오프스크린 = 1) */
+  devicePerUnit?: number;
 }
 
 const GOLD_HEX = '#C9A45C';
@@ -181,11 +197,15 @@ function deckleRect(x: number, y: number, w: number, h: number, amp: number, ste
 }
 
 /** 몽망이(감은 눈 — 꿈꾸는 중) 기하. 단위 W, 핵 중심 원점. 획 옷은 그리지 않는다 — 밤새 물에 풀려 마블링(획 빗질)이 됐다 */
-function bodyGeometry(nStrokes: number, s: number, comb = true, shape?: BodyShape) {
+function bodyGeometry(nStrokes: number, s: number, comb = true, shape?: BodyShape, eyeScale = 1, combScale = 1) {
   const core = polyPath(coreOutline(s, 160, shape?.core));
-  const combs = comb ? combStrands(nStrokes, s, COMB_REST, shape).map((st) => buildRibbon(st.pts, { widths: st.widths, roundStart: true, roundEnd: true })) : [];
+  // 썸네일 LOD(D-24): 빗 굵기·감은 눈 ×1.3까지(작은 카드에서 눈 호 두께 0.03W가 1px 아래로 내려가 사라지지 않게). 정본은 배율 1
+  const combs = comb
+    ? combStrands(nStrokes, s, COMB_REST, shape).map((st) => buildRibbon(st.pts, { widths: combScale === 1 ? st.widths : st.widths.map((w) => w * combScale), roundStart: true, roundEnd: true }))
+    : [];
   const ec = eyeCenters(shape?.core);
-  const sh = eyeShape('closed');
+  const sh0 = eyeShape('closed');
+  const sh = eyeScale === 1 ? sh0 : sh0.map((v) => v * eyeScale);
   const ep = Skia.PathBuilder.Make();
   for (const cx of [ec.lx * s, ec.rx * s]) {
     ep.moveTo(cx + sh[0]!, ec.y * s + sh[1]!);
@@ -301,7 +321,7 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
   };
 }
 
-export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx: number, aa: number): DreamArt {
+export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx: number, aa: number, opts: DreamArtOpts = {}): DreamArt {
   const scene = buildDreamScene({ card: input.card, strokes: input.strokes, aspect, ink: input.look?.ink });
   const shape = input.look?.shape;
   const layout = dreamCardLayout(aspect);
@@ -318,7 +338,9 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   const uniforms = marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim);
   const wpx = scene.body.w * W;
   const vessels = scene.vessels.map((v) => vesselArt(v, c0, W, scene, (sft) => marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, sft), wpx));
-  const body = bodyGeometry(input.strokes.length, scene.body.s, true, shape);
+  // 몸 폭(1W)의 pt → LOD. 문법은 카드 몸에 쓰지 않으므로(획은 마블링으로 풀림) 눈·빗 배율만 쓴다
+  const L = bodyLod(wpx * (opts.ptPerUnit ?? 1), GRAMMARS.C, opts.lod ?? false);
+  const body = bodyGeometry(input.strokes.length, scene.body.s, true, shape, L.eyeScale, L.combScale);
   const friend = scene.friend
     ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false) }
     : null;
@@ -350,6 +372,8 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
     ringPx: { x: c0.x + u(scene.ringC.x), y: c0.y + u(scene.ringC.y), r: u(pr.r) },
     seal: { plate, figure: fig.core, combs: fig.combs, eyes: fig.eyes },
     dots,
+    // 블러 마스크 장치 0.5px 하한(눈 소실 결함과 같은 GPU 문턱). 큰 카드는 입력 그대로
+    blur: { shadow: blurFloorPt(W * 0.012, opts.devicePerUnit ?? 1), fold: blurFloorPt(W * 0.003, opts.devicePerUnit ?? 1) },
   };
 }
 
@@ -386,7 +410,7 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
         <RadialGradient c={vec(W * 0.5, H * 0.42)} r={H * 0.6} colors={['rgba(201,164,92,0.10)', 'rgba(20,26,44,0)']} />
       </Rect>
       <Rect rect={art.shadowRect} color="rgba(0,0,0,0.55)">
-        <BlurMask blur={W * 0.012} style="normal" />
+        <BlurMask blur={art.blur.shadow} style="normal" />
       </Rect>
       <Group clip={art.sheetPath}>
         <Fill>
@@ -439,7 +463,7 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
               <Group clip={v.path}>
                 <Path path={v.seams} style="stroke" strokeWidth={W * 0.0014} color={PALETTE.day.inkFaded} opacity={0.85} />
                 <Path path={v.fold} style="stroke" strokeWidth={W * 0.006} color={PALETTE.day.wash} opacity={0.6}>
-                  <BlurMask blur={W * 0.003} style="normal" />
+                  <BlurMask blur={art.blur.fold} style="normal" />
                 </Path>
               </Group>
               <Path path={v.path} style="stroke" strokeWidth={lw} color={PALETTE.day.body} opacity={0.7} />
@@ -586,7 +610,8 @@ export function DreamCard({
   a11yLabel,
   look,
 }: DreamCardInput & { width: number; aspect?: DreamAspect; /** 스크린리더 설명(모티프·아침 문장). 없으면 이름·문장 */ a11yLabel?: string }) {
-  const art = useMemo(() => makeDreamArt({ card, strokes, look }, aspect, width, 2), [card, strokes, aspect, width, look]);
+  const lod = useFeature('thumbLod');
+  const art = useMemo(() => makeDreamArt({ card, strokes, look }, aspect, width, 2, { lod, devicePerUnit: PixelRatio.get() }), [card, strokes, aspect, width, look, lod]);
   const lb = labels ?? defaultLabels(card);
   const H = art.H;
   return (

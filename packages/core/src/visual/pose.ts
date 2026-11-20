@@ -251,3 +251,37 @@ export function day7ClumsyRecords(level: AttachLevel = 2, shape?: BodyShape): St
   ];
   return raws.map((r, i) => makeRecord(r, i, level, shape));
 }
+
+/**
+ * 사람마다 다른 손(thumb-identity v1 시안 `handRaws`를 옮김): 시드마다 획 유형 선호(등 두름·앞 두름·받침·긴 쓸기)가 다르고
+ * 자리·길이도 다르다. 썸네일 구별 검사(OPERATING 8-1)와 블라인드 자극물의 '다른 사람 손'에 쓴다. 실제 사람 손은 아니다.
+ */
+export function handRecords(seed: number, count: number, shape?: BodyShape, level: AttachLevel = 2): StrokeRecord[] {
+  const r = rng(seed + 1);
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const pref = [r(), r(), r(), r()];
+  const sum = pref.reduce((a, b) => a + b, 0);
+  const raws: RawPoint[][] = [];
+  for (let i = 0; i < count; i++) {
+    let u = r() * sum;
+    let kind = 0;
+    while (kind < 3 && u > pref[kind]!) {
+      u -= pref[kind]!;
+      kind++;
+    }
+    if (kind === 0) {
+      const a = lerp(258, 330, r());
+      raws.push(arcRaw(a, a - lerp(22, 70, r()), lerp(0.56, 0.72, r()), lerp(0.55, 0.7, r()), 600, 0.004, i));
+    } else if (kind === 1) {
+      const a = lerp(92, 150, r());
+      raws.push(arcRaw(a, a + (r() < 0.5 ? -1 : 1) * lerp(14, 40, r()), lerp(0.58, 0.68, r()), lerp(0.56, 0.66, r()), 380, 0.003, i));
+    } else if (kind === 2) {
+      const x = lerp(-0.25, 0.15, r());
+      raws.push(lineRaw(x, 0.45, x + lerp(0.08, 0.2, r()), 0.445, 220));
+    } else {
+      const a = lerp(200, 300, r());
+      raws.push(arcRaw(a, a + lerp(40, 90, r()), lerp(0.62, 0.78, r()), lerp(0.6, 0.74, r()), 900, 0.012, i + 3));
+    }
+  }
+  return raws.map((raw, i) => makeRecord(raw, i, level, shape));
+}
