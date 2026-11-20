@@ -18,7 +18,7 @@
 - [x] B0 서버 1순위(11-23~12-03): 식별자 없는 집계 핑 + `config/v1.json` + `/m/{code}` 정적 페이지 + AASA·assetlinks — 측정 시계를 먼저 켠다 — 2240ff2
 - [x] B1 apps/server 골격: NestJS + Prisma + Supabase(로컬 CLI) + Docker(compose) + 헬스체크 + CI — a817d30
 - [x] B2 필요할 때 익명 계정 + 14세 확인 + 세이브 맡겨 두기(리비전·이력 최대 4주·충돌본 30일)·되찾기 글귀·`DELETE /me`·`/delete` — c96fba1
-- [ ] B3 `/m` 정적 HTML(첫 페인트 1초) + 앱이 올린 OG·8초 루프 + CanvasKit 지연 로드(플래그 `webLive`) + AASA·assetlinks. 서버 렌더 없음. 공개 값은 링크 켤 때 고정 — '서버 렌더 없음' = React SSR·서버 그림 그리기 없음. `/m/{code}`는 Nest가 고정 틀에 이스케이프한 값만 채운 HTML(링크별 OG 때문, DECISIONS 'B3 구현 결정')
+- [x] B3 `/m` 정적 HTML(첫 페인트 1초) + 앱이 올린 OG·8초 루프 + CanvasKit 지연 로드(플래그 `webLive`) + AASA·assetlinks. 서버 렌더 없음. 공개 값은 링크 켤 때 고정 — '서버 렌더 없음' = React SSR·서버 그림 그리기 없음. `/m/{code}`는 Nest가 고정 틀에 이스케이프한 값만 채운 HTML(링크별 OG 때문, DECISIONS 'B3 구현 결정') — fb0d89e
 - [ ] B4 원격 플래그(`config/v1.json`) + 원격 모티프 팩 + 식별자 없는 집계 핑(화이트리스트 10 + 차원 3)
 - [ ] B5 안전 장치(신고·숨기기·지우기)·레이트 리밋·삭제 요청 절차. 운영 SLA = 자동 숨김 약 1분 안 + 운영자 확인 7일, 소프트런칭은 Studio + SQL 함수 + CLI → 정식 출시 전 `mong-admin`(기획 v2.3·서버 아키텍처 v2.1)
 - [ ] B6 배포: Cloud Run 서울 + Artifact Registry + Firebase Hosting(오너: 도메인·GCP·Supabase 계정)
