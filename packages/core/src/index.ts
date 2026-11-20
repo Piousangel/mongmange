@@ -33,5 +33,8 @@ export * from './geometry/eyes';
 export * from './geometry/shape';
 export * from './save/envelope';
 export * from './save/slots';
+/** 보름밤(S6): 달 위상(현지 날짜)·보름 모티프(번들 3 + 원격 팩 자리) */
+export * from './moon/phase';
+export * from './moon/motifs';
 /** MVP 시뮬레이션(State·Event·tick·reduce·세이브). 기존 이름(tick·Phase 등)과 겹치지 않게 네임스페이스로 낸다 */
 export * as sim from './sim/index';

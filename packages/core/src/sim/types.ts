@@ -154,6 +154,21 @@ export interface State {
   relation: Relation;
 }
 
+/**
+ * 보름밤 입력(C4 설계, 연결은 C6). 원격 플래그 `moonNight`·받아 둔 원격 보름 파일·빌드 종류는 State 밖 값이라,
+ * 그대로 reduce가 읽으면 같은 이벤트 열의 결과가 '언제 앱을 열었나·파일을 받았나'에 따라 달라진다.
+ * 그래서 이 값은 **이벤트 payload로만** 들어온다(재우기·포그라운드의 선택 필드). C6에서 State에 마지막 값을 기록하고
+ * doWake가 그 값을 `pickNightCard`에 넘긴다. 필드가 없는 옛 이벤트 = 보름 끔 = 지금 동작.
+ */
+export interface MoonContext {
+  /** 원격 플래그 moonNight(rollout 적용 뒤 값) */
+  enabled: boolean;
+  /** 기기에 받아 두고 검증을 통과한 원격 보름 id(revoked 제외) */
+  remoteMoon?: string[];
+  /** 개발 빌드(자리표시 모티프도 고른다). 제품 빌드는 false·없음 */
+  dev?: boolean;
+}
+
 export type Event =
   /** birthShape = M1 타고남 플래그가 켜진 앱: 그 개체의 체형으로 부착(D-12 개정 ①). 없으면 기본형 — 빌드 1과 같다 */
   | { type: 'stroke'; at: Millis; raw: RawPoint[]; level?: AttachLevel; birthShape?: boolean }
@@ -162,11 +177,11 @@ export type Event =
   /** 몽망이 탭 = 쓰다듬기, holdMs ≥ 500 = 문지르기(길게 누르기). 종이 탭 = 그쪽을 봄 */
   | { type: 'tap'; at: Millis; target: 'body' | 'paper'; holdMs: number; x: number; y: number; moveSpeed?: number }
   /** 연적 탭 */
-  | { type: 'putToSleep'; at: Millis }
+  | { type: 'putToSleep'; at: Millis; moon?: MoonContext }
   /** 건져 올리기 */
   | { type: 'developCard'; at: Millis }
   | { type: 'setTimes'; at: Millis; bedtimeLocalMin: number; morningLocalMin: number }
-  | { type: 'appForeground'; at: Millis; tzOffsetMin: number }
+  | { type: 'appForeground'; at: Millis; tzOffsetMin: number; moon?: MoonContext }
   | { type: 'appBackground'; at: Millis }
   /** 먹 고르기·바꾸기(빌드 2). 첫 잠에 씨앗이 정해 둔 먹을 덮는다 */
   | { type: 'chooseInk'; at: Millis; ink: InkId; seeded?: boolean }

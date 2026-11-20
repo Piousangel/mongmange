@@ -14,6 +14,7 @@ import { hexRgb, mixHex, type InkLook } from './ink';
 import { simplifyStroke } from '../geometry/simplify';
 import type { RawPoint, StrokeRecord } from '../geometry/types';
 import { MOTIFS } from '../sim/dream';
+import { isMoonMotifId, moonMotifUsable } from '../moon/motifs';
 import { rngNext } from '../sim/rng';
 import type { DreamCard } from '../sim/types';
 import { coreScale } from './bodySpec';
@@ -216,16 +217,30 @@ export interface DreamSceneInput {
   limits?: { pre: number; post: number; segs: number };
   /** M1 몸의 먹(카드 마블링의 옅은 쪽 먹빛). 없거나 기본 먹이면 빌드 1 카드 그대로 */
   ink?: InkLook;
+  /**
+   * 개발 빌드인가(앱은 `__DEV__`). 보름 모티프 중 자리표시·초안이 남은 것(`moonMotifBlockers`)은 개발 빌드에서만
+   * 임시 형상(center.moon)으로 그리고, 제품 빌드에서는 모티프 형상 없는 **일반 카드**(고리·결·몽망이 자리)로 그린다.
+   * 없으면 제품 빌드로 본다(안전한 쪽).
+   */
+  dev?: boolean;
+}
+
+/** 카드가 그릴 모티프 형상 id. 모르는 id는 기존대로 center.moon, 제품 빌드의 미완 보름 모티프는 'plain'(형상 없음) */
+export function dreamMotifShape(motifId: string, dev: boolean): string {
+  const known = MOTIFS.find((m) => m.id === motifId);
+  if (known) return known.id;
+  if (isMoonMotifId(motifId) && !moonMotifUsable(motifId, dev)) return 'plain';
+  return 'center.moon';
 }
 
 /** 뒤 조작 우선순위: 낮은 것부터 뺀다(빈 자리·달·창 같은 형상은 끝까지 남김) */
 type Prio = 0 | 1 | 2 | 3 | 4;
 
-export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_LIMITS, ink: inkIn }: DreamSceneInput): DreamScene {
+export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_LIMITS, ink: inkIn, dev }: DreamSceneInput): DreamScene {
   const seed = dreamCardSeed(card, strokes);
   const rnd = makeRng(seed ^ 0x9e3779b9);
   const lay = dreamCardLayout(aspect);
-  const motif = MOTIFS.find((m) => m.id === card.motifId)?.id ?? 'center.moon';
+  const motif = dreamMotifShape(card.motifId, dev === true);
   const B = clamp(card.inkTone, 0, 1);
   const T = clamp(card.flow, -1, 1);
   const n = strokes.length;
