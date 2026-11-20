@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import type { DreamCardInput, DreamCardLabels } from '../render/dreamCard/DreamCard';
 import { useFeature } from '../features';
 import { shareDreamCard, shareIreScroll, shareSupported } from '../share/shareCard';
-import { motifName, motifScene } from '../game/text';
+import { appendA11y, motifName, motifScene } from '../game/text';
 import { dayName, nightName as nightOf, t } from '../i18n';
 import { KText } from '../ui/type';
 import { SANS } from './ui';
@@ -20,12 +20,15 @@ export function cardLabels(card: sim.DreamCard, line: string): DreamCardLabels {
   return { name: t('card.name', { day: dayName(Math.max(0, card.night - 1)) }), line, sub: t('card.sub', { motif, night: nightName(card) }) };
 }
 
-/** 스크린리더 설명: 무엇이 그려졌나(모티프) + 아침 문장 */
-export function cardA11y(card: sim.DreamCard, line: string): string {
+/**
+ * 스크린리더 설명: 무엇이 그려졌나(모티프) + 아침 문장. 꿈 콘텐츠(dreamContent)가 켜져 있으면 끝에 카드 캡션과
+ * '처음 꾼 꿈'을 붙인다(dreams-30days 3-2·1-7 — 시각 표시와 같은 때만).
+ */
+export function cardA11y(card: sim.DreamCard, line: string, extra: readonly (string | null | undefined)[] = []): string {
   const motif = motifName(card.motifId) ?? t('motif.fallback');
   const scene = motifScene(card.motifId);
   const merged = card.nightsMerged > 1 ? t('card.a11y.merged', { n: card.nightsMerged }) : '';
-  return t('card.a11y', { night: nightName(card), motif, scene, merged, line }).trim();
+  return appendA11y(t('card.a11y', { night: nightName(card), motif, scene, merged, line }).trim(), extra);
 }
 
 type ShareKind = 'card' | 'story' | 'ire';

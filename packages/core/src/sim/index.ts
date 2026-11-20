@@ -5,6 +5,7 @@ export * from './time';
 export * from './temperament';
 export * from './ledger';
 export * from './dream';
+export * from './dreamMotifs';
 export * from './reduce';
 export * from './save';
 export * from './pillars';

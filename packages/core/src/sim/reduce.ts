@@ -4,7 +4,8 @@ import { makeRecord } from '../visual/pose';
 import { shapeOf } from '../geometry/shape';
 import { traitsOf } from '../visual/traits';
 import { polylineLength } from '../geometry/simplify';
-import { pickCard } from './dream';
+import { mergeNightCard, pickNightCard } from './dream';
+import { nightDateOf } from '../moon/phase';
 import { LEDGER, emptyLedger, ledgerMeasures, measureStroke } from './ledger';
 import {
   CHANNELS,
@@ -38,7 +39,7 @@ import {
   type BirthInput,
   type InkId,
 } from './pillars';
-import { AXES, type AxisId, type AxisRecord, type Effect, type Event, type Measures, type MorningLine, type Millis, type Stage, type State, type Step } from './types';
+import { AXES, type AxisId, type DreamContext, type MoonContext, type NightContext, type AxisRecord, type Effect, type Event, type Measures, type MorningLine, type Millis, type Stage, type State, type Step } from './types';
 
 /** sim 블록 버전. 2 = 세이브 v2(세 기둥 필드: birth·ink·name·temperamentLabel·relation) */
 export const SIM_SCHEMA_VERSION = 2;
@@ -174,14 +175,30 @@ function doSleep(s: State, at: Millis, effects: Effect[]): State {
   return { ...next, pendingLine: line };
 }
 
-/** 깸: 하루 +1, 획 충전(이월 없음), 꿈 카드(밀린 밤은 한 장으로 합침) */
+/**
+ * 깸: 하루 +1, 획 충전(이월 없음), 꿈 카드(밀린 밤은 한 장으로 합침).
+ * 카드 = `pickNightCard`(보름 판정 → 보름 또는 일반) → `mergeNightCard`(긴 잠: 가장 늦은 보름 밤을 지킨다, dreams-30days 4-1 ①②).
+ * `nightCtx`(이벤트가 기록한 플래그 값)가 없으면 빌드 1과 같은 카드·같은 난수 소비다 — 고정 기대값 시험이 묶는다.
+ */
 function doWake(s: State, at: Millis, effects: Effect[]): State {
   const dayIndex = s.dayIndex + 1;
   const todays = s.strokes.filter((x) => x.day === s.dayIndex);
   const strokeRef = todays.length > 0 ? todays[todays.length - 1]!.id : null;
   const used = [...s.cards, ...(s.pendingCard ? [s.pendingCard] : [])];
-  const picked = pickCard(s.temperament, used, s.rng, dayIndex, strokeRef ?? s.pendingCard?.strokeRef ?? null);
-  const card = s.pendingCard ? { ...picked.card, nightsMerged: s.pendingCard.nightsMerged + 1 } : picked.card;
+  const picked = pickNightCard({
+    v: s.temperament,
+    used,
+    rng: s.rng,
+    night: dayIndex,
+    strokeRef: strokeRef ?? s.pendingCard?.strokeRef ?? null,
+    nightDate: s.sleepAt !== null ? nightDateOf(s.sleepAt, s.clock.tzOffsetMin) : null,
+    tzOffsetMin: s.clock.tzOffsetMin,
+    developedCards: s.cards.length,
+    moon: s.nightCtx?.moon,
+    dream: s.nightCtx?.dream,
+    history: s.cards,
+  });
+  const card = mergeNightCard(s.pendingCard, picked.card);
   effects.push({ type: 'woke', at, dayIndex });
   effects.push({ type: 'cardReady', card });
   return {
@@ -195,6 +212,23 @@ function doWake(s: State, at: Millis, effects: Effect[]): State {
     pendingCard: card,
     relation: foldRelationDay(s.relation),
   };
+}
+
+/**
+ * 재우기·포그라운드 이벤트가 실어 온 보름·꿈 콘텐츠 값으로 `nightCtx`를 **통째로 바꾼다**(C6 리뷰 I1 — 킬 스위치).
+ * 앱은 두 이벤트에 늘 켜진 플래그만 싣는다(`nightFields`). 그래서 실어 오지 않은 키는 지우고, 둘 다 없으면 `nightCtx` 자체를 지운다:
+ * 플래그를 끄면 다음 밤부터 빌드 1과 같은 선택이고, 세이브 문자열도 빌드 1 모양으로 돌아간다(`dev: true` 잔존도 같이 사라진다).
+ */
+function recordNightCtx(s: State, e: { moon?: MoonContext; dream?: DreamContext }): State {
+  const next: NightContext = {};
+  if (e.moon !== undefined) next.moon = e.moon;
+  if (e.dream !== undefined) next.dream = e.dream;
+  if (next.moon === undefined && next.dream === undefined) {
+    if (s.nightCtx === undefined) return s;
+    const { nightCtx: _drop, ...rest } = s;
+    return rest;
+  }
+  return { ...s, nightCtx: next };
 }
 
 /** 아침 문장 확정(현상할 때): 이레 문장 > 밤 정산 문장 > 꿈 관찰 */
@@ -382,6 +416,7 @@ export function reduce(state: State, e: Event): Step {
       s = applyTap(care(s, at, effects), e);
       break;
     case 'putToSleep':
+      s = recordNightCtx(s, e);
       if (canPutToSleep(s, at)) s = doSleep(care(s, at, effects), at, effects);
       else if (s.phase === 'awake') effects.push({ type: 'notSleepy' });
       break;
@@ -406,7 +441,7 @@ export function reduce(state: State, e: Event): Step {
     case 'appForeground': {
       let rel = s.backgroundSince !== null ? returnRelation(s.relation, s.backgroundSince, at) : s.relation;
       rel = visitRelation(rel, at, e.tzOffsetMin);
-      s = { ...s, backgroundSince: null, clock: { ...s.clock, tzOffsetMin: e.tzOffsetMin }, relation: rel };
+      s = recordNightCtx({ ...s, backgroundSince: null, clock: { ...s.clock, tzOffsetMin: e.tzOffsetMin }, relation: rel }, e);
       break;
     }
     case 'chooseInk':

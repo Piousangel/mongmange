@@ -13,7 +13,7 @@
 import { hexRgb, mixHex, type InkLook } from './ink';
 import { simplifyStroke } from '../geometry/simplify';
 import type { RawPoint, StrokeRecord } from '../geometry/types';
-import { MOTIFS } from '../sim/dream';
+import { MOTIFS, motifUsable } from '../sim/dreamMotifs';
 import { isMoonMotifId, moonMotifUsable } from '../moon/motifs';
 import { rngNext } from '../sim/rng';
 import type { DreamCard } from '../sim/types';
@@ -225,10 +225,28 @@ export interface DreamSceneInput {
   dev?: boolean;
 }
 
-/** 카드가 그릴 모티프 형상 id. 모르는 id는 기존대로 center.moon, 제품 빌드의 미완 보름 모티프는 'plain'(형상 없음) */
+/** 개발 빌드에서 형상 없는 모티프를 대신 그릴 같은 구역의 기존 형상(확인용 — 제품에는 나가지 않는다) */
+const DEV_STAND_IN: Record<string, string> = {
+  'near-alone': 'near-alone.quilt',
+  'near-with': 'near-with.window-hand',
+  'far-alone': 'far-alone.mountain',
+  'far-with': 'far-with.stars-drops',
+  center: 'center.rain',
+};
+
+/**
+ * 카드가 그릴 모티프 형상 id.
+ * - 형상이 있는 모티프(빌드 1의 10개) → 그 id.
+ * - 형상 자리표시 모티프(C6의 15개, C14 대기)·미완 보름 모티프 → 개발 빌드는 임시 형상(같은 구역 기존 형상·보름은 center.moon),
+ *   제품 빌드는 'plain'(모티프 형상 없음 — 고리·결·몽망이 자리만).
+ * - 모르는 id는 기존대로 center.moon.
+ */
 export function dreamMotifShape(motifId: string, dev: boolean): string {
   const known = MOTIFS.find((m) => m.id === motifId);
-  if (known) return known.id;
+  if (known) {
+    if (!known.placeholder) return known.id;
+    return motifUsable(known.id, dev) ? (DEV_STAND_IN[known.zone] ?? 'plain') : 'plain';
+  }
   if (isMoonMotifId(motifId) && !moonMotifUsable(motifId, dev)) return 'plain';
   return 'center.moon';
 }
@@ -475,6 +493,9 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       calm = 0.6;
       break;
     }
+    case 'plain':
+      // 형상 없는 일반 카드(제품 빌드의 미완 모티프): 고리·결·몽망이 자리만
+      break;
     case 'center.moon':
     default: {
       // 둥근 달: 결 뒤 큰 맑은 방울 + 금박 테. 고리가 달을 감아 돈다

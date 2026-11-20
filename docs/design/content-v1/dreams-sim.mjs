@@ -1,8 +1,11 @@
 // 꿈 카드 고르기 규칙 시뮬레이터 — dreams-30days.md v1.1 2-5절 사양을 그대로 옮긴 것(core 구현 아님).
 // 실행: node docs/design/content-v1/dreams-sim.mjs [회수=3000]
 // 보는 것: 구역별 30·90밤 동안 규칙 R1~R4 위반(= 완화가 일어난 밤) 수, 30밤 안 같은 장면 재등장, '처음 꾼 꿈' 간격.
+// C6(11-20): core 구현과 대조하려고 MOTIFS·pick·run·table을 내보낸다(packages/core/test/dream-rules.test.ts가 이 파일을 직접 불러
+// ① 한 밤씩 같은 장면을 고르는지 ② core 고르기로 돌린 표가 아래 2-6 표와 같은지 본다). 규칙·수치는 바꾸지 않았다.
+import { pathToFileURL } from 'node:url';
 
-const MOTIFS = [
+export const MOTIFS = [
   // id, zone, family, unlockAtCards  (dreams-30days.md 1-3 표와 같아야 한다)
   ['near-alone.quilt', 'near-alone', 'bed', 0],
   ['near-alone.teacup', 'near-alone', 'tea', 0],
@@ -48,13 +51,13 @@ function mulberry32(a) {
   };
 }
 
-const famOf = (id) => (id.startsWith('moon-') ? 'moon' : MOTIFS.find((m) => m.id === id).family);
+const famOf = (id, motifs = MOTIFS) => (id.startsWith('moon-') ? 'moon' : motifs.find((m) => m.id === id).family);
 
-/** 2-5 사양. history = [{motifId, comp}] 오래된 것 → 최근. 반환: {pick, relaxed: Set} */
-function pick(zone, history, rand, moonWindow) {
+/** 2-5 사양. history = [{motifId, comp}] 오래된 것 → 최근. 반환: {pick, relaxed: Set}. motifs = 모티프 표(기본 위 표) */
+export function pick(zone, history, rand, moonWindow, motifs = MOTIFS) {
   const n = history.length;
   const seenMotifs = new Set(history.map((h) => h.motifId));
-  const pool = MOTIFS.filter((m) => (m.zone === zone || m.zone === 'center') && m.unlock <= n)
+  const pool = motifs.filter((m) => (m.zone === zone || m.zone === 'center') && m.unlock <= n)
     .filter((m) => !(moonWindow && m.id === 'center.moon'))
     .sort((a, b) => (a.id < b.id ? -1 : 1)); // 결정성: id 오름차순
   const scenes = [];
@@ -65,7 +68,7 @@ function pick(zone, history, rand, moonWindow) {
   const R = {
     R1: (s) => !recent(W_SCENE).some((h) => key(h) === key(s)),
     R2: (s) => !recent(W_MOTIF).some((h) => h.motifId === s.motifId),
-    R3: (s) => !recent(W_FAMILY).some((h) => famOf(h.motifId) === famOf(s.motifId)),
+    R3: (s) => !recent(W_FAMILY).some((h) => famOf(h.motifId, motifs) === famOf(s.motifId, motifs)),
     R4: (s) => !(n >= RUN_COMP - 1 && recent(RUN_COMP - 1).every((h) => h.comp === s.comp)),
   };
   // 완화 순서: R4 → R3 → R2 → R1 (뒤쪽일수록 끝까지 지킨다)
@@ -98,7 +101,8 @@ function pick(zone, history, rand, moonWindow) {
   return { pick: cands[i], relaxed };
 }
 
-function run(zone, nights, seed, withMoon) {
+/** 한 회차. pickFn = 고르기 함수(기본 위 pick — 시험은 core 고르기를 같은 자리에 넣는다) */
+export function run(zone, nights, seed, withMoon, pickFn = pick) {
   const rand = mulberry32(seed);
   const moonOffset = Math.floor(rand() * 30); // 보름 당일 밤의 위치(29.5일 주기)
   const isMoon = (night) => withMoon && [-1, 0, 1].some((d) => {
@@ -113,7 +117,7 @@ function run(zone, nights, seed, withMoon) {
       hist.push({ motifId: 'moon-xx', comp: 1 });
       continue;
     }
-    const { pick: p, relaxed } = pick(z, hist, rand, isMoon(night));
+    const { pick: p, relaxed } = pickFn(z, hist, rand, isMoon(night));
     for (const r of relaxed) out[r]++;
     if (night <= 30 && hist.some((h) => h.motifId === p.motifId && h.comp === p.comp)) out.repeat30++;
     if (!seen.has(p.motifId)) { seen.add(p.motifId); out.firstNights.push(night); }
@@ -122,24 +126,30 @@ function run(zone, nights, seed, withMoon) {
   return out;
 }
 
-const RUNS = Number(process.argv[2] ?? 3000);
-const zones = process.env.ZONES ? process.env.ZONES.split(',') : ['near-alone', 'near-with', 'far-alone', 'far-with', 'center*'];
-console.log(`회수 ${RUNS} · R1 ${W_SCENE}장 · R2 ${W_MOTIF}장 · R3 ${W_FAMILY}장 · R4 ${RUN_COMP}연속 금지 · 보름 보호 ${MOON_PROTECT}장`);
-console.log('구역 | 밤 | 보름 | R1 R2 R3 R4 위반(모든 회차 합) | 1~30밤 같은 장면 재등장(회차당 평균) | 처음 꾼 꿈 최장 공백(밤, 회차 평균)');
-for (const nights of [30, 90]) for (const withMoon of [false, true]) for (const z of zones) {
-  const agg = { R1: 0, R2: 0, R3: 0, R4: 0, repeat30: 0, gap: 0 };
-  for (let s = 1; s <= RUNS; s++) {
-    const o = run(z, nights, s * 7919 + nights, withMoon);
-    for (const k of ['R1', 'R2', 'R3', 'R4', 'repeat30']) agg[k] += o[k];
-    const f = o.firstNights.filter((x) => x <= 30); let g = 0;
-    for (let i = 1; i < f.length; i++) g = Math.max(g, f[i] - f[i - 1] - 1);
-    agg.gap += g;
+/** 2-6 표 한 줄씩(nightsList = 볼 밤 수, 기본 30·90): { zone, nights, moon, R1..R4, repeat30(회차당 평균, 소수 3자리), gap(소수 2자리) } */
+export function table(RUNS, zones = ['near-alone', 'near-with', 'far-alone', 'far-with', 'center*'], pickFn = pick, nightsList = [30, 90]) {
+  const rows = [];
+  for (const nights of nightsList) for (const withMoon of [false, true]) for (const z of zones) {
+    const agg = { R1: 0, R2: 0, R3: 0, R4: 0, repeat30: 0, gap: 0 };
+    for (let s = 1; s <= RUNS; s++) {
+      const o = run(z, nights, s * 7919 + nights, withMoon, pickFn);
+      for (const k of ['R1', 'R2', 'R3', 'R4', 'repeat30']) agg[k] += o[k];
+      const f = o.firstNights.filter((x) => x <= 30); let g = 0;
+      for (let i = 1; i < f.length; i++) g = Math.max(g, f[i] - f[i - 1] - 1);
+      agg.gap += g;
+    }
+    rows.push({ zone: z, nights, moon: withMoon, R1: agg.R1, R2: agg.R2, R3: agg.R3, R4: agg.R4, repeat30: (agg.repeat30 / RUNS).toFixed(3), gap: (agg.gap / RUNS).toFixed(2) });
   }
-  console.log(`${z} | ${nights} | ${withMoon ? '있음' : '없음'} | ${agg.R1} ${agg.R2} ${agg.R3} ${agg.R4} | ${(agg.repeat30 / RUNS).toFixed(3)} | ${(agg.gap / RUNS).toFixed(2)}`);
+  return rows;
 }
 
-// 처음 꾼 꿈 밤별 확률(near-alone, 보름 없음)
-{
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const RUNS = Number(process.argv[2] ?? 3000);
+  const zones = process.env.ZONES ? process.env.ZONES.split(',') : undefined;
+  console.log(`회수 ${RUNS} · R1 ${W_SCENE}장 · R2 ${W_MOTIF}장 · R3 ${W_FAMILY}장 · R4 ${RUN_COMP}연속 금지 · 보름 보호 ${MOON_PROTECT}장`);
+  console.log('구역 | 밤 | 보름 | R1 R2 R3 R4 위반(모든 회차 합) | 1~30밤 같은 장면 재등장(회차당 평균) | 처음 꾼 꿈 최장 공백(밤, 회차 평균)');
+  for (const r of table(RUNS, zones)) console.log(`${r.zone} | ${r.nights} | ${r.moon ? '있음' : '없음'} | ${r.R1} ${r.R2} ${r.R3} ${r.R4} | ${r.repeat30} | ${r.gap}`);
+  // 처음 꾼 꿈 밤별 확률(near-alone, 보름 없음)
   const RUN2 = Math.min(RUNS, 3000); const hit = Array(31).fill(0);
   for (let s = 1; s <= RUN2; s++) for (const x of run('near-alone', 30, s * 104729, false).firstNights) hit[x]++;
   console.log('처음 꾼 꿈 밤별 확률(near-alone, 1~30밤):', hit.slice(1).map((h) => (h / RUN2).toFixed(2)).join(' '));

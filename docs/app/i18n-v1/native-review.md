@@ -67,3 +67,17 @@
 2. 'it'으로 부르는 것(he/she 아님)이 정 붙이기에 차갑지 않은가?
 3. 사물 이름 Brush · Inkstone · Water dropper와 라벨 Stroke · Grind ink · Sleep의 결이 맞는가? 라벨은 아트 7-1에서 확정한 값이고, 바꾸려면 아트 결정이 필요하다.
 4. 'surfaced'(알림)와 'Lift the dream'(버튼)이 같은 장면(물 위 한지를 건져 올림)으로 이어 읽히는가?
+
+## 4. C6 꿈 콘텐츠 — 꿈 모티프 25·캡션·보름(dreams-30days v1.1 6-4에서 옮김, 11-20)
+
+- 대상 키: `motif.*` 15·`scene.*` 15(새 모티프), `caption.cause.*` 15, `caption.line.*` 25, `caption.moon.*` 6, `moon.*` 3, `scene.moon.*` 3, `caption.first`, `caption.dream`. 문구는 정본 표 그대로 넣었다(개발이 쓴 것은 `scene.moon.*` 3개뿐 — core `draft: ['en.scene']`로 제품 출시가 막혀 있다).
+
+| 우선 | 항목 | 질문 | 판정 |
+|---|---|---|---|
+| 1 | `caption.cause.*` 15 | '{결과} — {원인}' 어순(예: "Last night it slept under a quilt — it watches small things lately")이 자연스러운가, `lately` 반복(15개 중 8개) 변주 | |
+| 1 | `caption.line.*` 25 + 보름 3 | 꼬리 섞기(`Last night`·`In its dream`·없음)가 같은 카드 아래에서 어색하지 않은가 | |
+| 1 | `caption.line.far-alone.sea`·`far-alone.path`의 **ran** | 원격 모티프 금지어(`/\bran\b/`, 발 동사)에 걸린다. 바다·길이 '흐르다·이어지다' 뜻이라 금지 취지와는 다르지만, 같은 상한·금지어를 번들에도 적용하므로 다른 동사(flowed·wound 등)를 받고 싶다. 바꾸면 `apps/mobile/test/dream-text.test.ts`의 예외 두 줄을 지운다 | |
+| 2 | 이름: a nap by the inkstone · washi on the line · a cupped hand · a bridge of stars · soundless snow · stepping stones · a swing of moonlight | 'washi'를 설명 없이 써도 되는가(장면 문장에는 'washi paper') | |
+| 2 | `motif.center.moon` 'a full moon' → 'the moon on the water' | 보름 모티프와 겹침 해소안. **아직 반영하지 않았다**(검수 판정 뒤) | |
+| 3 | `caption.first` 'First time dreaming this' | 라벨로 자연스러운가(대안 'A first for it') | |
+| 3 | `scene.moon.*` 3(개발 초안) | 길이·톤. 확정되면 core `BUNDLED_MOON_MOTIFS`의 `draft`를 지운다 | |

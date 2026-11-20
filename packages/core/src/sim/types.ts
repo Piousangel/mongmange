@@ -93,6 +93,12 @@ export interface DreamCard {
   strokeRef: string | null;
   /** 1보다 크면 '긴 잠' 카드(밀린 밤을 한 장으로) */
   nightsMerged: number;
+  /**
+   * 캡션 원인 말씨 `{zone}.{1|2|3}`(i18n `caption.cause.*`), null = 결과만(dreams-30days 3-2). 꿈 콘텐츠 플래그(`DreamContext`)가
+   * 켜진 밤에 고른 카드에만 있다 — 없으면(빌드 1·플래그 꺼짐) 세이브 문자열이 지금과 같다. 그 밤의 성향이 몸짓으로 보였는지는
+   * 나중에 다시 계산할 수 없어서(성향은 매일 바뀐다) 고를 때 정해 둔다.
+   */
+  cause?: string | null;
 }
 
 export type LineKind = 'change' | 'deepen' | 'observation' | 'seven-day';
@@ -152,6 +158,11 @@ export interface State {
   temperamentLabel: TemperamentLabel | null;
   /** 정·손 기억·감정 상태 입력 */
   relation: Relation;
+  /**
+   * 보름·꿈 콘텐츠 입력의 마지막 값(C6). 이벤트가 `moon`·`dream` 필드를 실어 올 때만 생긴다 — 없으면(옛 세이브·플래그 꺼짐)
+   * doWake는 빌드 1과 같다. 같은 이벤트 열 = 같은 카드(결정성).
+   */
+  nightCtx?: NightContext;
 }
 
 /**
@@ -169,6 +180,25 @@ export interface MoonContext {
   dev?: boolean;
 }
 
+/**
+ * 꿈 콘텐츠 입력(C6, dreams-30days 1~3절): 모티프 25·점적 해금·반복 방지 규칙(R1~R5)·캡션 원인. 앱 플래그 `dreamContent`와
+ * 원격 `dreamUnlock`은 State 밖 값이라 `MoonContext`와 같은 길(재우기·포그라운드 이벤트의 선택 필드 → State `nightCtx`)로만 들어온다.
+ * 없거나 꺼짐 = 빌드 1 `pickCard`(모티프 10) 그대로.
+ */
+export interface DreamContext {
+  enabled: boolean;
+  /** 원격 dreamUnlock(앞당기기만, 2-1) */
+  unlock?: Record<string, number>;
+  /** 개발 빌드(형상 자리표시 모티프도 고른다). 제품 빌드는 false·없음 */
+  dev?: boolean;
+}
+
+/** doWake가 읽는 State 밖 입력의 마지막 값(이벤트가 그 필드를 실어 올 때만 바뀐다) */
+export interface NightContext {
+  moon?: MoonContext;
+  dream?: DreamContext;
+}
+
 export type Event =
   /** birthShape = M1 타고남 플래그가 켜진 앱: 그 개체의 체형으로 부착(D-12 개정 ①). 없으면 기본형 — 빌드 1과 같다 */
   | { type: 'stroke'; at: Millis; raw: RawPoint[]; level?: AttachLevel; birthShape?: boolean }
@@ -177,11 +207,11 @@ export type Event =
   /** 몽망이 탭 = 쓰다듬기, holdMs ≥ 500 = 문지르기(길게 누르기). 종이 탭 = 그쪽을 봄 */
   | { type: 'tap'; at: Millis; target: 'body' | 'paper'; holdMs: number; x: number; y: number; moveSpeed?: number }
   /** 연적 탭 */
-  | { type: 'putToSleep'; at: Millis; moon?: MoonContext }
+  | { type: 'putToSleep'; at: Millis; moon?: MoonContext; dream?: DreamContext }
   /** 건져 올리기 */
   | { type: 'developCard'; at: Millis }
   | { type: 'setTimes'; at: Millis; bedtimeLocalMin: number; morningLocalMin: number }
-  | { type: 'appForeground'; at: Millis; tzOffsetMin: number; moon?: MoonContext }
+  | { type: 'appForeground'; at: Millis; tzOffsetMin: number; moon?: MoonContext; dream?: DreamContext }
   | { type: 'appBackground'; at: Millis }
   /** 먹 고르기·바꾸기(빌드 2). 첫 잠에 씨앗이 정해 둔 먹을 덮는다 */
   | { type: 'chooseInk'; at: Millis; ink: InkId; seeded?: boolean }

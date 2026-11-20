@@ -16,7 +16,7 @@
 | 시간·잠·하루 경계·성향 | ③ | D-07, 시스템 3·4절, `docs/design/sim/` | `c/sim/time.ts`·`temperament.ts` | `ct/sim-time`·`sim-temperament`·`sim-property` | — | `docs/design/sim/temperament-7day.mjs` | 11-20 문서 |
 | 밤(물 차오름·밤 몸·환경음) | ③ | 아트 5·11절, D-14 | `m/screens/HomeScreen.tsx`·`GameHome.tsx`(night), `m/render/shaders.ts` | `mt/engine.test.ts`(환경음 전환 규칙) | — | `app-flow-capture` | 11-20 문서 |
 | 아침 꿈 카드(건져 올리기 → 인화) | ②③ | D-20, D-25, `docs/creative/dream-card-v1/REPORT.md` | `c/visual/dreamCard.ts`, `c/sim/dream.ts`, `m/render/dreamCard/*`, `m/screens/MorningScreen.tsx`·`cardText.tsx` | `ct/dream-card`(해시 스냅숏·자르기 0·과녁 금지), `mt/dream-card-shader`·`text` | — | `dream-card-capture` → `docs/creative/dream-card-v1/cards/`, `v12-capture` | 11-20 문서 |
-| 꿈 콘텐츠(모티프 10, 25로 확장 예정 C6) | ②③ | D-25, `docs/design/content-v1/dreams-30days.md` | `c/sim/dream.ts`, `m/game/text.ts` | `ct/dream-card`(모티프 10 구성 서로 다름) | — | `dream-card-capture` | 11-20 문서 |
+| 꿈 콘텐츠(빌드 1 = 모티프 10, 옛 규칙) | ②③ | D-25, `docs/design/content-v1/dreams-30days.md` | `c/sim/dream.ts`(`pickCard`), `m/game/text.ts` | `ct/dream-card`(형상 10 구성 서로 다름), `ct/dream-wake`(연결 전 고정 기대값) | — | `dream-card-capture` | 11-20 문서 |
 | 공방 노트(설정·앨범·다시 보기·언어·알림 토글) | ② | D-15, 아트 7절 | `m/screens/NoteSheet.tsx`, `m/render/dreamCard/DreamCardThumb.tsx` | `mt/store.test.ts`(메타 설정) | — | `app-flow-capture`, `v12-capture` | 11-20 문서 |
 | 공유(꿈 카드 4:5·9:16 PNG, 이레 두루마리 이미지) | ② | D-18 ①, D-20 공유 구체화 | `m/share/shareCard.ts`·`layout.ts`·`native.ts`(웹 `native.web.ts`), `m/screens/cardText.tsx`(ShareBar, 연타 잠금) | `mt/build1.test.ts` | `share` = 켬 | `build1-capture` → `docs/app/build1/` | 11-20 문서 |
 | 평점 요청(이레 아침 1회) | — | D-18 ⑤ | `m/game/review.ts`·`reviewPolicy.ts` | `mt/build1.test.ts`(1회 보장) | `review` = 켬 | `build1-capture` | 11-20 문서 |
@@ -39,7 +39,8 @@
 | M3 결 이름·공유 꼬리표 | ② | D-20, C-integrated 2-3 | 미구현 | — | `temperamentLabel` = 끔 | — | — |
 | M4 정·손 기억·반김·머뭇거림 | ③ | D-20, 시스템 3.8 | 미구현 | — | `relation`·`hesitation` = 끔 | — | — |
 | M5 함께 숨 쉬기(빌드 3) | ③ | D-20 | 미구현 | — | `breathe` = 끔 | — | — |
-| 보름밤(달 위상·번들 모티프, C4 679c4d1) | ②③ | D-25 보름 사흘, 로드맵 C4 | `c/moon/*`, `c/sim/dream.ts` | `ct/moon-phase`·`moon-motifs`·`moon-night-card`, `mt/moon-contract.test.ts` | — | — (자리표시 형상, 연결은 C6) | 11-20 문서 |
+| C6 꿈 콘텐츠(모티프 25·점적 해금·반복 방지 R1~R5·카드 캡션·처음 꾼 꿈) | ②③ | D-25(C6 줄 2), dreams-30days v1.1 1~3절 | `c/sim/dreamMotifs.ts`·`dream.ts`(`pickNightCard`)·`reduce.ts`(doWake·`nightCtx`), `m/game/text.ts`(`dreamCaption`)·`store.ts`(`nightFields`), `m/screens/MorningScreen.tsx`·`NoteSheet.tsx` | `ct/dream-rules`(정본 시뮬 한 밤씩 대조·200회 표, 문서 2000회 표는 `--heavy`), `ct/dream-wake`(켬→끔 복귀·해금 변이), `ct/dream-card`(제품 plain), `ct/motif-distinct`(64px 틀, C14 전 대상 0 단언), `mt/dream-text` | `dreamContent` = 끔(`?ff=dreamContent`). 새 15개는 형상(C14) 전이라 제품 빌드에서 안 고름 | `dream-card-capture`(개발 빌드 임시 형상) | 11-20 웹(카드) |
+| 보름밤(달 위상·번들 모티프, C4 679c4d1 + C6 doWake 연결) | ②③ | D-25 보름 사흘, 로드맵 C4 | `c/moon/*`, `c/sim/dream.ts`, `c/sim/reduce.ts` | `ct/moon-phase`·`moon-motifs`·`moon-night-card`·`dream-wake`, `mt/moon-contract.test.ts` | `moonNight` = 끔(`?ff=moonNight`, 보름 캡션은 이 플래그만으로도). 번들 3은 자리표시 형상·en 장면 초안이라 제품 빌드에서 안 고름 | — (자리표시 형상, C14) | 11-20 문서 |
 
 ## 3. 서버·정적 배포(B0·B1)
 

@@ -30,6 +30,17 @@ export const FEATURE_DEFAULTS = {
    * 블러 하한(눈 소실 수정)은 플래그와 무관하고 장치 px 기준이라 1x·1.5x에서는 48pt 초과에도 걸린다(의도)
    */
   thumbLod: false,
+  /**
+   * C6 꿈 콘텐츠(dreams-30days v1.1): 모티프 25·점적 해금·반복 방지 규칙·카드 캡션·'처음 꾼 꿈'. 꺼짐 = 빌드 1(모티프 10, 캡션 없음).
+   * 값은 재우기·포그라운드 이벤트의 선택 필드로 sim에 들어간다(`game/store.ts` `nightFields`). 새 15개는 형상(C14) 전이라
+   * 제품 빌드에서는 켜도 고르지 않는다(개발 빌드만 임시 형상).
+   */
+  dreamContent: false,
+  /**
+   * 보름밤 사흘(C4·C6, 원격 플래그와 같은 이름 — A4 ③). 꺼짐 = 보름 판정 안 함. 번들 보름 3은 형상·en 장면이 미완이라
+   * 제품 빌드에서는 켜도 고르지 않는다(`moonMotifBlockers`). 원격 rollout·받아 둔 원격 보름 id는 B4 로더가 넘길 자리
+   */
+  moonNight: false,
   // ── 빌드 3(12-19) ──
   /** M5 함께 숨 쉬기 */
   breathe: false,

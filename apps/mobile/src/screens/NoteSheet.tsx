@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { morningLine, motifName } from '../game/text';
+import { morningLine, motifName, visibleCaption } from '../game/text';
 import { LANGUAGE_NAMES, clockTime, dayName, t, type LanguagePref } from '../i18n';
 import { DreamCard } from '../render/dreamCard/DreamCard';
 import { DreamCardThumb, strokesForCard } from '../render/dreamCard/DreamCardThumb';
@@ -163,9 +163,18 @@ function CardViewer({ card, strokes, onClose, look }: { card: sim.DreamCard; str
   const w = Math.max(160, Math.min(width - 40, 380, (height - insets.top - insets.bottom - 150) / 1.25));
   const st = useMemo(() => strokesForCard(strokes, card), [strokes, card]);
   const line = pastLine(card);
+  // 꿈 캡션(dreams-30days 3-2 '공방 노트 카드 보기'). '처음 꾼 꿈'은 노트에 남기지 않는다(1-7)
+  const dreamOn = useFeature('dreamContent');
+  const moonOn = useFeature('moonNight');
+  const caption = visibleCaption(card, { dream: dreamOn, moon: moonOn });
   return (
     <View style={[StyleSheet.absoluteFill, styles.viewer, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 12 }]} accessibilityViewIsModal testID="card-viewer">
-      <DreamCard card={card} strokes={st} labels={cardLabels(card, line)} width={w} a11yLabel={cardA11y(card, line)} look={look} />
+      <DreamCard card={card} strokes={st} labels={cardLabels(card, line)} width={w} a11yLabel={cardA11y(card, line, [caption])} look={look} />
+      {caption && (
+        <KText style={[styles.viewerCaption, { maxWidth: w }]} maxFontSizeMultiplier={1.5} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden testID="viewer-caption">
+          {caption}
+        </KText>
+      )}
       <View style={styles.viewerActions}>
         <ShareBar dark input={{ card, strokes: st, labels: cardLabels(card, line), look }} />
         <Pressable onPress={onClose} style={styles.viewerClose} accessibilityRole="button" accessibilityLabel={t('note.viewer.back.a11y')} testID="viewer-close">
@@ -271,6 +280,7 @@ const styles = StyleSheet.create({
   thumbText: { marginTop: 6, fontFamily: SANS, fontSize: 12, lineHeight: 16, color: PALETTE.day.textSub },
   viewer: { backgroundColor: 'rgba(12,16,29,0.96)', alignItems: 'center', justifyContent: 'center' },
   viewerActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
+  viewerCaption: { marginTop: 12, textAlign: 'center', fontFamily: SERIF, fontSize: 14, lineHeight: 22, color: PALETTE.night.textSub, letterSpacing: track.serif(14) },
   viewerClose: { minHeight: 44, minWidth: 88, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   toggle: { width: 46, height: 26, borderRadius: 13, borderWidth: 1, borderColor: PALETTE.day.textSub, justifyContent: 'center' },
   knob: { width: 18, height: 18, borderRadius: 9 },

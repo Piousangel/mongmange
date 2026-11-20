@@ -34,28 +34,13 @@ describe('오프라인 대체 표(4-1, 고정)', () => {
 });
 
 describe('번들 보름 3(4-2)', () => {
-  it('12·1·2월 = 달길·달빛 그네·달 건지기(달항아리는 번들 아님)', () => {
-    expect(BUNDLED_MOON_MOTIFS.map((m) => [m.id, m.month, m.text.ko?.title])).toEqual([
-      ['moon-12', 12, '달길'],
-      ['moon-01', 1, '달빛 그네'],
-      ['moon-02', 2, '달 건지기'],
+  it('12·1·2월(달항아리 11월은 번들 아님). 문구는 앱 i18n에만 — core `text`는 비어 있다(D-25 C6 줄, 문구 시험은 apps/mobile/test/moon-contract.test.ts)', () => {
+    expect(BUNDLED_MOON_MOTIFS.map((m) => [m.id, m.month, m.schema, m.zone, m.family])).toEqual([
+      ['moon-12', 12, 1, 'moon', 'moon'],
+      ['moon-01', 1, 1, 'moon', 'moon'],
+      ['moon-02', 2, 1, 'moon', 'moon'],
     ]);
-    expect(BUNDLED_MOON_MOTIFS.some((m) => m.text.ko?.title === '달항아리')).toBe(false);
-  });
-  it('스키마 1: zone·family moon, ko·en 모두 title·line·scene, 글자 수 상한 안(코드 포인트)', () => {
-    const LIM = { ko: { title: 12, line: 22, scene: 45 }, en: { title: 32, line: 45, scene: 100 } } as const;
-    for (const m of BUNDLED_MOON_MOTIFS) {
-      expect(m.schema).toBe(1);
-      expect([m.zone, m.family]).toEqual(['moon', 'moon']);
-      for (const lang of ['ko', 'en'] as const) {
-        const t = m.text[lang]!;
-        for (const k of ['title', 'line', 'scene'] as const) {
-          expect(t[k].length, `${m.id} ${lang}.${k}`).toBeGreaterThan(0);
-          expect([...t[k]].length, `${m.id} ${lang}.${k}`).toBeLessThanOrEqual(LIM[lang][k]);
-          expect(t[k], `${m.id} ${lang}.${k} 숫자·느낌표·말줄임표 금지`).not.toMatch(/[0-9!！…]|\.\.\./);
-        }
-      }
-    }
+    for (const m of BUNDLED_MOON_MOTIFS) expect(m.text).toEqual({});
   });
   it('형상은 아트 레인(C14) 몫 — 지금은 자리표시', () => {
     for (const m of BUNDLED_MOON_MOTIFS) expect([m.placeholder, m.paths.length]).toEqual([true, 0]);

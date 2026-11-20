@@ -9,6 +9,7 @@ import { setLanguagePref, type LanguagePref } from '../i18n';
 import { kv as defaultKV } from './storage';
 import { entropy32 } from './entropy';
 import { ensureNameTimingGroup } from './abGroup';
+import { isOn } from '../features';
 
 type State = sim.State;
 type Effect = sim.Effect;
@@ -151,7 +152,7 @@ export function boot() {
   }
   emit({ restoredFrom: r.source, lostSave: false });
   ensureNameTimingGroup(kv); // 빌드 1에서 설치한 기기(군이 아직 없음) — 이름 A/B 군(B0 리뷰 I7)
-  apply(sim.reduce(r.state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow() }), null, true);
+  apply(sim.reduce(r.state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow(), ...nightFields() }), null, true);
 }
 
 /** 설치(첫 탭 순간). 깨어 있고 앱이 앞에 있다. 첫 탭 좌표(W, 핵 원점)는 타고남 씨앗 재료(C-integrated 2-1) */
@@ -167,10 +168,24 @@ export function install(firstTap?: { x: number; y: number }) {
   persist(state, false);
 }
 
+/**
+ * 보름·꿈 콘텐츠 플래그 → sim 이벤트 선택 필드(dreams-30days 4-1 ③). 플래그는 State 밖 값이라 reduce가 직접 읽지 않고
+ * 재우기·포그라운드 이벤트에 실려 State `nightCtx`에 기록된다(같은 이벤트 열 = 같은 카드). **꺼진 플래그는 필드를 싣지 않는다** —
+ * 둘 다 꺼짐이면 이벤트가 빌드 1과 글자까지 같다.
+ */
+export function nightFields(): { moon?: sim.MoonContext; dream?: sim.DreamContext } {
+  const dev = typeof __DEV__ !== 'undefined' && __DEV__ === true;
+  const out: { moon?: sim.MoonContext; dream?: sim.DreamContext } = {};
+  if (isOn('moonNight')) out.moon = dev ? { enabled: true, dev } : { enabled: true };
+  if (isOn('dreamContent')) out.dream = dev ? { enabled: true, dev } : { enabled: true };
+  return out;
+}
+
 export function dispatch(input: EventInput): Effect[] {
   const s = snap.state;
   if (!s) return [];
-  const ev = { ...input, at: now() } as Event;
+  const night = input.type === 'putToSleep' || input.type === 'appForeground' ? nightFields() : {};
+  const ev = { ...input, ...night, at: now() } as Event;
   const step = sim.reduce(s, ev);
   apply(step, ev, true);
   return step.effects;

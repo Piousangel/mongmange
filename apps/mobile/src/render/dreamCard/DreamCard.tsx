@@ -319,7 +319,8 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
 }
 
 export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx: number, aa: number, opts: DreamArtOpts = {}): DreamArt {
-  const scene = buildDreamScene({ card: input.card, strokes: input.strokes, aspect, ink: input.look?.ink });
+  // 개발 빌드만 미완 모티프(형상 자리표시·보름 초안)를 임시 형상으로 그린다. 제품은 형상 없는 일반 카드(core `dreamMotifShape`)
+  const scene = buildDreamScene({ card: input.card, strokes: input.strokes, aspect, ink: input.look?.ink, dev: typeof __DEV__ !== 'undefined' && __DEV__ === true });
   const shape = input.look?.shape;
   const layout = dreamCardLayout(aspect);
   const W = widthPx;

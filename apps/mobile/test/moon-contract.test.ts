@@ -9,6 +9,19 @@ import {
 } from '@mong/contract';
 import { BUNDLED_MOON_MOTIFS, moonPackIds, type ManifestLike, type MotifFileData, type MotifFileZone } from '@mong/core';
 import { describe, expect, it } from 'vitest';
+import { en } from '../src/i18n/en';
+import { ko } from '../src/i18n/ko';
+import type { MessageKey } from '../src/i18n/types';
+
+/** 번들 보름 문구는 i18n에만 있다(D-25 C6 줄) — 스키마 1 `text` 모양으로 모은다 */
+const moonText = (id: string) => {
+  const pick = (tb: Record<MessageKey, string>) => ({
+    title: tb[`moon.${id}` as MessageKey],
+    line: tb[`caption.moon.line.${id}` as MessageKey],
+    scene: tb[`scene.moon.${id}` as MessageKey],
+  });
+  return { ko: pick(ko), en: pick(en) };
+};
 
 // 타입: contract가 내놓는 값을 core 함수에 그대로 넘길 수 있어야 한다(pnpm typecheck가 잡는다)
 const asCoreFile = (m: MotifFile): MotifFileData => m;
@@ -22,7 +35,7 @@ describe('core 보름 모티프 ↔ contract 스키마 1', () => {
     );
   });
 
-  it('번들 보름 3의 문구·zone·family가 motifFileSchema를 통과한다(형상은 C14 전이라 자리 경로로 채워 검사)', () => {
+  it('번들 보름 3의 i18n 문구·zone·family가 motifFileSchema(글자 수 상한·금지어)를 통과한다(형상은 C14 전이라 자리 경로로 채워 검사)', () => {
     for (const m of BUNDLED_MOON_MOTIFS) {
       const file = {
         schema: m.schema,
@@ -31,12 +44,20 @@ describe('core 보름 모티프 ↔ contract 스키마 1', () => {
         family: m.family,
         paths: m.paths.length > 0 ? m.paths : [{ d: 'M0 0 L1 1', w: 1, layer: 'gold' }],
         shader: m.shader,
-        text: m.text,
+        text: moonText(m.id),
       };
       const r = motifFileSchema.safeParse(file);
       expect(r.success, `${m.id}: ${r.success ? '' : JSON.stringify(r.error.issues)}`).toBe(true);
       if (r.success) expect(asCoreFile(r.data).id).toBe(m.id);
     }
+  });
+
+  it('12·1·2월 = 달길·달빛 그네·달 건지기(달항아리는 번들 아님)', () => {
+    expect(BUNDLED_MOON_MOTIFS.map((m) => [m.id, m.month, moonText(m.id).ko.title])).toEqual([
+      ['moon-12', 12, '달길'],
+      ['moon-01', 1, '달빛 그네'],
+      ['moon-02', 2, '달 건지기'],
+    ]);
   });
 
   it('contract로 검증한 매니페스트를 core moonPackIds가 그대로 읽는다', () => {

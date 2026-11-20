@@ -218,9 +218,9 @@ describe('창 안 일반 카드·자리표시 방지(m4·m5)', () => {
   });
 });
 
-describe('MoonContext 이벤트 선택 필드 — 옛 세이브·이벤트 재생에 영향 없음', () => {
+describe('MoonContext 이벤트 선택 필드 — 꺼짐 값은 재생 결과를 바꾸지 않는다(연결 뒤 시험은 dream-wake.test.ts)', () => {
   function days(withMoon: boolean) {
-    const moon = withMoon ? { moon: { enabled: true, remoteMoon: ['moon-03'], dev: true } } : {};
+    const moon = withMoon ? { moon: { enabled: false, remoteMoon: ['moon-03'], dev: true } } : {};
     let s = sim.createInitial(kst(11, 20, 19), KST, 77);
     const all: sim.Effect[] = [];
     for (let d = 0; d < 5; d++) {
@@ -238,12 +238,13 @@ describe('MoonContext 이벤트 선택 필드 — 옛 세이브·이벤트 재�
     return { s, all };
   }
 
-  it('같은 이벤트 열에 moon 필드를 더해도 State·효과·세이브 문자열이 같다(C6 연결 전)', () => {
+  it('같은 이벤트 열에 꺼진 moon 필드를 더해도 효과·카드·난수가 같다(State에는 마지막 값만 기록)', () => {
     const a = days(false);
     const b = days(true);
-    expect(b.s).toEqual(a.s);
+    const { nightCtx, ...rest } = b.s;
+    expect(rest).toEqual(a.s);
+    expect(nightCtx).toEqual({ moon: { enabled: false, remoteMoon: ['moon-03'], dev: true } });
     expect(b.all).toEqual(a.all);
-    expect(sim.serializeState(b.s, kst(11, 26, 9))).toBe(sim.serializeState(a.s, kst(11, 26, 9)));
     expect(a.s.cards.length).toBeGreaterThan(0);
   });
 });

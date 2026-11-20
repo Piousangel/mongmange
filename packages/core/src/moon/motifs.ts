@@ -62,7 +62,7 @@ export type MoonMotifId =
   | 'moon-11'
   | 'moon-12';
 
-/** 앱에 내장한 보름 모티프. 스키마 1 모양 그대로 + 내장 표시 */
+/** 앱에 내장한 보름 모티프. 스키마 1 모양 그대로 + 내장 표시(문구 `text`는 비우고 i18n에 둔다) */
 export interface BundledMoonMotif extends MotifFileData {
   readonly id: MoonMotifId;
   readonly zone: 'moon';
@@ -97,70 +97,26 @@ export function moonFallbackId(month: number): MoonMotifId {
 
 const NIGHT_SHADER: MotifShaderData = { bleed: 0.25, grain: 0.15, tone: 'night' };
 
+const bundled = (id: MoonMotifId, month: number): BundledMoonMotif => ({
+  schema: 1,
+  id,
+  zone: 'moon',
+  family: 'moon',
+  month,
+  paths: [],
+  shader: NIGHT_SHADER,
+  text: {},
+  placeholder: true,
+  draft: ['en.scene'],
+});
+
 /**
- * 번들 보름 3(4-2 표 — 이름·장면·결과는 정본 문구 그대로). 첫 3개월분(12·1·2월) = 출시 전후 세 보름.
- * en `scene`은 정본 표에 없어 개발 초안이다 — `draft: ['en.scene']`(★ 원어민 검수·카피 레인 C14 대기).
- * 자리표시·초안이 남은 모티프는 제품 빌드에서 고르지도(`pickNightCard`) 그리지도(`buildDreamScene`) 않는다.
+ * 번들 보름 3(4-2 표). 첫 3개월분(12·1·2월) = 출시 전후 세 보름.
+ * **문구는 앱 i18n에만 있다**(`moon.{id}`·`scene.moon.{id}`·`caption.moon.line.{id}`, D-25 C6 줄) — 그래서 `text`는 비워 둔다.
+ * 원격 보름 파일만 `text`를 싣고 온다. `draft`는 그 i18n 문구의 상태 표시다: en `scene`은 정본 표에 없어 개발 초안
+ * (★ 원어민 검수·카피 레인 C14 대기). 자리표시·초안이 남은 모티프는 제품 빌드에서 고르지도(`pickNightCard`) 그리지도(`buildDreamScene`) 않는다.
  */
-export const BUNDLED_MOON_MOTIFS: readonly BundledMoonMotif[] = [
-  {
-    schema: 1,
-    id: 'moon-12',
-    zone: 'moon',
-    family: 'moon',
-    month: 12,
-    paths: [],
-    shader: NIGHT_SHADER,
-    text: {
-      ko: { title: '달길', line: '꿈속 물 위로 달길이 놓였어요', scene: '물 위로 금빛 달길이 몽망이 쪽으로 놓여요' },
-      en: {
-        title: 'the moon’s road',
-        line: 'A road of moonlight lay on the water',
-        scene: 'A golden road of moonlight stretches across the water toward Mongmangi',
-      },
-    },
-    placeholder: true,
-    draft: ['en.scene'],
-  },
-  {
-    schema: 1,
-    id: 'moon-01',
-    zone: 'moon',
-    family: 'moon',
-    month: 1,
-    paths: [],
-    shader: NIGHT_SHADER,
-    text: {
-      ko: { title: '달빛 그네', line: '꿈속에서 달빛 그네를 탔어요', scene: '위에서 내려온 금빛 두 줄에 몽망이가 앉아 흔들려요' },
-      en: {
-        title: 'a swing of moonlight',
-        line: 'It rode a swing of moonlight',
-        scene: 'Mongmangi sits swaying on two golden strands that hang down from above',
-      },
-    },
-    placeholder: true,
-    draft: ['en.scene'],
-  },
-  {
-    schema: 1,
-    id: 'moon-02',
-    zone: 'moon',
-    family: 'moon',
-    month: 2,
-    paths: [],
-    shader: NIGHT_SHADER,
-    text: {
-      ko: { title: '달 건지기', line: '꿈속 바가지에 달빛이 고였어요', scene: '물에 뜬 달빛이 박 바가지 안으로 고여 들고, 몽망이가 곁에서 봐요' },
-      en: {
-        title: 'scooping up the moon',
-        line: 'Moonlight pooled in a gourd dipper',
-        scene: 'Moonlight from the water pools into a gourd dipper while Mongmangi watches beside it',
-      },
-    },
-    placeholder: true,
-    draft: ['en.scene'],
-  },
-];
+export const BUNDLED_MOON_MOTIFS: readonly BundledMoonMotif[] = [bundled('moon-12', 12), bundled('moon-01', 1), bundled('moon-02', 2)];
 
 export function bundledMoonMotif(id: string): BundledMoonMotif | null {
   return BUNDLED_MOON_MOTIFS.find((m) => m.id === id) ?? null;

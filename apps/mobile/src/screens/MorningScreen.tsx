@@ -9,7 +9,8 @@ import { Mongmangi, REST_FRAME, type BodyFrame } from '../render/Mongmangi';
 import { KText, track, useFontScale } from '../ui/type';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useDerivedValue, useSharedValue } from 'react-native-reanimated';
-import { morningLine } from '../game/text';
+import { firstDreamText, morningLine, visibleCaption } from '../game/text';
+import { useFeature } from '../features';
 import { dayName, t } from '../i18n';
 import { PARAMS, clamp01, clock, easeOut } from '../render/clock';
 import { NightWater } from './HomeScreen';
@@ -104,6 +105,12 @@ export function MorningScreen({
   const cardW = Math.max(140, Math.min(width - 40, 360, (linkTop - cardTop - 14 - textH - MONG_BAND) / 1.25));
   const cardH = cardW * 1.25;
   const text = developed ? morningLine(developed.line, developed.card) : '';
+  // 꿈 콘텐츠(C6): 카드 캡션 + '처음 꾼 꿈'. 아침 문장과 별개의 카드 아래 줄이다(dreams-30days 3-2·1-7). 보름 캡션은 moonNight만으로도. 둘 다 꺼짐이면 빌드 1 그대로
+  const dreamOn = useFeature('dreamContent');
+  const moonOn = useFeature('moonNight');
+  const caption = developed ? visibleCaption(developed.card, { dream: dreamOn, moon: moonOn }) : null;
+  const firstDream = developed && dreamOn ? firstDreamText(state.cards, developed.card) : null;
+  const a11y = developed ? cardA11y(developed.card, text, [caption, firstDream]) : '';
   const cardStrokes = useMemo(() => (developed ? strokesForCard(state.strokes, developed.card) : []), [developed, state.strokes]);
   const labels = useMemo(() => (developed ? cardLabels(developed.card, text) : undefined), [developed, text]);
   // 건져 올린 한지가 그대로 인화 카드가 된다: 물 빠짐 끝의 한지 자리·크기에서 카드 자리로 커지며 옮겨 간다(크로스페이드)
@@ -118,9 +125,9 @@ export function MorningScreen({
   // 스크린리더: 카드가 다 놓이면 모티프·아침 문장을 한 번 읽어 준다(건져 올리기 동작 결과 알림)
   useEffect(() => {
     if (!developed) return;
-    const id = setTimeout(() => AccessibilityInfo.announceForAccessibility(cardA11y(developed.card, text)), DRAIN_MS + CARD_MS);
+    const id = setTimeout(() => AccessibilityInfo.announceForAccessibility(a11y), DRAIN_MS + CARD_MS);
     return () => clearTimeout(id);
-  }, [developed, text]);
+  }, [developed, a11y]);
 
   // 몽망이: 수면 위에서 깨어나 한지를 함께 본다(리뷰 U7). 물이 빠지면 낮 먹색으로
   const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
@@ -208,12 +215,22 @@ export function MorningScreen({
 
       {developed && (
         <Animated.View style={[styles.card, { top: cardTop, left: (width - cardW) / 2, width: cardW, height: cardH }, cardSt]} testID="dream-card">
-          {cardLive && <DreamCard card={developed.card} strokes={cardStrokes} labels={labels} width={cardW} a11yLabel={cardA11y(developed.card, text)} look={look} />}
+          {cardLive && <DreamCard card={developed.card} strokes={cardStrokes} labels={labels} width={cardW} a11yLabel={a11y} look={look} />}
         </Animated.View>
       )}
       {developed && (
         <Animated.View style={[styles.cardText, { top: cardTop + cardH + 14 }, textSt]} pointerEvents="box-none" onLayout={(e) => setTextH(Math.ceil(e.nativeEvent.layout.height))}>
           {/* 카드 위 글은 인화(공유용)라 작다. 읽는 글은 여기 — 스크린리더는 카드 설명에서 같은 문장을 읽으므로 숨긴다 */}
+          {caption && (
+            <KText style={[styles.caption, { maxWidth: Math.min(width - 32, cardW + 40) }]} maxFontSizeMultiplier={1.5} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden testID="dream-caption">
+              {caption}
+            </KText>
+          )}
+          {firstDream && (
+            <KText style={[styles.sub, { marginTop: 0, marginBottom: 8 }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden testID="dream-first">
+              {firstDream}
+            </KText>
+          )}
           <KText style={[styles.lineText, { maxWidth: Math.min(width - 32, cardW + 40) }]} maxFontSizeMultiplier={1.5} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
             {text}
           </KText>
@@ -269,5 +286,7 @@ const styles = StyleSheet.create({
   card: { position: 'absolute', borderRadius: 3, overflow: 'hidden' },
   cardText: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: 16 },
   lineText: { marginTop: 0, textAlign: 'center', fontFamily: SERIF, fontSize: 16, lineHeight: 26, color: PALETTE.day.text, letterSpacing: track.serif(16) },
+  /** 꿈 캡션(dreams-30days 3-2: text-sub, 명조) — 아침 문장보다 한 단계 옅고 작게 */
+  caption: { marginBottom: 6, textAlign: 'center', fontFamily: SERIF, fontSize: 14, lineHeight: 22, color: PALETTE.day.textSub, letterSpacing: track.serif(14) },
   sub: { marginTop: 8, fontFamily: SANS, fontSize: 12, color: PALETTE.day.textSub },
 });
