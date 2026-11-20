@@ -200,7 +200,10 @@ class IreSession(o: IreBeginOptions, val id: Int, pcm: ByteArray?) {
     val c = MediaCodec.createEncoderByType(mime)
     try {
       val caps = c.codecInfo.getCapabilitiesForType(mime)
-      if (!caps.videoCapabilities.isSizeSupported(codedWidth, codedHeight)) {
+      // 영상 인코더인데 videoCapabilities가 없으면 크기를 확인할 수 없으니 실패로 본다(→ 이미지판)
+      val video = caps.videoCapabilities
+        ?: throw IreEncoderException("no video capabilities on ${c.name}")
+      if (!video.isSizeSupported(codedWidth, codedHeight)) {
         throw IreEncoderException("size ${codedWidth}x$codedHeight not supported by ${c.name}")
       }
       val format = MediaFormat.createVideoFormat(mime, codedWidth, codedHeight).apply {
@@ -212,10 +215,11 @@ class IreSession(o: IreBeginOptions, val id: Int, pcm: ByteArray?) {
         if (baseline) setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
         val enc = caps.encoderCapabilities
         // M-5: CBR이면 프레임당 예산이 설정 fps 기준인 인코더가 많다. 없으면 VBR(크기 상한은 maxBytes와 JS 검사가 본다)
+        // encoderCapabilities가 없으면(드묾) 비트레이트 모드를 적지 않는다 — 인코더 기본값 + maxBytes·JS 검사
         when {
-          enc.isBitrateModeSupported(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR) ->
+          enc?.isBitrateModeSupported(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR) == true ->
             setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR)
-          enc.isBitrateModeSupported(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR) ->
+          enc?.isBitrateModeSupported(MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR) == true ->
             setInteger(MediaFormat.KEY_BITRATE_MODE, MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) setInteger(MediaFormat.KEY_MAX_B_FRAMES, 0)
