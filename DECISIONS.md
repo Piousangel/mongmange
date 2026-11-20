@@ -354,3 +354,7 @@
 - **`pnpm verify`가 검증 명령 하나**(타입 → 린트 → 주석 규율 → 도구 시험 → 전 패키지 시험 → 서버 번들 → 정적 빈 값 실패). 모르는 단계·빈 `--only`는 종료 코드 2, 0단계 실행은 실패. CI `ci.yml`이 같은 명령을 돈다. 옛 static-ci.yml은 흡수해 삭제, server-ci.yml에는 DB·docker 단계만 남김. 완료 관문 훅(타입만)은 그대로.
 - 버린 안: 경고로 시작(쌓이기만 함), `no-use-before-define`로 TDZ 막기(worklet-order 시험이 더 정확), 패키지별 ESLint 설정(규칙이 갈림).
 
+## 2026-11-20 A4 서버 아키텍처 v2.2 = 6-2 대조 + 구현 정합 (A4 독립 리뷰 반영)
+- 근거: docs/design/server-v1/architecture.md v2.2(0-3·0-4·3-4-1·3-5-1~3-5-3·3-7-1·3-8, 판 사이 기록은 부록 A), 리뷰 docs/team/reviews/2026-11-20-a4-review.md('고친 뒤 확정 가능' → 중요 11·사소 12 반영). 구현(B1·B0·C4)과 다른 문서 문구 20곳은 구현 쪽으로 맞췄다.
+- 정한 것: ① **세이브 이력은 기간과 개수 중 먼저 걸리는 쪽으로 지운다** — `overwritten`·`weekly` 28일, 충돌·복원 전 본 30일(각 최대 3) → 처리방침 '최대 4주'가 참(리뷰 I1) ② **기기 값(`device_id`)은 받지 않는다**(최소 수집, 처리방침 ko·en 3-5 고침, 스토어 라벨은 B8, 리뷰 I2) ③ 공개 스냅숏 `snap:1` = 핵 극좌표 int16(θ·d) 점 ≤64 × 개별 획 ≤24(+ 받침 `base`·앵커 `anc`·농도 단계 `st` — **깸 수 나이는 싣지 않음**) + 스밈 획 ≤39, `combGrowth`, 몸 = 렌더에 쓴 몸, 정본 core, core 착수 조건 5개(리뷰 I7·I8) ④ 핑 `moon` = `isMoonWindow(이벤트 현지 달력 날짜, tz)` ⑤ 되찾기는 `bootstrap` 없이 새 기기 `sub`를 기존 사용자에 붙인다(`user_auth`), 삭제 상태는 영수증 토큰(인증 없음·24시간) ⑥ 이름 = core `normalizeName` + 숫자 7개 연속 거부(B2), `/m` HTML `s-maxage` 5분 + CDN 무효화, 업로드는 비공개 staging 버킷 → 커밋 때 공개 ⑦ 원격 플래그는 앱 `FEATURE_DEFAULTS`에 같은 이름 키로 대응.
+- 결정 대기: `nameTiming` 판정 뒤 처리(C2 담당), core 남은 공수 재산정, `name_blocked` 해제 안내 문구(architecture 0-4).

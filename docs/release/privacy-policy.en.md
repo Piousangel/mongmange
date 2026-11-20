@@ -77,7 +77,7 @@ The following is stored on your device. It is not sent to us unless you turn on 
   - Sleep and morning time settings, when your Mongmangi slept and woke, device time zone
   - Game progress and your Mongmangi's name
   - **Usual visit hours** (which hours of the day you open the App), **time away** (latest and longest), **last visit time**, **install time**
-- Sent along with each upload: **a random device value the App creates per device** (to tell which device an upload came from), the time it was saved on the device, and a checksum (hash) of the record.
+- Sent along with each upload: the time it was saved on the device and a checksum (hash) of the record. **We do not send any value that tells devices apart (no device identifier or random device value).**
 - The "recovery phrase" you use to move to a new device is stored on our server **only as a hash**.
 - Taken together, these values could suggest **your daily rhythm** — when you open the App and how long you stay away. We keep them only inside your game record; we do not extract, search, or view them separately, and they never go on a public page.
 - **Why**: so you do not lose your Mongmangi when you change devices or delete the App.
@@ -102,7 +102,7 @@ The following is stored on your device. It is not sent to us unless you turn on 
 
 - "Share by link" is **off by default**. Only when you turn it on is a page published at `https://mongmang.ink/m/(8-character code)`. Anyone with the link can see it.
 - The page shows only the public copy in 3-4, **fixed at the moment you turn the link on (or tap "Make it again")**. It does not change daily, so people with the link cannot learn your visiting rhythm.
-- **Name visibility is off by default.** Even when on, names caught by our word filter show as "Mongmangi". Please do not use a real name or contact details as your Mongmangi's name.
+- **Name visibility is off by default.** Even when on, names caught by our word filter or that look like contact details (7 or more digits in a row) are not shown; the page uses the App's name instead. Please do not use a real name or contact details as your Mongmangi's name.
 - Pages are set not to be indexed by search engines, and we offer no list of public pages.
 - **Turning it off**: the link stops at once in the App and on our server; because of caching, the web page disappears **within 1 hour**, and the public files are deleted. We cannot remove copies others have already downloaded or link preview cards already posted in messaging apps.
 - If three different people report a page, it is hidden automatically, and we review it within 7 days to restore or remove it.
@@ -243,4 +243,4 @@ We will post any change on this page and in the App before it takes effect, and 
 | Version | Date | Changes |
 |---|---|---|
 | v1 | Not published | First version (no server, no collection). Pre-publication change (2026-11-20): added the name, ink and relationship values (stored on device) and the "Send feedback" web survey line |
-| **v2** | [Effective date — owner to fill] (draft 2026-11-20) | Reflects the new server: usage statistics (no identifiers, can be turned off), app update checks, settings file requests (3-1 to 3-3); anonymous account and data when you turn on "Share by link" or "Keep it safe" (3-4, 3-5 — usual visit hours, time away, stroke timing and pressure named explicitly); Web Page visitors and 7-day pseudonymous report values (3-6); 14+ audience and age check (4); what is public (5); retention table, 2-year inactivity rule and 30-day old account rule (6); device value and sign-in session records (3-4, 3-5); notes for players outside Korea (8); processors (7) and international transfers (8); how to use your rights (12); service-end promise (15) |
+| **v2** | [Effective date — owner to fill] (draft 2026-11-20) | Reflects the new server: usage statistics (no identifiers, can be turned off), app update checks, settings file requests (3-1 to 3-3); anonymous account and data when you turn on "Share by link" or "Keep it safe" (3-4, 3-5 — usual visit hours, time away, stroke timing and pressure named explicitly); Web Page visitors and 7-day pseudonymous report values (3-6); 14+ audience and age check (4); what is public (5); retention table, 2-year inactivity rule and 30-day old account rule (6); sign-in session records (3-4) and no device value sent (3-5, A4 review decision 2026-11-20); notes for players outside Korea (8); processors (7) and international transfers (8); how to use your rights (12); service-end promise (15) |
