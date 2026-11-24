@@ -1,0 +1,2700 @@
+{
+ "name": "crisis-holdout-v1",
+ "created": "2026-11-24",
+ "author": "안전 검수(QA-3 겸) — 에이전트 검토, 임상 전문가 아님",
+ "independence": "팀의 rules-v0.json·ko/en-sample·crisis-test-v0.json을 열기 전에 작성함. 규칙 튜닝에 쓰지 말고 측정용으로만 보존할 것(튜닝에 쓰면 보류 세트 기능을 잃음 — 새 v2를 만들 것).",
+ "excluded": "방법·수단·장소 낱말은 넣지 않음(자살예방법 제2조의2 자살유발정보, 한국 자살보도 권고기준 4.0, WHO 미디어 지침 2023). 타인 대상 위협·괴롭힘(kys 등)도 범위 밖.",
+ "counts": {
+  "ko_crisis": 150,
+  "en_crisis": 80,
+  "none": 100,
+  "strong": 118,
+  "soft": 112
+ },
+ "label_policy": {
+  "strong": "1인칭으로 죽음·자살·자해를 바라거나 의도·결심·작별을 말함. 앱 대응 단계 기준이며 임상 위험도 등급이 아님. 오타·초성·자모·띄어쓰기·은어 변형과 장난 꼬리(ㅋㅋ·lol·😂)는 원형 라벨을 그대로 물려받음(낮추지 않음).",
+  "soft": "간접·완곡(사라지고 싶다, 다 끝내고 싶다, 깨지 않았으면), 무망감·살 이유 없음, 짐·소속감 결여, 갇힘·견딜 수 없는 고통, 맥락 없는 단독 명사(자살·자해·유서·suicide)처럼 주제인지 의도인지 판별 불가한 것.",
+  "none": "과장 관용(배고파 죽겠다), 게임 용어, 동음이의(호박죽·다이소·ㅈㅅ=죄송), 예방 캠페인 낱말, 노래·영화·게임 제목, 일상."
+ },
+ "basis_codes": {
+  "S-DIR": "직접적 죽음·자살 소망 — C-SSRS 1~2번(죽고 싶다는 소망·능동적 자살 생각), AFSP·988 경고 신호 \"죽고 싶다는 말\"",
+  "S-INT": "의도·결심·시점 — C-SSRS 4~5번(의도, 구체적 계획 의도). 방법 언급 없이 의도만",
+  "S-PREP": "작별·정리·유서 — AFSP 경고 신호(작별 인사, 소지품 나눠주기), C-SSRS 준비 행동, 한국생명존중희망재단 \"보고듣고말하기\" 행동 신호",
+  "S-SH": "자해 의도·행동 — C-SSRS 비자살적 자해·자해 행동 항목, NICE NG225",
+  "S-JOKE": "장난 꼬리 — Samaritans·#chatsafe: 농담처럼 보여도 진지하게 받아들임. 원형 라벨 유지",
+  "W-PASSIVE": "수동적 죽음 소망·사라지기 — C-SSRS 1번(죽었으면, 잠들어 깨지 않았으면)",
+  "W-HOPE": "무망감·살 이유 없음 — AFSP·988 경고 신호",
+  "W-BURDEN": "짐·소속감 결여 — AFSP 경고 신호 \"남에게 짐이 된다는 말\"",
+  "W-TRAP": "갇힘·견딜 수 없는 고통 — AFSP 경고 신호",
+  "W-TOPIC": "맥락 없는 단독 명사·밈 — 판별 불가, 놓치지 않도록 soft",
+  "N-HYP": "과장 관용",
+  "N-DAILY": "일상",
+  "N-HOMONYM": "동음이의",
+  "N-GAME": "게임·스포츠 용어",
+  "N-CAMPAIGN": "예방 캠페인 낱말",
+  "N-TITLE": "노래·영화·게임 제목"
+ },
+ "sources": [
+  "C-SSRS: https://cssrs.columbia.edu/the-columbia-scale-c-ssrs/about-the-scale/",
+  "AFSP 위험·경고 신호: https://afsp.org/risk-factors-protective-factors-and-warning-signs/",
+  "988 Lifeline 경고 신호: https://988lifeline.org/how-we-can-all-prevent-suicide/",
+  "WHO 자살 보도 지침 2023: https://www.who.int/publications/i/item/9789240076846",
+  "Samaritans 온라인 안전 지침: https://www.samaritans.org/about-samaritans/research-policy/internet-suicide/online-safety-resources/",
+  "#chatsafe(Orygen, 청소년): https://www.orygen.org.au/chatsafe",
+  "한국생명존중희망재단: https://www.kfsp.or.kr/",
+  "자살예방법(국가법령정보센터): https://www.law.go.kr/법령/자살예방및생명존중문화조성을위한법률",
+  "NICE NG225 자해: https://www.nice.org.uk/guidance/ng225"
+ ],
+ "items": [
+  {
+   "id": "K001",
+   "lang": "ko",
+   "text": "죽고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K002",
+   "lang": "ko",
+   "text": "죽고 싶어",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K003",
+   "lang": "ko",
+   "text": "죽고싶다",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K004",
+   "lang": "ko",
+   "text": "죽고 싶어요",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K005",
+   "lang": "ko",
+   "text": "그냥 죽고 싶어",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K006",
+   "lang": "ko",
+   "text": "진짜 죽고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K007",
+   "lang": "ko",
+   "text": "죽어버리고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K008",
+   "lang": "ko",
+   "text": "죽고만 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K009",
+   "lang": "ko",
+   "text": "자살하고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K010",
+   "lang": "ko",
+   "text": "자살하고 싶어요",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K011",
+   "lang": "ko",
+   "text": "자살",
+   "label": "soft",
+   "variant": "topic-noun",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "K012",
+   "lang": "ko",
+   "text": "자살 생각",
+   "label": "soft",
+   "variant": "topic-noun",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "K013",
+   "lang": "ko",
+   "text": "자살 생각이 나",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K014",
+   "lang": "ko",
+   "text": "스스로 목숨을 끊고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K015",
+   "lang": "ko",
+   "text": "내 손으로 끝내고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-INT"
+  },
+  {
+   "id": "K016",
+   "lang": "ko",
+   "text": "살기 싫다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K017",
+   "lang": "ko",
+   "text": "살기 싫어",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K018",
+   "lang": "ko",
+   "text": "살고 싶지 않아",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K019",
+   "lang": "ko",
+   "text": "더는 살고 싶지 않다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K020",
+   "lang": "ko",
+   "text": "사는 게 싫어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K021",
+   "lang": "ko",
+   "text": "죽을래",
+   "label": "soft",
+   "variant": "ambiguous",
+   "basis": "W-TOPIC",
+   "note": "타인 위협·자기 의도 모두 가능, 판별 불가라 soft"
+  },
+  {
+   "id": "K022",
+   "lang": "ko",
+   "text": "죽어야겠다",
+   "label": "strong",
+   "variant": "intent",
+   "basis": "S-INT"
+  },
+  {
+   "id": "K023",
+   "lang": "ko",
+   "text": "오늘 죽을 거야",
+   "label": "strong",
+   "variant": "intent",
+   "basis": "S-INT"
+  },
+  {
+   "id": "K024",
+   "lang": "ko",
+   "text": "죽기로 했어",
+   "label": "strong",
+   "variant": "intent",
+   "basis": "S-INT"
+  },
+  {
+   "id": "K025",
+   "lang": "ko",
+   "text": "이제 그만 살래",
+   "label": "strong",
+   "variant": "intent",
+   "basis": "S-INT"
+  },
+  {
+   "id": "K026",
+   "lang": "ko",
+   "text": "그만 살고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K027",
+   "lang": "ko",
+   "text": "생을 마감하고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K028",
+   "lang": "ko",
+   "text": "극단적 선택을 하고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K029",
+   "lang": "ko",
+   "text": "극단적 선택",
+   "label": "soft",
+   "variant": "topic-noun",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "K030",
+   "lang": "ko",
+   "text": "자해하고 싶다",
+   "label": "strong",
+   "variant": "self-harm",
+   "basis": "S-SH"
+  },
+  {
+   "id": "K031",
+   "lang": "ko",
+   "text": "자해",
+   "label": "soft",
+   "variant": "topic-noun",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "K032",
+   "lang": "ko",
+   "text": "또 자해했어",
+   "label": "strong",
+   "variant": "self-harm",
+   "basis": "S-SH"
+  },
+  {
+   "id": "K033",
+   "lang": "ko",
+   "text": "나를 해치고 싶어",
+   "label": "strong",
+   "variant": "self-harm",
+   "basis": "S-SH"
+  },
+  {
+   "id": "K034",
+   "lang": "ko",
+   "text": "나 자신을 아프게 하고 싶다",
+   "label": "strong",
+   "variant": "self-harm",
+   "basis": "S-SH"
+  },
+  {
+   "id": "K035",
+   "lang": "ko",
+   "text": "유서 쓰고 있어",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "K036",
+   "lang": "ko",
+   "text": "유서",
+   "label": "soft",
+   "variant": "topic-noun",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "K037",
+   "lang": "ko",
+   "text": "마지막 인사 하려고",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "K038",
+   "lang": "ko",
+   "text": "다들 그동안 고마웠어 안녕",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "K039",
+   "lang": "ko",
+   "text": "이게 마지막 일기야",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "K040",
+   "lang": "ko",
+   "text": "내일은 없을 거야",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "K041",
+   "lang": "ko",
+   "text": "영원히 잠들고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K042",
+   "lang": "ko",
+   "text": "사라지고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K043",
+   "lang": "ko",
+   "text": "사라지고 싶어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K044",
+   "lang": "ko",
+   "text": "그냥 사라지고 싶어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K045",
+   "lang": "ko",
+   "text": "없어지고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K046",
+   "lang": "ko",
+   "text": "없어지면 편할까",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K047",
+   "lang": "ko",
+   "text": "내가 없어지면 다들 편하겠지",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K048",
+   "lang": "ko",
+   "text": "다 끝내고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K049",
+   "lang": "ko",
+   "text": "다 끝내고 싶어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K050",
+   "lang": "ko",
+   "text": "모든 걸 끝내고 싶어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K051",
+   "lang": "ko",
+   "text": "다 그만두고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K052",
+   "lang": "ko",
+   "text": "자고 일어나지 않았으면",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K053",
+   "lang": "ko",
+   "text": "내일 눈 안 떴으면 좋겠다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K054",
+   "lang": "ko",
+   "text": "아침이 안 왔으면",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K055",
+   "lang": "ko",
+   "text": "태어나지 말 걸",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K056",
+   "lang": "ko",
+   "text": "태어나지 않았으면 좋았을 텐데",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K057",
+   "lang": "ko",
+   "text": "왜 태어났을까",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K058",
+   "lang": "ko",
+   "text": "살아서 뭐해",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K059",
+   "lang": "ko",
+   "text": "사는 게 의미 없어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K060",
+   "lang": "ko",
+   "text": "살 이유가 없어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K061",
+   "lang": "ko",
+   "text": "희망이 없어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K062",
+   "lang": "ko",
+   "text": "아무 희망도 없다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K063",
+   "lang": "ko",
+   "text": "나는 짐이야",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K064",
+   "lang": "ko",
+   "text": "짐이 되기 싫어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K065",
+   "lang": "ko",
+   "text": "나 없어도 아무도 모를 거야",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K066",
+   "lang": "ko",
+   "text": "나 없으면 다들 행복할 거야",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K067",
+   "lang": "ko",
+   "text": "아무도 나를 필요로 하지 않아",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K068",
+   "lang": "ko",
+   "text": "너무 지쳤어 다 놓고 싶어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K069",
+   "lang": "ko",
+   "text": "버틸 수가 없어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "K070",
+   "lang": "ko",
+   "text": "더는 못 버티겠다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "K071",
+   "lang": "ko",
+   "text": "숨 쉬는 것도 힘들어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "K072",
+   "lang": "ko",
+   "text": "숨쉬기 싫다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K073",
+   "lang": "ko",
+   "text": "존재하고 싶지 않아",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K074",
+   "lang": "ko",
+   "text": "세상에서 지워지고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K075",
+   "lang": "ko",
+   "text": "먼지처럼 흩어지고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K076",
+   "lang": "ko",
+   "text": "영원히 멀리 떠나고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K077",
+   "lang": "ko",
+   "text": "이 세상을 떠나고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K078",
+   "lang": "ko",
+   "text": "하늘나라 가고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K079",
+   "lang": "ko",
+   "text": "갇힌 것 같아 출구가 없어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "K080",
+   "lang": "ko",
+   "text": "고통이 끝났으면",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "K081",
+   "lang": "ko",
+   "text": "아무것도 느끼고 싶지 않아",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "K082",
+   "lang": "ko",
+   "text": "아프지 않게 사라지고 싶다",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K083",
+   "lang": "ko",
+   "text": "다 소용없어",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K084",
+   "lang": "ko",
+   "text": "인생 포기할래",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "K085",
+   "lang": "ko",
+   "text": "삶을 포기하고 싶다",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR",
+   "note": "'삶을 포기'는 국내 보도에서 자살 완곡어로 굳은 표현"
+  },
+  {
+   "id": "K086",
+   "lang": "ko",
+   "text": "자살마렵다",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K087",
+   "lang": "ko",
+   "text": "죽고싶당",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K088",
+   "lang": "ko",
+   "text": "죽고시퍼",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K089",
+   "lang": "ko",
+   "text": "주거버리고 싶다",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K090",
+   "lang": "ko",
+   "text": "뒤지고 싶다",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K091",
+   "lang": "ko",
+   "text": "뒤지고싶음",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K092",
+   "lang": "ko",
+   "text": "디지고 싶다",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K093",
+   "lang": "ko",
+   "text": "인생 하차하고 싶다",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K094",
+   "lang": "ko",
+   "text": "인생 로그아웃",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K095",
+   "lang": "ko",
+   "text": "현생 로그아웃하고 싶다",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K096",
+   "lang": "ko",
+   "text": "존재 삭제하고 싶다",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K097",
+   "lang": "ko",
+   "text": "자살각",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-TOPIC",
+   "note": "밈 형태, 의도 판별 불가"
+  },
+  {
+   "id": "K098",
+   "lang": "ko",
+   "text": "ㄹㅇ 죽고싶음",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K099",
+   "lang": "ko",
+   "text": "죽고싶음",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K100",
+   "lang": "ko",
+   "text": "개죽고싶다",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K101",
+   "lang": "ko",
+   "text": "죽고 싶다는 생각뿐",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K102",
+   "lang": "ko",
+   "text": "인생 노잼 죽고싶",
+   "label": "strong",
+   "variant": "teen",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K103",
+   "lang": "ko",
+   "text": "그냥 증발하고 싶다",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K104",
+   "lang": "ko",
+   "text": "나만 없어지면 돼",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K105",
+   "lang": "ko",
+   "text": "나란 인간 삭제",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K106",
+   "lang": "ko",
+   "text": "스스로 퇴장하고 싶다",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K107",
+   "lang": "ko",
+   "text": "ㅈㄱㅅㄷ",
+   "label": "strong",
+   "variant": "chosung",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K108",
+   "lang": "ko",
+   "text": "ㅈㄱㅅㅇ",
+   "label": "strong",
+   "variant": "chosung",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K109",
+   "lang": "ko",
+   "text": "ㅈㅅㅎㄱㅅㄷ",
+   "label": "strong",
+   "variant": "chosung",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K110",
+   "lang": "ko",
+   "text": "ㅈㅜㄱㄱㅗ ㅅㅣㅍㄷㅏ",
+   "label": "strong",
+   "variant": "jamo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K111",
+   "lang": "ko",
+   "text": "ㅈㅏㅅㅏㄹ",
+   "label": "soft",
+   "variant": "jamo",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "K112",
+   "lang": "ko",
+   "text": "죽 고 싶 다",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K113",
+   "lang": "ko",
+   "text": "죽고 싶 어",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K114",
+   "lang": "ko",
+   "text": "죽구싶다",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K115",
+   "lang": "ko",
+   "text": "죽고십다",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K116",
+   "lang": "ko",
+   "text": "죽고싶댜",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K117",
+   "lang": "ko",
+   "text": "듁고싶다",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K118",
+   "lang": "ko",
+   "text": "쥭고싶어",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K119",
+   "lang": "ko",
+   "text": "죽고 싶ㄷㅏ",
+   "label": "strong",
+   "variant": "jamo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K120",
+   "lang": "ko",
+   "text": "자 살 하 고 싶 다",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K121",
+   "lang": "ko",
+   "text": "자살하구싶어",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K122",
+   "lang": "ko",
+   "text": "사라지구 싶다",
+   "label": "soft",
+   "variant": "typo",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K123",
+   "lang": "ko",
+   "text": "사라지고싶어",
+   "label": "soft",
+   "variant": "spacing",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K124",
+   "lang": "ko",
+   "text": "업어지고 싶다",
+   "label": "soft",
+   "variant": "typo",
+   "basis": "W-PASSIVE",
+   "note": "'없어지고'의 오타"
+  },
+  {
+   "id": "K125",
+   "lang": "ko",
+   "text": "살기시러",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K126",
+   "lang": "ko",
+   "text": "살기 싫어어어",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K127",
+   "lang": "ko",
+   "text": "주꼬싶다",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K128",
+   "lang": "ko",
+   "text": "죽고 싶",
+   "label": "strong",
+   "variant": "truncated",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K129",
+   "lang": "ko",
+   "text": "죽고..싶다",
+   "label": "strong",
+   "variant": "punct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K130",
+   "lang": "ko",
+   "text": "죽.고.싶.다",
+   "label": "strong",
+   "variant": "punct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K131",
+   "lang": "ko",
+   "text": "죽고싶다ㅋㅋ",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K132",
+   "lang": "ko",
+   "text": "죽고 싶다 ㅎㅎ",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K133",
+   "lang": "ko",
+   "text": "진심 죽고싶음ㅋㅋㅋ",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K134",
+   "lang": "ko",
+   "text": "자살하고 싶다 ㅋㅋ 농담",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K135",
+   "lang": "ko",
+   "text": "사라지고 싶다~",
+   "label": "soft",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K136",
+   "lang": "ko",
+   "text": "다 끝내고 싶다ㅎ",
+   "label": "soft",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K137",
+   "lang": "ko",
+   "text": "살기 싫다 ^^",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K138",
+   "lang": "ko",
+   "text": "죽고 싶다 lol",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K139",
+   "lang": "ko",
+   "text": "죽고싶어 😂",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K140",
+   "lang": "ko",
+   "text": "ㅋㅋㅋ 죽고싶다",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "K141",
+   "lang": "ko",
+   "text": "시험 망해서 죽고 싶다",
+   "label": "strong",
+   "variant": "teen",
+   "basis": "S-DIR",
+   "note": "과장일 수 있으나 '죽고 싶다'를 낮추지 않음"
+  },
+  {
+   "id": "K142",
+   "lang": "ko",
+   "text": "학교 가기 싫어 죽고 싶어",
+   "label": "strong",
+   "variant": "teen",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K143",
+   "lang": "ko",
+   "text": "엄마한테 혼나서 죽고 싶다",
+   "label": "strong",
+   "variant": "teen",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "K144",
+   "lang": "ko",
+   "text": "왕따 당해서 사라지고 싶어",
+   "label": "soft",
+   "variant": "teen",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K145",
+   "lang": "ko",
+   "text": "아무도 내 편이 없어",
+   "label": "soft",
+   "variant": "teen",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K146",
+   "lang": "ko",
+   "text": "나 같은 건 없어도 돼",
+   "label": "soft",
+   "variant": "teen",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "K147",
+   "lang": "ko",
+   "text": "내가 죽으면 슬퍼할까",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K148",
+   "lang": "ko",
+   "text": "내 장례식 상상해",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "K149",
+   "lang": "ko",
+   "text": "다 정리하고 떠날 거야",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "K150",
+   "lang": "ko",
+   "text": "물건 다 나눠줬어",
+   "label": "soft",
+   "variant": "farewell",
+   "basis": "S-PREP",
+   "note": "맥락 없으면 약함, 경고 신호 범주라 soft"
+  },
+  {
+   "id": "E001",
+   "lang": "en",
+   "text": "I want to die",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E002",
+   "lang": "en",
+   "text": "i want to die",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E003",
+   "lang": "en",
+   "text": "i wanna die",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E004",
+   "lang": "en",
+   "text": "want to die",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E005",
+   "lang": "en",
+   "text": "I want to kill myself",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E006",
+   "lang": "en",
+   "text": "kill myself",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E007",
+   "lang": "en",
+   "text": "kms",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR",
+   "note": "'kill myself' 약어"
+  },
+  {
+   "id": "E008",
+   "lang": "en",
+   "text": "kms fr",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E009",
+   "lang": "en",
+   "text": "im going to kill myself",
+   "label": "strong",
+   "variant": "intent",
+   "basis": "S-INT"
+  },
+  {
+   "id": "E010",
+   "lang": "en",
+   "text": "I'm suicidal",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E011",
+   "lang": "en",
+   "text": "feeling suicidal",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E012",
+   "lang": "en",
+   "text": "suicidal thoughts",
+   "label": "soft",
+   "variant": "topic-noun",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "E013",
+   "lang": "en",
+   "text": "suicide",
+   "label": "soft",
+   "variant": "topic-noun",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "E014",
+   "lang": "en",
+   "text": "I want to end my life",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E015",
+   "lang": "en",
+   "text": "end my life",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E016",
+   "lang": "en",
+   "text": "take my own life",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E017",
+   "lang": "en",
+   "text": "I want to unalive myself",
+   "label": "strong",
+   "variant": "algospeak",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E018",
+   "lang": "en",
+   "text": "unalive",
+   "label": "soft",
+   "variant": "algospeak",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "E019",
+   "lang": "en",
+   "text": "unaliving myself tonight",
+   "label": "strong",
+   "variant": "algospeak",
+   "basis": "S-INT"
+  },
+  {
+   "id": "E020",
+   "lang": "en",
+   "text": "sewerslide",
+   "label": "soft",
+   "variant": "algospeak",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "E021",
+   "lang": "en",
+   "text": "su1c1de",
+   "label": "soft",
+   "variant": "leet",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "E022",
+   "lang": "en",
+   "text": "s*icide",
+   "label": "soft",
+   "variant": "masked",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "E023",
+   "lang": "en",
+   "text": "I want to hurt myself",
+   "label": "strong",
+   "variant": "self-harm",
+   "basis": "S-SH"
+  },
+  {
+   "id": "E024",
+   "lang": "en",
+   "text": "self harm",
+   "label": "soft",
+   "variant": "topic-noun",
+   "basis": "W-TOPIC"
+  },
+  {
+   "id": "E025",
+   "lang": "en",
+   "text": "I relapsed on self harm",
+   "label": "strong",
+   "variant": "self-harm",
+   "basis": "S-SH"
+  },
+  {
+   "id": "E026",
+   "lang": "en",
+   "text": "want to sh again",
+   "label": "strong",
+   "variant": "self-harm",
+   "basis": "S-SH",
+   "note": "sh = self-harm 약어"
+  },
+  {
+   "id": "E027",
+   "lang": "en",
+   "text": "I don't want to live anymore",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E028",
+   "lang": "en",
+   "text": "I don't want to be alive",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E029",
+   "lang": "en",
+   "text": "I hate being alive",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E030",
+   "lang": "en",
+   "text": "I should just die",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E031",
+   "lang": "en",
+   "text": "I'd be better off dead",
+   "label": "strong",
+   "variant": "direct",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E032",
+   "lang": "en",
+   "text": "this is my last day",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "E033",
+   "lang": "en",
+   "text": "goodbye forever",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "E034",
+   "lang": "en",
+   "text": "writing my goodbye letter",
+   "label": "strong",
+   "variant": "farewell",
+   "basis": "S-PREP"
+  },
+  {
+   "id": "E035",
+   "lang": "en",
+   "text": "i want to die lol",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "E036",
+   "lang": "en",
+   "text": "kms lmao",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "E037",
+   "lang": "en",
+   "text": "i wanna die 💀",
+   "label": "strong",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "E038",
+   "lang": "en",
+   "text": "want 2 die",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E039",
+   "lang": "en",
+   "text": "wanna die rn",
+   "label": "strong",
+   "variant": "slang",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E040",
+   "lang": "en",
+   "text": "iwanttodie",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E041",
+   "lang": "en",
+   "text": "i want to diee",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E042",
+   "lang": "en",
+   "text": "i wnat to die",
+   "label": "strong",
+   "variant": "typo",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E043",
+   "lang": "en",
+   "text": "I want to d*e",
+   "label": "strong",
+   "variant": "masked",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E044",
+   "lang": "en",
+   "text": "i want to d i e",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E045",
+   "lang": "en",
+   "text": "k m s",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E046",
+   "lang": "en",
+   "text": "kill my self",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E047",
+   "lang": "en",
+   "text": "killmyself",
+   "label": "strong",
+   "variant": "spacing",
+   "basis": "S-DIR"
+  },
+  {
+   "id": "E048",
+   "lang": "en",
+   "text": "I'm going to end it tonight",
+   "label": "strong",
+   "variant": "intent",
+   "basis": "S-INT"
+  },
+  {
+   "id": "E049",
+   "lang": "en",
+   "text": "I want to disappear",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E050",
+   "lang": "en",
+   "text": "i wish i could disappear",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E051",
+   "lang": "en",
+   "text": "I want to vanish",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E052",
+   "lang": "en",
+   "text": "I just want it all to end",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E053",
+   "lang": "en",
+   "text": "end it all",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E054",
+   "lang": "en",
+   "text": "I don't want to wake up",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E055",
+   "lang": "en",
+   "text": "hope i don't wake up tomorrow",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E056",
+   "lang": "en",
+   "text": "I want to sleep forever",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E057",
+   "lang": "en",
+   "text": "I wish I was never born",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E058",
+   "lang": "en",
+   "text": "everyone would be better off without me",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "E059",
+   "lang": "en",
+   "text": "I'm a burden",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "E060",
+   "lang": "en",
+   "text": "no reason to live",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E061",
+   "lang": "en",
+   "text": "nothing to live for",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E062",
+   "lang": "en",
+   "text": "what's the point of living",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E063",
+   "lang": "en",
+   "text": "I can't go on",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "E064",
+   "lang": "en",
+   "text": "I can't do this anymore",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "E065",
+   "lang": "en",
+   "text": "tired of living",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E066",
+   "lang": "en",
+   "text": "done with life",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E067",
+   "lang": "en",
+   "text": "I don't want to exist",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E068",
+   "lang": "en",
+   "text": "dont want to exist anymore",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E069",
+   "lang": "en",
+   "text": "there's no way out",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "E070",
+   "lang": "en",
+   "text": "I feel trapped",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "E071",
+   "lang": "en",
+   "text": "the pain is unbearable",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-TRAP"
+  },
+  {
+   "id": "E072",
+   "lang": "en",
+   "text": "no one would miss me",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "E073",
+   "lang": "en",
+   "text": "nobody would notice if I was gone",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-BURDEN"
+  },
+  {
+   "id": "E074",
+   "lang": "en",
+   "text": "I want to leave this world",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-PASSIVE"
+  },
+  {
+   "id": "E075",
+   "lang": "en",
+   "text": "i want to disappear lol",
+   "label": "soft",
+   "variant": "joke-tail",
+   "basis": "S-JOKE"
+  },
+  {
+   "id": "E076",
+   "lang": "en",
+   "text": "im so done with everything",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E077",
+   "lang": "en",
+   "text": "life is pointless",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E078",
+   "lang": "en",
+   "text": "i hate my life",
+   "label": "soft",
+   "variant": "indirect",
+   "basis": "W-HOPE"
+  },
+  {
+   "id": "E079",
+   "lang": "en",
+   "text": "gave away all my stuff",
+   "label": "soft",
+   "variant": "farewell",
+   "basis": "S-PREP",
+   "note": "맥락 없으면 약함"
+  },
+  {
+   "id": "E080",
+   "lang": "en",
+   "text": "dead inside",
+   "label": "soft",
+   "variant": "slang",
+   "basis": "W-HOPE",
+   "note": "흔한 밈이지만 정서적 마비 표현, 낮게 잡아 soft"
+  },
+  {
+   "id": "N001",
+   "lang": "ko",
+   "text": "배고파 죽겠다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N002",
+   "lang": "ko",
+   "text": "배고파죽겠어",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N003",
+   "lang": "ko",
+   "text": "졸려 죽겠다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N004",
+   "lang": "ko",
+   "text": "더워 죽겠어",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N005",
+   "lang": "ko",
+   "text": "추워 죽겠다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N006",
+   "lang": "ko",
+   "text": "웃겨 죽겠네",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N007",
+   "lang": "ko",
+   "text": "귀여워 죽겠다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N008",
+   "lang": "ko",
+   "text": "보고 싶어 죽겠어",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N009",
+   "lang": "ko",
+   "text": "심심해 죽겠다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N010",
+   "lang": "ko",
+   "text": "피곤해 죽겠어",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N011",
+   "lang": "ko",
+   "text": "좋아 죽겠다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N012",
+   "lang": "ko",
+   "text": "맛있어서 죽는 줄",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N013",
+   "lang": "ko",
+   "text": "죽을 맛이야",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N014",
+   "lang": "ko",
+   "text": "죽다 살았네",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N015",
+   "lang": "ko",
+   "text": "이 노래 죽인다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N016",
+   "lang": "ko",
+   "text": "죽여준다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N017",
+   "lang": "ko",
+   "text": "끝내준다",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N018",
+   "lang": "ko",
+   "text": "숙제 끝!",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N019",
+   "lang": "ko",
+   "text": "시험 끝났다",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N020",
+   "lang": "ko",
+   "text": "방학 끝나서 아쉬워",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N021",
+   "lang": "ko",
+   "text": "드디어 다 끝냈다",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N022",
+   "lang": "ko",
+   "text": "호박죽",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N023",
+   "lang": "ko",
+   "text": "전복죽",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N024",
+   "lang": "ko",
+   "text": "죽 먹었어",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N025",
+   "lang": "ko",
+   "text": "죽순",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N026",
+   "lang": "ko",
+   "text": "죽마고우",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N027",
+   "lang": "ko",
+   "text": "죽부인",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N028",
+   "lang": "ko",
+   "text": "다이소",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N029",
+   "lang": "ko",
+   "text": "다이어트",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N030",
+   "lang": "ko",
+   "text": "ㅈㅅ",
+   "label": "none",
+   "variant": "homonym",
+   "basis": "N-HOMONYM"
+  },
+  {
+   "id": "N031",
+   "lang": "ko",
+   "text": "자살골",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N032",
+   "lang": "ko",
+   "text": "죽음의 조",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N033",
+   "lang": "ko",
+   "text": "킬각",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N034",
+   "lang": "ko",
+   "text": "원킬",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N035",
+   "lang": "ko",
+   "text": "게임 오버",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N036",
+   "lang": "ko",
+   "text": "부활",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N037",
+   "lang": "ko",
+   "text": "리스폰",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N038",
+   "lang": "ko",
+   "text": "캐릭터가 죽었어",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N039",
+   "lang": "ko",
+   "text": "또 죽었네 ㅋㅋ 보스 너무 세",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N040",
+   "lang": "ko",
+   "text": "보스 잡았다",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N041",
+   "lang": "ko",
+   "text": "자살예방",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N042",
+   "lang": "ko",
+   "text": "자살예방의 날",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N043",
+   "lang": "ko",
+   "text": "생명존중",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N044",
+   "lang": "ko",
+   "text": "생명의 전화",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N045",
+   "lang": "ko",
+   "text": "마음 건강",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N046",
+   "lang": "ko",
+   "text": "죽은 시인의 사회",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N047",
+   "lang": "ko",
+   "text": "살인의 추억",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N048",
+   "lang": "ko",
+   "text": "수어사이드 스쿼드",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N049",
+   "lang": "ko",
+   "text": "신과 함께",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N050",
+   "lang": "ko",
+   "text": "사라진 시간",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N051",
+   "lang": "ko",
+   "text": "사라진 양말",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N052",
+   "lang": "ko",
+   "text": "지우개 없어졌어",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N053",
+   "lang": "ko",
+   "text": "바다로 떠나고 싶다",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N054",
+   "lang": "ko",
+   "text": "여행 떠나고 싶어",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N055",
+   "lang": "ko",
+   "text": "집에 가고 싶다",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N056",
+   "lang": "ko",
+   "text": "쉬고 싶어",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N057",
+   "lang": "ko",
+   "text": "낮잠 자고 싶다",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N058",
+   "lang": "ko",
+   "text": "살았다!",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N059",
+   "lang": "ko",
+   "text": "킬링타임",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N060",
+   "lang": "ko",
+   "text": "데드라인",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N061",
+   "lang": "en",
+   "text": "I'm dying of hunger",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N062",
+   "lang": "en",
+   "text": "lol I'm dead",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N063",
+   "lang": "en",
+   "text": "dying laughing",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N064",
+   "lang": "en",
+   "text": "I'm dead 💀",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N065",
+   "lang": "en",
+   "text": "killing it",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N066",
+   "lang": "en",
+   "text": "you killed it",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N067",
+   "lang": "en",
+   "text": "dead tired",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N068",
+   "lang": "en",
+   "text": "to die for",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N069",
+   "lang": "en",
+   "text": "drop dead gorgeous",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N070",
+   "lang": "en",
+   "text": "killer app",
+   "label": "none",
+   "variant": "hyp",
+   "basis": "N-HYP"
+  },
+  {
+   "id": "N071",
+   "lang": "en",
+   "text": "deadline",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N072",
+   "lang": "en",
+   "text": "my phone died",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N073",
+   "lang": "en",
+   "text": "dead battery",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N074",
+   "lang": "en",
+   "text": "dead end",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N075",
+   "lang": "en",
+   "text": "finally done with homework",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N076",
+   "lang": "en",
+   "text": "disappearing ink",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N077",
+   "lang": "en",
+   "text": "Die Hard",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N078",
+   "lang": "en",
+   "text": "Dead Poets Society",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N079",
+   "lang": "en",
+   "text": "The Walking Dead",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N080",
+   "lang": "en",
+   "text": "Kill Bill",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N081",
+   "lang": "en",
+   "text": "Suicide Squad",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N082",
+   "lang": "en",
+   "text": "Killing Me Softly",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N083",
+   "lang": "en",
+   "text": "Die With A Smile",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N084",
+   "lang": "en",
+   "text": "Killer Queen",
+   "label": "none",
+   "variant": "title",
+   "basis": "N-TITLE"
+  },
+  {
+   "id": "N085",
+   "lang": "en",
+   "text": "Dead by Daylight",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N086",
+   "lang": "en",
+   "text": "headshot",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N087",
+   "lang": "en",
+   "text": "respawn",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N088",
+   "lang": "en",
+   "text": "game over",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N089",
+   "lang": "en",
+   "text": "one shot",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N090",
+   "lang": "en",
+   "text": "I died in the game",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N091",
+   "lang": "en",
+   "text": "I keep dying on this level",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N092",
+   "lang": "en",
+   "text": "pentakill",
+   "label": "none",
+   "variant": "game",
+   "basis": "N-GAME"
+  },
+  {
+   "id": "N093",
+   "lang": "en",
+   "text": "suicide prevention",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N094",
+   "lang": "en",
+   "text": "Suicide Prevention Day",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N095",
+   "lang": "en",
+   "text": "World Mental Health Day",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N096",
+   "lang": "en",
+   "text": "R U OK Day",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N097",
+   "lang": "en",
+   "text": "988",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N098",
+   "lang": "en",
+   "text": "mental health awareness",
+   "label": "none",
+   "variant": "campaign",
+   "basis": "N-CAMPAIGN"
+  },
+  {
+   "id": "N099",
+   "lang": "en",
+   "text": "over the moon",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  },
+  {
+   "id": "N100",
+   "lang": "en",
+   "text": "sleepy",
+   "label": "none",
+   "variant": "daily",
+   "basis": "N-DAILY"
+  }
+ ]
+}
