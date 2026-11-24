@@ -1,5 +1,5 @@
 {
- "setVer": "1.0.0",
+ "setVer": "1.1.0",
  "note": "위기 '개발' 세트 v1. 규칙을 고칠 때 쓰는 세트다(판정용 아님). 판정은 다른 작성자의 보류 세트 v2로 PM이 따로 한다. 라벨은 팀 초안. 수단·방법 낱말 항목은 저장소 밖 운영 파일(means-dev)로 옮겼다(법률 E-5).",
  "items": [
   {
@@ -1884,306 +1884,648 @@
    "id": "dv.313"
   },
   {
+   "text": "세상떠나고싶어",
+   "label": "strong",
+   "group": "ko-완곡 핵(v1.1)",
+   "id": "dv.314"
+  },
+  {
+   "text": "하늘나라갈래",
+   "label": "strong",
+   "group": "ko-완곡 핵(v1.1)",
+   "id": "dv.315"
+  },
+  {
+   "text": "영원히잠들고싶",
+   "label": "strong",
+   "group": "ko-완곡 핵(v1.1)",
+   "id": "dv.316"
+  },
+  {
+   "text": "생을끝내고싶",
+   "label": "strong",
+   "group": "ko-완곡 핵(v1.1)",
+   "id": "dv.317"
+  },
+  {
+   "text": "이번생끝낼래",
+   "label": "strong",
+   "group": "ko-완곡 핵(v1.1)",
+   "id": "dv.318"
+  },
+  {
+   "text": "죽는게나아",
+   "label": "strong",
+   "group": "ko-완곡 핵(v1.1)",
+   "id": "dv.319"
+  },
+  {
+   "text": "날해치고싶어",
+   "label": "strong",
+   "group": "ko-자해 조합(v1.1)",
+   "id": "dv.320"
+  },
+  {
+   "text": "내몸상처낼래",
+   "label": "strong",
+   "group": "ko-자해 조합(v1.1)",
+   "id": "dv.321"
+  },
+  {
+   "text": "나를벌주고싶",
+   "label": "strong",
+   "group": "ko-자해 조합(v1.1)",
+   "id": "dv.322"
+  },
+  {
+   "text": "다치고싶다",
+   "label": "strong",
+   "group": "ko-자해 조합(v1.1)",
+   "id": "dv.323"
+  },
+  {
+   "text": "미래가안보여",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.324"
+  },
+  {
+   "text": "살아갈힘없어",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.325"
+  },
+  {
+   "text": "좋아질리없어",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.326"
+  },
+  {
+   "text": "버틸힘이없어",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.327"
+  },
+  {
+   "text": "내가없어야해",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.328"
+  },
+  {
+   "text": "없는게나아",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.329"
+  },
+  {
+   "text": "내가없으면편해",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.330"
+  },
+  {
+   "text": "더는못견뎌",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.331"
+  },
+  {
+   "text": "이제못버텨",
+   "label": "soft",
+   "group": "ko-무망감 조합(v1.1)",
+   "id": "dv.332"
+  },
+  {
+   "text": "그동안미안했어",
+   "label": "soft",
+   "group": "ko-작별·정리 조합(v1.1)",
+   "id": "dv.333"
+  },
+  {
+   "text": "모두잘지내",
+   "label": "soft",
+   "group": "ko-작별·정리 조합(v1.1)",
+   "id": "dv.334"
+  },
+  {
+   "text": "친구들고마웠어",
+   "label": "soft",
+   "group": "ko-작별·정리 조합(v1.1)",
+   "id": "dv.335"
+  },
+  {
+   "text": "내물건나눠줬어",
+   "label": "soft",
+   "group": "ko-작별·정리 조합(v1.1)",
+   "id": "dv.336"
+  },
+  {
+   "text": "먼저갈게요",
+   "label": "soft",
+   "group": "ko-작별·정리 조합(v1.1)",
+   "id": "dv.337"
+  },
+  {
+   "text": "다내려놓을래",
+   "label": "soft",
+   "group": "ko-작별·정리 조합(v1.1)",
+   "id": "dv.338"
+  },
+  {
+   "text": "조용히사라질래",
+   "label": "soft",
+   "group": "ko-작별·정리 조합(v1.1)",
+   "id": "dv.339"
+  },
+  {
+   "text": "i want to just die",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.340"
+  },
+  {
+   "text": "wanna kill myself rn",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.341"
+  },
+  {
+   "text": "im going to end it",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.342"
+  },
+  {
+   "text": "planning to end my life",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.343"
+  },
+  {
+   "text": "i deserve to die",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.344"
+  },
+  {
+   "text": "gonna hurt myself",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.345"
+  },
+  {
+   "text": "ready to die",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.346"
+  },
+  {
+   "text": "i wish i could die",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.347"
+  },
+  {
+   "text": "want to cut myself",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.348"
+  },
+  {
+   "text": "kil myself",
+   "label": "strong",
+   "group": "en-구문 끼움(v1.1)",
+   "id": "dv.349"
+  },
+  {
+   "text": "so tired of living",
+   "label": "soft",
+   "group": "en-무망감·작별(v1.1)",
+   "id": "dv.350"
+  },
+  {
+   "text": "sick of being alive",
+   "label": "soft",
+   "group": "en-무망감·작별(v1.1)",
+   "id": "dv.351"
+  },
+  {
+   "text": "im a waste",
+   "label": "soft",
+   "group": "en-무망감·작별(v1.1)",
+   "id": "dv.352"
+  },
+  {
+   "text": "im just a burden",
+   "label": "soft",
+   "group": "en-무망감·작별(v1.1)",
+   "id": "dv.353"
+  },
+  {
+   "text": "no point in living",
+   "label": "soft",
+   "group": "en-무망감·작별(v1.1)",
+   "id": "dv.354"
+  },
+  {
+   "text": "goodbye everyone",
+   "label": "soft",
+   "group": "en-무망감·작별(v1.1)",
+   "id": "dv.355"
+  },
+  {
+   "text": "this is my last post",
+   "label": "soft",
+   "group": "en-무망감·작별(v1.1)",
+   "id": "dv.356"
+  },
+  {
+   "text": "gonna die lol",
+   "label": "soft",
+   "group": "en-무망감·작별(v1.1)",
+   "id": "dv.357"
+  },
+  {
    "text": "주고싶어",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.314"
+   "id": "dv.358"
   },
   {
    "text": "선물주고싶다",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.315"
+   "id": "dv.359"
   },
   {
    "text": "죽먹고싶어",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.316"
+   "id": "dv.360"
   },
   {
    "text": "호박죽",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.317"
+   "id": "dv.361"
   },
   {
    "text": "죽이맛있어",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.318"
+   "id": "dv.362"
   },
   {
    "text": "시험죽쒔어",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.319"
+   "id": "dv.363"
   },
   {
    "text": "죽인다",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.320"
+   "id": "dv.364"
   },
   {
    "text": "살기좋은곳",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.321"
+   "id": "dv.365"
   },
   {
    "text": "살고싶은집",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.322"
+   "id": "dv.366"
   },
   {
    "text": "의자에앉아",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.323"
+   "id": "dv.367"
   },
   {
    "text": "자해방지",
    "label": "none",
    "group": "ko-음성",
    "note": "캠페인 말은 soft로 낮춰 잡혀도 허용",
-   "id": "dv.324"
+   "id": "dv.368"
   },
   {
    "text": "희망사항",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.325"
+   "id": "dv.369"
   },
   {
    "text": "희망퇴직",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.326"
+   "id": "dv.370"
   },
   {
    "text": "출구어디",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.327"
+   "id": "dv.371"
   },
   {
    "text": "버틸만해",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.328"
+   "id": "dv.372"
   },
   {
    "text": "끝내주네",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.329"
+   "id": "dv.373"
   },
   {
    "text": "짐싸기",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.330"
+   "id": "dv.374"
   },
   {
    "text": "짐이많아",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.331"
+   "id": "dv.375"
   },
   {
    "text": "마지막날",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.332"
+   "id": "dv.376"
   },
   {
    "text": "마지막시험",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.333"
+   "id": "dv.377"
   },
   {
    "text": "잘자",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.334"
+   "id": "dv.378"
   },
   {
    "text": "안녕",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.335"
+   "id": "dv.379"
   },
   {
    "text": "정리정돈",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.336"
+   "id": "dv.380"
   },
   {
    "text": "방정리",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.337"
+   "id": "dv.381"
   },
   {
    "text": "주거지",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.338"
+   "id": "dv.382"
   },
   {
    "text": "주거비",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.339"
+   "id": "dv.383"
   },
   {
    "text": "더워죽겠어",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.340"
+   "id": "dv.384"
   },
   {
    "text": "배아파죽겠다",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.341"
+   "id": "dv.385"
   },
   {
    "text": "웃겨죽어",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.342"
+   "id": "dv.386"
   },
   {
    "text": "죽겠다ㅋㅋ배고파",
    "label": "none",
    "group": "ko-음성",
-   "id": "dv.343"
+   "id": "dv.387"
+  },
+  {
+   "text": "다끝냈어",
+   "label": "none",
+   "group": "ko-음성",
+   "id": "dv.388"
+  },
+  {
+   "text": "숙제끝낼게",
+   "label": "none",
+   "group": "ko-음성",
+   "id": "dv.389"
+  },
+  {
+   "text": "희망이생겼어",
+   "label": "none",
+   "group": "ko-음성",
+   "id": "dv.390"
+  },
+  {
+   "text": "미래가밝아",
+   "label": "none",
+   "group": "ko-음성",
+   "id": "dv.391"
+  },
+  {
+   "text": "엄마고마워",
+   "label": "none",
+   "group": "ko-음성",
+   "id": "dv.392"
+  },
+  {
+   "text": "친구들안녕",
+   "label": "none",
+   "group": "ko-음성",
+   "id": "dv.393"
+  },
+  {
+   "text": "먼저갈게",
+   "label": "none",
+   "group": "ko-음성",
+   "id": "dv.394"
   },
   {
    "text": "die hard",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.344"
+   "id": "dv.395"
   },
   {
    "text": "diet",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.345"
+   "id": "dv.396"
   },
   {
    "text": "dying to see you",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.346"
+   "id": "dv.397"
   },
   {
    "text": "to die for",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.347"
+   "id": "dv.398"
   },
   {
    "text": "killing time",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.348"
+   "id": "dv.399"
   },
   {
    "text": "killer app",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.349"
+   "id": "dv.400"
   },
   {
    "text": "phone died",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.350"
+   "id": "dv.401"
   },
   {
    "text": "dead battery",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.351"
+   "id": "dv.402"
   },
   {
    "text": "burden of proof",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.352"
+   "id": "dv.403"
   },
   {
    "text": "trapped in traffic",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.353"
+   "id": "dv.404"
   },
   {
    "text": "goodbye",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.354"
+   "id": "dv.405"
   },
   {
    "text": "see you tomorrow",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.355"
+   "id": "dv.406"
   },
   {
    "text": "ending credits",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.356"
+   "id": "dv.407"
   },
   {
    "text": "game over",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.357"
+   "id": "dv.408"
   },
   {
    "text": "respawn",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.358"
+   "id": "dv.409"
   },
   {
    "text": "kill streak",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.359"
+   "id": "dv.410"
   },
   {
    "text": "suicide prevention day",
    "label": "none",
    "group": "en-음성",
    "note": "캠페인 말은 soft로 낮춰 잡혀도 허용",
-   "id": "dv.360"
+   "id": "dv.411"
   },
   {
    "text": "dead tired",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.361"
+   "id": "dv.412"
   },
   {
    "text": "im dying lol",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.362"
+   "id": "dv.413"
   },
   {
    "text": "shine",
    "label": "none",
    "group": "en-음성",
-   "id": "dv.363"
+   "id": "dv.414"
+  },
+  {
+   "text": "tired of waiting",
+   "label": "none",
+   "group": "en-음성",
+   "id": "dv.415"
+  },
+  {
+   "text": "sick of homework",
+   "label": "none",
+   "group": "en-음성",
+   "id": "dv.416"
+  },
+  {
+   "text": "done with homework",
+   "label": "none",
+   "group": "en-음성",
+   "id": "dv.417"
+  },
+  {
+   "text": "about to die laughing",
+   "label": "none",
+   "group": "en-음성",
+   "id": "dv.418"
+  },
+  {
+   "text": "suicide squeeze",
+   "label": "none",
+   "group": "en-음성",
+   "id": "dv.419"
+  },
+  {
+   "text": "goodbye see you",
+   "label": "none",
+   "group": "en-음성",
+   "id": "dv.420"
   }
  ]
 }

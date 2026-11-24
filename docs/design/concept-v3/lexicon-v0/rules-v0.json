@@ -1,6 +1,6 @@
 {
- "rulesVer": "0.3.0",
- "note": "사전 정규화·대조 규칙(기계용). 사람용 설명은 README 3·4·5절. 순서가 곧 우선순위다. v0.2 = 독립 리뷰 C1·H2·H3·M2, v0.3 = 안전 검수(2026-11-24) 범주 반영: 조합 규칙·음운 접기·가림·초성 strong·무망감/짐/갇힘/작별·영어 구문·수단어 해시·캠페인 낮춤",
+ "rulesVer": "0.4.0",
+ "note": "사전 정규화·대조 규칙(기계용). 사람용 설명은 README 3·4·5절. 순서가 곧 우선순위다. v0.2 = 독립 리뷰 C1·H2·H3·M2, v0.3 = 안전 검수(2026-11-24) 범주 반영: 조합 규칙·음운 접기·가림·초성 strong·무망감/짐/갇힘/작별·영어 구문·수단어 해시·캠페인 낮춤 / v0.4 = 보류 세트 v2 결과 문서 권고 6개를 범주 단위로 반영(완곡 핵·[대상]×[서술] 조합·자해 조합·영어 끼움/접미/삭제 오타·스포츠 예외·정규화 순서 명시). 보류 세트 v1·v2는 열지 않음",
  "common": {
   "unicode": "NFC",
   "stripChars": " \t\n.,!?~…·:;\"'`()[]{}-_/\\|*^",
@@ -185,7 +185,22 @@
    "그만살빼",
    "자살골",
    "자해공갈",
-   "suicidesquad"
+   "suicidesquad",
+   "suicidesqueeze",
+   "suicidesprint",
+   "suicidesprints",
+   "suiciderun",
+   "suicideruns",
+   "suicidedrill",
+   "suicidedrills",
+   "suicidepass",
+   "suicidekings",
+   "suicidedive",
+   "killshot",
+   "killstreak",
+   "suddendeath",
+   "deathmatch",
+   "deadball"
   ],
   "ko": {
    "strong": [
@@ -231,7 +246,10 @@
     "내몸을해치",
     "내몸해치",
     "유서남겼",
-    "유서남길"
+    "유서남길",
+    "다치고싶",
+    "상처내고싶",
+    "상처내고파"
    ],
    "soft": [
     "죽을까",
@@ -364,6 +382,64 @@
       "≈싫",
       "≈싶"
      ]
+    },
+    "strong3": {
+     "note": "완곡 핵: 1인칭·의도 어미와 붙을 때만 strong(단독은 soft 쪽에서)",
+     "cores": [
+      "세상떠나",
+      "세상을떠나",
+      "하늘나라가",
+      "하늘나라로가",
+      "영원히잠들",
+      "영원히떠나",
+      "영원히사라지",
+      "생을끝내",
+      "삶을끝내",
+      "인생끝내",
+      "목숨을끊",
+      "생을마감",
+      "삶을마감",
+      "이번생끝내"
+     ],
+     "intents": [
+      "고~싶",
+      "고~파",
+      "을게",
+      "을거야",
+      "을거임",
+      "을거다",
+      "기로",
+      "려고",
+      "으려고",
+      "어야겠",
+      "겠어",
+      "겠다",
+      "을래"
+     ]
+    },
+    "soft2": {
+     "note": "soft 핵에도 미래·의도 어미",
+     "cores": [
+      "끝내",
+      "다끝내",
+      "멀리떠나",
+      "조용히떠나",
+      "조용히사라지",
+      "다내려놓",
+      "그만두",
+      "먼저가"
+     ],
+     "intents": [
+      "을게",
+      "을거야",
+      "을거임",
+      "기로",
+      "려고",
+      "어야겠",
+      "고~싶",
+      "고~파",
+      "을래"
+     ]
     }
    },
    "strongPhonetic": [
@@ -392,7 +468,186 @@
    ],
    "phoneticFold": "pk: 음절→자모, 겹받침 풀기, ㄷ+ㅠ/ㅕ→ㅈ, 된소리·거센소리→예사소리, 모음 혼동(ㅠ→ㅜ·ㅗ→ㅜ·ㅕ→ㅓ·ㅐ/ㅒ/ㅖ→ㅔ·ㅟ/ㅞ/ㅚ/ㅢ→ㅣ 등), ㅎ·ㅇ 제거, 열린 음절 뒤 된소리 첫소리는 받침+첫소리로 나눔(주꼬→죽고)",
    "editDistance1": "음운 키 편집 거리 1(조합 원형, 키 6자모 이상) → soft",
-   "editDistanceMinJamo": 8
+   "editDistanceMinJamo": 8,
+   "pairs": [
+    {
+     "level": "soft",
+     "name": "무망감 [대상]×[부정·소멸]",
+     "A": [
+      "희망",
+      "미래",
+      "앞날",
+      "앞이",
+      "살이유",
+      "사는이유",
+      "살아갈이유",
+      "살아갈힘",
+      "살힘",
+      "버틸힘",
+      "사는의미",
+      "삶의의미",
+      "나아질",
+      "좋아질",
+      "기대할거",
+      "출구",
+      "답이"
+     ],
+     "B": [
+      "없",
+      "안보",
+      "사라졌",
+      "끝났",
+      "안생기",
+      "않을"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "짐 [1인칭]×[짐·소멸 서술]",
+     "A": [
+      "나는",
+      "난",
+      "내가",
+      "나같은게",
+      "나같은건"
+     ],
+     "B": [
+      "짐",
+      "민폐",
+      "방해",
+      "걸림돌",
+      "골칫거리",
+      "없어야",
+      "없는게",
+      "사라져야",
+      "사라지는게"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "없으면 나음 [소멸]×[나음]",
+     "A": [
+      "없는게",
+      "사라지는게",
+      "내가없으면",
+      "나없으면",
+      "나만없으면",
+      "내가사라지면"
+     ],
+     "B": [
+      "나아",
+      "낫",
+      "편하",
+      "편할",
+      "좋을",
+      "행복",
+      "편해",
+      "나을"
+     ]
+    },
+    {
+     "level": "strong",
+     "name": "죽는 게 나음",
+     "A": [
+      "죽는게",
+      "죽는것이",
+      "죽어버리는게"
+     ],
+     "B": [
+      "나아",
+      "낫",
+      "편하",
+      "편할",
+      "좋을"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "갇힘 [더는]×[견딤 동사]",
+     "A": [
+      "못",
+      "더는",
+      "더이상",
+      "이제못"
+     ],
+     "B": [
+      "버티",
+      "견디",
+      "살겠",
+      "견뎌",
+      "버텨"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "작별 [대상]×[작별 말]",
+     "A": [
+      "모두",
+      "다들",
+      "그동안",
+      "여러분",
+      "엄마",
+      "아빠",
+      "친구들"
+     ],
+     "B": [
+      "안녕",
+      "고마웠",
+      "미안했",
+      "잘있",
+      "사랑했",
+      "잘지내"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "정리 [소유물]×[나눔·정리 완료]",
+     "A": [
+      "물건",
+      "내물건",
+      "내것",
+      "내꺼",
+      "다"
+     ],
+     "B": [
+      "나눠줬",
+      "나눠주",
+      "정리했",
+      "정리끝",
+      "줘버렸",
+      "버렸어"
+     ]
+    },
+    {
+     "level": "strong",
+     "name": "자해 [1인칭 목적어]×[손상 동사+의도]",
+     "A": [
+      "나를",
+      "날",
+      "내몸을",
+      "내몸",
+      "나자신을",
+      "스스로",
+      "자신을"
+     ],
+     "B": [
+      "해치고싶",
+      "해칠래",
+      "해칠거",
+      "해칠게",
+      "다치게하고싶",
+      "다치게할",
+      "상처내고싶",
+      "상처낼래",
+      "상처낼거",
+      "아프게하고싶",
+      "망가뜨리고싶",
+      "망가뜨릴",
+      "벌주고싶",
+      "때리고싶"
+     ]
+    }
+   ]
   },
   "en": {
    "strong": [
@@ -491,7 +746,169 @@
    },
    "twoAsTo": true,
    "typoTransposition": "강한 줄기(6자 이상)에 이웃 글자 자리바꿈 1회 허용 → strong",
-   "anagramSoft": "강한 줄기(6자 이상)와 같은 길이 창에서 글자 구성이 같으면(순서만 다름) soft"
+   "anagramSoft": "강한 줄기(6자 이상)와 같은 길이 창에서 글자 구성이 같으면(순서만 다름) soft",
+   "pairs": [
+    {
+     "level": "strong",
+     "A": [
+      "want",
+      "wanna",
+      "wish",
+      "plan",
+      "planning",
+      "ready",
+      "decided",
+      "deserve",
+      "should",
+      "needto",
+      "tryingto"
+     ],
+     "B": [
+      "die",
+      "bedead",
+      "killmyself",
+      "killingmyself",
+      "endit",
+      "endmylife",
+      "endingmylife",
+      "endthings",
+      "takemylife",
+      "takemyownlife",
+      "takingmylife",
+      "offmyself",
+      "hurtmyself",
+      "hurtingmyself",
+      "harmmyself",
+      "harmingmyself",
+      "cutmyself",
+      "cuttingmyself",
+      "unalive",
+      "disappearforever"
+     ]
+    },
+    {
+     "level": "strong",
+     "A": [
+      "going",
+      "gonna",
+      "will",
+      "ill",
+      "imma",
+      "gotta"
+     ],
+     "B": [
+      "killmyself",
+      "endit",
+      "endmylife",
+      "takemylife",
+      "takemyownlife",
+      "offmyself",
+      "hurtmyself",
+      "harmmyself",
+      "cutmyself",
+      "unalive"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "going",
+      "gonna",
+      "will",
+      "ill",
+      "imma",
+      "about"
+     ],
+     "B": [
+      "die"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "done",
+      "tired",
+      "sick",
+      "exhausted",
+      "over"
+     ],
+     "B": [
+      "withlife",
+      "withliving",
+      "ofliving",
+      "oflife",
+      "ofbeingalive",
+      "ofexisting",
+      "beingalive"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "im",
+      "iam",
+      "imjust",
+      "imonly"
+     ],
+     "B": [
+      "burden",
+      "waste",
+      "mistake",
+      "worthless",
+      "useless"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "no",
+      "nothing",
+      "nopoint",
+      "noreason",
+      "nothingleft",
+      "whyshouldi"
+     ],
+     "B": [
+      "tolivefor",
+      "toliv",
+      "livingfor",
+      "inliving",
+      "keepgoing",
+      "goon"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "goodbye",
+      "bye",
+      "farewell"
+     ],
+     "B": [
+      "forever",
+      "everyone",
+      "world",
+      "all",
+      "foreverr"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "thisis",
+      "itsmy"
+     ],
+     "B": [
+      "lastday",
+      "lastmessage",
+      "lastpost",
+      "goodbye",
+      "end"
+     ]
+    }
+   ],
+   "pairGap": "[a-z]{0,7} — 낱말 하나(그리고 to·so·just 같은 짧은 말 둘)까지 끼움",
+   "typoDeletion": "강한 줄기(6자 이상)에서 글자 하나가 빠진 꼴 → strong(자리바꿈과 같은 대우)"
   },
   "steps": [
    "① 캠페인 낮춤·예외",
@@ -556,6 +973,15 @@
     "1fa06ce4f0a0d58c"
    ]
   },
-  "masking": "* 는 지우기 전에 한 글자 자리(?)로 본다"
+  "masking": "* 는 지우기 전에 한 글자 자리(?)로 본다",
+  "normalizationOrder": [
+   "① NFC, 소문자",
+   "② 가림 문자 * ＊ 를 '?'(한 글자 자리)로 바꾼다",
+   "③ (en 경로) leet 치환: 로마자 사이·끝의 ! 1 3 0 4 @ 5 $ 7 을 i i e o a a s s t 로 바꾼다 — 반드시 문장부호 제거(stripChars)보다 먼저. 그래서 '!'는 지워지지 않고 i가 된다",
+   "④ 캠페인 낮춤 판정·예외 낱말 제거",
+   "⑤ stripChars 제거(로마자·한글·자모·숫자·? 만 남김)",
+   "⑥ 변형 만들기(자모 결합·음절만·반복 접기 / en 2→to·겹글자 접기)",
+   "⑦ 음운 키(ko)"
+  ]
  }
 }
