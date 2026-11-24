@@ -32,8 +32,8 @@ describe('app.json 자체 OTA 설정', () => {
     expect(app.updates?.url).toBe('https://ota.mongmang.ink/api/v1/ota/manifest');
     expect(raw).not.toMatch(/u\.expo\.dev|expo\.io\/@/);
   });
-  it('둘째 실행부터 JS가 직접 확인(NEVER), 시작을 기다리지 않음, bsdiff 패치 끔, 런타임 = fingerprint', () => {
-    expect(app.updates).toMatchObject({ checkAutomatically: 'NEVER', fallbackToCacheTimeout: 0, enableBsdiffPatchSupport: false });
+  it('평소 확인은 JS(둘째 실행부터), 네이티브는 오류 복구 때만(ERROR_RECOVERY_ONLY), 시작을 기다리지 않음, bsdiff 패치 끔, 런타임 = fingerprint', () => {
+    expect(app.updates).toMatchObject({ checkAutomatically: 'ERROR_RECOVERY_ONLY', fallbackToCacheTimeout: 0, enableBsdiffPatchSupport: false });
     expect(app.runtimeVersion).toEqual({ policy: 'fingerprint' });
   });
   it('서명 설정은 app.json에 두지 않는다(채널별로 플러그인이 넣음), 가드는 아직 준비 전(ready false), 채널은 빌드 프로필 env', () => {

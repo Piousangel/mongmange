@@ -11,7 +11,7 @@
     },
     "updates": {
       "url": "https://ota.mongmang.ink/api/v1/ota/manifest",
-      "checkAutomatically": "NEVER",
+      "checkAutomatically": "ERROR_RECOVERY_ONLY",
       "fallbackToCacheTimeout": 0,
       "enableBsdiffPatchSupport": false
     },
