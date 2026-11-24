@@ -1,52 +1,57 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" width="760" height="420" font-family="'Gowun Batang','Noto Serif KR',serif">
-  <title>돌봄 일상 번역 — 현실 반려 일과에서 몽망이 일과로</title>
-  <rect width="760" height="420" fill="#F4EFE6"/>
-  <text x="24" y="34" font-size="18" fill="#2B2A28">반려 일과 → 몽망이의 말로 번역 (팀 추천, 11-25)</text>
-  <text x="24" y="56" font-size="12" fill="#6B6760">필수 할 일은 늘지 않는다: 하루에 진행이 걸린 일은 여전히 '한 마디' 하나. 나머지는 손길과 몽망이의 바람(하루 최대 1)</text>
-
-  <g font-size="13" fill="#2B2A28">
-    <text x="24" y="92" fill="#6B6760">현실 일과</text>
-    <text x="190" y="92" fill="#6B6760">몽망이 쪽 이름 · 동작</text>
-    <text x="560" y="92" fill="#6B6760">언제</text>
-    <line x1="24" y1="100" x2="736" y2="100" stroke="#2B2A28" stroke-opacity=".25"/>
-
-    <!-- 밥 -->
-    <text x="24" y="132" font-size="16">밥</text>
-    <path d="M110 127 H176" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
-    <text x="190" y="124">오늘의 한 마디를 마심 (이미 핵심 의례)</text>
-    <text x="190" y="142" fill="#6B6760" font-size="12">+ 벼루 끝 한 방울 = 간식 · 깸마다 1회 · 배고픔 없음</text>
-    <text x="560" y="124">1.0 (V7 있음)</text>
-    <text x="560" y="142" fill="#6B6760" font-size="12">V27 플래그 · 먼저 잘림</text>
-
-    <!-- 쓰담 -->
-    <text x="24" y="190" font-size="16">쓰담</text>
-    <path d="M110 185 H176" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
-    <text x="190" y="182">쓰다듬기 · 문지르기 · 좋아하는 자리 · 함께 숨 쉬기</text>
-    <text x="190" y="200" fill="#6B6760" font-size="12">이미 있음 → 깊이를 지킨다 (M4·M5를 자르지 않기)</text>
-    <text x="560" y="182">1.0 (M4·M5)</text>
-
-    <!-- 청소 -->
-    <text x="24" y="248" font-size="16">청소</text>
-    <path d="M110 243 H176" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
-    <text x="190" y="240">빗 빗기 = 몸단장 (치우기가 아니라 가꾸기)</text>
-    <text x="190" y="258" fill="#6B6760" font-size="12">배변·얼룩·더러움 없음 — 번짐은 그 아이의 얼굴이라 닦지 않는다</text>
-    <text x="560" y="240">1.x (V29)</text>
-
-    <!-- 산책 -->
-    <text x="24" y="306" font-size="16">산책</text>
-    <path d="M110 301 H176" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
-    <text x="190" y="298">마실 = 손끝을 따라 한지 위를 함께 걷기</text>
-    <text x="190" y="316" fill="#6B6760" font-size="12">젖은 발자국 3초 뒤 마름 · GPS·걸음 수 없음</text>
-    <text x="560" y="298">1.x (V30)</text>
-
-    <line x1="24" y1="340" x2="736" y2="340" stroke="#2B2A28" stroke-opacity=".25"/>
-    <text x="24" y="368">현실 말 그대로 건네기: '밥'·'산책'·'목욕'을 붓으로 쓰면 3초 몸짓 + 그날 꿈으로 돌아온다</text>
-    <text x="24" y="390" fill="#6B6760" font-size="12">1.0 (V26 생활 낱말) — 현실 반려 일과를 '할 일'이 아니라 '건네는 말'로 받는다</text>
-    <circle cx="726" cy="382" r="7" fill="#B5432F"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" width="760" height="470" font-family="'Gowun Batang','Noto Serif KR',serif">
+  <title>돌봄 일상 v3 — 반려 일과에서 몽망이 일과로</title>
+  <rect width="760" height="470" fill="#F4EFE6"/>
+  <text x="24" y="34" font-size="18" fill="#2B2A28">돌봄 일상 v3 (11-25, 리뷰·PM 결정 반영)</text>
+  <text x="24" y="56" font-size="12" fill="#6B6760">필수 할 일은 '한 마디' 하나 그대로 · 수치·게이지·연속 기록 없음 · 안 해도 몸·성장 변화 없음</text>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M0 0 L10 5 L0 10 z" fill="#2B2A28"/>
     </marker>
   </defs>
+  <g font-size="13" fill="#2B2A28">
+    <text x="24" y="90" fill="#6B6760">오너 일과</text>
+    <text x="180" y="90" fill="#6B6760">몽망이 쪽 동작</text>
+    <text x="590" y="90" fill="#6B6760">언제</text>
+    <line x1="24" y1="98" x2="736" y2="98" stroke="#2B2A28" stroke-opacity=".25"/>
+
+    <text x="24" y="130" font-size="16">밥</text>
+    <path d="M100 125 H166" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <text x="180" y="122">깸마다 한 끼 · 벼루 숟갈 탭 → 소반 → 먹 한 숟갈</text>
+    <text x="180" y="140" fill="#6B6760" font-size="12">알림: 선택·기본 꺼짐 · 관찰형 3인칭 · 그 깸에 쓰지 않았을 때만 하나</text>
+    <text x="590" y="122">1.0 (종류 3)</text>
+    <text x="590" y="140" fill="#6B6760" font-size="12">알림은 자르는 순서 0-b</text>
+
+    <text x="24" y="186" font-size="16">간식</text>
+    <path d="M100 181 H166" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <text x="180" y="178">같은 소반 · 깸마다 최대 셋 · 주면 오물오물</text>
+    <text x="180" y="196" fill="#6B6760" font-size="12">안 줘도 아무 일 없음 · 부탁·알림 없음</text>
+    <text x="590" y="178">1.0 (종류 3)</text>
+
+    <text x="24" y="242" font-size="16">쓰담</text>
+    <path d="M100 237 H166" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <text x="180" y="234">쓰다듬기 · 문지르기 · 좋아하는 자리 · 함께 숨 쉬기</text>
+    <text x="180" y="252" fill="#6B6760" font-size="12">이미 있음 → M4·M5를 지킨다</text>
+    <text x="590" y="234">1.0</text>
+
+    <text x="24" y="298" font-size="16">산책</text>
+    <path d="M100 293 H166" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <text x="180" y="290">화면 안 마실: 손끝 따라 한지 위를 함께 걷기 (권한 0)</text>
+    <text x="180" y="308" fill="#6B6760" font-size="12">→ 다음 아침 바람 몸짓 · 꿈 '길' 쪽 · '마실 날'은 기기 전용</text>
+    <text x="590" y="290">1.0</text>
+
+    <path d="M100 343 H166" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)" stroke-dasharray="4 3"/>
+    <text x="180" y="340">실제 걸음: iOS Core Motion · Android Recording API</text>
+    <text x="180" y="358" fill="#6B6760" font-size="12">걸음 수 저장·전송 0 · 14세 확인 통과자만 · 같은 '마실 날'</text>
+    <text x="590" y="340">01-26 업데이트</text>
+    <text x="590" y="358" fill="#6B6760" font-size="12">못 맞추면 1.1</text>
+
+    <text x="24" y="404" font-size="16">청소</text>
+    <path d="M100 399 H166" stroke="#2B2A28" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+    <text x="180" y="396">빗 빗기 = 몸단장 (배변·얼룩 없음)</text>
+    <text x="590" y="396">1.x</text>
+
+    <line x1="24" y1="428" x2="736" y2="428" stroke="#2B2A28" stroke-opacity=".25"/>
+    <text x="24" y="452" fill="#6B6760" font-size="12">하지 않음: 배고픔·청결 수치 · 1인칭·'먹다'·관계어 알림 · 걸음 순위·성장 가속 · 위치 · 숨긴 기능 OTA 켜기 · 유료·뽑기</text>
+    <circle cx="726" cy="446" r="6" fill="#B5432F"/>
+  </g>
 </svg>
