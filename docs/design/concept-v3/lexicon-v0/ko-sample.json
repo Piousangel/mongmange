@@ -5202,6 +5202,25 @@
     "by": []
    },
    "note": "오탐 많음, 몸짓만 [전문가 확인]"
+  },
+  {
+   "id": "ko.0308",
+   "lemma": "더워",
+   "forms": [
+    "덥다",
+    "더움",
+    "더워요"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "날씨(덥다). 과장 꼬리 앞말로도 쓰임"
   }
  ]
 }
