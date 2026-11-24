@@ -13,6 +13,7 @@ import { ClientIpThrottlerGuard } from './common/throttler.guard';
 import { CloudModule } from './account/cloud.module';
 import { HealthModule } from './health/health.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { OtaModule } from './ota/ota.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SavesModule } from './saves/saves.module';
 import { LocalStorageModule } from './storage/local-storage.module';
@@ -47,6 +48,8 @@ class CommonModule {}
     MetricsModule,
     // B2 맡겨 두기(계정·세이브·되찾기·삭제, 3-3·3-4·3-8)
     CloudModule,
+    // V21 자체 OTA(Expo Updates 프로토콜, 설치 id 저장 0 — docs/design/server-v1/ota-self-host.md)
+    OtaModule,
     // 예시 엔드포인트(세이브 검사)는 개발·테스트 전용 — 운영(NODE_ENV=production)에는 모듈 자체가 없다(B1 리뷰 I7)
     ConditionalModule.registerWhen(SavesModule, devEndpointsEnabled),
     // 로컬 파일 저장소의 서명 업로드·공개 읽기 주소(STORAGE_DRIVER=local — 운영에서는 env가 local을 거부한다)

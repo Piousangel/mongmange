@@ -17,6 +17,7 @@ export default tseslint.config(
       '**/.expo/**',
       '**/web-build/**',
       'apps/mobile/public/**',
+      'apps/web-static/public/**',
       'apps/mobile/android/**',
       'apps/mobile/ios/**',
       'apps/server/src/generated/**',
@@ -86,8 +87,9 @@ export default tseslint.config(
     rules: { 'mong/no-literal-ui-text': 'error' },
   },
 
-  // 서버: 타이머 핸들 규칙만(React 없음)
-  { files: ['apps/server/src/**/*.ts'], rules: { 'mong/no-floating-timer': 'error' } },
+  // 서버: 타이머 핸들 규칙 + console 금지(React 없음)
+  // 서버 src: console 금지(V21 리뷰 M1 — Cloud Run은 stdout을 그대로 Cloud Logging에 넣는다. 로그는 pino 화이트리스트(logging.ts)로만, CLI는 process.stdout/stderr.write)
+  { files: ['apps/server/src/**/*.ts'], rules: { 'mong/no-floating-timer': 'error', 'no-console': 'error' } },
 
   // core: 결정성(같은 입력 → 같은 몽망이·카드). 시각·난수는 바깥에서 주입한다(sim 리뷰 확인 항목을 검사로)
   {

@@ -6,6 +6,15 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://ota.mongmang.ink/api/v1/ota/manifest",
+      "checkAutomatically": "NEVER",
+      "fallbackToCacheTimeout": 0,
+      "enableBsdiffPatchSupport": false
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.piousangel.mongmange",
@@ -51,6 +60,12 @@
         "expo-notifications",
         {
           "color": "#2B2A28"
+        }
+      ],
+      [
+        "./plugins/withSelfHostedUpdates",
+        {
+          "ready": false
         }
       ],
       "./plugins/withLowMemoryGradle"

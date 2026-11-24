@@ -15,10 +15,16 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "MONG_OTA_CHANNEL": "preview"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "MONG_OTA_CHANNEL": "production"
+      }
     }
   },
   "submit": {

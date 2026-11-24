@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pickClientIp, rateLimitKey, reportKeyPrefix } from '../src/common/client-ip';
+import { pickClientIp, rateLimitKey, reportKeyPrefix, routeGroupOf } from '../src/common/client-ip';
 import { sameOriginPost } from '../src/pages/m.controller';
 
 describe('pickClientIp — 믿을 XFF 위치는 TRUSTED_PROXY_HOPS 하나', () => {
@@ -70,4 +70,14 @@ describe('sameOriginPost — 신고 같은 출처 판정(B5 리뷰 C1)', () => {
     ['앱 JSON(Origin 없음)', {}, false, true],
     ['다른 출처 JSON', { origin: 'https://evil.example' }, false, false],
   ])('%s', (_n, h, form, ok) => expect(sameOriginPost(h as Record<string, string>, S, form)).toBe(ok));
+});
+
+describe('경로 그룹(V21 OTA)', () => {
+  it('/api/v1/ota/** = ota 그룹, /m/** = web, 나머지 api', () => {
+    expect(routeGroupOf('/api/v1/ota/manifest')).toBe('ota');
+    expect(routeGroupOf('/api/v1/ota/assets/abc?x=1')).toBe('ota');
+    expect(routeGroupOf('/api/v1/otaz')).toBe('api');
+    expect(routeGroupOf('/m/K7M3QX9P')).toBe('web');
+    expect(routeGroupOf('/api/v1/ping')).toBe('api');
+  });
 });

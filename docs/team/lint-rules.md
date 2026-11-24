@@ -58,6 +58,7 @@
 | 경계 import(`no-restricted-imports`) | core·contract·앱 | error | 승격 표 6 |
 | `mong/no-excuse-comment` | 전체 | error | OPERATING 7-2 '땜질 변명 주석 금지'. 'HACK'·'XXX'·'workaround'·'땜질'·'임시 방편/처리'만 잡는다. '임시 파일'·'임시 호칭'처럼 제품 뜻의 '임시'는 잡지 않는다 |
 | `mong/eslint-comment-discipline` | 전체 | error | 위 문단(규칙을 끄는 판단도 리뷰 대상) |
+| `no-console` | `apps/server/src/**` | error | 승격 표 7 |
 
 앱 코드 = `apps/mobile/src/**`, `App.tsx`, `index.ts`. 캡처 스크립트(`scripts/*.mjs`)는 `page.evaluate` 콜백이 브라우저에서 돌기 때문에 Node·브라우저 전역을 같이 연다.
 
@@ -71,6 +72,7 @@
 | 4 | 모듈을 불러오는 순간 던져 앱 전체가 죽음 | `2026-11-20-dream-card-review.md` 1(`marbleFx` 모듈 최상위 throw) | `no-restricted-syntax` `Program > ThrowStatement`(앱 코드) | `eslint.config.mjs` |
 | 5 | core 결정성(숨은 시계·난수) | `2026-11-20-sim-review.md` "src/sim에서 Date·Math.random·performance 검색 0건" — 사람이 grep으로 하던 확인을 검사로 옮김(현재 위반 0, 예방) | `no-restricted-properties`·`no-restricted-syntax`로 core src에서 금지 | `eslint.config.mjs` |
 | 6 | 패키지 경계 | mentors.md 적용안 1(core → RN·expo·apps 금지, 앱 → 서버 내부 금지), 서버 `check:bundle` ②(core 런타임 의존성 0) | `no-restricted-imports`: core는 react·RN·expo·`@shopify/`·`node:`·`zod`·`@mong/contract`·apps 금지. contract는 프레임워크·apps 금지. 앱은 서버 내부·`@nestjs/`·`@prisma/` 금지 | `eslint.config.mjs` |
+| 7 | 서버에서 console로 요청 값이 운영 로그에 나감(pino 화이트리스트 우회) | `2026-11-25-v21-ota-review.md` M1 — 변이 `console.log(headers['eas-client-id'])`가 시험 27/27·린트를 모두 통과(살아남음). Cloud Run은 stdout을 그대로 Cloud Logging에 넣는다 | `no-console`(서버 src). 로그는 Nest `Logger`(pino, 화이트리스트)로만, CLI 출력은 `process.stdout/stderr.write`. 시험 쪽 이중 안전장치: `ota.e2e.test.ts`가 stdout·console도 가로채 설치 id 0을 단언 | `eslint.config.mjs`, `apps/server/test/ota.e2e.test.ts` |
 
 - 4번 근거에서 `2026-11-20-m1-code-review.md` L4(`features.ts`의 `decodeURIComponent`)는 뺐다. 최상위에서 부른 함수 안의 throw라 이 검사로 막히지 않는다.
 - 1·2번은 '리뷰에서 두 번 나온 지적'이 아니다. 근거는 OPERATING 7-2의 범주 금지 지시와 첫 실행의 실제 위반이다. 리뷰 M4가 정정한 내용이다.

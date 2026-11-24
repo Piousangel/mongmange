@@ -14,6 +14,8 @@ import { readFileSync } from 'node:fs';
 
 let app: NestFastifyApplication;
 let prisma: PrismaService;
+/** 런타임 롤 이름(= 마이그레이션 롤, DATABASE_URL 사용자) */
+const me = () => new URL(process.env.DATABASE_URL!).username;
 
 beforeAll(async () => {
   app = await createApp({ bufferLogs: false });
@@ -53,7 +55,7 @@ describe('실제 DB', () => {
       select rolname, rolsuper, rolbypassrls from pg_roles where rolname = current_user`;
     expect(me).toMatchObject({ rolsuper: false, rolbypassrls: false });
     const owners = await prisma.$queryRaw<{ tableowner: string }[]>`select tableowner from pg_tables where schemaname = 'app'`;
-    expect(owners.length).toBe(17);
+    expect(owners.length).toBe(19);
     for (const o of owners) expect(o.tableowner).toBe(me!.rolname);
   });
 
@@ -66,7 +68,7 @@ describe('실제 DB', () => {
     expect(await prisma.creature.count({ where: { userId } })).toBe(0);
   });
 
-  it('RLS가 켜져 있다(정책 0개)', async () => {
+  it('RLS가 켜져 있다(정책은 OTA 두 표에만)', async () => {
     const rows = await prisma.$queryRaw<{ relname: string; relrowsecurity: boolean }[]>`
       select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'app' and c.relkind = 'r' order by c.relname`;
@@ -81,6 +83,8 @@ describe('실제 DB', () => {
         'link_funnel_daily',
         'metric_daily',
         'metric_monthly',
+        'ota_releases',
+        'ota_revoked',
         'public_pages',
         'report_hits',
         'reports',
@@ -93,8 +97,13 @@ describe('실제 DB', () => {
         (relname) => ({ relname, relrowsecurity: true }),
       ),
     );
-    const [p] = await prisma.$queryRaw<{ n: bigint }[]>`select count(*) as n from pg_policies where schemaname = 'app'`;
-    expect(Number(p!.n)).toBe(0);
+    // 정책은 V21 OTA 두 표에만(게시 롤 INSERT·SELECT, 서버 롤 SELECT — FORCE RLS로 소유자에게도). 그 밖의 표는 0개(권한 판단은 Nest)
+    const pol = await prisma.$queryRaw<{ tablename: string; cmd: string; roles: string[] }[]>`select tablename::text as tablename, cmd::text as cmd, roles::text[] as roles from pg_policies where schemaname = 'app' order by tablename, policyname`;
+    expect(pol.map((x) => `${x.tablename}:${x.cmd}:${x.roles.join('')}`)).toEqual(
+      ['ota_releases', 'ota_revoked'].flatMap((t) => [`${t}:INSERT:ota_publisher`, `${t}:SELECT:ota_publisher`, `${t}:SELECT:${me()}`]),
+    );
+    const forced = await prisma.$queryRaw<{ relname: string }[]>`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'app' and c.relforcerowsecurity order by c.relname`;
+    expect(forced.map((f) => f.relname)).toEqual(['ota_releases', 'ota_revoked']);
   });
 
   it('Data API 롤(anon)은 마이그레이션이 권한을 거둬 app 표에 손댈 수 없다', async () => {

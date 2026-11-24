@@ -27,7 +27,7 @@
 | 신고 | 키 = IP만(IPv6 /64 → **B5에서 /48**, 부록 A-3 #68), **대상마다 소금 하나**, 판정 창 = 소금 수명 = 7일, 서로 다른 신고자 3 → 자동 숨김(격리). 복원 뒤 7일 면역·서비스 1시간 5건 차단기·운영 기본 꺼짐(B6 XFF 실측 뒤 켬) |
 | 지표 | **식별자 없는 집계 핑** + `nt`(설치 때 확정)·`wg`(7일째 고정)·`moon`(이벤트 현지 날짜, core `isMoonWindow`). 판정 SQL은 핑이 든 빌드 이후 코호트만 쓰고 스토어 설치 수·단조 검사로 거른다. 쓰기는 **요청 안 flush(최대 1.5초)**, 사람은 `count ≥ 5` 뷰만, 90일 뒤 월 합계(구현됨) |
 | 플래그·모티프 | 정적 `config/v1.json`(TTL 1시간, `minBundle`, 빠진 키 = 번들 기본값) / 정적 `content/v1.json` + 해시 이름 모티프 파일. 스키마 정본 = **`@mong/contract`**. Git → `firebase deploy`. **iOS는 심사 때 들어 있고 켜져 있거나 설명된 기능만** 플래그로 다룬다 |
-| OTA | `expo-updates` — 채널 `preview`·`production`, 러너 버전 `fingerprint`, **첫 실행에는 확인하지 않음**. 코드는 OTA, 켜기는 플래그. **EAS 요금·설치 id 법률 판단은 빌드 2 전에 확정**(업데이트 주소가 바이너리에 박힘) |
+| OTA | `expo-updates` — 채널 `preview`·`production`, 러너 버전 `fingerprint`, **첫 실행에는 확인하지 않음**. 코드는 OTA, 켜기는 플래그. **[v2.3 V21] 배포 서버 = EAS Update가 아니라 우리 서버(Expo Updates 프로토콜, 설치 id 저장 0) — `ota-self-host.md`**(업데이트 주소가 바이너리에 박힘) |
 | 관리 | 소프트런칭: Supabase Studio + SQL 함수(`restore_page`·`confirm_hide`) + 작은 CLI(Storage 이동). 01월: `mong-admin`(IAM 프록시 + CSRF 방어) |
 | 비용 | 소프트런칭까지 **월 약 25~30달러 + 도메인**. 10만 설치 **월 약 45~60달러**(정식 출시 전 wasm·루프 R2 이전 뒤), 60만 낙관 **월 약 300~400달러** — 둘 다 **+ EAS Update(요금 확인 뒤 기입)** [팀 추정]. 예산 알림은 상한이 아니다 |
 | 일정 | B1·B6(11-21~11-25) → B0(11-27) → core 함수(11-29) → B3(12-03) → B4(12-05) → B2(12-11) → B5(12-13) → B7(12-15) → 운영 전환(12-16) → Pro(12-18). 서버 레인 **14.75일**(core 1.25 포함) + 웹 5.5 + 문서 1.0. 01월: 관리 도구·L1·L3·R2 이전 2.1일 |
@@ -86,7 +86,7 @@ B2~B7 담당은 아래 '읽을 절'만 보고 착수한다. '끝났다는 기준
 ```
 [앱 iOS/Android/웹]                                   [SNS 크롤러·링크 손님 브라우저]
    │ 모든 호출 비차단·5초·아웃박스                           │
-   │ OTA 확인(둘째 실행부터) ─▶ EAS Update(Expo, 미국)        ▼
+   │ OTA 확인(둘째 실행부터) ─▶ mong-api /api/v1/ota (v2.3 V21) ▼
    │                          ┌── Firebase Hosting (https://mongmang.ink) ──┐
    │ 플래그·모티프(정적) ───▶  │ 정적: /, /.well-known/*, /config/v1.json,   │
    │                          │  /content/*, /w/*, /delete, /privacy        │
@@ -117,7 +117,7 @@ B2~B7 담당은 아래 '읽을 절'만 보고 착수한다. '끝났다는 기준
 | **NestJS `mong-admin`**(01월) | 3-12 관리 화면(서버 렌더 HTML, 같은 이미지 `ADMIN_MODE=1`) | 공개 인터넷 노출. 소프트런칭 동안은 없음(Studio + SQL 함수 + CLI) |
 | **Cloud Scheduler** | Storage를 건드리는 정기 작업 호출(삭제 재시도, 파일 정리, 1.0.x 장기 미사용) — 무료 3개 | — |
 | **Firebase Hosting** | 도메인·TLS·CDN, 정적 파일, **`/m/**`만** Cloud Run rewrite·CDN 캐시 | 동적 로직, **앱 API 중계**(앱은 Cloud Run 서울에 직접) |
-| **EAS Update** | OTA 번들 배포(3-11) | 플래그(그건 `config/v1.json`) |
+| ~~EAS Update~~ → **mong-api `/api/v1/ota`**(v2.3 V21, `ota-self-host.md`) | OTA 번들 배포(3-11) | 플래그(그건 `config/v1.json`) |
 | **Edge Functions** | 없음(자리만) | — |
 
 **왜 Edge Functions를 안 쓰나**(v1 그대로): ① 웹 뷰어는 크롤러용 HTML이 필요한데, Supabase는 커스텀 도메인 없이 Edge Function의 HTML 응답을 막는다([HTTP methods](https://supabase.com/docs/guides/functions/http-methods), [changelog 29633](https://supabase.com/changelog/29633-xhtml-responses-are-only-allowed-with-a-custom-domain-enabled), [custom domains](https://supabase.com/docs/guides/platform/custom-domains)). ② Deno 런타임이라 `@mong/core` 검증을 두 군데서 돌리게 된다. ③ 1인 운영에서 배포 경로를 하나로 줄인다.
@@ -763,6 +763,8 @@ B0 보고(7-4 '연결 대기 ②')가 짚은 대로 원격 키 9개와 앱 `FEAT
 
 ### 3-11. OTA(`expo-updates`) — 채널과 플래그의 관계 [v2]
 
+> **[v2.3 V21, 11-24] 배포 서버 부분은 `ota-self-host.md`가 대체한다**(법률 1차 검토 C-1 → 오너 결정 3). 아래 표의 `eas update`·`eas update:rollback`·요금제·`EAS-Client-ID` 줄은 역사로 남긴다. 대체: 게시 = `ota-cli publish`, 되돌리기 = `ota-cli republish`·`rollback`(rollBackToEmbedded), 서명 = 게시 때 CLI(개인키는 서버 밖), 설치 id = 서버가 받지만 저장·로그 0, 세이브 형식 가드 = `publish --server-url`. 채널·`checkAutomatically: NEVER`·둘째 실행부터·순서 규칙(1~5)은 그대로.
+
 **왜 필요한가**: 앱 레인은 12-24까지 C 일정으로 꽉 차 있고(41 대 40.75), 서버 연동 앱 작업은 **소프트런칭 중 OTA로 들어가는 것이 정상 경로**다(기획 4-6). 네이티브 변경은 빌드 2 한 번(+ 위젯 화면 스토어 업데이트 1회)으로 묶는다.
 
 | 항목 | 값 |
@@ -918,7 +920,7 @@ v1 그대로(net 모듈 가짜 fetch, core 고정물 세이브를 core·서버 e
 | Supabase, Inc.(미국, 연락처 [확인 필요]) | DB·인증·파일 보관 | 저장은 서울(AWS). 미국 법인의 원격 운영 접근 가능성 → 보수적으로 국외 이전에도 기재 | 계정 id, 세이브, 공개 사본, 연령 확인 기록 | 링크·맡겨 두기를 켤 때부터 수시, TLS 전송 | 계정 삭제까지(이력 4주, 백업 7일) |
 | Google LLC(미국) — Cloud Run·Cloud Logging·Cloud Scheduler | API 실행, 로그 | 서울(Cloud Run·`mong-logs`) | 요청(IP·경로), 로그 | 앱 사용 중 수시, TLS | 로그 7일 |
 | Google LLC — Firebase Hosting | 웹·정적 전송 | **전 세계 CDN 엣지**(사용자 근처에서 TLS 종료) | 링크 페이지·플래그·모티프 요청의 IP, 공개 콘텐츠 | 요청 때 | 우리 쪽 로그 없음(엣지 처리 기록은 Google 정책 [확인 필요]) |
-| 650 Industries, Inc.(Expo, 미국) — EAS Update | OTA 배포 | 미국 | 플랫폼·러너 버전·설치 id [확인 필요]·IP | 둘째 실행부터 하루 한 번, TLS | Expo 정책 [확인 필요] |
+| ~~650 Industries, Inc.(Expo, 미국) — EAS Update~~ | ~~OTA 배포~~ — **v2.3 V21: 자체 서버로 바꿔 이 위탁·이전 행은 없어진다**(`ota-self-host.md` 9절, 처리방침 반영은 release 담당) | — | — | — | — |
 
 - **v2.1 정정**: v2의 'CDN은 공개 콘텐츠뿐'은 틀렸다. 앱 API가 Firebase를 거치면 세이브·글귀·JWT가 국외 엣지에서 TLS가 풀린다. **앱 API를 Cloud Run 직접으로 옮겨**(2-1) 이 경로를 없앴다. Firebase에 남는 것은 공개 콘텐츠와 그 요청의 IP다.
 - **고지 항목**: 개인정보보호법 제28조의8에 따라 처리방침에 **이전 국가, 일시와 방법, 받는 자(연락처), 항목, 목적, 보유·이용 기간, 거부 방법과 거부의 결과**를 모두 적는다 [법률 검토]. 거부 방법: 링크·맡겨 두기를 쓰지 않으면 계정 데이터 이전이 없다. OTA·정적 요청은 거부 수단이 없으므로 항목을 최소로 줄인다.
@@ -997,7 +999,7 @@ packages/
 | `deploy-staging.yml` | `main` 푸시(server·core·contract) | 이미지 `:sha` → `migrate deploy`(스테이징, `DIRECT_URL` = 세션 풀러) → **`metrics_reader` GRANT 재실행**(뷰 마이그레이션의 DO 블록) → `mong-api-staging` 배포 → 스모크(`/healthz`, `/readyz` + 토큰, `/m/TESTTEST`, `/config/v1.json`, 핑 204, **관리 라우트 404**, `/api/v1/saves/validate` 404) |
 | `deploy-prod.yml` | 태그 `server-v*` + 수동 승인 | 같은 이미지 → migrate → deploy → 같은 스모크 → 실패 시 `update-traffic` 이전 리비전 100. 01월부터 `mong-admin`도 같은 이미지로 |
 | `deploy-static.yml`(B6) | `apps/web-static/**`(모티프 원본 `src/content/` 포함)·`apps/web-live/**` | web-live 빌드(해시 이름) → 검증 → `firebase deploy --only hosting:staging` → (태그 `static-v*` + 승인) `hosting:prod`. 플래그 바꾸기 = 이 PR 하나 |
-| `ota-guard`(스크립트) | 사람이 `eas update` 전에 | 운영 `/healthz`의 `saveSchema`·`simSchema` ≥ 앱 core 값인지 확인, 아니면 중단. **`BUNDLE_SEQ`가 지금까지 게시한 최댓값보다 큰지**도 확인(3-7) |
+| `ota-guard`(스크립트) | 사람이 OTA 게시 전에(v2.3: `ota-cli publish --server-url`이 세이브 형식 가드를 한다. `BUNDLE_SEQ` 확인은 남음) | 운영 `/healthz`의 `saveSchema`·`simSchema` ≥ 앱 core 값인지 확인, 아니면 중단. **`BUNDLE_SEQ`가 지금까지 게시한 최댓값보다 큰지**도 확인(3-7) |
 
 - 비밀:
   - GitHub Environments: **`DIRECT_URL_SESSION_POOLER`** — 이름에 세션 풀러(5432)를 드러낸다. 직접 연결은 IPv6 전용이라 GitHub 호스티드 러너에서 마이그레이션이 실패한다(리뷰 S12).
@@ -1044,7 +1046,7 @@ packages/
 | **CanvasKit wasm·루프 전송**(01월 R2 이전 때 `loop.mp4`도 같은 `{pageKey}/loop.mp4` 경로로 R2 공개 버킷에 두고, 격리·삭제·무효화를 R2 쪽에도 똑같이 건다 [확인 필요: R2 캐시 무효화 시간]) | Firebase에서 0~1(`webLive` 01-05부터) | **정식 출시 전 Cloudflare R2(전송 무료)로 옮긴 뒤** 약 1(R2 저장) — 옮기지 않으면 Firebase에서 약 23 | R2 약 1~5 — 옮기지 않으면 약 225 |
 | Cloud Run | 무료 한도 안(min 0) | 월 약 300만 요청 → 소액 + **min 1 유휴 약 10~20** [확인 필요: 서울 Tier 2] | max 6~10 상향, 약 **60~100** |
 | Cloud Scheduler·Logging·Artifact Registry | 0 | 0~2 | 약 5 |
-| **EAS Update** | 무료 한도 안일 것 [확인 필요] | **[확인 필요 — 12-01 요금표 확인 뒤 기입]**. v2의 '월 0~200'은 근거가 없어 지웠다(리뷰 I11) | 같음 |
+| ~~EAS Update~~ → 자체 OTA(v2.3) | Cloud Run 송신·저장소에 포함 | 에셋 송신 OTA당 설치 × 약 5MB(br 전) [팀 추정, B6 실측] | 같음 |
 | 도메인 `mongmang.ink` | 월 약 3(연 25~40 [확인 필요]) | 같음 | 같음 |
 | **합계(월)** | **약 25~30달러 + 도메인** | **약 45~60달러 + EAS Update** | **약 300~400달러 + EAS Update** |
 
@@ -1195,7 +1197,7 @@ v1 질문 중 열린 것: ① 인장 코드를 서버 난수로(정본 C-integra
 | 2 | Firebase 경로·직접 경로의 **XFF 신뢰 위치**와 두 경로를 구분할 표지 | 3-8 | **B6 첫날 11-24** | 서버 | `/m/**` 앞단 Worker(비밀 헤더 + `CF-Connecting-IP`) |
 | 3 | **Supabase Smart CDN** 삭제 무효화·요금제 조건 | 2-4·3-9 | B5 12-12(운영 설정에서) | 서버 | Q12 '약 1분'을 '최대 1시간'으로 고치고 숨김 때 Firebase 재배포 |
 | 4 | **Cloud Logging** 서울 버킷·보존 7일·`_Default` 싱크 이전·`/m/` 제외 필터 | 5-2 | B6 11-25 | 서버 | 처리방침의 보존 기간·위치를 실제 값으로 |
-| 5 | **EAS Update 설치 id** 전송 여부·끌 수 있는지·보존 | 3-11·5-4 | B1 조사 11-23, 법률 12-05 | 서버·오너 | 자체 업데이트 서버(**빌드 2 전** 결정) |
+| 5 | **EAS Update 설치 id** 전송 여부·끌 수 있는지·보존 | 3-11·5-4 | B1 조사 11-23, 법률 12-05 | 서버·오너 | **해결(11-24 오너 결정 3 → V21 자체 서버, `ota-self-host.md`)** |
 | 6 | **EAS 요금**(Updates MAU 단가·비율 배포·코드 서명) | 3-11·8 | **12-01** | 오너 | 같음 |
 | 7 | `runtimeVersion: fingerprint`·시작 크래시 복구 조건 | 3-11 | 12-05 리허설 | 앱 | `appVersion` 정책 + 수동 롤백 런북 |
 | 8 | `react-native-android-widget` 설치 개수 노출(`wg`) | 3-6 | 빌드 2 전 12-05 | 앱 | Android `wg = '-'` → 01-08 스토어 업데이트 |

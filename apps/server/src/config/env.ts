@@ -44,6 +44,11 @@ export const envSchema = z
      */
     TRUSTED_PROXY_HOPS_API: hops.optional(),
     TRUSTED_PROXY_HOPS_WEB: hops.optional(),
+    /**
+     * 자체 OTA(`/api/v1/ota/**`, V21) 그룹의 믿을 프록시 수. `ota.mongmang.ink`는 Firebase Hosting 리라이트 → Cloud Run(PM 11-25)이라
+     * `/m/**`와 같은 길이다 → 비우면 TRUSTED_PROXY_HOPS_WEB 값을 쓴다(운영에서 WEB이 1 이상 필수이므로 OTA도 1 이상). 길이 다르면 따로 준다
+     */
+    TRUSTED_PROXY_HOPS_OTA: hops.optional(),
     /** 전역 레이트 리밋(IP 접두당 하나의 카운터, 60초 창). 경로별 더 낮은 한도는 각 B 항목에서 @Throttle로 */
     RATE_LIMIT_PER_MIN: z.coerce.number().int().min(1).max(10_000).default(120),
     /**
@@ -125,6 +130,11 @@ export const envSchema = z
     REPORT_AUTO_HIDE: bool.optional(),
     /** 서비스 전체 자동 숨김 차단기 — 최근 1시간 이만큼 숨겼으면 그다음은 대기 목록에만(비우면 contract REPORT_AUTO_HIDE_PER_HOUR = 5) */
     REPORT_AUTO_HIDE_PER_HOUR: z.coerce.number().int().min(1).max(1000).optional(),
+    /**
+     * 서명 없는 OTA 판을 내보낼지(V21). 개발·로컬 스모크 전용 — 운영에서는 부팅 거부. 켜져 있어도 앱이 서명을 기대하면(expo-expect-signature)
+     * 서명 없는 판은 내보내지 않는다. 서버에는 개인키가 없다(서명은 퍼블리시 CLI가 한다)
+     */
+    OTA_ALLOW_UNSIGNED: bool.default(false),
     ANDROID_PACKAGE: z.string().regex(/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/).default('com.piousangel.mongmange'),
   })
   .superRefine((e, ctx) => {
@@ -141,6 +151,7 @@ export const envSchema = z
     for (const k of ['TRUSTED_PROXY_HOPS_API', 'TRUSTED_PROXY_HOPS_WEB'] as const) {
       if (!e[k]) ctx.addIssue({ code: 'custom', path: [k], message: '운영에서는 1 이상이어야 합니다(0이면 전원이 한 키)' });
     }
+    if (e.TRUSTED_PROXY_HOPS_OTA === 0) ctx.addIssue({ code: 'custom', path: ['TRUSTED_PROXY_HOPS_OTA'], message: '운영에서는 1 이상이어야 합니다(0이면 전원이 한 키)' });
     if (!e.READY_TOKEN) ctx.addIssue({ code: 'custom', path: ['READY_TOKEN'], message: '운영에서는 필수입니다(/readyz 비공개)' });
     // B2: 운영에서 인증·되찾기 설정이 빠지면 조용히 뜨지 않는다(로그인 전부 401·글귀가 개발용 pepper로 해시되는 사고 방지)
     if (!e.SUPABASE_URL?.startsWith('https://')) ctx.addIssue({ code: 'custom', path: ['SUPABASE_URL'], message: '운영에서는 https 주소가 필수입니다' });
@@ -148,9 +159,15 @@ export const envSchema = z
     if (!e.RECOVERY_PEPPER) ctx.addIssue({ code: 'custom', path: ['RECOVERY_PEPPER'], message: '운영에서는 필수입니다(32자 이상)' });
     if (!e.CRON_AUDIENCE?.startsWith('https://')) ctx.addIssue({ code: 'custom', path: ['CRON_AUDIENCE'], message: '운영에서는 서비스 URL(https, 경로 없음)이 필수입니다' });
     if (e.STORAGE_DRIVER === 'local') ctx.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: '운영에서는 local 저장소를 쓸 수 없습니다(B6 전까지 none)' });
+    if (e.OTA_ALLOW_UNSIGNED) ctx.addIssue({ code: 'custom', path: ['OTA_ALLOW_UNSIGNED'], message: '운영에서는 서명 없는 OTA를 내보낼 수 없습니다' });
     if (!e.CRON_SA_EMAIL) ctx.addIssue({ code: 'custom', path: ['CRON_SA_EMAIL'], message: '운영에서는 Scheduler 서비스 계정 이메일이 필수입니다' });
   })
-  .transform((e) => ({ ...e, TRUSTED_PROXY_HOPS_API: e.TRUSTED_PROXY_HOPS_API ?? 0, TRUSTED_PROXY_HOPS_WEB: e.TRUSTED_PROXY_HOPS_WEB ?? 0 }));
+  .transform((e) => ({
+    ...e,
+    TRUSTED_PROXY_HOPS_API: e.TRUSTED_PROXY_HOPS_API ?? 0,
+    TRUSTED_PROXY_HOPS_WEB: e.TRUSTED_PROXY_HOPS_WEB ?? 0,
+    TRUSTED_PROXY_HOPS_OTA: e.TRUSTED_PROXY_HOPS_OTA ?? e.TRUSTED_PROXY_HOPS_WEB ?? 0,
+  }));
 
 export type Env = z.infer<typeof envSchema>;
 

@@ -61,6 +61,17 @@ describe('환경 변수 검증(zod)', () => {
       expect(() => validateEnv(rest)).toThrow(new RegExp(k));
       expect(() => validateEnv({ ...prod, [k]: '0' })).toThrow(new RegExp(k));
     });
+    it('V21: OTA hops는 비우면 WEB 값(Firebase 리라이트 같은 길), 운영에서 0이면 부팅 거부', () => {
+      expect(validateEnv(prod).TRUSTED_PROXY_HOPS_OTA).toBe(2);
+      expect(validateEnv({ ...prod, TRUSTED_PROXY_HOPS_OTA: '3' }).TRUSTED_PROXY_HOPS_OTA).toBe(3);
+      expect(() => validateEnv({ ...prod, TRUSTED_PROXY_HOPS_OTA: '0' })).toThrow(/TRUSTED_PROXY_HOPS_OTA/);
+      expect(validateEnv(base).TRUSTED_PROXY_HOPS_OTA).toBe(0);
+    });
+    it('V21: 운영에서 서명 없는 OTA 허용은 부팅 거부, 기본은 꺼짐', () => {
+      expect(validateEnv(prod).OTA_ALLOW_UNSIGNED).toBe(false);
+      expect(() => validateEnv({ ...prod, OTA_ALLOW_UNSIGNED: 'true' })).toThrow(/OTA_ALLOW_UNSIGNED/);
+      expect(validateEnv({ ...base, OTA_ALLOW_UNSIGNED: 'true' }).OTA_ALLOW_UNSIGNED).toBe(true);
+    });
     it('READY_TOKEN이 없으면 부팅 거부', () => {
       const { READY_TOKEN: _t, ...rest } = prod;
       expect(() => validateEnv(rest)).toThrow(/READY_TOKEN/);

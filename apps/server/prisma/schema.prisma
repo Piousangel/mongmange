@@ -425,3 +425,49 @@ model AdminAction {
   @@map("admin_actions")
   @@schema("app")
 }
+
+/// 자체 OTA(V21, docs/design/server-v1/ota-self-host.md). update = 매니페스트, rollback = 내장 번들로 되돌리기 지시
+enum OtaKind {
+  update
+  rollback
+
+  @@map("ota_kind")
+  @@schema("app")
+}
+
+/// OTA 게시 목록(사용자와 무관 — 설치 id·IP·기기 값 칸이 없다). 쓰기는 게시 롤 `ota_publisher`(INSERT만), 서버 롤은 SELECT만 —
+/// FORCE RLS + 정책으로 DB가 강제한다(마이그레이션). 수정·삭제 정책은 없다(덧붙이기만).
+/// body = 서명한 JSON 원문 그대로(매니페스트 또는 지시). 원문 안에 seq·channel이 서명되어 있어 서버가 행과 대조한다(리뷰 M3)
+model OtaRelease {
+  id             String   @id @db.Uuid
+  channel        String   @db.VarChar(32)
+  runtimeVersion String   @map("runtime_version") @db.VarChar(128)
+  platform       String   @db.VarChar(8)
+  /// 판 번호(채널·런타임·플랫폼 안에서 1부터 1씩). 서버는 가장 큰 seq를 고른다
+  seq            Int
+  kind           OtaKind
+  /// 매니페스트 createdAt / 롤백 commitTime(앞 판보다 늘 늦다 — CLI가 확인)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(3)
+  body           String
+  /// RSA-SHA256(PKCS#1 v1.5) base64. 운영에서는 서명 없는 행을 내보내지 않는다
+  signature      String?
+  /// 채널별 키(preview·production)
+  keyId          String?  @map("key_id") @db.VarChar(64)
+  /// 이 판이 가리키는 에셋 해시(launchAsset 첫째) — 에셋 보유 확인·정리용
+  assetHashes    String[] @default([]) @map("asset_hashes")
+  publishedAt    DateTime @default(now()) @map("published_at") @db.Timestamptz(6)
+
+  @@unique([channel, runtimeVersion, platform, seq])
+  @@map("ota_releases")
+  @@schema("app")
+}
+
+/// 롤백한 나쁜 판(launchAsset 해시 = 번들 내용). 게시 CLI는 이 번들을 다시 게시하지 않고, 서버는 행이 있어도 내보내지 않는다
+model OtaRevoked {
+  launchHash String   @id @map("launch_hash") @db.VarChar(43)
+  revokedAt  DateTime @default(now()) @map("revoked_at") @db.Timestamptz(6)
+  reason     String?  @db.VarChar(200)
+
+  @@map("ota_revoked")
+  @@schema("app")
+}

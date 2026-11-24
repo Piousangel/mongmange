@@ -2,9 +2,11 @@
 // Supabase Storage의 동작을 흉내 낸다: 비공개 버킷 + 서명 업로드 URL(유형·크기 고정, 만료, 1회) + 버킷 상한(크기·MIME).
 // 서명 업로드·공개 파일 읽기는 local-storage.controller.ts(이 드라이버일 때만 붙는다).
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { mkdir, open, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import type { Readable } from 'node:stream';
 import { dirname, join, relative, sep } from 'node:path';
-import { ALL_BUCKETS, OBJECT_KEY_RE, PREFIX_RE, STAGING_LIMITS, type Bucket, type ObjectInfo, type ObjectStore, type SignedUpload } from './object-store';
+import { ALL_BUCKETS, OBJECT_KEY_RE, PREFIX_RE, STAGING_LIMITS, validObjectKey, type Bucket, type ObjectInfo, type ObjectStore, type SignedUpload } from './object-store';
 
 interface UploadGrant {
   bucket: Bucket;
@@ -32,7 +34,7 @@ export class LocalObjectStore implements ObjectStore {
 
   private path(bucket: Bucket, key: string): string {
     if (!ALL_BUCKETS.includes(bucket)) throw new Error('모르는 버킷');
-    if (!OBJECT_KEY_RE.test(key)) throw new Error('키 모양이 아니다');
+    if (!validObjectKey(bucket, key)) throw new Error('키 모양이 아니다');
     return join(this.root, bucket, ...key.split('/'));
   }
 
@@ -76,6 +78,25 @@ export class LocalObjectStore implements ObjectStore {
     try {
       const s = await stat(p);
       return { size: s.size, contentType: (await readFile(`${p}.type`, 'utf8')).trim() };
+    } catch {
+      return null;
+    }
+  }
+
+  async read(bucket: Bucket, key: string): Promise<{ body: Uint8Array; contentType: string } | null> {
+    const p = this.path(bucket, key);
+    try {
+      return { body: new Uint8Array(await readFile(p)), contentType: (await readFile(`${p}.type`, 'utf8')).trim() };
+    } catch {
+      return null;
+    }
+  }
+
+  async openRead(bucket: Bucket, key: string): Promise<{ stream: Readable; size: number; contentType: string } | null> {
+    const p = this.path(bucket, key);
+    try {
+      const [s, contentType] = await Promise.all([stat(p), readFile(`${p}.type`, 'utf8')]);
+      return { stream: createReadStream(p), size: s.size, contentType: contentType.trim() };
     } catch {
       return null;
     }

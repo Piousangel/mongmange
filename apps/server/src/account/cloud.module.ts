@@ -62,6 +62,6 @@ import { RecoveryPepper } from './recovery-pepper';
     ModerationService,
     CronAuth,
   ],
-  exports: [Clock, GcService, OBJECT_STORE, CdnPurgeQueue, PageService],
+  exports: [Clock, RateLimiter, GcService, OBJECT_STORE, CdnPurgeQueue, PageService],
 })
 export class CloudModule {}

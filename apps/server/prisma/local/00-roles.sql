@@ -9,6 +9,10 @@ CREATE ROLE anon NOLOGIN NOINHERIT;
 CREATE ROLE authenticated NOLOGIN NOINHERIT;
 -- 집계 조회 전용 롤 자리(B0 리뷰 I2): 칸 5 미만을 숨긴 뷰만 읽는다. 운영에서는 B6에서 같은 이름으로 만든다
 CREATE ROLE metrics_reader NOLOGIN NOINHERIT;
+-- OTA 게시 롤(V21, 리뷰 M4): ota_releases·ota_revoked에 SELECT·INSERT만(마이그레이션이 GRANT·정책을 건다). prisma는 이 롤의 멤버가 아니다 —
+-- 서버가 게시 권한을 빌릴 수 없게. 운영은 B6에서 같은 이름으로(비밀번호 = 오너 보관)
+CREATE ROLE ota_publisher LOGIN PASSWORD 'ota-publisher-local' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;
 GRANT anon, authenticated, metrics_reader TO prisma;
 GRANT CONNECT, CREATE ON DATABASE mong TO prisma;
+GRANT CONNECT ON DATABASE mong TO ota_publisher;
 GRANT USAGE, CREATE ON SCHEMA public TO prisma;

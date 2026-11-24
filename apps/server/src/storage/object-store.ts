@@ -2,11 +2,14 @@
 //  - page-staging(비공개): 앱이 서명 URL로만 올린다. commit 전 파일은 공개 주소가 없다(A4 리뷰 I10).
 //  - public-pages(공개 읽기, 클라이언트 쓰기 없음): commit이 검사를 통과한 파일만 옮긴다. 판마다 새 경로(pageKey)라 immutable 캐시.
 //  - quarantine(비공개): 신고 격리(B5).
+//  - ota-assets(비공개, 서버가 읽어 내보냄): 자체 OTA 에셋(V21, docs/design/server-v1/ota-self-host.md). 키 = 내용 해시(SHA-256 base64url 43자)
+//    + 선택 접미 `.br`·`.gz`(미리 압축한 판). 내용 주소라 한 번 쓰면 바뀌지 않는다. 사용자와 무관 — 링크 코드·pageKey 규칙 밖.
 // 구현: LocalObjectStore(파일 시스템, 개발·시험·compose) / NoStore(설정 안 됨 — 운영 기본, 링크 기능 503). 실제 Supabase Storage는 B6.
 // 키에 링크 코드를 넣지 않는다 — 경로는 pageKey(서버 난수 128비트)뿐이라 파일 주소로 코드를 거꾸로 찾을 수 없다.
 import { randomBytes } from 'node:crypto';
+import type { Readable } from 'node:stream';
 
-export const BUCKETS = { staging: 'page-staging', public: 'public-pages', quarantine: 'quarantine' } as const;
+export const BUCKETS = { staging: 'page-staging', public: 'public-pages', quarantine: 'quarantine', ota: 'ota-assets' } as const;
 export type Bucket = (typeof BUCKETS)[keyof typeof BUCKETS];
 export const ALL_BUCKETS: readonly Bucket[] = Object.values(BUCKETS);
 
@@ -31,6 +34,10 @@ export interface ObjectStore {
   /** 서버가 직접 쓰기(snap.json) */
   put(bucket: Bucket, key: string, body: Uint8Array, contentType: string): Promise<void>;
   stat(bucket: Bucket, key: string): Promise<ObjectInfo | null>;
+  /** 파일 전체 읽기(게시 때 해시 검사). 없으면 null */
+  read(bucket: Bucket, key: string): Promise<{ body: Uint8Array; contentType: string } | null>;
+  /** 스트림 읽기(OTA 에셋 내보내기 — 메모리에 통째로 올리지 않는다, 리뷰 M5). 없으면 null */
+  openRead(bucket: Bucket, key: string): Promise<{ stream: Readable; size: number; contentType: string } | null>;
   /** 앞 n바이트(Range 읽기). 파일이 더 짧으면 있는 만큼 */
   readHead(bucket: Bucket, key: string, n: number): Promise<Uint8Array>;
   /** 버킷 사이 옮기기(같은 키). 옮긴 뒤 원본은 없다 */
@@ -68,6 +75,12 @@ export class NoStore implements ObjectStore {
   stat(): Promise<ObjectInfo | null> {
     return Promise.reject(new StorageNotConfigured());
   }
+  read(): Promise<{ body: Uint8Array; contentType: string } | null> {
+    return Promise.reject(new StorageNotConfigured());
+  }
+  openRead(): Promise<{ stream: Readable; size: number; contentType: string } | null> {
+    return Promise.reject(new StorageNotConfigured());
+  }
   readHead(): Promise<Uint8Array> {
     return Promise.reject(new StorageNotConfigured());
   }
@@ -97,6 +110,12 @@ export const PAGE_KEY_RE = /^[A-Za-z0-9_-]{22}$/;
 /** removePrefix·list가 받는 접두: storeKey 하나 또는 storeKey/pageKey */
 export const PREFIX_RE = /^[0-9a-f]{32}(?:\/[A-Za-z0-9_-]{22})?$/;
 export const OBJECT_KEY_RE = /^[0-9a-f]{32}\/[A-Za-z0-9_-]{22}\/(?:poster\.jpg|og\.jpg|loop\.mp4|snap\.json)$/;
+/** OTA 에셋 키: SHA-256 base64url(43자) + 선택 압축 접미. ota-assets 버킷에서만 쓴다 */
+export const OTA_KEY_RE = /^[A-Za-z0-9_-]{43}(?:\.br|\.gz)?$/;
+/** 버킷별 키 모양(ota-assets만 내용 해시 키, 나머지는 페이지 키) */
+export function validObjectKey(bucket: Bucket, key: string): boolean {
+  return bucket === BUCKETS.ota ? OTA_KEY_RE.test(key) : OBJECT_KEY_RE.test(key);
+}
 /** 서버 난수 pageKey(128비트). 코드에서 파생하지 않는다 — 파일 주소로 코드를 찾을 수 없게 */
 export function newPageKey(): string {
   return randomBytes(16).toString('base64url');

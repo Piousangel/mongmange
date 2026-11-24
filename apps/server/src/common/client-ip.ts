@@ -9,12 +9,17 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env';
 
-export type RouteGroup = 'api' | 'web';
+export type RouteGroup = 'api' | 'web' | 'ota';
 
-/** 경로 → 그룹. `/m`·`/m/**`는 Firebase Hosting 경유(web), 나머지는 앱 API 직접(api) */
+/**
+ * 경로 → 그룹. `/m`·`/m/**`는 Firebase Hosting 경유(web), `/api/v1/ota/**`는 자체 OTA(ota — `ota.mongmang.ink` Firebase 리라이트, V21),
+ * 나머지는 앱 API 직접(api)
+ */
 export function routeGroupOf(path: string | undefined): RouteGroup {
   const p = (path ?? '').split('?')[0] ?? '';
-  return p === '/m' || p.startsWith('/m/') ? 'web' : 'api';
+  if (p === '/m' || p.startsWith('/m/')) return 'web';
+  if (p === '/api/v1/ota' || p.startsWith('/api/v1/ota/')) return 'ota';
+  return 'api';
 }
 
 export interface IpRequest {
@@ -32,6 +37,7 @@ export class ClientIpService {
     this.hops = {
       api: config.get('TRUSTED_PROXY_HOPS_API', { infer: true }),
       web: config.get('TRUSTED_PROXY_HOPS_WEB', { infer: true }),
+      ota: config.get('TRUSTED_PROXY_HOPS_OTA', { infer: true }),
     };
   }
 

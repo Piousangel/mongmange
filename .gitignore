@@ -5,3 +5,7 @@ node_modules/
 .env.local
 .env*.local
 docs/spike/render-02/*-360.webm
+# V21 자체 OTA 서명 개인키는 저장소 밖에만(ota-self-host.md 6절). 실수로 복사해 와도 잡히게
+private-key.pem
+*.private.pem
+*-private-key.pem
