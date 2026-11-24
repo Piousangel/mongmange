@@ -91,3 +91,4 @@
 - 오너 결정 대기: 프로젝트 훅(완료 차단)·deny 규칙(설정 변경).
 
 - 팀 구조(누가·어느 레인·두 팀 사이 인터페이스)는 docs/team/org-structure.md(11-24)를 따른다.
+- 작업 진행·보고는 슬랙 #mongmange에서 한다(docs/team/slack-protocol.md, 11-24 오너 지시).
