@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>loading</title>
+<style>
+  body{margin:0;background:#E6DFD1;font-family:"Apple SD Gothic Neo","Pretendard",sans-serif;color:#2A2622}
+  .board{padding:28px 32px;display:flex;flex-direction:column;gap:18px}
+  h1{font-size:22px;margin:0;font-weight:600}
+  .sub{font-size:13px;color:#6B625A;margin-top:4px;line-height:1.5}
+  .row{display:flex;gap:18px;align-items:flex-start}
+  .cell{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .cap{font-size:13px;line-height:1.45;text-align:center;max-width:330px}
+  .cap b{display:block;font-size:14px}
+  .tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:9px;margin-top:4px}
+  .ok{background:#DDE6D5;color:#2F4A2A}.no{background:#F0D6CF;color:#7A2E1E}.mid{background:#EDE2C8;color:#5B4A1E}
+  .thumbs{display:flex;gap:10px;align-items:flex-end;justify-content:center;margin-top:2px}
+  .thumbs span{font-size:10px;color:#6B625A;display:block;text-align:center}
+  .phone{border-radius:28px;overflow:hidden;box-shadow:0 6px 24px rgba(40,30,20,.25)}
+  .lane{display:flex;gap:6px;align-items:flex-end}
+  .daylab{font-size:12px;color:#6B625A;text-align:center}
+</style></head>
+<body><div class="board" id="root"></div>
+<script>
+// ───────── 공통: 몽망이 SVG (아트 바이블 1-1 수치 근사, 칠은 Skia 렌더의 근사) ─────────
+let uid = 0;
+const P = { paper:'#EFE8DA', ink:'#1B1A18', wash:'#B9B3A8', night:'#141A2C', nbody:'#7E7973', rim:'#E9E2D2', stroke:'#5F5C56', shu:'#C8462C' };
+
+// 몸 윤곽: 폭 W, 폭:높이 1.25, 바닥 평평(현 0.7W), 정수리 앞으로 0.05W 기울임. 원점 = 바닥 중앙
+function bodyPath(W, ratio = 1.25) {
+  const H = W / ratio, a = W / 2, b = H / 0.857 / 2; // 타원을 바닥에서 잘라 현 0.7W
+  const cy = -(H - b); const pts = [];
+  for (let i = 0; i <= 96; i++) {
+    const t = (i / 96) * Math.PI * 2;
+    let x = a * Math.cos(t), y = cy + b * Math.sin(t);
+    if (y > 0) y = 0;
+    const up = Math.max(0, -y / H);
+    x += 0.05 * W * up * up;
+    pts.push([x, y]);
+  }
+  return 'M' + pts.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join('L') + 'Z';
+}
+// E 빗: 정수리 오른쪽, 세 가닥
+function comb(W, H, col, th = 0.06, len = 0.12) {
+  const base = [[0.20, -H * 0.93], [0.255, -H * 0.83], [0.30, -H * 0.72]];
+  const L = [1, 0.9, 0.75];
+  return base.map(([bx, by], i) => {
+    const x1 = bx * W, x2 = x1 + (len + 0.1) * L[i] * W, y2 = by - 0.03 * W * (1 - i * 0.6);
+    return `<path d="M${x1 - 0.06 * W},${by + 0.01 * W} Q${(x1 + x2) / 2},${by - 0.01 * W} ${x2},${y2}" stroke="${col}" stroke-width="${th * W}" stroke-linecap="round" fill="none"/>`;
+  }).join('');
+}
+// 유저 획(담묵 두름) — 날 수에 따라 늘어남. seed로 사람마다 다른 손
+function rng(s) { return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function userStrokes(W, H, n, seed, col, opts = {}) {
+  const r = rng(seed); let out = '';
+  for (let i = 0; i < n; i++) {
+    // 허용 자리: 등(뒤·왼쪽) 100°~190°, 옆 앞쪽 20°~80°는 머리 띠 피함 → 간단히 왼쪽·오른쪽 아래 둘레
+    const bias = opts.bias ?? 0.33;
+    const side = r() < bias ? 1 : -1;
+    const ang = side < 0 ? (2.2 + r() * 1.5) : (0.1 + r() * 0.55); // 라디안, 0=오른쪽
+    const R = W * ((opts.rad || 0.62) + 0.05 * Math.floor(i / 3) + r() * 0.08);
+    const cx = 0, cy = -H * 0.5;
+    const span = (opts.span || 0.8) * (0.6 + r() * 0.8);
+    const a1 = ang, a2 = ang + span * (side < 0 ? 1 : -1) * 0.8;
+    const p1 = [cx + R * Math.cos(a1), cy + R * 0.78 * Math.sin(a1)];
+    const p2 = [cx + R * Math.cos(a2), cy + R * 0.78 * Math.sin(a2)];
+    const m = [(cx + (R * 1.08) * Math.cos((a1 + a2) / 2)), cy + R * 0.84 * Math.sin((a1 + a2) / 2)];
+    const w = W * (0.10 + r() * 0.05) * (opts.thick || 1);
+    out += `<path d="M${p1[0]},${p1[1]} Q${m[0]},${m[1]} ${p2[0]},${p2[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round" fill="none" opacity="${opts.op || 1}"/>`;
+  }
+  return out;
+}
+
+/** style: flat | lit | gloss | toon | night | nightlit */
+function mong(W, style, extra = {}) {
+  const id = 'm' + (uid++), H = W / 1.25, d = bodyPath(W);
+  const n = extra.n || 0, seed = extra.seed || 7, ringW = 1.3 * W;
+  const night = style.startsWith('night');
+  const bodyCol = night ? P.nbody : P.ink;
+  const eyeY = -H * 0.38, eyeDX = 0.21 * W, eyeR = 0.08 * W;
+  const blur = Math.max(0.35, Math.min(1.6, W * 0.008));
+  let defs = `<filter id="${id}e" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${blur}"/></filter>`;
+  let s = '';
+  // 바닥 번짐 고리 / 그림자
+  if (style === 'lit' || style === 'nightlit') {
+    defs += `<filter id="${id}s" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="${W * 0.06}"/></filter>`;
+    defs += `<filter id="${id}c" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="${W * 0.015}"/></filter>`;
+    // 아침 빛(왼쪽 위) → 그림자는 오른쪽 아래로 길게, 고리는 그대로(번짐 = 물질)
+    s += `<ellipse cx="0" cy="${0.02 * W}" rx="${ringW / 2}" ry="${0.09 * W}" fill="${night ? '#2A3148' : P.wash}" opacity="0.22"/>`;
+    s += `<ellipse cx="${0.16 * W}" cy="${0.035 * W}" rx="${0.58 * W}" ry="${0.075 * W}" fill="${night ? '#05070d' : '#5a4a36'}" opacity="${night ? 0.55 : 0.26}" filter="url(#${id}s)" transform="skewX(-28)"/>`;
+    s += `<ellipse cx="${0.02 * W}" cy="${0.004 * W}" rx="${0.36 * W}" ry="${0.022 * W}" fill="#000" opacity="${night ? 0.6 : 0.55}" filter="url(#${id}c)"/>`;
+  } else if (style === 'gloss') {
+    defs += `<filter id="${id}s"><feGaussianBlur stdDeviation="${W * 0.05}"/></filter>`;
+    s += `<ellipse cx="${0.05 * W}" cy="${0.02 * W}" rx="${0.6 * W}" ry="${0.1 * W}" fill="#000" opacity="0.35" filter="url(#${id}s)"/>`;
+  } else if (style === 'toon') {
+    s += `<ellipse cx="${0.06 * W}" cy="${0.015 * W}" rx="${0.56 * W}" ry="${0.08 * W}" fill="#3b3833" opacity="0.55"/>`;
+  } else {
+    defs += `<filter id="${id}s"><feGaussianBlur stdDeviation="${W * 0.03}"/></filter>`;
+    s += `<ellipse cx="0" cy="${0.02 * W}" rx="${ringW / 2}" ry="${0.09 * W}" fill="${night ? '#2A3148' : P.wash}" opacity="0.5" filter="url(#${id}s)"/>`;
+  }
+  // 유저 획(몸 뒤, 담묵)
+  if (n) s += `<g filter="url(#${id}e)">${userStrokes(W, H, n, seed, night ? '#59585A' : (extra.strokeCol || P.stroke), Object.assign({ op: 0.95 }, extra.hand || {}))}</g>`;
+  // 몸 칠
+  if (style === 'flat' || style === 'night') {
+    s += `<g filter="url(#${id}e)"><path d="${d}" fill="${bodyCol}"/>${comb(W, H, bodyCol)}</g>`;
+  } else if (style === 'lit' || style === 'nightlit') {
+    // 확산광만: 왼쪽 위가 6~8% 밝은 '먹 막 두께' + 가장자리 안쪽 고인 먹(더 짙은 테) + 오른쪽 아래 아주 약한 반사광 없음
+    const g1 = night ? '#8C877F' : '#2C2A27', g2 = night ? '#6F6A64' : '#141311';
+    defs += `<radialGradient id="${id}g" cx="0.34" cy="0.22" r="0.95"><stop offset="0" stop-color="${g1}"/><stop offset="0.75" stop-color="${bodyCol}"/><stop offset="1" stop-color="${g2}"/></radialGradient>`;
+    defs += `<filter id="${id}p" x="-10%" y="-10%" width="120%" height="120%"><feMorphology operator="erode" radius="${W * 0.035}" in="SourceAlpha" result="er"/><feGaussianBlur stdDeviation="${W * 0.03}" in="er" result="eb"/><feComposite in="SourceAlpha" in2="eb" operator="out" result="ring"/><feFlood flood-color="${night ? '#5c5852' : '#000'}" flood-opacity="${night ? 0.5 : 0.55}"/><feComposite in2="ring" operator="in"/></filter>`;
+    s += `<g filter="url(#${id}e)"><path d="${d}" fill="url(#${id}g)"/>${comb(W, H, bodyCol, extra.combTh || 0.06, extra.combLen || 0.12)}</g>`;
+    s += `<path d="${d}" fill="#000" filter="url(#${id}p)" opacity="0.9"/>`;
+    if (night) s += `<path d="${d}" fill="none" stroke="${P.rim}" stroke-width="${Math.max(0.6, W * 0.018)}" opacity="0.85" filter="url(#${id}e)"/>`;
+  } else if (style === 'gloss') {
+    defs += `<radialGradient id="${id}g" cx="0.3" cy="0.25" r="0.9"><stop offset="0" stop-color="#6a6762"/><stop offset="0.45" stop-color="#26241f"/><stop offset="1" stop-color="#0b0b0a"/></radialGradient>`;
+    defs += `<radialGradient id="${id}h" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>`;
+    s += `<path d="${d}" fill="url(#${id}g)"/>${comb(W, H, '#1a1917')}`;
+    s += `<ellipse cx="${-0.17 * W}" cy="${-H * 0.74}" rx="${0.13 * W}" ry="${0.07 * W}" fill="url(#${id}h)" transform="rotate(-25 ${-0.17 * W} ${-H * 0.74})"/>`;
+  } else if (style === 'toon') {
+    defs += `<clipPath id="${id}k"><path d="${d}"/></clipPath>`;
+    s += `<path d="${d}" fill="#3a3732"/>`;
+    s += `<g clip-path="url(#${id}k)"><ellipse cx="${0.18 * W}" cy="${-H * 0.2}" rx="${0.6 * W}" ry="${0.55 * W}" fill="#191816"/></g>`;
+    s += `<path d="${d}" fill="none" stroke="#0a0a09" stroke-width="${W * 0.03}"/>${comb(W, H, '#0a0a09')}`;
+    s += `<path d="${d}" fill="none" stroke="#8d877d" stroke-width="${W * 0.02}" stroke-dasharray="${W * 0.5} ${W * 3}" stroke-dashoffset="${-W * 1.55}"/>`;
+  }
+  // 눈
+  if (night || style === 'nightlit') {
+    s += [-1, 1].map(k => `<path d="M${k * eyeDX - eyeR},${eyeY} Q${k * eyeDX},${eyeY + eyeR * 0.9} ${k * eyeDX + eyeR},${eyeY}" stroke="${P.rim}" stroke-width="${Math.max(0.6, W * 0.03)}" fill="none" stroke-linecap="round"/>`).join('');
+  } else if (style === 'toon') {
+    s += [-1, 1].map(k => `<ellipse cx="${k * eyeDX}" cy="${eyeY}" rx="${eyeR * 0.9}" ry="${eyeR * 1.1}" fill="#fff"/><ellipse cx="${k * eyeDX + eyeR * 0.15}" cy="${eyeY + eyeR * 0.1}" rx="${eyeR * 0.5}" ry="${eyeR * 0.65}" fill="#111"/><circle cx="${k * eyeDX + eyeR * 0.35}" cy="${eyeY - eyeR * 0.25}" r="${eyeR * 0.2}" fill="#fff"/>`).join('');
+  } else {
+    const eyeCol = P.paper;
+    s += `<g filter="url(#${id}e)">` + [-1, 1].map(k => `<circle cx="${k * eyeDX}" cy="${eyeY}" r="${eyeR}" fill="${eyeCol}"/>`).join('') + `</g>`;
+    if (style === 'lit') {
+      // 눈 구멍 두께: 위쪽 안 그림자(먹 막이 종이 위에 얹혀 있다)
+      defs += `<clipPath id="${id}q">${[-1, 1].map(k => `<circle cx="${k * eyeDX}" cy="${eyeY}" r="${eyeR}"/>`).join('')}</clipPath>`;
+      defs += `<filter id="${id}x"><feGaussianBlur stdDeviation="${Math.max(0.3, W * 0.01)}"/></filter>`;
+      s += `<g clip-path="url(#${id}q)" filter="url(#${id}x)">` + [-1, 1].map(k => `<circle cx="${k * eyeDX + 0.012 * W}" cy="${eyeY - eyeR * 1.55}" r="${eyeR * 0.85}" fill="#6b5f4e" opacity="0.55"/>`).join('') + `</g>`;
+    }
+  }
+  return { defs, s, W, H };
+}
+function svgOf(m, w, h, bg, ox, oy, extraDefs = '') {
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><defs>${paperDefs()}${m.defs}${extraDefs}</defs>${bg}<g transform="translate(${ox},${oy})">${m.s}</g></svg>`;
+}
+let paperOnce = false;
+function paperDefs() {
+  return `<filter id="paper" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0.42  0 0 0 0 0.36  0 0 0 0 0.28  0 0 0 0.07 0"/><feComposite in2="SourceGraphic" operator="over"/></filter>
+  <filter id="fiber" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.09" numOctaves="3" seed="8"/><feColorMatrix type="matrix" values="0 0 0 0 0.45  0 0 0 0 0.38  0 0 0 0 0.3  0 0 0 0.10 -0.02"/></filter>
+  <filter id="wood" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.006 0.16" numOctaves="4" seed="21"/><feColorMatrix type="matrix" values="0 0 0 0 0.45  0 0 0 0 0.32  0 0 0 0 0.2  0 0 0 0.45 -0.05"/></filter>
+  <linearGradient id="dayLight" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0" stop-opacity="0.35"/><stop offset="0.6" stop-color="#fffaf0" stop-opacity="0"/><stop offset="1" stop-color="#3a2a18" stop-opacity="0.07"/></linearGradient>`;
+}
+function paperBg(w, h, night = false) {
+  if (night) return `<rect width="${w}" height="${h}" fill="${P.night}"/><rect width="${w}" height="${h}" fill="#000" filter="url(#paper)" opacity="0.6"/>`;
+  return `<rect width="${w}" height="${h}" fill="${P.paper}"/><rect width="${w}" height="${h}" filter="url(#fiber)"/><rect width="${w}" height="${h}" fill="transparent" filter="url(#paper)"/>`;
+}
+
+// ───────── 장면 1: 몸 렌더 방식 4종 + 작은 크기 ─────────
+function sceneBody() {
+  const items = [
+    ['flat', '① 현행 2D 수묵(Skia)', '평면 먹 + 가장자리 번짐. 정체성·썸네일 강함, 대신 "놓여 있다"는 무게감이 약함', 'ok', '정본'],
+    ['lit', '③ 2.5D — 빛·그림자·두께만', '확산광 ≤ 8%·고인 먹 테·빛 방향 그림자·눈 구멍 안 그림자. 반짝이(정반사) 없음', 'ok', '추천'],
+    ['gloss', '③′ 2.5D 정반사·노멀 조명', '06b 계열. 손에 쥘 것 같지만 조약돌·알로 읽힘(금지표 1-4)', 'no', '금지'],
+    ['toon', '② ④ 3D·툰 셰이딩(근사)', '셀 2단·외곽선·림 + 3D식 눈. 흔한 코지 3D 마스코트로 수렴', 'no', '비추천'],
+  ];
+  let html = `<div><h1>시안 1 · 같은 몽망이, 렌더 방식 넷 (몸 폭 200 / 64 / 36 / 22px)</h1><div class="sub">수치는 아트 바이블 1-1을 따른 SVG 근사(Skia 칠과 1:1은 아님). 아래 줄은 같은 그림을 작게 — D-24 썸네일에서 무엇이 남는지.</div></div><div class="row">`;
+  for (const [st, t, c, cls, tag] of items) {
+    const m = mong(200, st, { n: 4, seed: 11 });
+    let big = svgOf(m, 330, 290, paperBg(330, 290), 165, 220);
+    let th = '';
+    for (const w of [64, 36, 22]) {
+      const mm = mong(w, st, { n: 4, seed: 11 });
+      const bw = Math.round(w * 2.1), bh = Math.round(w * 1.5);
+      th += `<div>${svgOf(mm, bw, bh, paperBg(bw, bh), bw / 2, bh * 0.78)}<span>${w}px</span></div>`;
+    }
+    html += `<div class="cell">${big}<div class="cap"><b>${t}</b>${c}<br><span class="tag ${cls}">${tag}</span></div><div class="thumbs">${th}</div></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+// ───────── 소품(붓·벼루·연적) ─────────
+function propsLine(y, w, col) { // 현행: 선 아이콘 1.5px
+  const xs = [w * 0.2, w * 0.5, w * 0.8];
+  return `<g stroke="${col}" stroke-width="1.5" fill="none" stroke-linecap="round">
+   <path d="M${xs[0] - 22},${y + 20} L${xs[0] + 20},${y - 18}"/><path d="M${xs[0] - 22},${y + 20} q6,-2 10,2"/>
+   <rect x="${xs[1] - 22}" y="${y - 14}" width="44" height="32" rx="6"/><ellipse cx="${xs[1]}" cy="${y}" rx="13" ry="8" fill="${col}" fill-opacity="0.18"/>
+   <path d="M${xs[2] - 4},${y - 20} h8 M${xs[2] - 3},${y - 20} q-14,12 -12,26 q2,12 15,12 q13,0 15,-12 q2,-14 -12,-26"/></g>`;
+}
+function propsRich(y, w, night = false, scale = 1) {
+  const xs = [w * 0.2, w * 0.52, w * 0.82];
+  const dim = night ? 0.42 : 1;
+  const sh = night ? '#000' : '#4a3826';
+  const S = scale;
+  return `<defs>
+   <filter id="psh" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${4 * S}"/></filter>
+   <linearGradient id="bamboo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a6a4a"/><stop offset="0.45" stop-color="#5a3f28"/><stop offset="1" stop-color="#2e2015"/></linearGradient>
+   <linearGradient id="ferr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a5550"/><stop offset="0.5" stop-color="#1c1a18"/><stop offset="1" stop-color="#0c0b0a"/></linearGradient>
+   <linearGradient id="hair" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#111"/><stop offset="0.6" stop-color="#3a3632"/><stop offset="1" stop-color="#b9b0a2"/></linearGradient>
+   <radialGradient id="porc" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#fbfaf6"/><stop offset="0.7" stop-color="#e4e1d9"/><stop offset="1" stop-color="#b9b5ab"/></radialGradient>
+   <linearGradient id="stone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d6862"/><stop offset="0.5" stop-color="#47433f"/><stop offset="1" stop-color="#2a2724"/></linearGradient>
+   <radialGradient id="well" cx="0.45" cy="0.4" r="0.7"><stop offset="0" stop-color="#2a2826"/><stop offset="1" stop-color="#0e0d0c"/></radialGradient>
+  </defs>
+  <g opacity="${dim}">
+   <!-- 붓 받침 + 붓 -->
+   <g transform="translate(${xs[0]},${y}) scale(${S})">
+    <ellipse cx="14" cy="22" rx="40" ry="7" fill="${sh}" opacity="0.35" filter="url(#psh)" transform="skewX(-30)"/>
+    <path d="M-20,18 q-2,-16 8,-20 q6,-10 14,-2 q8,-8 14,2 q10,4 6,20 z" fill="url(#porc)"/>
+    <path d="M-10,12 q6,-6 10,-2 M4,10 q5,-5 9,0" stroke="#3d5a8a" stroke-width="1.1" fill="none" opacity="0.8"/>
+    <g transform="rotate(-14)">
+      <ellipse cx="18" cy="16" rx="56" ry="3.5" fill="${sh}" opacity="0.3" filter="url(#psh)"/>
+      <path d="M-62,0 q20,-3.6 28,-3.6 l0,7.2 q-8,0 -28,-3.6 z" fill="url(#hair)"/>
+      <rect x="-34" y="-3.8" width="12" height="7.6" rx="1.5" fill="url(#ferr)"/>
+      <rect x="-22" y="-3" width="66" height="6" rx="3" fill="url(#bamboo)"/>
+      <circle cx="47" cy="0" r="3.2" fill="none" stroke="#2a1c12" stroke-width="1.4"/>
+    </g>
+   </g>
+   <!-- 벼루 -->
+   <g transform="translate(${xs[1]},${y}) scale(${S})">
+    <rect x="-28" y="-14" width="70" height="52" rx="12" fill="${sh}" opacity="0.38" filter="url(#psh)" transform="skewX(-22)"/>
+    <rect x="-34" y="-26" width="68" height="52" rx="11" fill="url(#stone)"/>
+    <rect x="-34" y="-26" width="68" height="52" rx="11" fill="none" stroke="#8e8880" stroke-width="1" opacity="0.6"/>
+    <ellipse cx="0" cy="1" rx="23" ry="17" fill="url(#well)"/>
+    <path d="M-15,-9 q10,-6 22,-3" stroke="#6e6a66" stroke-width="1.2" fill="none" opacity="0.7"/>
+   </g>
+   <!-- 연적 -->
+   <g transform="translate(${xs[2]},${y}) scale(${S})">
+    <ellipse cx="14" cy="22" rx="26" ry="8" fill="${sh}" opacity="0.4" filter="url(#psh)" transform="skewX(-30)"/>
+    <path d="M-4,-26 h8 l0,6 q16,10 16,26 q0,18 -20,18 q-20,0 -20,-18 q0,-16 16,-26 z" fill="url(#porc)"/>
+    <ellipse cx="0" cy="-26" rx="4" ry="1.6" fill="#555"/>
+    <path d="M-2,14 q2,-14 6,-20 M-2,10 q-6,-6 -8,-12 M0,6 q6,-2 9,-8" stroke="#3d5a8a" stroke-width="1.2" fill="none" opacity="0.85"/>
+   </g>
+  </g>`;
+}
+function phone(kind) {
+  const w = 300, h = 640;
+  const night = kind === 'night';
+  let bg = paperBg(w, h, night);
+  let defs = '', body = '', props = '', labels = '', top = '';
+  const labCol = night ? '#A8A196' : '#6B625A';
+  const lab = (y) => ['한 획', '먹 갈기', '물 한 방울'].map((t, i) => `<text x="${[0.2, 0.52, 0.82][i] * w}" y="${y}" font-size="12" text-anchor="middle" fill="${labCol}" font-family="Pretendard,sans-serif">${t}</text>`).join('');
+  if (kind === 'now') {
+    const m = mong(64, 'flat', { n: 4, seed: 11 });
+    defs += m.defs; body = `<g transform="translate(${w / 2},${h * 0.56})">${m.s}</g>`;
+    props = propsLine(h - 96, w, '#2A2622'); labels = lab(h - 52);
+  } else if (kind === 'lit' || kind === 'night') {
+    const m = mong(64, night ? 'nightlit' : 'lit', { n: 4, seed: 11 });
+    defs += m.defs; body = `<g transform="translate(${w / 2},${h * 0.56})">${m.s}</g>`;
+    if (!night) bg += `<rect width="${w}" height="${h}" fill="url(#dayLight)"/>`;
+    // 소품이 놓인 아래 띠: 한지 한 장이 더 겹친 '깔개'(두께 = 1px 밝은 모서리 + 그림자)
+    bg += `<rect x="-10" y="${h - 150}" width="${w + 20}" height="170" fill="${night ? '#0f1424' : '#E7DFCF'}"/><rect x="-10" y="${h - 150}" width="${w + 20}" height="1" fill="${night ? '#2a3148' : '#fffaf0'}"/><rect x="-10" y="${h - 149}" width="${w + 20}" height="6" fill="#3a2a18" opacity="0.06"/>`;
+    props = propsRich(h - 100, w, night); labels = lab(h - 46);
+  } else if (kind === 'desk') {
+    const m = mong(64, 'lit', { n: 4, seed: 11 });
+    defs += m.defs;
+    bg = `<rect width="${w}" height="${h}" fill="#C9A982"/><rect width="${w}" height="${h}" filter="url(#wood)"/>`;
+    bg += `<rect x="16" y="22" width="${w - 32}" height="${h - 180}" fill="#3a2a18" opacity="0.22" filter="url(#psh2)" transform="translate(5,6)"/>`;
+    bg += `<rect x="16" y="22" width="${w - 32}" height="${h - 180}" fill="${P.paper}"/><rect x="16" y="22" width="${w - 32}" height="${h - 180}" filter="url(#fiber)"/><rect x="16" y="22" width="${w - 32}" height="${h - 180}" fill="url(#dayLight)"/>`;
+    defs += `<filter id="psh2" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="5"/></filter>`;
+    body = `<g transform="translate(${w / 2},${h * 0.5})">${m.s}</g>`;
+    props = propsRich(h - 98, w, false); labels = lab(h - 44).replace(/fill="#6B625A"/g, 'fill="#3b2a1a"');
+  }
+  top = `<text x="${w / 2}" y="${h * 0.3}" font-size="15" text-anchor="middle" fill="${night ? '#A8A196' : '#6B625A'}" font-family="'Gowun Batang',serif">${night ? '' : '오늘의 한 획을 그어 주세요'}</text>`;
+  if (night) top += `<g fill="none" stroke="#2A3148" stroke-width="1.2">${[1, 2, 3].map(i => `<ellipse cx="${w / 2}" cy="${h * 0.56}" rx="${50 + i * 26}" ry="${10 + i * 6}"/>`).join('')}</g>`;
+  return `<div class="phone"><svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><defs>${paperDefs()}${defs}</defs>${bg}${top}${body}${props}${labels}</svg></div>`;
+}
+function sceneHome() {
+  const items = [
+    ['now', '현행 (flow-v1 05 근사)', '한지 + 평면 먹 + 1.5px 선 아이콘', 'mid', '지금'],
+    ['lit', '추천 B1 · 한지 위 고급 소품', '같은 한지·여백. 소품만 미리 그린 입체 일러스트 + 왼쪽 위 빛 하나로 그림자 통일. 몸은 2.5D 빛만', 'ok', '추천'],
+    ['night', 'B1 밤', '소품은 42%로 잠기고(동사 표 "흐릿하게 잠김"), 몸은 풀린 먹 + 테. 같은 빛 규칙', 'ok', '추천'],
+    ['desk', '대안 B2 · 나무 책상(03b 계열)', '오너가 좋아한 실사풍. 한지가 "책상 위 종이 한 장"으로 줄어 여백·몽망이 비중이 작아짐', 'mid', '보류(블라인드)'],
+  ];
+  let html = `<div><h1>시안 2 · 홈 화면: "3D로 잘 뽑은 느낌"을 소품과 빛으로만 가져오기</h1><div class="sub">폭 300 근사. 소품은 SVG 그라디언트로 만든 '사전 렌더 스프라이트' 대역(출시 에셋은 3D로 한 번 렌더해 PNG로 굽는 것을 가정). 몽망이는 셰이더 그대로.</div></div><div class="row">`;
+  for (const [k, t, c, cls, tag] of items) html += `<div class="cell">${phone(k)}<div class="cap"><b>${t}</b>${c}<br><span class="tag ${cls}">${tag}</span></div></div>`;
+  return html + '</div>';
+}
+
+// ───────── 장면 3: 28밤 · 7일 스냅숏 — 2D 절차 렌더로 "모두 다른 + 매주 다른" ─────────
+function sceneGrowth() {
+  const people = [
+    { seed: 11, col: '#4E5E70', name: '송연 · 느긋결', hand: { bias: 0.15, span: 1.3, rad: 0.66, thick: 0.8 } },
+    { seed: 47, col: '#695947', name: '유연 · 대담결', hand: { bias: 0.7, span: 0.55, rad: 0.6, thick: 1.5 } },
+    { seed: 83, col: '#6A5563', name: '자연 · 꼼꼼결', hand: { bias: 0.45, span: 0.4, rad: 0.7, thick: 0.9 } },
+  ];
+  const days = [0, 7, 14, 21, 28];
+  let html = `<div><h1>시안 3 · 28밤 생애: 7일마다 스냅숏 (사람 셋 × 0·7·14·21·28일)</h1><div class="sub">같은 렌더러, 입력만 다름(손 획 점열 + 고른 먹). 스냅숏 = 저장된 획을 N일째까지만 다시 그리기(D-13 입력 점열이 정본이라 추가 저장 없음). 주별 사건: 7일 첫 두름·빗 굵어짐 / 14일 받침 띠·빗 길어짐 / 21일 스밈 결(획이 몸에 스밈) / 28밤 원상 고리 + 낙관(최종 몽망이). 획 모양은 근사 — 실제는 사람 손 점열이라 차이가 더 크다.</div></div>`;
+  for (const p of people) {
+    html += `<div class="row" style="align-items:flex-end"><div style="width:120px;font-size:13px;padding-bottom:30px">${p.name}</div><div class="lane">`;
+    for (const d of days) {
+      const W = 46 * (1 + 0.6 * (1 - Math.exp(-d / 13)));
+      const m = mong(W, 'lit', { n: Math.min(d, 21) * 0.45 | 0, seed: p.seed, strokeCol: p.col, hand: p.hand, combLen: 0.12 + 0.1 * Math.min(d, 14) / 14, combTh: 0.06 + 0.014 * Math.min(d, 7) / 7 });
+      let extra = '';
+      if (d >= 14) extra += `<ellipse cx="0" cy="${0.02 * W}" rx="${W * 0.7}" ry="${W * 0.06}" fill="${p.col}" opacity="0.35"/>`; // 받침 띠
+
+      if (d >= 28) extra += `<path d="M${-W * 0.95},${-W * 0.3} A${W * 0.98},${W * 0.85} 0 1 1 ${-W * 0.6},${W * 0.25}" stroke="${p.col}" stroke-width="${W * 0.09}" fill="none" stroke-linecap="round" opacity="0.8"/><rect x="${W * 0.8}" y="${W * 0.15}" width="${W * 0.22}" height="${W * 0.22}" fill="${P.shu}" rx="2"/>`;
+      let over = '';
+      if (d >= 21) { // 스밈 결: 오래된 획이 핵 안으로 15% 스며듦(근사)
+        const H = W / 1.25, r = rng(p.seed + 5); let g = '';
+        for (let k = 0; k < 5; k++) { const y = -H * (0.55 + r() * 0.35), x = -W * 0.4 + r() * W * 0.3; g += `<path d="M${x},${y} q${W * 0.15},${-W * 0.08 * (p.hand.bias - 0.4) * 4} ${W * (0.2 + r() * 0.25)},${W * 0.03}" stroke="${p.col}" stroke-width="${W * 0.035}" fill="none" stroke-linecap="round" opacity="0.55"/>`; }
+        over = `<g clip-path="url(#cl${p.seed}${d})">${g}</g>`;
+        m.defs += `<clipPath id="cl${p.seed}${d}"><path d="${bodyPath(W)}"/></clipPath>`;
+      }
+      const bw = 170, bh = 150;
+      html += `<div>${svgOf({ defs: m.defs, s: extra + m.s + over }, bw, bh, paperBg(bw, bh), bw / 2, bh * 0.72)}<div class="daylab">${d === 0 ? '0일' : d === 28 ? '28밤 · 최종' : d + '일'}</div></div>`;
+    }
+    html += `</div></div>`;
+  }
+  return html;
+}
+
+const q = new URLSearchParams(location.search).get('scene') || 'body';
+document.getElementById('root').innerHTML = q === 'home' ? sceneHome() : q === 'growth' ? sceneGrowth() : sceneBody();
+document.title = 'ready';
+</script></body></html>
