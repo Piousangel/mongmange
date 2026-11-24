@@ -1,15 +1,19 @@
 // 2년 미사용 정리(V25, architecture.md 5-5, 처리방침 6절 '장기 미사용 계정', K20). 매일 Scheduler `storage-gc`가 대기열 처리와 독립으로 함께 부른다
 // (PM 11-25 — 별도 잡 없음). `POST /internal/cron/inactive-sweep`은 수동 실행·시험용(B2 cron OIDC 그대로, 하루 1회 잠금 없음).
-//  - 대상: 활동 달(last_active_month, 없으면 만든 달 — deletion.service.ts activeMonthOf와 같은 정의)이 '이달 1일(UTC) − 24개월'보다 앞선 사용자.
-//    달 단위 값은 그달 마지막 날까지의 활동일 수 있으므로, 이 조건이면 마지막 활동 뒤 **꼭 2년이 지난** 계정만 지운다
-//    (예: 2024-11 활동 → 2026-12-01부터 대상. 2026-11에는 23개월 남짓이라 대상이 아니다).
+//  - 대상: 활동 달(last_active_month, 없으면 만든 달 — deletion.service.ts activeMonthOf와 같은 정의)이 '이달 1일(UTC) − 25개월'보다 앞선 사용자.
+//    처리방침 '마지막 이용 달 뒤 2년이 지난 다음, 서버 시계 오차에 대비해 한 달 여유를 두고 지웁니다'(V25c, 리뷰 privacy-v32 M1).
+//    달 값은 그달 마지막 날까지의 활동일 수 있으므로 24개월이면 꼭 2년이고, 한 달을 더 두어 서버 시계가 1달 앞서도 2년 전에 지우지 않는다
+//    (예: 2024-10 활동 → 2026-12-01부터 대상. 2026-11에는 2년을 넘겼어도 여유 달이라 대상이 아니다). 2달 이상 앞서면 아래 ②가 멈춘다.
 //  - 삭제는 계정 삭제 연쇄 그대로(deletion.service.ts 3-8): 공개·staging·격리 파일, 이력, link_daily, 열린 신고, Auth 사용자까지.
 //    deletion_log(kind=inactive, channel=app — 여기서 app은 '시스템 실행')에는 개수만. 연쇄 안에서 잠근 행을 다시 보고, 그 사이 활동했으면 건너뛴다.
 //  - 차단기(리뷰 M2 — 되돌릴 수 없는 일이라 지우기 전에 멈춘다. 멈추면 한 명도 지우지 않고 error 로그, 운영자가 확인):
 //    ① 하루 대상 수가 min(전체 계정의 1%, 200)을 넘으면 `limit`. 운영자가 대상 수를 확인한 뒤 수동 실행에 `confirm=<그 수>`를 주면 그 실행만 통과.
-//    ② 이달(서버 시계)이 DB의 최신 활동 달보다 2달 넘게 앞서면 `clock` — 시계가 미래로 튀었거나 활동 갱신이 통째로 멈춘 경우.
+//    ② 이달(서버 시계)이 DB의 최신 활동 달보다 1달 넘게 앞서면 `clock` — 시계가 미래로 튀었거나 활동 갱신이 통째로 멈춘 경우(V25c: 2→1).
+//       정상이면 차이는 0(이달 활동 있음)이거나 달이 막 바뀐 직후 1. 여유 한 달과 합쳐 +1·+2·그 이상 튐 모두 2년 전 삭제 0.
+//       비용: 한 달 내내 활동이 0인 조용한 서비스면 계속 멈춘다 — error 로그 + 운영자 확인(DECISIONS V25).
 //    활동 갱신 실패율로 멈추는 조건은 두지 않는다: 실패 개수는 인스턴스 메모리에 있어 정리 실행과 공유되지 않고, 실패는 다음 요청이
-//    다시 쓰므로 한 사람이 잘못 지워지려면 24개월 동안 그 사람의 모든 요청이 실패해야 한다. 통째 실패는 ②가 2달 안에 잡는다.
+//    다시 쓰므로 한 사람이 잘못 지워지려면 24개월 동안 그 사람의 모든 요청이 실패해야 한다. 통째 실패는 ②가 한 달 안에 잡는다.
+//    (그 달 마지막 갱신만 실패해 저장된 달이 한 달 앞서는 경우도 여유 한 달이 덮는다.)
 //  - 한 실행 SWEEP_MAX명·시간 예산 budgetMs(리뷰 M3). 넘치면 more=true — 다음 날 storage-gc가 잇는다.
 //    매일 실행(runDaily)은 inactive_sweep 행의 last_day를 오늘로 바꾸는 데 성공해야만 돈다 — Scheduler 재시도가 같은 날 정리를 다시 돌리지 않는다.
 //    실패한 사용자는 대상으로 남아 다음 날이 다시 하고, Storage·Auth 쪽 실패분은 삭제 대기열(storage-gc)이 재시도한다.
@@ -19,13 +23,13 @@ import { Clock, monthStart, utcDay } from '../common/clock';
 import { PrismaService } from '../prisma/prisma.service';
 import { DeletionService, InactiveSkipped } from './deletion.service';
 
-/** 미사용 기간(개월) — 처리방침 '2년' */
-export const INACTIVE_MONTHS = 24;
+/** 대상 기준(개월) = 처리방침 '2년'(24) + 서버 시계 오차 여유 1달(V25c) */
+export const INACTIVE_MONTHS = 25;
 const SWEEP_BATCH = 50;
 /** 한 실행에서 지우는 최대 사용자 수(= 차단기 ①의 절대 상한) */
 export const SWEEP_MAX = 200;
-/** 차단기 ②: 이달이 최신 활동 달보다 이만큼(개월) 넘게 앞서면 멈춤 */
-export const CLOCK_SLACK_MONTHS = 2;
+/** 차단기 ②: 이달이 최신 활동 달보다 이만큼(개월) 넘게 앞서면 멈춤(V25c: 2→1 — 여유 1달과 합쳐 +2달 튐도 막는다) */
+export const CLOCK_SLACK_MONTHS = 1;
 /** 한 실행 시간 예산 — Scheduler attemptDeadline(B6, architecture.md Scheduler 행)은 이것 + 대기열 처리보다 넉넉히 */
 export const SWEEP_BUDGET_MS = 60_000;
 
@@ -102,7 +106,7 @@ export class InactiveSweep {
     const ahead = s!.latest ? monthsBetween(monthStart(nowMs), s!.latest) : 0;
     if (ahead > CLOCK_SLACK_MONTHS) {
       r.halted = 'clock';
-      this.log.error({ code: 'inactive_sweep_clock', monthsAhead: ahead }, '서버 시계가 최신 활동 달보다 너무 앞섬 — 정리 멈춤(운영 확인)');
+      this.log.error({ code: 'inactive_sweep_clock', monthsAhead: ahead }, '서버 시계가 최신 활동 달보다 1달 넘게 앞섬(시계 튐 또는 활동 0) — 정리 멈춤(운영 확인)');
       return this.finish(r);
     }
     const limit = sweepLimit(s!.total);

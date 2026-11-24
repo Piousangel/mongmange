@@ -16,17 +16,17 @@ datasource db {
 
 /// 익명 계정(= Supabase auth.users.id). 이름·이메일 없음. 연령은 '14세 이상 확인을 거쳤다'는 기록만(3-3)
 model User {
-  id               String    @id @db.Uuid
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                String     @id @db.Uuid
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   /// 그달 1일(5-5 장기 미사용 판단용, 월 단위)
-  lastActiveMonth  DateTime? @map("last_active_month") @db.Date
-  locale           String?   @db.Char(2)
-  ageGateV         Int?      @map("age_gate_v") @db.SmallInt
-  ageConfirmedOn   DateTime? @map("age_confirmed_on") @db.Date
+  lastActiveMonth   DateTime?  @map("last_active_month") @db.Date
+  locale            String?    @db.Char(2)
+  ageGateV          Int?       @map("age_gate_v") @db.SmallInt
+  ageConfirmedOn    DateTime?  @map("age_confirmed_on") @db.Date
   /// 운영자 계정 삭제 요청(B5, docs/ops/deletion-requests.md). 72시간 대기 뒤 서버 작업 moderation이 DELETE /me와 같은 연쇄로 지운다
-  deleteRequestedAt DateTime? @map("delete_requested_at") @db.Timestamptz(6)
-  creature         Creature?
-  auths            UserAuth[]
+  deleteRequestedAt DateTime?  @map("delete_requested_at") @db.Timestamptz(6)
+  creature          Creature?
+  auths             UserAuth[]
 
   @@map("users")
   @@schema("app")
@@ -34,24 +34,24 @@ model User {
 
 /// 몽망이 한 마리. 인장 코드 = 링크 키(서버 난수 40비트, 3-5). 링크·이름 공개는 기본 꺼짐
 model Creature {
-  id          String   @id @default(uuid()) @db.Uuid
+  id                String        @id @default(uuid()) @db.Uuid
   /// 사용자당 몽망이 하나(서버 v2 리뷰: DB 제약으로 둔다)
-  userId      String   @unique @map("user_id") @db.Uuid
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  code        String   @unique @db.Char(8)
-  linkEnabled Boolean  @default(false) @map("link_enabled")
-  nameVisible Boolean  @default(false) @map("name_visible")
-  hidden      Boolean  @default(false)
+  userId            String        @unique @map("user_id") @db.Uuid
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code              String        @unique @db.Char(8)
+  linkEnabled       Boolean       @default(false) @map("link_enabled")
+  nameVisible       Boolean       @default(false) @map("name_visible")
+  hidden            Boolean       @default(false)
   /// 운영자 이름 가리기(B5, 3-5-2). 켜지면 공개 판정은 늘 거짓, 주인은 이름 공개를 다시 켤 수 없다(409). 해제는 운영자 SQL 함수만
-  nameBlocked Boolean  @default(false) @map("name_blocked")
+  nameBlocked       Boolean       @default(false) @map("name_blocked")
   /// 되찾기 글귀 해시(HMAC-SHA256(pepper, 글귀), 3-3 ⑤). 평문은 어디에도 없다. 되찾으면 새 글귀로 바뀐다
-  recoveryHash      Bytes?    @unique @map("recovery_hash")
-  recoveryPepperV   Int?      @map("recovery_pepper_v") @db.SmallInt
-  recoveryRotatedAt DateTime? @map("recovery_rotated_at") @db.Timestamptz(6)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  save        Save?
-  versions    SaveVersion[]
-  page        PublicPage?
+  recoveryHash      Bytes?        @unique @map("recovery_hash")
+  recoveryPepperV   Int?          @map("recovery_pepper_v") @db.SmallInt
+  recoveryRotatedAt DateTime?     @map("recovery_rotated_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  save              Save?
+  versions          SaveVersion[]
+  page              PublicPage?
 
   @@map("creatures")
   @@schema("app")
@@ -59,22 +59,22 @@ model Creature {
 
 /// 현재 세이브 한 벌(통째 스냅샷 + 리비전, 3-4). 본문은 gzip bytea, 서버는 아래 몇 열 말고는 본문에서 꺼내지 않는다(5-1)
 model Save {
-  creatureId    String   @id @map("creature_id") @db.Uuid
-  creature      Creature @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  creatureId    String    @id @map("creature_id") @db.Uuid
+  creature      Creature  @relation(fields: [creatureId], references: [id], onDelete: Cascade)
   rev           Int
   body          Bytes
-  bodySha256    Bytes    @map("body_sha256")
-  envelopeVer   Int      @map("envelope_ver") @db.SmallInt
-  simVer        Int      @map("sim_ver") @db.SmallInt
+  bodySha256    Bytes     @map("body_sha256")
+  envelopeVer   Int       @map("envelope_ver") @db.SmallInt
+  simVer        Int       @map("sim_ver") @db.SmallInt
   validated     Boolean
-  clientSavedAt DateTime @map("client_saved_at") @db.Timestamptz(6)
+  clientSavedAt DateTime  @map("client_saved_at") @db.Timestamptz(6)
   /// 미래 판 본(validated=false)은 서버가 읽지 못해 NULL(3-4-1)
-  dayIndex      Int?     @map("day_index")
-  strokesTotal  Int?     @map("strokes_total")
+  dayIndex      Int?      @map("day_index")
+  strokesTotal  Int?      @map("strokes_total")
   /// 하루(UTC) 새 본문 바이트 상한(3-4-1 '남용 상한' 4MB/일)의 셈 — 날짜와 그날 합(압축 뒤)
   quotaDay      DateTime? @map("quota_day") @db.Date
   quotaBytes    Int       @default(0) @map("quota_bytes")
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("saves")
   @@schema("app")
@@ -211,10 +211,10 @@ model StorageGc {
 /// Supabase auth.users 삭제 대기열(3-8 ⑤ '실패하면 재시도', 3-3 ⑤ 옛 기기 30일). 지워지면 행째 지운다.
 /// sub 말고는 아무것도 없다 — users·user_auth가 이미 사라진 뒤에 남는 유일한 흔적이라 처리되는 즉시 없어진다
 model AuthGc {
-  sub        String    @id @db.Uuid
-  deletionId BigInt?   @map("deletion_id")
-  notBefore  DateTime  @map("not_before") @db.Timestamptz(6)
-  attempts   Int       @default(0) @db.SmallInt
+  sub        String   @id @db.Uuid
+  deletionId BigInt?  @map("deletion_id")
+  notBefore  DateTime @map("not_before") @db.Timestamptz(6)
+  attempts   Int      @default(0) @db.SmallInt
 
   @@index([notBefore])
   @@index([deletionId])
@@ -484,7 +484,7 @@ model InactiveSweepState {
   failed     Int       @default(0)
   candidates Int       @default(0)
   more       Boolean   @default(false)
-  /// limit(하루 대상이 1%·200명 중 작은 값 초과)·clock(서버 시계가 DB 최신 활동 달보다 2달 넘게 앞섬)
+  /// limit(하루 대상이 1%·200명 중 작은 값 초과)·clock(서버 시계가 DB 최신 활동 달보다 1달 넘게 앞섬, V25c)
   halted     String?   @db.VarChar(16)
 
   @@map("inactive_sweep")

@@ -1,7 +1,8 @@
 // V25 — 활동 달(인증된 요청마다, 달마다 최대 한 번 쓰기) + 2년 미사용 정리 잡(삭제 연쇄 재사용). 처리방침 6절·K20, architecture.md 5-5.
 // 실제 Postgres + 실제 JWT 경로 + 로컬 파일 저장소. 그럴듯한 오답 판별(OPERATING 8-1):
 //  - 링크만 쓰는 사용자(세이브 없이 /creature·링크 API만)가 활동으로 잡히지 않으면 실패(처리방침 리뷰 H3·PIA R13)
-//  - 마지막 활동 뒤 2년이 안 된 계정(23개월 남짓)을 지우거나, 2년 지난 계정을 남기면 실패 — UTC 월 경계 1초 앞뒤로 고정
+//  - 마지막 활동 뒤 2년 + 여유 한 달(25개월, V25c)이 안 된 계정을 지우거나, 지난 계정을 남기면 실패 — UTC 월 경계 1초 앞뒤로 고정
+//  - 서버 시계가 +1·+2·그 이상 튀었을 때 실제로 24개월이 안 된 계정을 한 명이라도 지우면 실패(V25c, 리뷰 privacy-v32 M1)
 //  - 같은 달 두 번째 요청부터 users 행을 다시 쓰면(xmin이 바뀌면) 실패 / 시계가 늦은 인스턴스가 값을 되돌리면 실패
 //  - 정리 뒤 어느 표(app 스키마 전부)·세 버킷·Auth 사용자에 흔적이 남으면 실패 / 로그·응답에 id·sub·코드가 있으면 실패
 //  - 후보로 뽑힌 뒤 활동한 사용자를 지우면 실패
@@ -230,6 +231,13 @@ async function oldUsers(n: number): Promise<string[]> {
     SELECT gen_random_uuid(), '2020-01-01T00:00:00Z', '2020-01-01' FROM generate_series(1, ${n}::int) RETURNING id`;
   return rows.map((r) => r.id);
 }
+/** 활동 달을 정한 계정(Auth 없음 — 정리 연쇄는 로그인 0개로 지운다) */
+async function monthUsers(month: string, n = 1): Promise<string[]> {
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    INSERT INTO app.users (id, created_at, last_active_month)
+    SELECT gen_random_uuid(), '2020-01-01T00:00:00Z', ${month}::date FROM generate_series(1, ${n}::int) RETURNING id`;
+  return rows.map((r) => r.id);
+}
 const thisMonth = () => new Date(realNow()).toISOString().slice(0, 8) + '01';
 /** pg 드라이버로 나가는 SQL 문장을 모은다(Prisma 어댑터 → pg Client.query) */
 async function sqlDuring(fn: () => Promise<unknown>): Promise<string[]> {
@@ -371,11 +379,11 @@ describe('활동 달 — 인증된 요청이면 무엇이든, 달마다 최대 �
 
 // ───────────── ② 정리 잡 ─────────────
 
-describe('2년 미사용 정리 — 경계(UTC 월)', () => {
-  it('23개월 남짓은 남기고 24개월 지난 것만: 2024-10 활동은 2026-10-31T23:59:59Z에 남고 2026-11-01T00:00:00Z에 지워진다', async () => {
+describe('처리방침 6절: 마지막 이용 달 뒤 2년이 지난 다음, 서버 시계 오차에 대비해 한 달 여유를 두고 지운다(V25c)', () => {
+  it('25개월 경계(UTC 월): 2024-10 활동은 2026-11-30T23:59:59Z(2년은 지남, 여유 달)에 남고 2026-12-01T00:00:00Z에 지워진다 — 2024-11은 한 달 뒤', async () => {
     await drainAt('2026-11-11T12:00:00Z');
-    const oct = await user(); // 마지막 활동 2024-10(최대 10-31) → 2026-11-01부터 2년 경과
-    const nov = await user(); // 2024-11(최대 11-30) → 2026-11-11에는 23개월 11일 남짓 → 남김
+    const oct = await user(); // 마지막 활동 2024-10(최대 10-31) → 2026-11-01에 2년, 여유 한 달 뒤 2026-12-01부터 대상
+    const nov = await user(); // 2024-11(최대 11-30) → 2027-01-01부터
     const nullOld = await user(); // 값 없음 → 만든 달로
     const nullNew = await user();
     await setMonth(oct.userId, '2024-10-01');
@@ -384,23 +392,76 @@ describe('2년 미사용 정리 — 경계(UTC 월)', () => {
     await setMonth(nullNew.userId, null);
     await prisma.$executeRaw`UPDATE app.users SET created_at = '2024-10-31T23:00:00Z' WHERE id = ${nullOld.userId}::uuid`;
     await prisma.$executeRaw`UPDATE app.users SET created_at = '2024-11-01T00:00:00Z' WHERE id = ${nullNew.userId}::uuid`;
+    // 정상 운영: 시험 시각의 달에도 활동이 있다(차단기 ②가 경계 시험을 가리지 않게)
+    const [live] = await monthUsers('2026-12-01');
+    try {
+      at('2026-11-01T00:00:00Z'); // 꼭 2년 — 예전(24개월) 기준이면 여기서 지웠다
+      expect(await sweep.run()).toEqual({ inactiveDeleted: 0, skipped: 0, failed: 0, more: false, candidates: 0, halted: null });
+      at('2026-11-30T23:59:59Z'); // 여유 달의 마지막 초
+      expect(await sweep.run()).toEqual({ inactiveDeleted: 0, skipped: 0, failed: 0, more: false, candidates: 0, halted: null });
+      expect(await exists(oct.userId)).toBe(true);
+      expect(await exists(nullOld.userId)).toBe(true);
 
-    at('2026-10-31T23:59:59Z');
-    expect(await sweep.run()).toMatchObject({ inactiveDeleted: 0, skipped: 0, failed: 0, more: false, candidates: 0, halted: null });
-    expect(await exists(oct.userId)).toBe(true);
+      at('2026-12-01T00:00:00Z'); // 25개월 — 포함
+      expect(await sweep.run()).toEqual({ inactiveDeleted: 2, skipped: 0, failed: 0, more: false, candidates: 2, halted: null });
+      expect(await exists(oct.userId)).toBe(false);
+      expect(await exists(nullOld.userId)).toBe(false);
+      expect(await exists(nov.userId)).toBe(true);
+      expect(await exists(nullNew.userId)).toBe(true);
 
-    at('2026-11-01T00:00:00Z');
-    expect(await sweep.run()).toEqual({ inactiveDeleted: 2, skipped: 0, failed: 0, more: false, candidates: 2, halted: null });
-    expect(await exists(oct.userId)).toBe(false);
-    expect(await exists(nullOld.userId)).toBe(false);
-    expect(await exists(nov.userId)).toBe(true);
-    expect(await exists(nullNew.userId)).toBe(true);
+      at('2026-12-31T23:59:59Z'); // 2024-11은 아직 여유 달 — 제외
+      expect(await sweep.run()).toEqual({ inactiveDeleted: 0, skipped: 0, failed: 0, more: false, candidates: 0, halted: null });
+      at('2027-01-01T00:00:00Z');
+      expect(await sweep.run()).toEqual({ inactiveDeleted: 2, skipped: 0, failed: 0, more: false, candidates: 2, halted: null });
+      expect(await exists(nov.userId)).toBe(false);
+      expect(await exists(nullNew.userId)).toBe(false);
+    } finally {
+      await prisma.user.deleteMany({ where: { id: live! } });
+    }
+  });
 
-    at('2026-11-30T23:59:59Z');
-    expect((await sweep.run()).inactiveDeleted).toBe(0);
-    at('2026-12-01T00:00:00Z');
-    expect((await sweep.run()).inactiveDeleted).toBe(2);
-    expect(await exists(nov.userId)).toBe(false);
+  it('서버 시계가 +1·+2·+3·+12달 튀어도 실제로 24개월이 안 된 계정은 0명 삭제 — +1은 여유 달이 덮고, +2부터는 차단기 ②(1달 넘게 앞섬)가 멈춘다', async () => {
+    // 실제 달 R = DB 최신 활동 달(다른 인스턴스·사용자가 실제 시계로 쓴 값). 서버 시계만 R+k 1일로 튄다.
+    const [liveR] = await monthUsers(thisMonth());
+    try {
+      const [row] = await prisma.$queryRaw<{ latest: Date }[]>`SELECT max(last_active_month) AS latest FROM app.users`;
+      const R = row!.latest;
+      const month = (k: number) => new Date(Date.UTC(R.getUTCFullYear(), R.getUTCMonth() + k, 1));
+      const iso = (k: number) => month(k).toISOString().slice(0, 10);
+      await drainAt(month(1).toISOString()); // 다른 시험이 남긴 옛 계정(R−25보다 앞선)을 먼저 비운다
+      for (const k of [0, 1, 2, 3, 12]) {
+        // 실제 시각이 R의 어느 때든: R−23·R−24 활동은 2년 미만(< 24개월), R−25 활동은 2년 이상(≥ 24개월)
+        const [under23] = await monthUsers(iso(-23));
+        const [under24] = await monthUsers(iso(-24));
+        const [over24] = await monthUsers(iso(-25));
+        try {
+          at(month(k).toISOString());
+          const r = await sweep.run({ confirm: await sweep.candidateCount() }); // 차단기 ①은 운영자 확인으로 넘겨 ②·대상식만 본다
+          expect(await exists(under23!), `+${k}달: R−23`).toBe(true);
+          expect(await exists(under24!), `+${k}달: R−24(23~24개월)`).toBe(true);
+          if (k === 0) {
+            // 시계 정상: R−25는 2년은 지났지만 여유 달이라 아직 남는다
+            expect(r).toEqual({ inactiveDeleted: 0, skipped: 0, failed: 0, more: false, candidates: 0, halted: null });
+            expect(await exists(over24!)).toBe(true);
+          } else if (k === 1) {
+            // +1달(차이 1 — 달이 막 바뀐 직후와 같아 통과): 2년이 지난 R−25만 지운다
+            expect(r).toEqual({ inactiveDeleted: 1, skipped: 0, failed: 0, more: false, candidates: 1, halted: null });
+            expect(await exists(over24!)).toBe(false);
+          } else {
+            // +2달 이상: 1달 넘게 앞섬 → 0명 삭제(confirm도 넘지 못함)
+            expect(r).toMatchObject({ inactiveDeleted: 0, halted: 'clock' });
+            expect(await exists(over24!)).toBe(true);
+          }
+        } finally {
+          await prisma.user.deleteMany({ where: { id: { in: [under23!, under24!, over24!] } } });
+        }
+      }
+      await new Promise((r) => setTimeout(r, 20));
+      const halt = logs.map((l) => JSON.parse(l) as Record<string, unknown>).filter((l) => l.code === 'inactive_sweep_clock');
+      expect(halt.at(-1)).toMatchObject({ level: 'error', monthsAhead: 12 });
+    } finally {
+      await prisma.user.deleteMany({ where: { id: liveR! } });
+    }
   });
 });
 
@@ -465,18 +526,18 @@ describe('2년 미사용 정리 — 차단기(M2)', () => {
     expect(trip.at(-1)).toMatchObject({ level: 'error', candidates: 201 });
   });
 
-  it('② 서버 시계가 DB 최신 활동 달보다 2달 넘게 앞서면(시계가 튐·갱신이 통째로 멈춤) 멈춘다 — confirm도 넘지 못한다', async () => {
+  it('② 서버 시계가 DB 최신 활동 달보다 1달 넘게 앞서면(시계가 튐·갱신이 통째로 멈춤) 멈춘다 — confirm도 넘지 못한다(V25c: 2→1)', async () => {
     const [row] = await prisma.$queryRaw<{ latest: Date }[]>`SELECT max(last_active_month) AS latest FROM app.users`;
     const latest = row!.latest;
-    const ahead3 = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth() + 3, 1)).toISOString();
-    const ahead2 = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth() + 2, 28)).toISOString();
+    const ahead2 = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth() + 2, 1)).toISOString();
+    const ahead1 = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth() + 1, 28)).toISOString();
     const victim = (await oldUsers(1))[0]!;
-    at(ahead3);
+    at(ahead2);
     const r = await sweep.run({ confirm: await sweep.candidateCount() });
     expect(r).toMatchObject({ inactiveDeleted: 0, halted: 'clock' });
     expect(await exists(victim)).toBe(true);
-    // 2달 앞까지는 정상(월초 직후엔 최신 달이 지난달일 수 있다)
-    at(ahead2);
+    // 1달 앞까지는 정상(월초 직후엔 최신 달이 지난달일 수 있다)
+    at(ahead1);
     expect((await sweep.run({ confirm: await sweep.candidateCount() })).halted).toBeNull();
     expect(await exists(victim)).toBe(false);
   });

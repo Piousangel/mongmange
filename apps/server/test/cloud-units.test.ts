@@ -129,7 +129,8 @@ describe('V25 2년 정리 — 순수 계산', () => {
   it('차단기 ② 개월 차(해 넘김 포함)와 대상 기준 달(UTC)', () => {
     expect(monthsBetween(new Date(Date.UTC(2027, 0, 1)), new Date(Date.UTC(2026, 9, 1)))).toBe(3);
     expect(monthsBetween(new Date(Date.UTC(2027, 0, 1)), new Date(Date.UTC(2026, 10, 1)))).toBe(2);
-    expect(inactiveBefore(Date.parse('2026-11-01T00:00:00Z')).toISOString()).toBe('2024-11-01T00:00:00.000Z');
-    expect(inactiveBefore(Date.parse('2026-10-31T23:59:59Z')).toISOString()).toBe('2024-10-01T00:00:00.000Z');
+    // V25c: 이달 1일 − 25개월(2년 + 시계 여유 1달)
+    expect(inactiveBefore(Date.parse('2026-12-01T00:00:00Z')).toISOString()).toBe('2024-11-01T00:00:00.000Z');
+    expect(inactiveBefore(Date.parse('2026-11-30T23:59:59Z')).toISOString()).toBe('2024-10-01T00:00:00.000Z');
   });
 });
