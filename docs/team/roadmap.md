@@ -61,6 +61,7 @@
 - [x] V24 앱 업데이트 확인 코드(둘째 실행부터 하루 1회 checkForUpdateAsync, 실패 조용히) + 가드 ready:true — DV-1 · 앱 · V21 · 0.5 · **빌드 2 전** — 882e87e·b668567
 - [x] V25 2년 미사용 정리 잡 + last_active_month를 인증 요청마다 월 단위 갱신 — DV-3 · 서버 · 1 · RC 전(처리방침 K20) — a9481e3
 - [ ] V25b 2년 정리 차단기 기준 재검토(정상 달에도 멈추는 비용 → 24개월 전 무리 크기 대비) — DV-3 · 서버 · 2028-12까지 · 0.5 · DECISIONS V25 PM 판정
+- [ ] V25c 2년 정리 기준 25개월(시계 오차 여유) + 시계 차단기 1달 넘게 앞서면 멈춤 — DV-3 · 서버 · 0.5 · 처리방침 리뷰 privacy-v32 M1 · PM 11-25
 - [x] V22 퀘벡 Law 25 영향 평가(PIA) 문서 + 처리방침 수정안 P1~P19 반영 + 질문서 불일치 3곳 정리 — QA-3 + PL-2 · 문서 · 1.5 · RC 전 — 35264f1
 - [ ] V23 (오너) 게임제작업 등록(관할 구청, 업종 정정 선행) — 팀이 서류·절차 정리 · 소프트런칭 전 — 팀 정리 완료: docs/release/game-business-registration.md(온라인 가능)
 
@@ -101,7 +102,7 @@
   - [ ] 조회 롤 `metrics_reader` 생성 후 `20261120130000_metric_view`의 GRANT 다시 실행(원표 비공개, 5 미만 칸 숨긴 뷰만), `METRIC_APP_VERSIONS` 설정
   - [ ] 배포 뒤 `curl https://mongmang.ink/.well-known/{apple-app-site-association,assetlinks.json}` 200·JSON 확인 + Apple AASA 검증 도구
 - [ ] B7 부하 시험(링크 하나 하루 10만 조회)·느린 서버 경계 테스트·스테이징 환경·업타임 알림
-- [ ] B8 개인정보처리방침 ko·en 재작성 + Data safety·App Privacy·store-listing 7절 갱신 + 네트워크 기록 대조(빌드 2 제출 전) — [D-26: + 손글씨 획 좌표·결 id(기기 안), 맡겨 두기 고지, '쓴 말 보이기', ML Kit 모델 내려받기(V15와 함께, RC 전)]
+- [ ] B8 개인정보처리방침 ko·en 재작성 + Data safety·App Privacy·store-listing 7절 갱신 + 네트워크 기록 대조(빌드 2 제출 전) — [D-26: + 손글씨 획 좌표·결 id(기기 안), 맡겨 두기 고지, '쓴 말 보이기', ML Kit 모델 내려받기(V15와 함께, RC 전)] — [11-25 법률 리뷰 H1] 빌드 2 테스터판 방침(`docs/release/privacy-policy-tester.ko.md`·`en.md`) 게시 준비 12-15까지(web-static 출시 전 /privacy 연결 = `docs/release/README.md` 작업 목록)
 
 ## C. 앱 (~~빌드 2·3, 소프트런칭 중 OTA~~ [D-26: 빌드 2 12-19·RC 01-05, 소프트런칭 01-12 뒤 OTA])
 - [ ] C1 세 기둥 M1~M5(타고남+먹 고르기, 이름·인장·이름표·가락, 결 이름·꼬리표, 정·손 기억·반김, 함께 숨 쉬기) 플래그 켜기. 정 신호 '처음 3번 자막'(3인칭 관찰 서술·화면 아래 자막 띠) 기본값 포함 — 진행: M2 dc49010(플래그 꺼짐)
@@ -120,6 +121,7 @@
 - [ ] C9 iOS 빌드·TestFlight(오너: Apple Developer) — [D-26: 가입 12-19 전, 베타 심사 01-07 제출, 외부 테스트 01-12]
 - [ ] C10 빌드 2 네이티브 묶음 한 번: `expo-updates`(채널·롤백 규칙), `associatedDomains`, `intentFilters`(EAS 서명 키 + Play 앱 서명 키), 위젯 타깃(`@bacons/apple-targets`·App Group·로컬 Expo 모듈), `react-native-android-widget` → ~~12-05 전후~~ EAS 리허설 빌드 — 진행: 인코더 모듈 1dd856c(EAS 리허설·expo-updates·딥링크·위젯 남음) — **[D-26: + V2 필기 인식 모듈. 리허설 12-12, 동결 = 빌드 2 12-19]**
 - [ ] C11 앱 net 모듈: 집계 핑 + 아웃박스, 플래그 로더(크래시 루프 탈출), 딥링크 수신 시트, 14세 확인, OG 1200×630 렌더·8초 루프 업로드(이름 공개 설정 반영) — [D-26: OG·루프에 유저 획(V13), 쓴 말 기본 숨김(V15)]
+  - [B4 리뷰 11-25] 완료 조건: 원격 문서는 `verifyRemoteDocStrict`(서명 필수·만료·바닥 판)만으로 받고, 탈출 중 값은 `escapeFlags`·`escapeThresholds`, 팩은 `sha256Hex`·`lexImmutableViolations`로 검사 — `verifyRemoteDoc`·`unsigned`를 앱에서 직접 다루지 않는다(B4-report 3절)
 - [ ] C12 맡겨 두기 UI: 켜기·되찾기 글귀 표시·입력·충돌 시 나란히 고르기·복원 화면·지우기(다국어·200% 글자) — [D-26: 켜기 화면에 '쓴 글씨 획 좌표' 고지 한 줄(V15)]
 - [ ] C13 자동 테스트: 기기 이동·충돌 시나리오 iOS·Android 각 20회+, 오프라인 7일, 느린 서버(Q5·Q9) — [D-26: + 세이브 v3·화첩 시나리오(V18)]
 - [ ] C14 아트·카피 레인 5.0일: 웹 페이지·OG 틀·위젯 세 구도·틴트 윤곽·보름 모티프 3·14세 확인·맡겨 두기 문구·정 자막 4줄 × 2언어 — [D-26: 문구는 V14와 한 번에 검수]

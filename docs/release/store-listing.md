@@ -1,21 +1,31 @@
 # 스토어 등록 문구 초안 (Google Play · App Store, 한·영)
 
-- 작성: 출시·정책 담당 / 2026-11-19 / 초안 v0.1 → **v0.2(2026-11-20): 6-1·6-3 공유 링크 문항, 7절 데이터 라벨을 서버 도입(D-21·D-23, 서버 아키텍처 v2.1 5절, 처리방침 v2)에 맞춰 갱신**
-- 근거: 03 문서(4·6·7절), DECISIONS D-05(MVP 수익 없음)·D-06(영·한 동시, 전체이용가, 타깃 **만 14세 이상**[11-20 개정, D-23], 아동 카테고리 미참여, 영문명 R5)·D-09(MVP 범위)·D-04(스크린샷은 실제 렌더), 아트 바이블 v1 0절·7·9·14절(톤), 시스템 v1.1 1절(하루 루프)
-- 톤 규칙(아트 바이블에서): 절제·우아. **광고체 금지** — 느낌표, "지금 바로", "무료!", "최고의", 이모지, 과장 형용사, 순위·수상 주장, 아이에게 말 거는 말투("친구들아") 금지. 문장은 짧고 사실만. 귀여움은 형용사로 말하지 않고 장면으로 보인다.
-- 글자 수 상한은 각 콘솔 입력란 기준이다. 아래 숫자는 이 문서에서 센 값이며 **입력 때 콘솔 카운터로 다시 확인**한다(특히 App Store 키워드의 한글 계산 방식 [확인 필요]).
-- 쓰지 않는 말: '방치형', '다마고치'(타사 상표), '아이들', '어린이', 'kids'(아동 타깃 오인 위험, 03 문서 4-4), '망(忘)'·'잊음' 해석(D-10).
+- 작성: 출시·정책 담당 / 2026-11-19 / 초안 v0.1 → v0.2(2026-11-20): 6-1·6-3 공유 링크 문항, 7절 데이터 라벨을 서버 도입(D-21·D-23, 서버 아키텍처 v2.1 5절, 처리방침 v2)에 맞춰 갱신 → **v0.5(2026-11-25, 마케팅 ASO·카피): 1~6절·8~9절을 컨셉 v3(D-26 먹으로 쓴 한 마디 × 스물여덟 밤, D-27 밥·간식)에 맞춰 다시 씀. 7절(데이터 안전)은 법률 리뷰 중이라 손대지 않음.** 바꾼 문장별 근거는 10절, 글자 수는 11절, 자체 점검은 12절.
+- 근거: DECISIONS D-26(컨셉 v3)·D-27(돌봄, 잠정)·D-03(처벌 없음)·D-05(수익 [잠정] — 금지 목록)·D-06(영·한, 만 14세 이상, 아동 카테고리 미참여, 영문명 R5)·D-07(하루 = 잠 한 번)·D-04(스크린샷은 실제 렌더), `apps/web-static/scripts/site.mjs` FACTS(F1~F14, 2026-11-25 확인), 처리방침 ko v3.2(1·2·3-3·3-5·11절), `docs/marketing/launch-4weeks/aso-geo.md`(v3 키워드안·Q1)·`risk-check.md`(1·4절), `docs/design/concept-v3/concept-review.md`(3·5·6절)
+- 정본 순서(aso-geo 머리): 사실은 **FACTS → 이 문서 → 채널 원고**. 이 문서가 FACTS와 다르면 이 문서가 틀린 것이다.
+- **게시 조건**: ① 11-30 컨셉 V0-5에서 손글씨 인식이 떨어져 C′-키보드가 되면 '붓으로 낱말을 쓴다'·'글씨의 가장 긴 획' 문장(1·2·3·8절)을 다시 쓴다(risk-check R11) ② D-27은 잠정이다. 밥·간식이 1.0에서 빠지거나 바뀌면 3절 '밥과 간식' 문단을 고친다 ③ 3절 '글씨와 기록' 문단은 처리방침 v3.2 K9·K11(손글씨 기기 안 인식, 맡겨 두기 업로드 모양)이 RC에서 '일치'가 된 뒤에만 콘솔에 넣는다(처리방침 머리 체크리스트).
+- 톤 규칙(아트 바이블): 절제·우아. **광고체 금지** — 느낌표, "지금 바로", "무료!", "최고의", 이모지, 과장 형용사, 순위·수상 주장, 아이에게 말 거는 말투("친구들아") 금지. 문장은 짧고 사실만. 귀여움은 형용사로 말하지 않고 장면으로 보인다. 말투는 FACTS와 같은 해요체.
+- 글자 수 상한(2026-11-25 공식 도움말 확인, 11절): Apple 앱 이름 30자·부제 30자·홍보 문구 170자·설명 4000자·**키워드 100바이트**(쉼표 구분, 낱말마다 '2자 초과' 문구 있음) / Google Play 앱 이름 30자·짧은 설명 80자·자세한 설명 4000자(전각·반각 같은 수로 셈). **입력 때 콘솔 카운터로 다시 확인**한다.
+- 쓰지 않는 말:
+  - 타사 상표·앱 이름: 다마고치·Tamagotchi, Finch, Calm 등(키워드 칸 포함. Apple은 키워드에 다른 앱·회사 이름을 금지)
+  - 효능·정신건강: 힐링, 치유, 위로, 명상, 마음 건강, 스트레스·불안 해소, zen, relaxing, therapy, mental health, mood, journal, 감정, 일기(risk-check 1-4·1-5, aso-geo 1-3)
+  - 위기 대응 기능('곁에 와 주는 말', 이야기 나눌 곳)과 그 화면 — 소개하지 않는다(risk-check 1-1)
+  - 아동 대상 오인: '아이들', '어린이', '키즈', 'kids'(D-06, 03 문서 4-4)
+  - 'AI'·'인공지능'(앱 안 생성형 AI 없음, FACTS F13), '방치형', '망(忘)'·'잊음' 해석(D-10)
+  - v2 문구: '하루 한 획', '한 획이 옷·결·둘레가 된다', '이레(7일)의 이야기', 'One stroke a day'(D-26 대체)
+  - 정본보다 강한 약속: '광고 없음'·'결제 없음'·'완전 무료'(D-05는 [잠정]이고 1.0 후보에 유료 해금·보상 광고 1곳이 있음 — PM 11-25 '사이트 문구에서 D-05보다 강한 약속 금지'), '어디로도 보내지 않음'·'서버로 절대 안 감'(7-0: 업데이트 확인·ML Kit 진단·맡겨 두기·링크가 있음), 출시 날짜(FACTS F9), 28밤 뒤 '곁에 남음/떠남'(팀 결정 전, FACTS 없음)
 
 ---
 
-## 1. 앱 이름
+## 1. 앱 이름과 부제
 
 ### 1-1. 한국어
-| 자리 | 문구 | 글자 수 |
-|---|---|---|
-| 앱 이름(양 스토어) | **몽망이 키우기** | 7 |
-| 대안(부제를 이름에 붙일 때) | 몽망이 키우기: 먹 한 방울 | 15 |
-| App Store 부제(Subtitle) | 하루 한 획, 아침마다 꿈 한 장 | 18 |
+| 자리 | 문구 | 글자 수 | 근거 |
+|---|---|---|---|
+| 앱 이름(양 스토어) | **몽망이 키우기** | 7 | D-06 그대로 |
+| 대안(Play 이름에 태그라인을 붙일 때) | 몽망이 키우기: 먹으로 쓴 한 마디 | 19 | FACTS F1 앞부분. 기본은 붙이지 않음 [확인 필요: Play 메타데이터 정책 원문에서 이름 칸의 설명어 허용 범위] |
+| App Store 부제(Subtitle) | **붓글씨 한 마디로 키우는 먹 방울** | 18 | aso-geo 1-1. 이름에 없는 검색어(붓글씨·한 마디·먹·방울)를 담음 |
+| 부제 대안 | 먹으로 쓴 한 마디, 스물여덟 밤 | 18 | FACTS F1 태그라인. 검색어는 적지만 사이트·SNS와 같은 한 줄 |
 
 ### 1-2. 영어 — D-06 R5 후보 (이름 테스트 전까지 확정하지 않는다)
 | 후보 | 앱 이름 | 상태 |
@@ -25,108 +35,135 @@
 | ③ | mongmangE: A Drop of Ink (24자) | 오너 원안 |
 
 - **판정 규칙(D-06)**: `name-test-survey.md` 1부의 "첫인상 단어 한 개" 자유응답에서 **피부병·mange 연상이 10명 중 1명 이상이면 탈락**. 남은 후보 중 발음 일치율이 높은 것을 고른다. 확정 직후 상표 검색(KIPRIS, USPTO, EUIPO)을 출시·정책 담당이 한다.
-- ": A Drop of Ink" 꼬리는 세 후보 공통이다. 이름만으로 무엇인지 모르는 문제를 덜고 'ink'로 검색에 걸린다.
-- App Store 부제 후보(30자 이내, 이름의 'A Drop of Ink'와 겹치지 않는 말): `Draw one stroke a day`(21) 권장. 부제는 이름에 없는 낱말로 검색 문자를 아낀다.
+- ": A Drop of Ink" 꼬리는 세 후보 공통이다. 이름만으로 무엇인지 모르는 문제를 덜고 'ink'로 검색에 걸린다. v3에서도 '먹 한 방울'은 그대로다(D-26은 동사만 바꿈).
+- App Store 부제: **`Raise it with one word a day`(28자)** 권장(aso-geo 1-2). 대안 `One word in ink, 28 nights`(26자 — FACTS 태그라인을 숫자로 줄인 것, 숫자 표기는 원어민 검수 때 판단). v2 안 `Draw one stroke a day`는 버림(D-26).
 
 ---
 
-## 2. 짧은 설명 (Google Play, 80자 이내)
+## 2. 짧은 설명 (Google Play, 80자 이내) · 홍보 문구 (App Store, 170자 이내)
 
-| 언어 | 문구 | 글자 수 |
-|---|---|---|
-| 한국어 1안 | 한지에 떨어진 먹 한 방울. 매일 그어 주는 한 획이 이 아이의 옷이 되고, 결이 되고, 둘레가 됩니다. | 58 |
-| 한국어 2안 | 한지에 떨어진 작은 먹 한 방울. 매일 그어 주는 한 획이 이 아이의 옷이 되고 결이 됩니다. | 52 |
-| 영어 | A drop of ink on paper. One stroke a day becomes part of who it is. | 67 |
+| 자리 | 언어 | 문구 | 글자 수 |
+|---|---|---|---|
+| Play 짧은 설명 | 한국어 | **먹으로 쓴 한 마디, 스물여덟 밤. 날마다 붓으로 낱말 하나를 쓰면 몽망이가 몸으로 대답해요.** | 52 |
+| Play 짧은 설명 | 영어 | **One word in ink, twenty-eight nights. Write a word; it answers with its body.** | 77 |
+| App Store 홍보 문구 | 한국어 | 먹으로 쓴 한 마디, 스물여덟 밤. 날마다 낱말 하나를 쓰면 몽망이가 그 글자를 마시고 몸으로 대답해요. | 58 |
+| App Store 홍보 문구 | 영어 | One word in ink, twenty-eight nights. Write one word each day, and it drinks the letters and answers with its body. | 115 |
 
-- 1안은 아트 바이블 0절 한 줄 정의를 그대로 줄였다. 권장.
-- 영어는 상한(80자)에 여유를 두려고 70자 아래로 맞췄다.
-
-App Store 홍보 문구(Promotional Text, 선택): 한국어 "오늘의 한 획은 아직 남아 있어요." / 영어 "Today's stroke is still waiting." — 출시 후 계절·업데이트 때 바꿔 쓰는 자리.
+- 첫 문장은 FACTS F1 태그라인, 둘째 문장은 F2 요약을 줄인 것이다. 사이트·스토어·SNS가 같은 한 줄을 반복해 한 대상으로 묶이게 한다(aso-geo 0-2).
+- 영어 짧은 설명은 'a day'를 넣으면 83자로 넘쳐 뺐다(aso-geo 1-2). 영어 홍보 문구는 영문명이 확정되기 전이라 이름 대신 'it'을 썼다.
+- 홍보 문구는 심사 없이 바꿀 수 있는 자리다. 소프트런칭·계절에 바꿔 쓰되 **날짜 약속·'광고 없음'·효능 말은 넣지 않는다**.
 
 ---
 
-## 3. 긴 설명
+## 3. 긴 설명 (양 스토어 4000자 이내)
 
-### 3-1. 한국어
+### 3-1. 한국어 (915자)
 
 ```
-한지 위에 먹 한 방울이 떨어집니다.
-손끝으로 건드리면, 먹이 갈라지며 두 눈이 열립니다.
+한지 위에 먹 한 방울이 떨어져요.
+손끝으로 건드리면 먹이 갈라지며 두 눈이 열려요.
 
-몽망이는 콩처럼 작고 동그란 먹 방울입니다.
-하루에 한 번, 붓을 들어 한 획을 그어 주세요.
-붓을 대고 뗄 때까지가 한 획입니다. 곧게 긋든, 감아 돌리든 그 모양 그대로 몽망이의 몸에 붙습니다.
-그 획이 이 아이의 옷이 되고, 결이 되고, 둘레가 됩니다.
+몽망이는 콩처럼 작고 동그란 먹 방울이에요.
+날마다 붓으로 낱말 하나를 써 주세요. 몽망이가 그 글자를 마시고 몸으로 대답해요.
+스물여덟 밤 동안 그렇게 자라요.
 
-■ 하루는 잠 한 번
-낮에는 한지 위에서 함께 지내고, 밤이 되면 연적에서 물 한 방울을 떨어뜨려 재웁니다.
-잠든 몽망이는 물 위에 떠서 오늘의 획으로 꿈을 꿉니다.
-아침에는 물 위에 뜬 한지를 건져 올려, 간밤의 꿈을 인화 카드로 받아 보세요.
+■ 벼루, 붓, 연적
+벼루에 먹을 갈아요. 간 만큼 먹의 양과 진하기가 정해져요.
+붓으로 오늘의 한 마디, 낱말 하나를 써요. 글씨의 가장 긴 획은 몸에 남아요.
+밤에는 연적에서 물 한 방울을 떨어뜨려 재워요. 물이 말을 풀어 그날 밤 꿈이 돼요.
+아침에는 물 위에 뜬 한지를 건져 올려 간밤의 꿈을 카드로 받아요.
 
-■ 어떻게 대해 주었는지가 결이 됩니다
-천천히 그었는지, 먹을 얼마나 갈았는지, 얼마나 자주 쓰다듬었는지.
-몽망이는 숨은 성향으로 그것을 기억하고, 먹의 번짐과 몸짓과 꿈으로 보여 줍니다.
-아침마다 한 줄로 까닭을 알려 줍니다.
+■ 쓴 말로 자라요
+같은 말을 써도 글씨는 사람마다 달라요. 글씨의 모양은 몸에, 말의 뜻은 몸짓과 먹빛과 꿈에 스며요.
+이레마다 그 무렵의 모습이 한 장씩 남고, 스물여덟째 아침에는 다 자란 몽망이에게 낙관이 찍혀요.
+화면에 점수나 수치는 보이지 않아요.
 
-■ 서두르지 않아도 됩니다
-오래 비워 두어도 아프거나 사라지지 않습니다. 돌아오면 반깁니다.
-알림은 꿈이 현상되었을 때 하루 한 번 보냅니다. 원하면 잠들 시각 전에 한 번 더 받을 수 있습니다.
+■ 밤은 함께 잔 잠으로 세요
+스물여덟 밤은 달력 날짜가 아니라 함께 잔 잠의 수예요. 하루를 걸러도 줄어들지 않아요.
+오래 비워 두어도 아프거나 사라지지 않아요. 돌아오면 반겨요.
 
-■ 이런 것은 없습니다
-로그인, 광고, 게이지, 코인이 없습니다.
-기록은 기기 안에만 저장되며 어디로도 보내지 않습니다.
+■ 밥과 간식
+벼루에서 먹 한 숟갈이나 작은 간식을 줄 수 있어요. 주지 않아도 몽망이는 똑같이 자라요.
 
-붓, 벼루, 연적. 세 가지 사물과 먹 한 방울로 시작하는 이레(7일)의 이야기입니다.
+■ 알림
+꿈이 현상되면 알려 드려요. 그 밖의 알림은 직접 켠 것만 와요.
+
+■ 글씨와 기록
+로그인 화면 없이 바로 시작해요.
+쓴 글씨는 기기 안에서 읽어요. '맡겨 두기'를 켜면 날마다 몸에 붙은 한 획과 그 말의 분류만 서버에 보관해요. 자세한 내용은 개인정보처리방침에 있어요.
+
+■ 넣지 않은 것
+확률형 아이템, 화면을 가리는 광고, 에너지 제한은 없어요. 키운 결과는 팔지 않아요.
+
+만 14세 이상을 대상으로 만들었어요.
+붓, 벼루, 연적. 세 가지 사물과 먹 한 방울로 시작하는 스물여덟 밤의 이야기예요.
 ```
 
-### 3-2. English
+### 3-2. English (2,106자)
 
 ```
 A single drop of ink falls onto hanji paper.
 Touch it, and the ink parts to open two small eyes.
 
 Mongmangi is a tiny, round drop of ink.
-Once a day, pick up the brush and draw one stroke.
-A stroke lasts from the moment your finger touches the paper until you lift it. Straight or curling, it joins your Mongmangi's body exactly as you drew it.
-Day by day, your strokes become its coat, its grain, its outline.
+Each day, write one word with the brush. Mongmangi drinks the letters and answers with its body.
+That is how it grows, over twenty-eight nights.
 
-- One day is one sleep
-Spend the day together on paper. At night, let a drop of water fall from the water dropper to put it to sleep.
-Floating on the water, it dreams of the stroke you gave it today.
-In the morning, lift the paper from the water to develop last night's dream as a card.
+- Inkstone, brush, water dropper
+Grind ink on the inkstone. How long you grind sets how much ink there is and how dark it is.
+Write the word of the day with the brush: a single word. The longest stroke of your writing stays on its body.
+At night, let a drop of water fall from the water dropper to put it to sleep. The water loosens the word into that night's dream.
+In the morning, lift the paper from the water and keep last night's dream as a card.
 
-- How you treat it becomes who it is
-How slowly you drew, how much ink you ground, how often you stroked it.
-Your Mongmangi remembers through a hidden temperament, and shows it in how the ink spreads, how it moves, and what it dreams.
-Each morning, one line tells you why.
+- It grows from the words you write
+No two hands write the same word alike. The shape of your writing goes into its body; the meaning of the word seeps into how it moves, the shade of its ink, and what it dreams.
+Each seven nights leaves a picture of who it is becoming, and on the twenty-eighth morning the grown Mongmangi receives its seal.
+No scores or numbers appear on screen.
 
-- No need to hurry
+- Nights are counted in sleeps
+The twenty-eight nights are counted in sleeps you share, not calendar days. Skipping a day doesn't shorten them.
 Leave it for a while and it won't fall ill or disappear. It's glad when you come back.
-One notification a day when a dream has developed — and, if you like, one more before bedtime.
 
-- What it doesn't have
-No sign-in, no ads, no meters, no coins.
-Your record stays on your device and is never sent anywhere.
+- Meals and treats
+At the inkstone you can give it a spoonful of ink or a small treat. It grows just the same if you don't.
 
-A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day story begins.
+- Notifications
+You'll hear when a dream has developed. Any other notification comes only if you turn it on.
+
+- Your writing and your record
+No sign-in screen. Just start.
+Your writing is read on your device. If you turn on Keep it safe, only the one stroke that joined its body each day and the word's category are stored on our server. The Privacy Policy has the details.
+
+- What it leaves out
+No loot boxes, no ads that cover the screen, no energy limits. What you raise is not for sale.
+
+Made for people aged 14 and over.
+A brush, an inkstone, a water dropper, and a single drop of ink. A story of twenty-eight nights begins.
 ```
 
-- 영문의 'Mongmangi'는 이름 테스트 결과로 바꾼다(②③이면 `Mong-mangE`/`mongmangE`). 영문 시 문구는 번역이 아니라 따로 쓴다는 D-06 원칙에 따라 리듬만 맞췄다. 영어 원어민 검수 1회 필요.
-- 알림 문장은 시스템 v1.1 3.6절(D-03)이 정본이다: 하루 최대 1회 "간밤의 꿈이 현상됐어요" + 선택형 1회 잠 시각 30분 전 "몽망이가 졸려 해요", 마름·방치 알림 없음. 정본이 바뀌면 이 문장도 고친다.
-- "이레(7일)의 이야기"는 MVP(D-09) 기준이다. 1.0에서 바꾼다.
-- 수익 기능이 생기면(D-05 1.0) "광고가 없습니다"·"코인이 없습니다" 문장을 실제와 맞게 고친다.
+- 영문의 'Mongmangi'는 이름 테스트 결과로 바꾼다(②③이면 `Mong-mangE`/`mongmangE`). 영문은 번역이 아니라 따로 쓴다는 D-06·D-17 원칙에 따라 리듬만 맞췄다. **영어 원어민 검수 1회 필요**(특히 'answers with its body', 'receives its seal', 'Keep it safe' 기능명 — 앱 en 문구와 같게).
+- 하루 흐름 세 줄은 FACTS F3 문장을 그대로 옮겼다. 'Keep it safe'는 처리방침 en v3.2의 기능 이름이다.
+- 알림 문장: 꿈 현상 알림은 시스템 v1 3.6(D-03, 앱 `notif.body` '간밤의 꿈이 현상됐어요')이 정본이다. 졸림 알림(선택)·밥 알림(D-27, 선택·기본 꺼짐)은 '직접 켠 것'으로 묶었다. 정본이 바뀌면 이 문장도 고친다.
+- '밥과 간식' 문단은 D-27 [잠정]이다. 배고픔·결핍 말(배고프다·안 먹으면·굶다)은 쓰지 않았다(D-27 문구 금지 목록·risk-check 1-7). 실제 걸음(01-26 업데이트 또는 1.1)은 그 업데이트 때 처리방침 U6과 함께 더한다 — 지금 문구에는 넣지 않는다. 화면 안 마실은 소개하지 않았다(작은 기능, 과한 약속 위험을 줄임).
+- '넣지 않은 것'은 D-05 금지 목록(확률형 뽑기·에너지 제한·전면 광고·키운 결과 판매)과 FACTS F13 문장 그대로다. **'광고 없음'·'결제 없음'으로 넓히지 않는다** — 1.0 수익 모델이 정해지면(D-05 확정 조건: 소프트런칭 지표) 이 문단을 다시 본다.
+- '28밤 뒤 몽망이가 곁에 남는다'는 쓰지 않았다(팀 결정 전, FACTS에도 없음). '스물여덟째 아침에 다 자란 몽망이에게 낙관이 찍힌다'까지만 쓴다(D-26).
 
 ---
 
-## 4. 키워드 (App Store, 100자 이내, 쉼표 구분·공백 없음)
+## 4. 키워드 (App Store, 100바이트 이내, 쉼표 구분·공백 없음)
 
-- 앱 이름·부제에 있는 낱말(몽망이, 키우기, 먹 한 방울 / Mongmangi, ink, drop)은 이미 검색 색인에 들어가므로 되풀이하지 않는다. 타사 앱 이름·상표는 넣지 않는다.
+- 앱 이름·부제에 있는 낱말(몽망이, 키우기, 붓글씨, 한 마디, 먹, 방울 / Mongmangi, ink, drop, raise, word, day)은 이미 검색 색인에 들어가므로 되풀이하지 않는다. **타사 앱 이름·상표는 넣지 않는다**(Apple 키워드 규칙 원문 'Names of other apps or companies aren't allowed').
+- Apple 공식 도움말은 **100바이트**로 적는다. 한글은 UTF-8로 한 글자 3바이트라, 아래 바이트 수를 기준으로 했다. 콘솔이 글자 수로 세면 남는 칸에 `동양화,귀여운`을 더한다.
 
-| 언어 | 키워드 | 글자 수 |
-|---|---|---|
-| 한국어 | `펫,수묵,한지,붓,서예,힐링,잔잔한,하루한획,그림,손그림,꿈,캐릭터,방울,동양화,가상펫,명상,일상,루틴,귀여운` | 61 |
-| 한국어(짧은 판, 한글이 바이트로 계산될 때) | `펫,수묵,한지,붓,서예,힐링,그림,꿈,가상펫,명상` | 27 (63바이트) |
-| 영어 | `virtual pet,brush,calligraphy,sumi,zen,relaxing,cozy,drawing,doodle,daily,dream,hanji,calm,cute` | 95 |
+| 언어 | 키워드 | 글자 수 | 바이트 |
+|---|---|---|---|
+| 한국어(권장) | `가상펫,펫,수묵,한지,붓,서예,손글씨,캘리그라피,낱말,꿈,한글,동양화` | 38 | 92 |
+| 한국어(낱말마다 3자 이상 판) | `가상펫,손글씨,캘리그라피,동양화,수묵화,한글서예,먹그림` | 30 | 78 |
+| 영어 | `virtual pet,calligraphy,brush,handwriting,hangul,korean,inkwash,cozy,dream,hanji,cute,letters,tiny` | 98 | 98 |
+
+- **[확인 필요]** Apple 원문의 'each greater than two characters'가 한글 1~2자 낱말(펫·붓·꿈·한지·수묵·서예·낱말)을 거부하는지 콘솔에서 확인한다. 거부되면 '3자 이상 판'을 쓴다.
+- 기존 안에서 뺀 낱말: `하루한획`(D-26 대체), `힐링`·`명상`·`zen`·`relaxing`·`calm`(효능 연상, `calm`은 타사 앱 이름과도 겹침), `루틴`·`일상`(습관 앱으로 읽힘 [팀 추정]), `sumi`(일본 수묵 용어 — 한국 수묵·한지 정체성이 흐려짐, aso-geo 1-2), `doodle`·`drawing`(v2 획 그리기), `daily`(부제에 'a day'), `잔잔한`·`그림`·`손그림`·`캐릭터`·`방울`(바이트 상한 안에서 우선순위 밀림, `방울`은 부제로 옮김).
+- `korean`·`hangul`은 1주차 Bluesky·TikTok의 한글 붓글씨 훅과 같은 축이다. 소프트런칭 국가 반응으로 남길지 본다(aso-geo 1-2).
 
 ---
 
@@ -138,13 +175,13 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 | App Store | 기본: **게임**, 하위: **시뮬레이션** + **캐주얼** | 게임은 하위 장르 두 개를 고를 수 있다 [콘솔에서 확인] |
 | 쓰지 않음 | Apple **Kids**, Google **Families(아동 포함 타깃)** | D-06, 03 문서 4-4 |
 
-- 태그(Google Play 게임 태그, 최대 개수는 콘솔에서 확인): 가상 펫, 캐주얼, 힐링, 손그림 계열에서 고른다.
+- 태그(Google Play 게임 태그, 최대 개수는 콘솔에서 확인): 가상 펫, 캐주얼, 시뮬레이션, 글씨·그리기 계열에서 고른다. **'힐링'·'편안함'류 태그는 고르지 않는다**(효능 연상, risk-check 1-4).
 
 ---
 
 ## 6. 콘텐츠 등급 설문 예상 답
 
-> MVP 빌드 기준. 실제 빌드에 맞춰 답한다. 거짓 답은 등급 취소·삭제 사유가 될 수 있다.
+> 빌드 2·RC 기준. 실제 빌드에 맞춰 답한다. 거짓 답은 등급 취소·삭제 사유가 될 수 있다. v0.5에서 v3(한 마디 쓰기·위기 낱말 대응·밥 알림)로 생기는 줄만 더했다. 공유·데이터 줄은 7절과 같은 판단을 따른다.
 
 ### 6-1. Google Play (IARC)
 | 질문 묶음 | 예상 답 | 메모 |
@@ -153,21 +190,22 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 | 폭력·유혈 | 아니요 | 다치거나 죽는 표현 없음(D-03) |
 | 공포 | 아니요 | 밤 수면 연출은 잠듦이다. 눈은 감은 호(아트 1-4) |
 | 성적 내용·노출 | 아니요 | |
-| 비속어·혐오 | 아니요 | |
+| 비속어·혐오 | 아니요 | 유저가 직접 쓰는 낱말은 기기 안에서만 쓰이고 다른 사람에게 보이지 않는다. 공유물에는 글자·말결을 넣지 않는다(PM 11-24 '공유물의 마음 흔적', 처리방침 3-4) |
 | 약물·술·담배 | 아니요 | |
 | 도박·모의 도박 | 아니요 | 확률형 뽑기 금지(D-05) |
 | 사용자 간 소통·콘텐츠 교환 | **예(보수적 기본, v0.2 리뷰 반영)** — 공개 페이지 코드가 든 빌드 2부터. 문항 원문을 보고 '아니요'가 맞으면 낮춘다 | 앱 안 피드·채팅·자유 글 없음. 카드 공유는 기기 공유 화면. 단 1.0의 '링크로 공유'는 그림·이름(선택)을 공개 웹 페이지에 올린다 → 이 문항이 '예'일 수 있다. 소통 수단은 없음(미리 정한 반응·신고뿐) [확인 필요: IARC 문항 원문에서 공개 웹 페이지를 어떻게 보는지. '예'면 등급 설문 다시 제출] |
 | 위치 공유 | 아니요 | |
-| 디지털 상품 구매 | 아니요 | MVP 수익 없음. 1.0에서 '공방 열쇠'가 생기면 '예'로 다시 제출 |
+| 디지털 상품 구매 | 아니요 | 1.0 전 수익 없음. D-05 1.0 후보(가) '공방 열쇠'가 들어가면 '예'로 다시 제출(법률 검토 v1 A-2·A-3) |
 | 무제한 웹 접근 | 아니요 | |
 | **예상 등급** | 전체이용가(국내), 각 지역 최저 등급 | 03 문서 3-1 |
 
 ### 6-2. Google Play 타깃층·콘텐츠
 | 항목 | 예상 답 |
 |---|---|
-| 타깃 연령 | **16~17, 18세 이상** [11-20 개정: 타깃 만 14세 이상, D-06·D-23]. Play의 연령 묶음은 13~15가 한 칸이라 고르면 13세를 겨냥한다고 선언하는 셈이 되어 고르지 않는다. 14~15세 이용을 막지는 않으며, 앱 설명·개인정보처리방침에 '만 14세 이상 대상'을 적는다. ~~13~15, 16~17, 18세 이상~~ [대체됨] [확인 필요: Play 콘솔 묶음 원문과 출시·정책 최종 판단] |
-| 아동에게 어필할 수 있는가 | [오너·출시 담당 결정] — 콘텐츠 등급(전체이용가·iOS 4+)은 '누가 봐도 되는가'이고, Kids 미참여·타깃 만 14세 이상 선언은 '누구를 겨냥하는가'라 서로 별개다(03 문서 4-4). 4+ 등급이어도 타깃 선언은 만 14세 이상 그대로. 캐릭터가 귀여워 Google이 아동 어필로 볼 위험이 있다(03 문서 4-4 [확인 필요]). 스토어 문구·스크린샷에 아동 대상 표현을 넣지 않는 것으로 대비 |
-| 광고 포함 | 아니요 |
+| 타깃 연령 | **16~17, 18세 이상** [11-20 개정: 타깃 만 14세 이상, D-06·D-23]. Play의 연령 묶음은 13~15가 한 칸이라 고르면 13세를 겨냥한다고 선언하는 셈이 되어 고르지 않는다. 14~15세 이용을 막지는 않으며, 앱 설명(3절 끝 줄)·개인정보처리방침에 '만 14세 이상 대상'을 적는다. [확인 필요: Play 콘솔 묶음 원문과 출시·정책 최종 판단, 법률 검토 B-5] |
+| 아동에게 어필할 수 있는가 | [오너·출시 담당 결정] — 콘텐츠 등급(전체이용가·iOS 4+)은 '누가 봐도 되는가'이고, Kids 미참여·타깃 만 14세 이상 선언은 '누구를 겨냥하는가'라 서로 별개다(03 문서 4-4). 캐릭터가 귀여워 Google이 아동 어필로 볼 위험이 있다(03 문서 4-4 [확인 필요]). 스토어 문구·스크린샷에 아동 대상 표현을 넣지 않고, 스크린샷의 손은 성인 손, 쓰는 낱말은 세상 가족 낱말로 한다(risk-check 2-1) |
+| 광고 포함 | 아니요(지금 빌드). D-05 1.0 후보(나) '보상 광고 1곳'이 채택되면 '예'로 바꾸고 3절 '넣지 않은 것' 문단도 다시 본다 |
+| 건강·의료 앱 여부 | 아니요. 위기 낱말에 몽망이가 곁에 오고 쪽지를 두는 기능은 상담·의료 기능이 아니며 스토어 문구로 소개하지 않는다(처리방침 2절 '몽망이는 상담을 대신하지 않습니다', 법률 검토 E-7 회신 대기) |
 | 정부 앱·금융 등 | 해당 없음 |
 
 ### 6-3. App Store 연령 등급 (2026-01-31부터 새 체계: 4+/9+/13+/16+/18+, 03 문서 1절)
@@ -175,15 +213,17 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 |---|---|
 | 폭력(만화·사실), 공포, 성적 내용, 비속어, 약물, 모의 도박, 의료 | 모두 없음 |
 | 무제한 웹 접근 | 없음 |
-| 사용자 생성 콘텐츠 공유·메시지 | 메시지 없음. **'링크로 공유'(1.0)는 사용자가 켠 공개 웹 페이지**(그림·이름 선택, 신고·자동 숨김·링크 끄기 있음) → iOS는 1.0 기능을 켠 상태로 심사받으므로(서버 아키텍처 3-11) 1.0 제출 때 이 문항을 '있음'으로 볼지 판단 [확인 필요: 개정 설문 문항 원문, Apple 1.2 UGC 요건(신고·차단·연락처) 충족 여부] |
-| 앱 안 구매·광고 | 없음(MVP) |
+| 사용자 생성 콘텐츠 공유·메시지 | 메시지 없음. 쓴 낱말은 기기 안에만 쓰이고 공유물에 글자가 없다. **'링크로 공유'(1.0)는 사용자가 켠 공개 웹 페이지**(그림·이름 선택, 신고·자동 숨김·링크 끄기 있음) → iOS는 1.0 기능을 켠 상태로 심사받으므로(서버 아키텍처 3-11) 1.0 제출 때 이 문항을 '있음'으로 볼지 판단 [확인 필요: 개정 설문 문항 원문, Apple 1.2 UGC 요건(신고·차단·연락처) 충족 여부] |
+| 앱 안 구매·광고 | 없음(지금 빌드). D-05 1.0 수익 모델이 정해지면 다시 답함 |
 | **예상 등급** | **4+** |
 | 한국 | GRAC/GCRB 등급이 Apple 등급과 다르면 App Review가 연락하고 Republic of Korea 옆에 등급분류번호를 넣는다(03 문서 3-1) |
 | Kids Category | 참여 안 함 |
 
 ---
 
-## 7. 데이터 보안(Google) · App Privacy(Apple) 예상 답 — v0.2 서버 도입판 (v0.3 기기 값 문구 정리 11-24, v0.4 처리방침 v3.2 정합 11-25)
+## 7. 데이터 보안(Google) · App Privacy(Apple) 예상 답 — v0.2 서버 도입판 (v0.3 기기 값 문구 정리 11-24, v0.4 처리방침 v3.2 정합 11-25, v0.5 법률 리뷰 반영 11-25)
+
+> **v0.5(11-25, 처리방침 v3.2 법률 리뷰 `docs/team/reviews/2026-11-25-privacy-v32-review.md` 반영)**: ① H1 — 12-19 빌드 2 제출 때 게시하는 방침은 **테스터판**(`privacy-policy-tester.ko.md`·`en.md`)이다(7-3). ② M2 — 밥 알림 줄의 '예약·발송 기록 0'을 'OS 알림 예약에만 잠시, 게임 기록 0'으로. ③ M6 — Apple Device ID·Diagnostics를 **Linked**로 다시 판정(공식 정의, 7-2). ④ L6 — '공유' 확인 범위를 처리방침 9절 질문 하나로 줄임. ⑤ 광고·결제는 1.0 후보(D-05 잠정)라 지금 답에 넣지 않고, 넣을 때 바뀌는 답은 처리방침 ko '도입 시 개정 목록(광고·결제)' A3에 적어 둠.
 
 > **v0.4(11-25, 처리방침 v3.2 정합)**: ① 자체 OTA 확인 요청은 설치 id(`EAS-Client-ID`)·실패한 업데이트 id·오류 텍스트를 **앱이 상수로 덮어 보내지 않는다**(472bcc5:apps/mobile/plugins/withSelfHostedUpdates.js, ota-self-host.md 9·9-1 ④) — '받기만 하고 저장 0'에서 '보내지 않음'으로 근거를 바꿈. Device ID·Crash Data는 OTA 때문에 선언할 필요가 없다(Device ID는 ML Kit 근거로 계속 선언). ② OTA 요청은 Firebase Hosting(전 세계 엣지)을 지나 Cloud Run 서울(18fa723 PM 정정). 확인 시점: 둘째 실행부터 하루 1회 + 크래시 복구 예외(882e87e·b668567). ③ D-27 돌봄 1.0 범위: 밥·간식 값은 세이브(Gameplay Content·기타 사용자 생성 콘텐츠 안)에 들어가고, 밥 알림은 로컬(서버 0)·화면 마실은 권한 0·기기 전용 → **새 데이터 유형·새 권한 없음**(fee671c:docs/design/concept-v3/care-rituals.md). 실제 걸음(01-26 또는 1.1)은 처리방침 ko '01-26 업데이트 전 개정 목록' U6에서 이 절을 고친다. ④ 집계 핑 줄은 **B4 커밋 뒤 대조**(다른 담당 구현 중, 이 판에서 고치지 않음).
 
@@ -206,7 +246,7 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 | 맡겨 두기 | 선택한 사람 [빌드 2] | 위 + 저장 시각·해시 + 세이브 전체 — **기기 값은 받지 않음**(아키텍처 v2.2 3-1·부록 I2). 세이브: 쓴 글씨는 **날마다 몸에 붙은 한 획 + 말결 id만**(PM 11-24 ①, 세기·사전 판·나머지 글씨는 올리지 않음), (획 좌표·**시간·필압**, 잠 시각, 정·손 기억, **이용 시간대 패턴·부재 길이·마지막 방문 시각·설치 시각·시간대**, 이름, 밥·간식 `meal{spoons, nudgeOptIn}`·`pantry` — 시각·횟수 없음). **`walk.day`(마실 날)는 올리지 않음**(D-27, 처리방침 K35) | 계정 id로 연결 | 선택 |
 | 링크 손님(웹) | 앱 밖 | 페이지 로드 수, 신고 가명 값 7일 | — | 앱 라벨 대상 아님 [팀 추정] |
 | 위젯 | — | 서버로 보내는 것 없음 | — | — |
-| 밥 알림(D-27) | 켠 사람만(기본 꺼짐) [RC] | 기기 안 로컬 예약(expo-notifications), 푸시 토큰 0, 예약·발송 기록 0 — 서버로 보내는 것 없음 | — | 선택 |
+| 밥 알림(D-27) | 켠 사람만(기본 꺼짐) [RC] | 기기 안 로컬 예약(expo-notifications), 푸시 토큰 0. 예약은 울리거나 취소될 때까지 OS 알림 예약(Android 재부팅 복구용 저장소 포함)에만 잠시 있고 앱을 열면 지움, 게임 기록(세이브)에는 0 — 서버로 보내는 것 없음(기기 안 처리라 Data safety 대상 아님) | — | 선택 |
 | 화면 안 마실(D-27) | 모든 설치자 [RC] | 화면 터치만, 권한 0. '마실 날' 예/아니오 기기 전용(다음 아침 삭제) — 서버로 보내는 것 없음 | — | — |
 
 ### 7-1. Google Play 데이터 보안(Data safety)
@@ -218,7 +258,7 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 | 필수 사용자 데이터 유형을 수집하거나 공유하는가 | **예(수집)** | v0.1 '아니요'에서 바뀜 |
 | 수집하는 모든 사용자 데이터가 전송 중 암호화되는가 | **예** | 앱 API·자체 OTA·Firebase·Supabase·ML Kit 모두 HTTPS |
 | 사용자가 데이터 삭제를 요청할 수 있는가 | **예** | 앱 안 '서버에 맡긴 것 지우기' + 웹 `https://mongmang.ink/delete`(링크 코드 + 되찾기 글귀). 계정 삭제 웹 URL 입력란에도 같은 주소. 설명란에 '식별자 없는 집계 통계는 사람별로 찾을 수 없어 삭제 대상이 아님'을 적는다 |
-| 공유(제3자 전송) | **아니요** | 수탁사(Supabase·Google·메일 서비스, 도입 시 Cloudflare) 전송은 — v0.3에서 Expo 빠짐 — '서비스 제공자'라 공유가 아니고, 링크 공개는 사용자가 시작한 전송이라 공유가 아니라고 본다 [확인 필요: Data safety 문서의 '공유' 정의·예외 원문, **ML Kit 진단이 Google 자체 목적(진단·사용 분석)에 쓰이는 것이 '공유'인지** — 처리방침 9절 법률 검토와 같은 질문] |
+| 공유(제3자 전송) | **아니요** | 수탁사(Supabase·Google·메일 서비스, 도입 시 Cloudflare) 전송은 — v0.3에서 Expo 빠짐 — '서비스 제공자'라 공유가 아니고, 링크 공개는 사용자가 시작한 전송이라 공유가 아니라고 본다. ML Kit: Google 공개 문서가 'ML Kit does not transfer this data to third-parties'라고 적고, Play 정의상 SDK의 서비스 제공자 전송은 공유가 아니다(v0.5, 법률 리뷰 L6). 남는 질문은 처리방침 9절의 위탁 대 제3자 제공 하나(`legal-review-questions.md` H-1) — 제3자 제공으로 회신되면 이 칸을 다시 본다 |
 | 독립 보안 검토(MASA) | 아니요 | |
 | Families 정책 | 해당 없음(예상) — 6-2 '아동 어필' 결정 대기 | 타깃 연령에 13세 미만 없음 |
 | 개인정보처리방침 URL | [URL — 오너 게시 후 기입] | 처리방침 v3.2(이후 판)를 빌드 2(12-19) 제출 전 게시 |
@@ -251,13 +291,13 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 | Apple 분류 | 수집 | Linked to You | Tracking | 목적 | 근거 흐름 | 메모 |
 |---|---|---|---|---|---|---|
 | Usage Data > **Product Interaction** | 예 | **Not Linked** | 아니요 | Analytics | 집계 핑 | **[B4 커밋 뒤 대조]** |
-| Identifiers > **Device ID** | **예** | **Not Linked** | 아니요 | Analytics(SDK 진단) | ML Kit 설치별 식별자(Google SDK, 우리 계정과 연결 안 됨) | v0.3: 맡겨 두기 기기 값은 받지 않으므로 Linked 근거가 사라짐. v0.4: 자체 OTA는 앱이 설치 id를 상수로 덮어 **보내지 않음**(472bcc5) — Apple '수집' 정의 질문이 사라짐 [확인 필요: V15 실측]. 처리방침 3-2·3-3·3-5와 일치 |
+| Identifiers > **Device ID** | **예** | **Linked**(v0.5) | 아니요 | Analytics(SDK 진단) | ML Kit 설치별 식별자(Google SDK, 우리 계정과 연결 안 됨) | **v0.5 재판정(법률 리뷰 M6)**: Apple App Privacy Details는 개인 데이터를 수집 전에 비식별·익명화하는 보호 조치(직접 식별자 제거 등)가 없으면 '연결된 데이터'로 본다고 적는다. ML Kit은 설치별 식별자를 그대로 Google에 보내고 운영자가 수집 전에 지울 수 없으므로 Linked로 선언한다(Tracking 아님 → ATT 불필요, 비용은 라벨 한 칸). v0.3: 맡겨 두기 기기 값은 받지 않음. v0.4: 자체 OTA는 앱이 설치 id를 상수로 덮어 **보내지 않음**(472bcc5) — Apple '수집' 정의 질문이 사라짐 [확인 필요: V15 실측]. 처리방침 3-2·3-3·3-5와 일치 |
 | Identifiers > **User ID** | 예 | Linked | 아니요 | App Functionality | 익명 계정 id | |
 | User Content > **Other User Content** | 예 | Linked | 아니요 | App Functionality | 획·이름·공개 스냅숏·포스터·루프 | |
 | **Gameplay Content** | 예 | Linked | 아니요 | App Functionality | 세이브(게임 진행) | |
 | Usage Data > **Other Usage Data** | 예 [확인 필요: 분류] | Linked | 아니요 | App Functionality | 세이브 안 이용 시간대 패턴·부재 길이·방문·설치 시각 | Product Interaction(Linked)로도 볼 수 있음 — 넓게 둘 다 선언 검토 |
 | Contact Info > Email | 아니요 [1.0.x에 예] | Linked | 아니요 | App Functionality | 계정 연결 | |
-| Diagnostics > **Performance Data**·**Other Diagnostic Data** | **예** | Not Linked | 아니요 | Analytics | ML Kit 진단(성능 값·오류 코드) | Crash Data는 아니요(크래시 SDK 없음, OTA 오류 텍스트는 앱이 보내지 않음 — v0.4) |
+| Diagnostics > **Performance Data**·**Other Diagnostic Data** | **예** | **Linked**(v0.5) | 아니요 | Analytics | ML Kit 진단(성능 값·오류 코드) — 같은 요청에 설치별 식별자가 붙어 가므로 Device ID와 같이 Linked(법률 리뷰 M6) | Crash Data는 아니요(크래시 SDK 없음, OTA 오류 텍스트는 앱이 보내지 않음 — v0.4) |
 | Location·Contacts·Health·Financial·Browsing·Search·Sensitive Info | 아니요 | | | | | 획 시간·필압의 'Sensitive Info' 여부는 법률 검토 B-6 결과로 다시 본다. 1.0 화면 마실은 센서·걸음을 읽지 않아 Health & Fitness 아님(D-27). 실제 걸음은 처리방침 ko 01-26 개정 목록 U6 |
 
 - '선택적 공개(optional disclosure)' 예외로 링크·맡겨 두기를 빼는 길은 쓰지 않는다 — 두 기능이 1.0의 주요 기능이기 때문이다 [팀 추정].
@@ -269,8 +309,9 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 | 시점 | 할 일 | 담당 |
 |---|---|---|
 | 12-05 | 법률 검토 회신(`legal-review-questions.md`) 반영 → 처리방침 v3.2·이 절 확정 | 출시·정책·오너 |
-| 빌드 2 제출 전 | 처리방침 v3.2(이후 판) 게시(ko·en, 머리의 내부 체크리스트 상자 삭제), URL 기입 | 오너 |
-| 12-19 빌드 2 제출 전 | **7-1·7-2 표 전부 선언**(앱 상호작용·기기 ID·사용자 ID·사용자 생성 콘텐츠·기타 작업 / Product Interaction·Device ID·User ID·User Content·Gameplay·Other Usage Data), 삭제 URL 입력, 6-1 '예' | 출시·정책 |
+| 12-15 | **12-19 전 게시본 = 테스터판 방침**(`privacy-policy-tester.ko.md`·`en.md`, 법률 리뷰 H1·PM 11-25). web-static 출시 전 모드 `/privacy`가 이 판을 보여 주게 함(`docs/release/README.md` 작업 목록 W1~W6) | 출시·정책·web-static |
+| 빌드 2 제출 전 | 테스터판 URL(`https://mongmang.ink/privacy`)을 Play Console에 기입. 전체 방침 v3.3(이후 판)은 메모가 모두 풀린 뒤(소프트런칭 OTA·플래그 전) 출시 모드로 게시 | 오너 |
+| 12-19 빌드 2 제출 전 | **7-1·7-2 표 전부 선언**(앱 상호작용·기기 ID·사용자 ID·사용자 생성 콘텐츠·기타 작업 / Product Interaction·Device ID·User ID·User Content·Gameplay·Other Usage Data), 삭제 URL 입력, 6-1 '예'. **[PM 결정 필요 — v0.5]** 11-20 결정('빌드 2부터 전부 선언')을 따르면 Data safety가 테스터판 방침보다 넓다(테스터판에는 계정·통계·세이브가 없음). 안: 빌드 2는 테스터판과 같은 범위(기기 ID·진단 — ML Kit)만 선언하고, 아래 '플래그 켜기 전' 행에서 전체 방침 게시와 함께 넓힌다 | 출시·정책 |
 | 맡겨 두기·링크 플래그 켜기 전(게이트) | 콘솔 답이 위와 같은지, `/delete`·`/privacy`가 살아 있는지 확인. 아니면 플래그를 켜지 않는다 | 출시·정책(승인 오너) |
 | Cloudflare Worker·R2 도입 전 | 처리방침 7·8절·3-6, 이 절 공유 메모 갱신 | 출시·정책·서버 |
 | 1.0.x 계정 연결 전 | 이메일 추가 | 출시·정책 |
@@ -279,19 +320,23 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 
 ## 8. 스크린샷·영상 문구 계획
 
-- **실제 게임 화면만** 쓴다(D-04, 라이선스 원장). AI 시안 금지.
-- **첫 장은 0일차가 아니라 7일차 몽망이 + 아침 카드**(아트 바이블 14절 3: 0일차 단독은 흔한 블랙 슬라임으로 보일 수 있음).
-- 캡션은 한 장에 한 줄, 본명조/Cormorant(아트 6절). 느낌표 없음.
+- **실제 게임 화면만** 쓴다(D-04, 라이선스 원장). AI 시안 금지. v3 화면이 모두 든 RC(01-05) 이후 실기기 캡처로 만든다(calendar 0-2).
+- **첫 장은 0일차가 아니라 다 자란(또는 이레를 지난) 몽망이 + 아침 카드**(아트 바이블 14절 3: 0일차 단독은 흔한 블랙 슬라임으로 보일 수 있음). 최종 몽망이가 RC에 없으면(02-02 OTA) 넷째 이레 스냅숏으로 대신한다.
+- 화면에 쓰는 낱말은 **세상 가족 낱말만**(자연·살림 — 예: 바다, 눈송이, 녹차). 감정 낱말·위기 대응 화면(곁에 와 주는 말·이야기 나눌 곳)·공방 노트 설정·알림 권한 화면은 찍지 않는다(risk-check 1-1·1-2, calendar 2절).
+- 손이 나오면 성인 손. 캡션은 한 장에 한 줄, 본명조/Cormorant(아트 6절). 느낌표 없음. 캡션은 그 장의 화면이 실제로 보여 주는 것만 말한다.
 
 | # | 화면 | 한국어 캡션 | English caption |
 |---|---|---|---|
-| 1 | 7일차 몽망이 + 아침 인화 카드 | 매일 한 획이, 이 아이가 됩니다 | One stroke a day becomes who it is |
-| 2 | 첫 터치, 눈이 열리는 순간 | 손끝이 닿으면 눈을 뜹니다 | Touch it, and it opens its eyes |
-| 3 | 획을 긋는 중 | 붓을 뗄 때까지가 한 획 | One stroke, until you lift the brush |
-| 4 | 밤 수면, 물 위에서 잠든 몽망이 | 밤에는 물 위에서 꿈을 꿉니다 | At night, it dreams on the water |
-| 5 | 아침 현상(한지를 건져 올림) | 아침마다 간밤의 꿈을 건져 올립니다 | Each morning, lift last night's dream |
+| 1 | 다 자란 몽망이(낙관) + 아침 꿈 카드 | 쓴 말로 자란 몽망이 | Grown from the words you wrote |
+| 2 | 첫 터치, 눈이 열리는 순간 | 손끝이 닿으면 눈을 떠요 | Touch it, and it opens its eyes |
+| 3 | 벼루에 먹을 가는 중 | 벼루에 먹을 갈아요 | Grind ink on the inkstone |
+| 4 | 붓으로 낱말 하나를 쓰는 중 | 붓으로 오늘의 한 마디 | Write the word of the day |
+| 5 | 글자를 마시고 몸짓으로 대답하는 순간 | 글자를 마시고 몸으로 대답해요 | It drinks the letters and answers with its body |
+| 6 | 밤, 연적의 물 위에서 잠든 몽망이 | 물이 말을 풀어 꿈이 돼요 | The water loosens the word into a dream |
+| 7 | 아침, 물 위의 한지를 건져 올림 | 아침마다 간밤의 꿈 한 장 | Each morning, last night's dream |
 
 - 규격은 03 문서 6-2·6-3절(Apple iPhone medium 필수, Google 9:16 세로 3장 이상, 피처 그래픽 1024×500, 미리보기 영상 25초 안팎 1편).
+- 미리보기 영상 흐름(25초 안팎): 눈 열림(3초) → 먹 갈기(4초) → 낱말 쓰기·마시기·몸짓(8초) → 연적·잠(4초) → 아침 카드(4초) → 태그라인 한 줄. 자막은 위 캡션에서만 고른다. 음악·성우 없음(risk-check 3 TikTok 음원 판단과 같음).
 
 ---
 
@@ -299,10 +344,77 @@ A brush, an inkstone, a water dropper — and a single drop of ink. A seven-day 
 
 | 항목 | 값 |
 |---|---|
-| 개인정보처리방침 URL | [오너 게시 후 기입] — 서버 아키텍처 2-1 그림의 `https://mongmang.ink/privacy` 권장(v0.2) |
+| 개인정보처리방침 URL | [오너 게시 후 기입] — 서버 아키텍처 2-1 그림의 `https://mongmang.ink/privacy` 권장(v0.2). 출시 전 사이트의 /privacy는 '출시 전 안내'이므로 스토어에 넣는 시점에는 '출시 모드' 빌드가 게시되어 있어야 한다(PM 11-25 웹 리뷰) |
 | 계정 삭제 URL(Google Play 필수, v0.2) | `https://mongmang.ink/delete` — 링크 코드 + 되찾기 글귀가 맞을 때만 처리(처리방침 v3.2 12절). 맡겨 두기·링크를 켜는 OTA 전에 페이지가 살아 있어야 함 |
+| 마케팅 URL(Apple 선택) | `https://mongmang.ink`(ko) · `https://mongmang.ink/en`(en) — FACTS가 있는 곳 |
 | 지원 URL(Apple 필수) | [오너 결정: 방침과 같은 사이트의 문의 페이지 권장] |
-| 개발자 이메일(Google 공개) | [연락 이메일 — 오너 기입] |
+| 개발자 이메일(Google 공개) | [연락 이메일 — 오너 기입. FACTS F11은 hello@mongmang.ink] |
 | 판매자명 | 오너 실명(양 스토어 개인 계정, 03 문서 1·2절) |
 | 저작권(Apple Copyright) | `© 2026 [운영자 실명 — 오너 기입]` |
-| 심사 메모(App Review Information) | 로그인 없음. 하루 경계가 '잠 한 번'이라 심사자가 아침 화면을 보려면 시간이 필요하다 → 심사용 안내 또는 빌드 설정을 준비할지 [테크·출시 결정] |
+| 심사 메모(App Review Information) | 로그인 없음. 하루 경계가 '잠 한 번'(D-07)이라 심사자가 아침 화면을 보려면 시간이 필요하다 → 심사용 안내 또는 빌드 설정을 준비할지 [테크·출시 결정]. v3 추가: ① 첫 한 마디를 쓸 때 손글씨 인식 모델을 한 번 내려받으므로 네트워크가 필요하다(못 받으면 키보드 입력, 처리방침 3-3) ② 28밤 전체를 심사 중에 볼 수 없으므로 스크린샷 1번(다 자란 몽망이)이 실제 빌드에서 나오는 화면이라는 설명을 적는다(D-04) |
+
+---
+
+## 10. 바꾼 문장과 근거 (v0.2 → v0.5)
+
+| # | 자리 | 이전(v2) | 이번(v3) | 근거 |
+|---|---|---|---|---|
+| 1 | 머리 '쓰지 않는 말' | 방치형·다마고치·아이들·망(忘) | + 효능·정신건강 말, 위기 기능, AI, v2 문구, 정본보다 강한 약속, 타사 앱 이름 | risk-check 1·4절, aso-geo 1-3, FACTS F13, PM 11-25(D-05보다 강한 약속 금지) |
+| 2 | 1-1 대안 이름 | 몽망이 키우기: 먹 한 방울 | 몽망이 키우기: 먹으로 쓴 한 마디 | D-26, FACTS F1 |
+| 3 | 1-1 App Store 부제 | 하루 한 획, 아침마다 꿈 한 장 | 붓글씨 한 마디로 키우는 먹 방울 | D-26 '대체: 하루 한 획 → 하루 한 마디', aso-geo 1-1 |
+| 4 | 1-2 영문 부제 | Draw one stroke a day | Raise it with one word a day | D-26, aso-geo 1-2 |
+| 5 | 2 Play 짧은 설명 ko | 매일 그어 주는 한 획이 옷·결·둘레 | 먹으로 쓴 한 마디, 스물여덟 밤. 날마다 붓으로 낱말 하나… 몸으로 대답해요 | D-26, FACTS F1·F2 |
+| 6 | 2 Play 짧은 설명 en | One stroke a day becomes part of who it is | One word in ink, twenty-eight nights. Write a word; it answers with its body. | D-26, FACTS en tagline·summary, aso-geo 1-2(80자 상한) |
+| 7 | 2 홍보 문구 | 오늘의 한 획은 아직 남아 있어요 / Today's stroke is still waiting | 태그라인 + 요약 한 문장 | D-26, FACTS F1·F2. 옛 문구는 '남아 있다'는 재촉 뉘앙스도 있어 버림(D-03 재촉 금지 취지) |
+| 8 | 3 첫 단락 '하루에 한 번 한 획을 그어 주세요… 옷·결·둘레' | 한 획 동사 | 날마다 붓으로 낱말 하나 → 글자를 마시고 몸으로 대답, 스물여덟 밤 | D-26 선택 줄, FACTS F2 |
+| 9 | 3 '하루는 잠 한 번' 단락 | 연적 물 한 방울로 재움, 오늘의 획으로 꿈 | '벼루, 붓, 연적' 단락: 먹 양·진하기 / 한 마디·가장 긴 획은 몸에 / 물이 말을 풀어 꿈 / 아침 카드 | D-26(벼루 → 붓 → 연적), FACTS F3, concept-review 5-2 |
+| 10 | 3 '어떻게 대해 주었는지가 결이 됩니다' | 획 속도·먹·쓰다듬기 → 숨은 성향, 아침 한 줄 까닭 | '쓴 말로 자라요': 글씨 모양은 몸, 뜻은 몸짓·먹빛·꿈, 이레마다 한 장, 스물여덟째 아침 낙관, 점수·수치 없음 | D-26(말결 → 몸짓·빗·먹빛·꿈, 이레 스냅숏, 낙관, 점수 안 보임), FACTS howNote |
+| 11 | 3 '서두르지 않아도 됩니다' | 오래 비워도 아프거나 사라지지 않음 | '밤은 함께 잔 잠으로 세요': 28밤 = 함께 잔 잠, 걸러도 줄지 않음 + 아프거나 사라지지 않음 | D-26 생애 줄(D-07 함께 잔 잠), D-03 |
+| 12 | 3 '밥과 간식' (새 단락) | — | 먹 한 숟갈이나 작은 간식, 주지 않아도 똑같이 자람 | D-27 [팀] 밥 = 한 숟갈·간식 = 작은 것·안 줘도 변화 0, 처리방침 11절 끝 줄 |
+| 13 | 3 알림 | 하루 한 번 + 원하면 잠 시각 전 한 번 | 꿈이 현상되면 알림, 그 밖은 직접 켠 것만 | D-03, D-27 밥 알림 선택·기본 꺼짐, 처리방침 11절 |
+| 14 | 3 '이런 것은 없습니다' | 로그인·광고·게이지·코인 없음 / 기록은 기기 안에만, 어디로도 보내지 않음 | '글씨와 기록': 로그인 화면 없음, 쓴 글씨는 기기 안에서 읽음, 맡겨 두기를 켜면 한 획 + 분류만 보관 | D-06(로그인 없이 시작), D-26 AI 줄·DECISIONS 11-24 '맡겨 두기 업로드 = 한 획 + 말결 id', 처리방침 1·3-3·3-5, 이 문서 7-0(업데이트 확인·ML Kit 진단이 있어 '어디로도' 거짓) |
+| 15 | 3 '넣지 않은 것' (새 단락) | 광고·코인 없음 | 확률형 아이템·화면을 가리는 광고·에너지 제한 없음, 키운 결과는 팔지 않음 | D-05 금지 목록, FACTS F13·F7, PM 11-25 |
+| 16 | 3 끝 | 이레(7일)의 이야기 | 만 14세 이상 대상 + 스물여덟 밤의 이야기 | D-26 생애 28밤, D-06(타깃 14+), 6-2 '앱 설명에 14세 이상 적기' |
+| 17 | 3-2 English 전체 | v2 획 문장 | 3-1과 같은 구조로 따로 씀, 기능 이름 'Keep it safe' | D-06·D-17(언어별 원작), 처리방침 en v3.2 |
+| 18 | 4 키워드 ko | 펫,수묵,한지,붓,서예,힐링,잔잔한,하루한획,…,명상,일상,루틴,귀여운 | 가상펫,펫,수묵,한지,붓,서예,손글씨,캘리그라피,낱말,꿈,한글,동양화 | aso-geo 1-1, risk-check 1-4, Apple 100바이트 규칙 |
+| 19 | 4 키워드 en | …,sumi,zen,relaxing,cozy,drawing,doodle,daily,…,calm,cute | virtual pet,calligraphy,brush,handwriting,hangul,korean,inkwash,cozy,dream,hanji,cute,letters,tiny | aso-geo 1-2(`calm`도 뺌 — 효능 연상·타사 앱 이름) |
+| 20 | 5 태그 | 가상 펫, 캐주얼, 힐링, 손그림 | 가상 펫, 캐주얼, 시뮬레이션, 글씨·그리기, '힐링' 태그 금지 | risk-check 1-4 |
+| 21 | 6-1·6-2·6-3 | MVP 기준 | 쓴 낱말은 기기 안·공유물에 글자 없음, 건강·의료 앱 아님 줄, 수익 모델 바뀌면 다시 답함 | PM 11-24 공유물의 마음 흔적, 처리방침 2·3-4, 법률 검토 E-7·A-3, D-05 |
+| 22 | 8 캡션 7장 | 매일 한 획이 이 아이가 됩니다 등 5장 | 쓴 말로 자란 몽망이 / 눈 열림 / 벼루 / 한 마디 / 마시고 대답 / 물이 말을 풀어 꿈 / 아침 꿈 | D-26 하루 의례, FACTS F3, D-04, risk-check 1-1·2-1 |
+| 23 | 9 심사 메모 | 로그인 없음·하루 경계 | + 손글씨 모델 내려받기(네트워크), 28밤 화면 설명 | 처리방침 3-3, D-04·D-26 |
+
+---
+
+## 11. 글자 수 표 (2026-11-25, python `len()` = 글자, UTF-8 = 바이트, 공백·문장부호 포함)
+
+| 자리 | 상한(공식) | 한국어 | 영어 | 판정 |
+|---|---|---|---|---|
+| Apple 앱 이름 | 30자 | 7 | 24~25(후보 ①~③) | 통과 |
+| Play 앱 이름 | 30자 | 7 (대안 19) | 24~25 | 통과 |
+| Apple 부제 | 30자 | 18 (대안 18) | 28 (대안 26) | 통과 |
+| Play 짧은 설명 | 80자 | 52 | 77 | 통과 |
+| Apple 홍보 문구 | 170자 | 58 | 115 | 통과 |
+| 긴 설명(양 스토어) | 4000자 | 915 | 2,106 | 통과 |
+| Apple 키워드 | **100바이트** | 92B(38자) / 3자 이상 판 78B(30자) | 98B | 통과 — 낱말 '2자 초과' 문구는 [확인 필요] |
+
+- 공식 출처: Apple App Store Connect 도움말 'Platform version information'(홍보 문구 170자, 설명 4000자, 키워드 100바이트·다른 앱/회사 이름 금지) https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information · 'App information'(이름 30자, 부제 30자) https://developer.apple.com/help/app-store-connect/reference/app-information/app-information · Google Play Console 도움말 9859152(앱 이름 30자, 짧은 설명 80자, 자세한 설명 4000자, 전각·반각 같은 수) https://support.google.com/googleplay/android-developer/answer/9859152
+- 센 방법: 이 절의 문구를 그대로 문자열로 넣어 `len(s)`·`len(s.encode('utf-8'))`. 긴 설명은 코드 블록 안 본문(끝 줄바꿈 제외).
+
+---
+
+## 12. 자체 점검 — 과장·거짓·금지어 (작성 뒤 다른 눈으로 한 번 더)
+
+| 검사 | 대상 | 결과 |
+|---|---|---|
+| 느낌표·이모지 | 1~4·8절 문구 | 0 |
+| 금지어(힐링·치유·위로·명상·감정·일기·마음 건강·스트레스·불안·우울·zen·relax·calm·therapy·mental·mood·journal·AI·인공지능·kids·아이들·어린이·키즈·방치형·다마고치·Tamagotchi·최초·유일·1위·최고·완전 무료·광고 없·no ads·never·어디로도) | 1~4·8절 문구 | 0. '광고'는 D-05 범위 문장('화면을 가리는 광고'·'no ads that cover the screen') 한 곳씩만 — 'no ads'로 끝나는 단독 약속 아님 (설명 문장·10절 근거 표의 '이전' 칸은 규칙을 설명하느라 포함 — 제외) |
+| v2 문구('한 획' 동사, '하루 한 획', '이레(7일)', 'stroke a day') | 1~4·8절 문구 | 0. '획'은 '글씨의 가장 긴 획'(D-26 '획은 글씨 안의 획으로 남음')과 맡겨 두기 '한 획'(처리방침 3-5)에만 남음 |
+| 사실과 다른 약속 | 3절 | '어디로도 보내지 않음' → '쓴 글씨는 기기 안에서 읽음 + 맡겨 두기는 한 획·분류만'(처리방침 1·3-3·3-5와 같은 범위). '광고 없음' → D-05 금지 목록 범위('화면을 가리는 광고')로 좁힘. '무료' 문구는 쓰지 않음(가격 칸이 말함) |
+| 아직 정해지지 않은 것을 사실처럼 | 3절 | 28밤 뒤 처리·출시일·실제 걸음·보름 기능은 쓰지 않음. 밥·간식(D-27 잠정)은 머리 '게시 조건 ②'로 묶음 |
+| 과장 | 3·8절 | '모두 다른'·'세상에 하나뿐' 같은 유일성 주장 없음. '같은 말을 써도 글씨는 사람마다 달라요'는 손글씨 사실 진술(D-12 '모양은 손') |
+| 감정 단정 | 3·8절 | '기뻐해요'·'행복해해요' 없음. '반겨요'만 — D-03 '돌아오면 반긴다' 정본 문장 |
+| 위기·정신건강 소재 | 전체 | 위기 대응 기능은 6-2 '건강·의료 앱 여부' 메모(콘솔 답 근거)에만 있고 공개 문구 0 |
+| 아동 대상 | 전체 | 아동 말 0, '만 14세 이상' 명시, 스크린샷 성인 손 |
+| 타사 상표 | 4절 키워드 | 0(`calm` 뺌) |
+
+- 남은 위험 [확인 필요]: ① 'answers with its body'·'receives its seal'의 영어 자연스러움(원어민 검수) ② 부제 '붓글씨'가 실물 붓 게임으로 읽힐 여지 — 스크린샷 4번이 손가락 쓰기를 보여 줘 막는다(risk-check 4절 형식 B 주의와 같은 취지) ③ 처리방침 ko v3.2 1절은 '광고·추적·결제가 없습니다'로 이 문서·FACTS(D-05 범위)보다 강하다 — 처리방침 담당에게 넘김(이 작업에서 고치지 않음).
