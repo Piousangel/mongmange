@@ -45,9 +45,18 @@ let cronAuth: CronAuth;
 const logs: string[] = [];
 const filler: string[] = [];
 const realNow = Date.now.bind(Date);
+/** 시험 격리(11-25): 2년 정리는 설계상 DB 전체를 훑고 `inactive_sweep`은 한 행이라, 공유 시험 DB에서 이 파일이 둘 이상 겹쳐 돌면
+ *  (다른 세션·worktree의 test:db) 서로의 대상을 지우고 날짜 잠금을 가져가 개수 단언이 엇갈린다. 파일 전체를 세션 advisory lock으로 한 번에 하나만 돌린다 */
+const SWEEP_TEST_LOCK = 7_254_025_001;
+let lockClient: pg.Client | undefined;
+/** 채움 계정 표지(created_at) — 중간에 죽은 실행이 남긴 채움 계정을 다음 실행이 지운다 */
+const FILLER_CREATED = '2001-01-01T00:00:00Z';
 const SNAP_OK = JSON.parse(readFileSync(join(__dirname, '../../../packages/core/test/fixtures/snap/ok.json'), 'utf8')) as Record<string, unknown>;
 
 beforeAll(async () => {
+  lockClient = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await lockClient.connect();
+  await lockClient.query('SELECT pg_advisory_lock($1)', [SWEEP_TEST_LOCK]);
   logSink.stream = new Writable({
     write(chunk, _e, cb) {
       logs.push(...String(chunk).split('\n').filter(Boolean));
@@ -58,6 +67,10 @@ beforeAll(async () => {
   Object.assign(process.env, {
     SUPABASE_URL: sb.url,
     SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY,
+    // 하루 새 계정 상한은 '그날 0시(가짜 시계) 이후 linked_at' 개수다. 이 파일은 가짜 시계를 지난 날짜(2026-11-11)로 돌려 계정을 만들므로
+    // 공유 시험 DB에 그 뒤 모든 실행이 쌓은 로그인 행이 함께 세져 503 account_cap이 났다(11-25). 이 파일은 상한을 시험하지 않는다 —
+    // 상한 자체는 cloud 시험이 따로 고정한다
+    ACCOUNT_NEW_PER_DAY: '1000000',
     TRUSTED_PROXY_HOPS_API: '1',
     TRUSTED_PROXY_HOPS_WEB: '2',
     STORAGE_DRIVER: 'local',
@@ -89,16 +102,19 @@ beforeAll(async () => {
   gc = app.get(GcService);
   cronAuth = app.get(CronAuth);
   // 차단기 ①(전체의 1%)이 이 파일의 소수 삭제를 막지 않도록, 이달 활동한 채움 계정 1000개(끝나면 지움)
+  await prisma.$executeRaw`DELETE FROM app.users WHERE created_at = ${FILLER_CREATED}::timestamptz`;
+  await prisma.inactiveSweepState.update({ where: { id: 1 }, data: { lastDay: null } });
   const rows = await prisma.$queryRaw<{ id: string }[]>`
     INSERT INTO app.users (id, created_at, last_active_month)
-    SELECT gen_random_uuid(), now(), date_trunc('month', now() AT TIME ZONE 'UTC')::date FROM generate_series(1, 1000) RETURNING id`;
+    SELECT gen_random_uuid(), ${FILLER_CREATED}::timestamptz, date_trunc('month', now() AT TIME ZONE 'UTC')::date FROM generate_series(1, 1000) RETURNING id`;
   filler.push(...rows.map((r) => r.id));
-});
+}, 600_000); // 다른 실행이 잠금을 쥐고 있으면 그 파일이 끝날 때까지 기다린다
 afterAll(async () => {
   if (filler.length) await prisma.user.deleteMany({ where: { id: { in: filler } } });
   await app?.close();
   await sb?.close();
   logSink.stream = undefined;
+  await lockClient?.end(); // 세션이 끝나면 advisory lock도 풀린다
 });
 beforeEach(() => {
   clock.now = realNow;
