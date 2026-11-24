@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" font-family="Gowun Batang, 'Noto Serif KR', serif">
+  <title>몽망이 C′ — 하루 의례와 네 이레 여정 (concept-v3 시안)</title>
+  <rect width="960" height="620" fill="#F2EADB"/>
+  <text x="40" y="48" font-size="22" fill="#2A2622">하루 의례 — 갈고, 쓰고, 내려놓는다</text>
+  <g font-size="15" fill="#2A2622">
+    <!-- 아침 -->
+    <rect x="40" y="80" width="160" height="120" rx="10" fill="#FBF6EC" stroke="#8A8174"/>
+    <text x="56" y="108">① 아침 · 물 위 한지</text>
+    <text x="56" y="134" font-size="13" fill="#5E574D">어젯밤 말이</text>
+    <text x="56" y="152" font-size="13" fill="#5E574D">꿈이 되어 돌아옴</text>
+    <!-- 벼루 -->
+    <rect x="230" y="80" width="160" height="120" rx="10" fill="#FBF6EC" stroke="#8A8174"/>
+    <text x="246" y="108">② 벼루 · 마음 고르기</text>
+    <text x="246" y="134" font-size="13" fill="#5E574D">간 만큼 먹이 고임</text>
+    <text x="246" y="152" font-size="13" fill="#5E574D">= 쓸 글자 수·진하기</text>
+    <!-- 붓 -->
+    <rect x="420" y="80" width="190" height="120" rx="10" fill="#FBF6EC" stroke="#1C1A18" stroke-width="2"/>
+    <text x="436" y="108">③ 붓 · 오늘의 한 마디</text>
+    <text x="436" y="134" font-size="13" fill="#5E574D">몽망이가 글자를 마시고</text>
+    <text x="436" y="152" font-size="13" fill="#5E574D">3초 안에 몸으로 대답</text>
+    <text x="436" y="170" font-size="13" fill="#5E574D">가장 긴 획은 몸에 남음</text>
+    <!-- 교감 -->
+    <rect x="640" y="80" width="130" height="120" rx="10" fill="#FBF6EC" stroke="#8A8174"/>
+    <text x="656" y="108">④ 손 · 교감</text>
+    <text x="656" y="134" font-size="13" fill="#5E574D">쓰다듬기·부르기</text>
+    <!-- 연적 -->
+    <rect x="800" y="80" width="130" height="120" rx="10" fill="#FBF6EC" stroke="#8A8174"/>
+    <text x="816" y="108">⑤ 연적</text>
+    <text x="816" y="128" font-size="15">내려놓기</text>
+    <text x="816" y="152" font-size="13" fill="#5E574D">물이 글자를 풀어</text>
+    <text x="816" y="170" font-size="13" fill="#5E574D">꿈으로 보냄 · 잠</text>
+  </g>
+  <g stroke="#5E574D" stroke-width="1.5" fill="none">
+    <path d="M200 140 H226"/><path d="M390 140 H416"/><path d="M610 140 H636"/><path d="M770 140 H796"/>
+    <path d="M865 200 C865 250, 120 250, 120 204" stroke-dasharray="5 5"/>
+  </g>
+  <text x="420" y="262" font-size="12" fill="#5E574D">밤 → 아침 (밤 = 함께 잔 잠 한 번, 달력 날짜 아님)</text>
+
+  <!-- 예시: 짜증 -->
+  <g transform="translate(40 290)">
+    <text x="0" y="0" font-size="15" fill="#2A2622">예) 붓으로 '짜증' → 마시기 → 빗이 곤두서고 부르르 (숫자는 보이지 않음)</text>
+    <text x="10" y="64" font-size="40" fill="#1C1A18" opacity="0.85">짜증</text>
+    <path d="M110 50 C150 40, 170 60, 205 52" stroke="#1C1A18" stroke-width="3" fill="none" opacity="0.5"/>
+    <ellipse cx="260" cy="58" rx="40" ry="32" fill="#1C1A18"/>
+    <circle cx="247" cy="60" r="5" fill="#F2EADB"/><circle cx="273" cy="60" r="5" fill="#F2EADB"/>
+    <path d="M272 30 l20 -18 M280 34 l24 -12 M286 40 l26 -6" stroke="#1C1A18" stroke-width="4" stroke-linecap="round"/>
+    <path d="M222 40 C205 55, 210 80, 228 86" stroke="#4A4540" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <text x="320" y="56" font-size="12" fill="#5E574D">빗 곤두섬(결 '화·짜증')</text>
+    <text x="320" y="74" font-size="12" fill="#5E574D">글의 가장 긴 획 → 등에 붙음(D-12)</text>
+  </g>
+
+  <!-- 네 이레 -->
+  <text x="40" y="430" font-size="22" fill="#2A2622">스물여덟 밤 — 네 이레 여정</text>
+  <line x1="60" y1="500" x2="900" y2="500" stroke="#8A8174" stroke-width="2"/>
+  <g font-size="13" fill="#2A2622" text-anchor="middle">
+    <circle cx="60" cy="500" r="6" fill="#1C1A18"/><text x="60" y="530">1밤 먹 방울</text>
+    <circle cx="270" cy="500" r="16" fill="#FBF6EC" stroke="#1C1A18"/><text x="270" y="505">1</text><text x="270" y="535">첫 이레 '스밈'</text>
+    <circle cx="480" cy="500" r="16" fill="#FBF6EC" stroke="#1C1A18"/><text x="480" y="505">2</text><text x="480" y="535">둘째 이레 '결' · 14밤 = 그 아이의 보름</text>
+    <circle cx="690" cy="500" r="16" fill="#FBF6EC" stroke="#1C1A18"/><text x="690" y="505">3</text><text x="690" y="535">셋째 이레 '빛'</text>
+    <circle cx="900" cy="500" r="22" fill="#1C1A18"/><rect x="890" y="455" width="20" height="20" fill="#C8432E"/>
+    <text x="880" y="560">28번째 아침 · 최종 몽망이(넷째 이레 '여묾')</text>
+  </g>
+  <text x="40" y="600" font-size="13" fill="#5E574D">이레마다 스냅숏 1장 → 28밤에 네 이레 두루마리. 완성된 아이는 곁에 남고, 원하면 새 먹 방울을 시작한다(화첩).</text>
+</svg>
