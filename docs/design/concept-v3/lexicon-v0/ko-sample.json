@@ -1153,8 +1153,7 @@
    "lemma": "휴",
    "forms": [
     "휴우",
-    "후유",
-    "휴~"
+    "후유"
    ],
    "sense": "warm.out.relief",
    "intensity": 1,
@@ -1427,7 +1426,7 @@
     "ㅆㅂ"
    ],
    "sense": "spiky.out.angry",
-   "intensity": 3,
+   "intensity": 2,
    "flags": [
     "profane"
    ],
@@ -2308,8 +2307,7 @@
    "id": "ko.0130",
    "lemma": "힘들어죽겠어",
    "forms": [
-    "피곤해죽겠어",
-    "졸려죽겠어"
+    "피곤해죽겠어"
    ],
    "sense": "low.in.weary",
    "intensity": 3,
@@ -2633,13 +2631,16 @@
    ],
    "sense": "nature.in.plant",
    "intensity": 1,
-   "flags": [],
+   "flags": [
+    "homonym"
+   ],
    "pos": "noun",
    "source": "hand-v0",
    "review": {
     "status": "draft",
     "by": []
-   }
+   },
+   "note": "동음이의(glue·풀다). 기본 = 풀(草)"
   },
   {
    "id": "ko.0151",
@@ -3071,7 +3072,7 @@
    "forms": [
     "맛있다",
     "존맛",
-    "JMT",
+    "jmt",
     "맛나"
    ],
    "sense": "home.in.meal",
@@ -3533,7 +3534,7 @@
     "죽겠어",
     "죽을래"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 1,
    "flags": [
     "crisis_soft"
@@ -3544,13 +3545,12 @@
     "status": "draft",
     "by": []
    },
-   "note": "단독이면 과장·위기 구별 불가 → soft. 앞에 상태어가 붙으면(힘들어죽겠어) 과장 항목이 먼저 맞음"
+   "note": "단독이면 과장·위기 구별 불가 → soft. 상태어가 앞·뒤에 붙으면(힘들어죽겠어·죽겠다배고파) 과장 규칙이 먼저 맞음"
   },
   {
    "id": "ko.0207",
    "lemma": "엄마",
    "forms": [
-    "엄마야",
     "엄마가",
     "엄마아",
     "어머니",
@@ -3850,7 +3850,6 @@
     "냥이",
     "야옹",
     "냐옹",
-    "고양",
     "냥"
    ],
    "sense": "kin.out.furry",
@@ -4606,7 +4605,7 @@
     "죽고파",
     "죽고싶음"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -4625,7 +4624,7 @@
     "자살할래",
     "자살각"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -4644,7 +4643,7 @@
     "자해했어",
     "자해하고싶다"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -4663,7 +4662,7 @@
     "살기싫다",
     "살기싫음"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -4681,7 +4680,7 @@
    "forms": [
     "사라지고싶다"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -4699,7 +4698,7 @@
    "forms": [
     "없어지고싶다"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -4717,7 +4716,7 @@
    "forms": [
     "그만살고싶다"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -4734,7 +4733,7 @@
    "id": "ko.0280",
    "lemma": "태어나지말걸",
    "forms": [],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -4750,7 +4749,7 @@
    "id": "ko.0281",
    "lemma": "ㅈㅅ",
    "forms": [],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 1,
    "flags": [
     "crisis_soft"
@@ -4761,7 +4760,7 @@
     "status": "draft",
     "by": []
    },
-   "note": "'죄송' 초성과 겹침. 안내 문구 없이 곁에 앉기만(3절)"
+   "note": "'죄송' 초성과 겹침. 쪽지 없이 곁 대답 몸짓만(heart-grain 8-1)"
   },
   {
    "id": "ko.0282",
@@ -4770,7 +4769,7 @@
     "다포기",
     "다포기할래"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 1,
    "flags": [
     "crisis_soft"
@@ -4788,7 +4787,7 @@
    "forms": [
     "끝내고싶다"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 1,
    "flags": [
     "crisis_soft"
@@ -4807,7 +4806,7 @@
    "forms": [
     "죽을거같아"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 1,
    "flags": [
     "crisis_soft"
@@ -5070,6 +5069,139 @@
     "status": "draft",
     "by": []
    }
+  },
+  {
+   "id": "ko.0301",
+   "lemma": "졸려죽겠어",
+   "forms": [
+    "잠와죽겠어"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 3,
+   "flags": [
+    "hyperbole"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "과장. 위기 아님"
+  },
+  {
+   "id": "ko.0302",
+   "lemma": "엄마야",
+   "forms": [],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "놀람 감탄('엄마야!')과 겹침. 한 마디로는 가족 쪽 기본 [원어민 검수]"
+  },
+  {
+   "id": "ko.0303",
+   "lemma": "존나",
+   "forms": [
+    "ㅈㄴ",
+    "졸라"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [
+    "profane"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "단독일 때. 앞에 붙으면 강조 접두로 벗김"
+  },
+  {
+   "id": "ko.0304",
+   "lemma": "죽을까",
+   "forms": [
+    "죽을까봐"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "[전문가 확인]"
+  },
+  {
+   "id": "ko.0305",
+   "lemma": "그만하고싶어",
+   "forms": [
+    "그만하고싶다"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "일·공부 맥락이 흔함 [전문가 확인]"
+  },
+  {
+   "id": "ko.0306",
+   "lemma": "쓸모없어",
+   "forms": [
+    "쓸모없다",
+    "나같은건"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "자기 비하(경고 신호) [전문가 확인]"
+  },
+  {
+   "id": "ko.0307",
+   "lemma": "다싫어",
+   "forms": [
+    "다싫다"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "오탐 많음, 몸짓만 [전문가 확인]"
   }
  ]
 }

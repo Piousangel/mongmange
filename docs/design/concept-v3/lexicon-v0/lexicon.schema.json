@@ -128,8 +128,9 @@
       "days.out.outing",
       "x.call",
       "x.unknown",
-      "x.crisis"
-     ]
+      "x.stay"
+     ],
+     "description": "x.stay(곁 대답)는 런타임 전용이다. 세이브에는 warm.in.still로 저장한다(heart-grain 9절)"
     },
     "intensity": {
      "enum": [
@@ -137,7 +138,7 @@
       2,
       3
      ],
-     "description": "화면에 보이지 않는 내부 값. 몸짓 진폭에만 쓴다"
+     "description": "화면에 보이지 않는 내부 값. 몸짓 진폭에만 쓴다. profane이면 2 이하(대조 14단계도 상한 2)"
     },
     "flags": {
      "type": "array",
@@ -211,7 +212,7 @@
      "if": {
       "properties": {
        "sense": {
-        "const": "x.crisis"
+        "const": "x.stay"
        }
       }
      },
@@ -244,7 +245,7 @@
      "then": {
       "properties": {
        "sense": {
-        "const": "x.crisis"
+        "const": "x.stay"
        }
       }
      }

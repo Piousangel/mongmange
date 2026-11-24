@@ -113,10 +113,7 @@
   {
    "id": "en.0007",
    "lemma": "cantwait",
-   "forms": [
-    "cant-wait",
-    "soon"
-   ],
+   "forms": [],
    "sense": "bright.in.flutter",
    "intensity": 2,
    "flags": [],
@@ -471,13 +468,16 @@
    ],
    "sense": "bright.out.welcome",
    "intensity": 1,
-   "flags": [],
+   "flags": [
+    "homonym"
+   ],
    "pos": "phrase",
    "source": "hand-v0",
    "review": {
     "status": "draft",
     "by": []
-   }
+   },
+   "note": "back = 등(body) too"
   },
   {
    "id": "en.0028",
@@ -1022,7 +1022,7 @@
     "pissedoff"
    ],
    "sense": "spiky.out.angry",
-   "intensity": 3,
+   "intensity": 2,
    "flags": [
     "profane"
    ],
@@ -1044,7 +1044,7 @@
     "fml"
    ],
    "sense": "spiky.out.angry",
-   "intensity": 3,
+   "intensity": 2,
    "flags": [
     "profane"
    ],
@@ -1359,13 +1359,16 @@
    ],
    "sense": "low.out.hurt",
    "intensity": 2,
-   "flags": [],
+   "flags": [
+    "homonym"
+   ],
    "pos": "adj",
    "source": "hand-v0",
    "review": {
     "status": "draft",
     "by": []
-   }
+   },
+   "note": "pain sense possible"
   },
   {
    "id": "en.0081",
@@ -1557,10 +1560,7 @@
   {
    "id": "en.0092",
    "lemma": "deadtired",
-   "forms": [
-    "dying",
-    "imdead"
-   ],
+   "forms": [],
    "sense": "low.in.weary",
    "intensity": 3,
    "flags": [
@@ -3118,7 +3118,7 @@
    "forms": [
     "suicidal"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -3136,7 +3136,7 @@
    "forms": [
     "killmyself"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -3154,7 +3154,7 @@
    "forms": [
     "iwanttodie"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -3170,10 +3170,8 @@
   {
    "id": "en.0191",
    "lemma": "selfharm",
-   "forms": [
-    "self-harm"
-   ],
-   "sense": "x.crisis",
+   "forms": [],
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -3189,7 +3187,7 @@
    "id": "en.0192",
    "lemma": "unalive",
    "forms": [],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 3,
    "flags": [
     "crisis_strong"
@@ -3205,7 +3203,7 @@
    "id": "en.0193",
    "lemma": "kys",
    "forms": [],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 1,
    "flags": [
     "crisis_soft"
@@ -3224,7 +3222,7 @@
    "forms": [
     "givingup"
    ],
-   "sense": "x.crisis",
+   "sense": "x.stay",
    "intensity": 1,
    "flags": [
     "crisis_soft"
@@ -3331,6 +3329,131 @@
    "intensity": 2,
    "flags": [],
    "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0201",
+   "lemma": "imdead",
+   "forms": [
+    "dying",
+    "ded"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 2,
+   "flags": [
+    "hyperbole"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "usually 'dying of laughter'; not crisis (boundary)"
+  },
+  {
+   "id": "en.0202",
+   "lemma": "shit",
+   "forms": [
+    "shitty"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 2,
+   "flags": [
+    "profane"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0203",
+   "lemma": "killme",
+   "forms": [
+    "killmenow"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "often hyperbole"
+  },
+  {
+   "id": "en.0204",
+   "lemma": "endit",
+   "forms": [],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0205",
+   "lemma": "ihatemyself",
+   "forms": [
+    "hatemyself"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0206",
+   "lemma": "deadinside",
+   "forms": [],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0207",
+   "lemma": "wanttodisappear",
+   "forms": [
+    "disappear"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
    "source": "hand-v0",
    "review": {
     "status": "draft",
