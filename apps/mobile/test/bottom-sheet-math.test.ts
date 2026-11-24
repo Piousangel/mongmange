@@ -2,7 +2,13 @@
 // 좌표: 위치 = 시트의 translateY(0 = 가장 높이 펼친 자리, sheetH = 화면 밖으로 닫힘). 아래로 갈수록 큰 값.
 import { describe, expect, it } from 'vitest';
 import {
+  EDGE_EPS,
+  IDLE_DRAG,
   backdropProgress,
+  beginDrag,
+  endDrag,
+  ownsDrag,
+  releaseTarget,
   detentPositions,
   dragPosition,
   FLING_VELOCITY,
@@ -78,6 +84,14 @@ describe('pickSnap — 속도 기반 스냅', () => {
   it('튕김 판정은 한 칸만: 아주 빠른 튕김도 지나치게 건너뛰지 않는다', () => {
     expect(pickSnap(10, 9000, [0, 200, 400], 600)).toBe(200);
   });
+  it('튕김 기준은 정확히 500px/s(이상이면 튕김, 499면 투영)', () => {
+    expect(FLING_VELOCITY).toBe(500);
+    // 위치 10, 후보 [0, 400]: 투영(10 + 0.2×v)은 499에서도 0 쪽이지만, 500이면 아래로 한 칸
+    expect(pickSnap(10, 500, [0, 400], null)).toBe(400);
+    expect(pickSnap(10, 499, [0, 400], null)).toBe(0);
+    expect(pickSnap(390, -500, [0, 400], null)).toBe(0);
+    expect(pickSnap(390, -499, [0, 400], null)).toBe(400);
+  });
   it('튕김 기준 속도 아래면 투영(위치 + 0.2초 × 속도)만 쓴다', () => {
     expect(pickSnap(100, 400, [0, 400], 800)).toBe(0);
     expect(pickSnap(150, FLING_VELOCITY - 1, [0, 400], 800)).toBe(400);
@@ -89,6 +103,10 @@ describe('shouldClose — 닫힘 조건', () => {
     expect(shouldClose(600, 600)).toBe(true);
     expect(shouldClose(599.8, 600)).toBe(true);
     expect(shouldClose(300, 600)).toBe(false);
+  });
+  it('닫힘 경계: 닫힌 자리 0.5 안쪽까지만 닫힘, 1px 위 스냅은 열린 자리', () => {
+    expect(shouldClose(599.5, 600)).toBe(true);
+    expect(shouldClose(599, 600)).toBe(false);
   });
 });
 
@@ -118,6 +136,22 @@ describe('stepContentDrag — 안쪽 스크롤과 시트 드래그', () => {
   it('스크롤이 내려가 있으면 아래로 당겨도 먼저 스크롤이 올라간다', () => {
     expect(stepContentDrag({ ...base, pos: 0, delta: 40, scrollY: 120 })).toEqual({ pos: 0, sheetOwns: false });
   });
+  it('맨 위 스냅이 아니면 스크롤이 내려가 있어도 아래로 끄는 손가락은 시트가 가진다(리뷰 M1 재현: 85%에서 스크롤 → 35%로 내림 → 내용을 아래로)', () => {
+    expect(stepContentDrag({ ...base, pos: 300, delta: 40, scrollY: 200 })).toEqual({ pos: 340, sheetOwns: true });
+  });
+  it('맨 위 판정 경계: scrollY 0.5까지는 맨 위, 1이면 스크롤이 먼저', () => {
+    expect(EDGE_EPS).toBe(0.5);
+    expect(stepContentDrag({ ...base, pos: 0, delta: 10, scrollY: 0.5 })).toEqual({ pos: 10, sheetOwns: true });
+    expect(stepContentDrag({ ...base, pos: 0, delta: 10, scrollY: 1 })).toEqual({ pos: 0, sheetOwns: false });
+  });
+  it('시트 위치 경계: top + 0.5까지는 맨 위(스크롤 몫), top + 1이면 덜 펼쳐짐(시트 몫)', () => {
+    expect(stepContentDrag({ ...base, pos: 0.5, delta: -10, scrollY: 0 })).toEqual({ pos: 0.5, sheetOwns: false });
+    expect(stepContentDrag({ ...base, pos: 1, delta: -10, scrollY: 0 })).toEqual({ pos: 0, sheetOwns: true });
+  });
+  it('맨 위 스냅에서 스크롤이 내려가 있으면 손가락은 어느 방향이든 스크롤 몫(시트는 스크롤을 묶지 않는다)', () => {
+    expect(stepContentDrag({ ...base, pos: 0, delta: 30, scrollY: 50 }).sheetOwns).toBe(false);
+    expect(stepContentDrag({ ...base, pos: 0, delta: -30, scrollY: 50 }).sheetOwns).toBe(false);
+  });
   it('스크롤할 게 없는 내용이면 핸들처럼 위로도 시트가 받는다(저항은 호출 쪽)', () => {
     expect(stepContentDrag({ ...base, scrollable: false, pos: 0, delta: -30, scrollY: 0 })).toEqual({ pos: -30, sheetOwns: true });
   });
@@ -139,5 +173,34 @@ describe('backdropProgress·settleDuration', () => {
     expect(slow).toBe(320);
     expect(fast).toBeLessThan(slow);
     expect(fast).toBeGreaterThanOrEqual(140);
+  });
+});
+
+describe('드래그 수명(리뷰 H1 닫히는 중 드래그·L2 두 손가락)', () => {
+  const positions = [0, 300];
+  it('열려 있고 아무도 안 쥐었으면 시작한다', () => {
+    expect(beginDrag(IDLE_DRAG, 'handle', true, 120)).toEqual({ owner: 'handle', start: 120, raw: 120, prevT: 0, moved: false });
+  });
+  it('닫히는 중(visible=false)에 잡은 손가락은 무시한다 — 시트를 붙잡아 되돌리지 않는다', () => {
+    expect(beginDrag(IDLE_DRAG, 'handle', false, 400)).toBeNull();
+    expect(beginDrag(IDLE_DRAG, 'content', false, 400)).toBeNull();
+  });
+  it('드래그 도중 닫힘 요청이 오면 그 뒤 프레임은 버리고, 놓아도 스냅하지 않는다(닫힘 애니메이션이 맡음)', () => {
+    const d = { ...beginDrag(IDLE_DRAG, 'handle', true, 0)!, moved: true };
+    expect(ownsDrag(d, 'handle', true)).toBe(true);
+    expect(ownsDrag(d, 'handle', false)).toBe(false);
+    expect(releaseTarget(d, 'handle', false, 120, 0, positions, 600)).toBeNull();
+    expect(releaseTarget(d, 'handle', true, 120, 0, positions, 600)).toBe(0);
+  });
+  it('움직이지 않은 제스처는 놓아도 아무것도 하지 않는다(안쪽 탭·스크롤만 한 경우)', () => {
+    const d = beginDrag(IDLE_DRAG, 'content', true, 0)!;
+    expect(releaseTarget(d, 'content', true, 0, 900, positions, 600)).toBeNull();
+  });
+  it('두 손가락: 먼저 잡은 쪽만 주인, 다른 쪽은 시작도 반영도 못 하고 끝나도 주인을 비우지 않는다', () => {
+    const d = beginDrag(IDLE_DRAG, 'handle', true, 0)!;
+    expect(beginDrag(d, 'content', true, 0)).toBeNull();
+    expect(ownsDrag(d, 'content', true)).toBe(false);
+    expect(endDrag(d, 'content')).toBe(d);
+    expect(endDrag(d, 'handle')).toEqual(IDLE_DRAG);
   });
 });

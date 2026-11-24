@@ -51,8 +51,8 @@ let flick;
 function bindFlick(page) {
   flick = async (x, y, dy) => {
     for (let i = 1; i <= 8; i++) {
+      if (i > 1) await sleep(8);
       await page.mouse.move(x, y + (dy * i) / 8);
-      await sleep(8);
     }
   };
 }
@@ -80,7 +80,7 @@ for (const v of [
 if (!SHOTS_ONLY) {
   const { ctx, page } = await openApp();
   const handle = async () => {
-    const b = await tid(page, 'note-sheet-handle').boundingBox();
+    const b = await tid(page, 'note-handle').boundingBox();
     return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
   };
   const dragBy = async (dy, steps) => {
@@ -108,6 +108,8 @@ if (!SHOTS_ONLY) {
   await dragBy(-200, 20);
   await sleep(50);
   const yOver = await closeY(page);
+  const skirt = (await tid(page, 'note-skirt').boundingBox())?.height ?? 0;
+  log.push({ check: '과도 당김으로 들린 바닥 틈을 시트 색 띠가 채움(리뷰 L1)', skirt, pass: skirt > 2 });
   await page.screenshot({ path: path.join(OUT, '11-overdrag-up.png') });
   await page.mouse.up();
   await sleep(600);
@@ -126,7 +128,7 @@ if (!SHOTS_ONLY) {
 
   // 2-5. 안쪽 스크롤: 내린 뒤 내용 위에서 아래로 끌면 먼저 스크롤이 올라가고 시트는 그대로
   await openNote(page);
-  const scroll = tid(page, 'note-sheet-scroll');
+  const scroll = tid(page, 'note-scroll');
   await scroll.hover();
   await page.mouse.wheel(0, 400);
   await sleep(400);
@@ -172,8 +174,26 @@ if (!SHOTS_ONLY) {
   await sleep(700);
   log.push({ check: 'Esc → 닫힘', pass: !(await noteOpen(page)) });
 
-  // 2-10. 접근성 트리: 손잡이 라벨·역할, 대화상자 표시
+  // 2-9b. 리뷰 H1: 배경 탭 직후(닫히는 240ms 안) 손잡이를 잡아 위·아래로 끌어도 결국 닫히고 Modal이 내려간다
+  for (const dy of [-80, 60]) {
+    await openNote(page);
+    const h = await handle();
+    await page.mouse.click(195, 12);
+    await page.mouse.move(h.x, h.y + 4);
+    await page.mouse.down();
+    await page.mouse.move(h.x, h.y + 4 + dy, { steps: 10 });
+    await page.mouse.up();
+    await sleep(900);
+    log.push({ check: `닫히는 중 잡아 끌기(${dy}) → 그래도 닫힘(리뷰 H1)`, pass: !(await noteOpen(page)) && (await page.locator('[data-testid="note"]').count()) === 0 });
+  }
+
+  // 2-10. 접근성: 첫 포커스 = 제목, 대화상자 표시, 닫기 버튼 라벨, 웹 손잡이는 접근성 트리 밖
   await openNote(page);
+  await sleep(500);
+  const focusId = await page.evaluate(() => document.activeElement?.getAttribute('data-testid'));
+  log.push({ check: '열면 첫 포커스가 제목(리뷰 M3)', focusId, pass: focusId === 'note-title' });
+  const handleA11y = await tid(page, 'note-handle').evaluate((e) => ({ role: e.getAttribute('role'), label: e.getAttribute('aria-label') }));
+  log.push({ check: '웹 손잡이 그림은 역할 없음(포인터 캡처 유지), 단일 스냅이라 크기 조절 노드 없음', handleA11y, pass: !handleA11y.role && (await page.locator('[data-testid="note-size"]').count()) === 0 });
   const modal = await page.evaluate(() => !!document.querySelector('[aria-modal="true"]'));
   const closeBtn = await tid(page, 'note-close').evaluate((e) => ({ role: e.getAttribute('role'), label: e.getAttribute('aria-label') }));
   log.push({ check: '대화상자(aria-modal)·닫기 버튼 라벨', modal, closeBtn, pass: modal && !!closeBtn.label });
@@ -192,6 +212,11 @@ if (!SHOTS_ONLY) {
   await page.screenshot({ path: path.join(OUT, '13-card-viewer.png') });
   await tid(page, 'viewer-close').click();
   await sleep(500);
+  await tid(page, 'album-0').click();
+  await sleep(1000);
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  log.push({ check: '카드 보기 중 Esc → 카드 보기만 닫히고 노트는 열린 채(겹침 뒤로 가기)', pass: (await page.locator('[data-testid="card-viewer"]').count()) === 0 && (await noteOpen(page)) });
   log.push({ check: '앨범 → 카드 보기 → 돌아가기(노트는 열린 채)', viewer, pass: viewer && (await page.locator('[data-testid="card-viewer"]').count()) === 0 && (await noteOpen(page)) });
   await ctx.close();
 }
@@ -226,21 +251,21 @@ if (!SHOTS_ONLY) {
   const v0 = await visible();
   await page.screenshot({ path: path.join(OUT, '20-board-35.png') });
   log.push({ check: '확인판: 처음은 낮은 스냅(35%)', visible: v0, pass: near(v0, H * 0.35) });
-  await drag(-180, 30);
+  await drag(-260, 30);
   const v1 = await visible();
   await page.screenshot({ path: path.join(OUT, '21-board-85.png') });
-  log.push({ check: '천천히 위로 180 → 가까운 85%', visible: v1, pass: near(v1, H * 0.85) });
+  log.push({ check: '천천히 위로 260 → 가까운 85%', visible: v1, pass: near(v1, H * 0.85) });
   await drag(100, 30);
   const v2 = await visible();
   log.push({ check: '천천히 아래로 100 → 85% 그대로', visible: v2, pass: near(v2, H * 0.85) });
-  await drag(70, 3);
+  await drag(100, 3);
   const v3 = await visible();
-  log.push({ check: '빠른 아래 튕김 70 → 한 칸만(35%), 닫히지 않음', visible: v3, pass: near(v3, H * 0.35) });
-  await drag(-90, 3);
+  log.push({ check: '빠른 아래 튕김 100 → 한 칸만(35%), 닫히지 않음', visible: v3, pass: near(v3, H * 0.35) });
+  await drag(-120, 3);
   const v4 = await visible();
-  log.push({ check: '빠른 위 튕김 90 → 85%', visible: v4, pass: near(v4, H * 0.85) });
+  log.push({ check: '빠른 위 튕김 120 → 85%', visible: v4, pass: near(v4, H * 0.85) });
   // 낮은 스냅에서 내용을 위로 밀면 시트가 먼저 펼쳐지고 스크롤은 0에 묶인다
-  await drag(70, 3);
+  await drag(100, 3);
   const sc = tid(page, 'board-sheet-scroll');
   const sb = await sc.boundingBox();
   await page.mouse.move(sb.x + sb.width / 2, sb.y + 60);
@@ -252,9 +277,37 @@ if (!SHOTS_ONLY) {
   const v5 = await visible();
   const st5 = await sc.evaluate((e) => e.scrollTop);
   log.push({ check: '35%에서 내용 위로 200 → 시트가 85%로, 스크롤은 0', visible: v5, scrollTop: st5, pass: near(v5, H * 0.85) && st5 === 0 });
-  await drag(70, 3);
-  await drag(90, 3);
-  log.push({ check: '35%에서 아래로 튕김 90 → 닫힘', pass: !(await isOpen()) });
+  // 리뷰 M1 재현: 85%에서 내용을 내려 스크롤 → 손잡이로 35%까지 → 내용을 아래로 끌면 시트가 따라 내려와야 한다
+  await sc.hover();
+  await page.mouse.wheel(0, 300);
+  await sleep(400);
+  const scrolled = await sc.evaluate((e) => e.scrollTop);
+  await drag(100, 3);
+  const v6 = await visible();
+  const sb2 = await sc.boundingBox();
+  await page.mouse.move(sb2.x + sb2.width / 2, sb2.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(sb2.x + sb2.width / 2, sb2.y + 30 + 60, { steps: 12 });
+  await sleep(150);
+  const v7 = await visible();
+  await page.mouse.up();
+  await sleep(700);
+  log.push({ check: '낮은 스냅 + 스크롤 내려간 채 내용을 아래로 끌기 → 시트가 따라옴(리뷰 M1)', scrolled, at35: v6, during: v7, pass: scrolled > 0 && near(v6, H * 0.35) && v6 - v7 > 30 });
+
+  // 리뷰 M4: 웹 크기 조절 노드(slider) — 화살표 키로 한 칸씩, aria-valuenow 갱신
+  const size = tid(page, 'board-sheet-size');
+  const role = await size.getAttribute('role');
+  await size.focus();
+  await page.keyboard.press('ArrowUp');
+  await sleep(500);
+  const up = { visible: await visible(), now: await size.getAttribute('aria-valuenow') };
+  await page.keyboard.press('ArrowDown');
+  await sleep(500);
+  const down = { visible: await visible(), now: await size.getAttribute('aria-valuenow') };
+  log.push({ check: '웹 slider + 화살표 키로 스냅 바꾸기(리뷰 M4)', role, up, down, pass: role === 'slider' && near(up.visible, H * 0.85) && up.now === '2' && near(down.visible, H * 0.35) && down.now === '1' });
+
+  await drag(120, 3);
+  log.push({ check: '35%에서 아래로 튕김 120 → 닫힘', pass: !(await isOpen()) });
   await ctx.close();
 }
 

@@ -65,6 +65,7 @@ export function NoteSheet({
     }
   }, [visible]);
   const myName = displayName(state);
+  const viewer = viewing !== null && state.cards[viewing] ? <CardViewer card={state.cards[viewing]!} strokes={state.strokes} look={look} owner={state} onClose={() => setViewing(null)} /> : null;
   const s = meta.sound;
   const dry = sim.dryness(state, now);
   const status = [
@@ -78,27 +79,19 @@ export function NoteSheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
+      title={t('note.title')}
       theme="day"
-      backdropLabel={t('note.closeBackdrop')}
-      announce={t('note.title')}
       contentContainerStyle={{ paddingBottom: 24 }}
-      testID="note-sheet"
-      header={
-        <View style={styles.head}>
-          <KText style={styles.title} accessibilityRole="header" serif="title">
-            {t('note.title')}
-          </KText>
-          <Pressable onPress={onClose} style={styles.close} accessibilityRole="button" accessibilityLabel={t('note.close')} testID="note-close">
-            <KText style={styles.closeText}>{t('note.close')}</KText>
-          </Pressable>
-        </View>
-      }
+      testID="note"
       overlay={
-        <>
-          {viewing !== null && state.cards[viewing] && <CardViewer card={state.cards[viewing]!} strokes={state.strokes} look={look} owner={state} onClose={() => setViewing(null)} />}
-          {tagOpen && <NameTag state={state} name={myName} look={look} strokeInks={strokeInks} onClose={() => setTagOpen(false)} />}
-        </>
+        viewer || tagOpen ? (
+          <>
+            {viewer}
+            {tagOpen && <NameTag state={state} name={myName} look={look} strokeInks={strokeInks} onClose={() => setTagOpen(false)} />}
+          </>
+        ) : null
       }
+      onOverlayBack={() => (tagOpen ? setTagOpen(false) : setViewing(null))}
     >
       <KText style={styles.section} serif="title">{t('note.today')}</KText>
       <KText style={styles.status}>{status}</KText>
@@ -277,9 +270,6 @@ function Stepper({ label, value, onMinus, onPlus }: { label: string; value: stri
 }
 
 const styles = StyleSheet.create({
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: PALETTE.day.wash },
-  title: { fontFamily: SERIF, fontSize: 19, color: PALETTE.day.text, letterSpacing: track.serif(19) },
-  close: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'flex-end' },
   closeText: { fontFamily: SANS, fontSize: 15, color: PALETTE.day.textSub },
   section: { marginTop: 20, marginBottom: 2, fontFamily: SERIF, fontSize: 14, color: PALETTE.day.textSub, letterSpacing: track.serif(14) },
   status: { fontFamily: SANS, fontSize: 15, color: PALETTE.day.text, lineHeight: 22 },

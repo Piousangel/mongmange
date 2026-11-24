@@ -120,14 +120,13 @@ export const ko = {
   // ── 공통 바텀시트(ui/BottomSheet) — 손잡이는 스크린리더에서 조절 막대 ──
   'sheet.handle': '시트 손잡이',
   'sheet.handle.hint': '두 번 눌러 닫기',
-  'sheet.handle.hintAdjust': '위아래로 쓸어 크기 바꾸기, 두 번 눌러 닫기',
+  'sheet.handle.hintAdjust': '위아래로 쓸어 크기 바꾸기',
+  'sheet.level': '{max}단계 중 {now}단계',
   'sheet.close': '닫기',
-  'sheet.closeBackdrop': '닫기',
+  'sheet.closeBackdrop': '{title} 닫기',
 
   // ── 공방 노트(아트 7-2) ──
   'note.title': '공방 노트',
-  'note.close': '닫기',
-  'note.closeBackdrop': '공방 노트 닫기',
   'note.today': '오늘 상태',
   'note.asleep': '자는 중',
   'note.awake': '깨어 있음',

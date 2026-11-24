@@ -122,14 +122,13 @@ export const en: Messages = {
   // ── shared bottom sheet (ui/BottomSheet) ──
   'sheet.handle': 'Sheet handle',
   'sheet.handle.hint': 'Double-tap to close',
-  'sheet.handle.hintAdjust': 'Swipe up or down to resize, double-tap to close',
+  'sheet.handle.hintAdjust': 'Swipe up or down to resize',
+  'sheet.level': 'Size {now} of {max}',
   'sheet.close': 'Close',
-  'sheet.closeBackdrop': 'Close',
+  'sheet.closeBackdrop': 'Close {title}',
 
   // ── studio notebook ──
   'note.title': 'Studio Notebook',
-  'note.close': 'Close',
-  'note.closeBackdrop': 'Close the studio notebook',
   'note.today': 'Today',
   'note.asleep': 'Asleep',
   'note.awake': 'Awake',

@@ -15,6 +15,8 @@ export const FLING_VELOCITY = 500;
 export const PROJECTION_S = 0.2;
 /** 과도 당김 저항 계수(gorhom 기본 2.5) */
 export const OVERDRAG_FACTOR = 2.5;
+/** 경계 판정 여유(px): 맨 위 스냅·스크롤 맨 위·닫힌 자리를 이만큼 안쪽까지 같은 자리로 본다(소수점 레이아웃 오차) */
+export const EDGE_EPS = 0.5;
 /** 아트 8절 '빠른 반응(100~200ms)'의 아래쪽 — 튕겨도 이보다 빨리 끝나지 않는다 */
 export const MIN_SETTLE_MS = 140;
 
@@ -86,7 +88,7 @@ export function pickSnap(pos: number, velocity: number, positions: readonly numb
 /** 목적지가 닫힌 자리면 닫는다 */
 export function shouldClose(target: number, closed: number): boolean {
   'worklet';
-  return target >= closed - 0.5;
+  return target >= closed - EDGE_EPS;
 }
 
 /** 스크린리더 조절 동작(위로 쓸기 = 더 펼침): 한 칸 이동, 끝에서는 그대로 */
@@ -102,21 +104,59 @@ export function stepDetent(pos: number, positions: readonly number[], dir: 'up' 
 }
 
 /**
- * 안쪽 스크롤 위에서 손가락이 delta만큼 움직였을 때 시트 raw 위치(한 프레임).
- * - 위로(delta < 0): 시트가 덜 펼쳐졌으면 시트가 먹고 top에서 멈춘다. 다 펼쳐졌으면 스크롤 몫.
- * - 아래로(delta > 0): 스크롤이 맨 위(scrollY ≤ 0)일 때만 시트가 내려간다. 아니면 스크롤이 먼저 올라간다.
+ * 안쪽 스크롤 위에서 손가락이 delta만큼 움직였을 때 시트 raw 위치(한 프레임). gorhom과 같은 소유권:
+ * - 시트가 맨 위 스냅이 아니면(pos > top) **스크롤 위치와 상관없이** 시트가 손가락을 가진다. 위로 밀면 top에서 멈춘다.
+ *   (리뷰 M1: 낮은 스냅 + 스크롤이 내려간 채로 아래로 끌면 시트도 스크롤도 안 움직이던 구멍)
+ * - 맨 위 스냅에서: 위로(delta < 0)는 스크롤 몫. 아래로(delta > 0)는 스크롤이 맨 위(scrollY ≤ EDGE_EPS)일 때만 시트가 내려가고,
+ *   아니면 스크롤이 먼저 올라간다.
  * - 스크롤할 게 없는 내용(scrollable=false)은 손잡이처럼 그대로 받는다(저항은 dragPosition).
- * sheetOwns = 이 프레임에 시트가 움직였거나 덜 펼쳐져 있다 → 호출 쪽은 스크롤 위치를 묶는다.
+ * sheetOwns = 이 프레임에 시트가 손가락을 가진다 → 호출 쪽은 스크롤 위치를 묶는다.
  */
 export function stepContentDrag(p: { pos: number; delta: number; scrollY: number; top: number; bottom: number; scrollable: boolean }): { pos: number; sheetOwns: boolean } {
   'worklet';
   if (!p.scrollable) return { pos: p.pos + p.delta, sheetOwns: true };
-  if (p.delta < 0) {
-    if (p.pos > p.top + 0.5) return { pos: Math.max(p.top, p.pos + p.delta), sheetOwns: true };
-    return { pos: p.pos, sheetOwns: false };
-  }
-  if (p.delta > 0 && p.scrollY <= 0.5) return { pos: p.pos + p.delta, sheetOwns: true };
-  return { pos: p.pos, sheetOwns: p.pos > p.top + 0.5 };
+  if (p.pos > p.top + EDGE_EPS) return { pos: p.delta < 0 ? Math.max(p.top, p.pos + p.delta) : p.pos + p.delta, sheetOwns: true };
+  if (p.delta > 0 && p.scrollY <= EDGE_EPS) return { pos: p.pos + p.delta, sheetOwns: true };
+  return { pos: p.pos, sheetOwns: false };
+}
+
+/** 드래그를 받는 손가락: 손잡이·머리 줄 또는 안쪽 내용 */
+export type DragSource = 'handle' | 'content';
+/** 한 제스처의 상태. owner = 지금 시트를 쥔 쪽(두 손가락이 손잡이와 내용을 동시에 잡아도 먼저 잡은 쪽만, 리뷰 L2) */
+export type DragState = { owner: DragSource | null; start: number; raw: number; prevT: number; moved: boolean };
+export const IDLE_DRAG: DragState = { owner: null, start: 0, raw: 0, prevT: 0, moved: false };
+
+/**
+ * 드래그 시작. 열려 있고(visible) 아무도 쥐고 있지 않을 때만 받는다. 아니면 null = 이 제스처는 무시한다.
+ * 닫히는 중(visible=false, 닫힘 애니메이션 진행)에 잡은 손가락을 무시하는 까닭(리뷰 H1): 부모는 이미 닫힘 상태라
+ * 시트를 붙잡아 되돌리면 다시 닫을 길이 없다. 사용자는 이미 닫기를 골랐으니 닫힘을 끝까지 보낸다.
+ */
+export function beginDrag(d: DragState, source: DragSource, open: boolean, pos: number): DragState | null {
+  'worklet';
+  if (!open || d.owner !== null) return null;
+  return { owner: source, start: pos, raw: pos, prevT: 0, moved: false };
+}
+
+/** 이 프레임을 시트에 반영하나: 열려 있고 이 손가락이 주인일 때만(드래그 도중 닫힘 요청이 오면 그 뒤 프레임은 버린다) */
+export function ownsDrag(d: DragState, source: DragSource, open: boolean): boolean {
+  'worklet';
+  return open && d.owner === source;
+}
+
+/**
+ * 놓을 때 갈 자리. null = 아무것도 하지 않음 — 주인이 아니거나, 움직이지 않았거나, 드래그 도중 닫힘 요청이 와서(open=false)
+ * 닫힘 애니메이션이 이미 시트를 맡은 경우.
+ */
+export function releaseTarget(d: DragState, source: DragSource, open: boolean, pos: number, velocity: number, positions: readonly number[], closed: number | null): number | null {
+  'worklet';
+  if (!ownsDrag(d, source, open) || !d.moved) return null;
+  return pickSnap(pos, velocity, positions, closed);
+}
+
+/** 제스처가 끝났다(활성 여부와 상관없이): 주인이면 비운다 */
+export function endDrag(d: DragState, source: DragSource): DragState {
+  'worklet';
+  return d.owner === source ? IDLE_DRAG : d;
 }
 
 /** 배경 진하기 비율: 가장 낮은 스냅 지점까지 1, 닫힌 자리에서 0 */

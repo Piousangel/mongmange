@@ -29,6 +29,11 @@
       "pass": true
     },
     {
+      "check": "과도 당김으로 들린 바닥 틈을 시트 색 띠가 채움(리뷰 L1)",
+      "skirt": 31.125,
+      "pass": true
+    },
+    {
       "check": "위로 과도 당김 저항",
       "y0": 38,
       "during": 6.865940093994141,
@@ -65,12 +70,37 @@
       "pass": true
     },
     {
+      "check": "닫히는 중 잡아 끌기(-80) → 그래도 닫힘(리뷰 H1)",
+      "pass": true
+    },
+    {
+      "check": "닫히는 중 잡아 끌기(60) → 그래도 닫힘(리뷰 H1)",
+      "pass": true
+    },
+    {
+      "check": "열면 첫 포커스가 제목(리뷰 M3)",
+      "focusId": "note-title",
+      "pass": true
+    },
+    {
+      "check": "웹 손잡이 그림은 역할 없음(포인터 캡처 유지), 단일 스냅이라 크기 조절 노드 없음",
+      "handleA11y": {
+        "role": null,
+        "label": null
+      },
+      "pass": true
+    },
+    {
       "check": "대화상자(aria-modal)·닫기 버튼 라벨",
       "modal": true,
       "closeBtn": {
         "role": "button",
         "label": "Close"
       },
+      "pass": true
+    },
+    {
+      "check": "카드 보기 중 Esc → 카드 보기만 닫히고 노트는 열린 채(겹침 뒤로 가기)",
       "pass": true
     },
     {
@@ -84,7 +114,7 @@
       "pass": true
     },
     {
-      "check": "천천히 위로 180 → 가까운 85%",
+      "check": "천천히 위로 260 → 가까운 85%",
       "visible": 717.4000015258789,
       "pass": true
     },
@@ -94,12 +124,12 @@
       "pass": true
     },
     {
-      "check": "빠른 아래 튕김 70 → 한 칸만(35%), 닫히지 않음",
+      "check": "빠른 아래 튕김 100 → 한 칸만(35%), 닫히지 않음",
       "visible": 295.4000244140625,
       "pass": true
     },
     {
-      "check": "빠른 위 튕김 90 → 85%",
+      "check": "빠른 위 튕김 120 → 85%",
       "visible": 717.4000015258789,
       "pass": true
     },
@@ -110,7 +140,27 @@
       "pass": true
     },
     {
-      "check": "35%에서 아래로 튕김 90 → 닫힘",
+      "check": "낮은 스냅 + 스크롤 내려간 채 내용을 아래로 끌기 → 시트가 따라옴(리뷰 M1)",
+      "scrolled": 300,
+      "at35": 295.4000244140625,
+      "during": 245.4000244140625,
+      "pass": true
+    },
+    {
+      "check": "웹 slider + 화살표 키로 스냅 바꾸기(리뷰 M4)",
+      "role": "slider",
+      "up": {
+        "visible": 717.4000015258789,
+        "now": "2"
+      },
+      "down": {
+        "visible": 295.4000244140625,
+        "now": "1"
+      },
+      "pass": true
+    },
+    {
+      "check": "35%에서 아래로 튕김 120 → 닫힘",
       "pass": true
     },
     {
