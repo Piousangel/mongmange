@@ -311,7 +311,7 @@ A brush, an inkstone, a water dropper, and a single drop of ink. A story of twen
 | 12-05 | 법률 검토 회신(`legal-review-questions.md`) 반영 → 처리방침 v3.2·이 절 확정 | 출시·정책·오너 |
 | 12-15 | **12-19 전 게시본 = 테스터판 방침**(`privacy-policy-tester.ko.md`·`en.md`, 법률 리뷰 H1·PM 11-25). web-static 출시 전 모드 `/privacy`가 이 판을 보여 주게 함(`docs/release/README.md` 작업 목록 W1~W6) | 출시·정책·web-static |
 | 빌드 2 제출 전 | 테스터판 URL(`https://mongmang.ink/privacy`)을 Play Console에 기입. 전체 방침 v3.3(이후 판)은 메모가 모두 풀린 뒤(소프트런칭 OTA·플래그 전) 출시 모드로 게시 | 오너 |
-| 12-19 빌드 2 제출 전 | **7-1·7-2 표 전부 선언**(앱 상호작용·기기 ID·사용자 ID·사용자 생성 콘텐츠·기타 작업 / Product Interaction·Device ID·User ID·User Content·Gameplay·Other Usage Data), 삭제 URL 입력, 6-1 '예'. **[PM 결정 필요 — v0.5]** 11-20 결정('빌드 2부터 전부 선언')을 따르면 Data safety가 테스터판 방침보다 넓다(테스터판에는 계정·통계·세이브가 없음). 안: 빌드 2는 테스터판과 같은 범위(기기 ID·진단 — ML Kit)만 선언하고, 아래 '플래그 켜기 전' 행에서 전체 방침 게시와 함께 넓힌다 | 출시·정책 |
+| 12-19 빌드 2 제출 전 | **7-1·7-2 표 전부 선언**(앱 상호작용·기기 ID·사용자 ID·사용자 생성 콘텐츠·기타 작업 / Product Interaction·Device ID·User ID·User Content·Gameplay·Other Usage Data), 삭제 URL 입력, 6-1 '예'. **[PM 판정 11-25 — 11-20 결정 대체]** 빌드 2는 테스터판 방침과 같은 범위(기기 ID·진단 — ML Kit)만 선언한다. Play는 테스트 트랙을 포함해 배포 중인 모든 판의 합을 늘 정확히 신고해야 하므로, **OTA·원격 플래그를 포함한 모든 배포 전에** 데이터 흐름이 늘어나면 Data safety와 게시 방침을 먼저 넓힌다(아래 '플래그 켜기 전' 행에서 전체 방침 게시와 함께) | 출시·정책 |
 | 맡겨 두기·링크 플래그 켜기 전(게이트) | 콘솔 답이 위와 같은지, `/delete`·`/privacy`가 살아 있는지 확인. 아니면 플래그를 켜지 않는다 | 출시·정책(승인 오너) |
 | Cloudflare Worker·R2 도입 전 | 처리방침 7·8절·3-6, 이 절 공유 메모 갱신 | 출시·정책·서버 |
 | 1.0.x 계정 연결 전 | 이메일 추가 | 출시·정책 |

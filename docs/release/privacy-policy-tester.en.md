@@ -113,6 +113,7 @@ We use the following providers. Because they are foreign companies or use facili
 
 | | |
 |---|---|
+| Name (or business name) | [Name or business name — owner to fill] |
 | Role | Operator (solo developer) |
 | Email | hello@mongmang.ink |
 

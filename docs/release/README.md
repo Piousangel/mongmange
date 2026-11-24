@@ -64,6 +64,8 @@
 | W4 | `build.mjs` K행 2차 검사 정규식을 `K\d+`·`U\d+`·`A\d+`(도입 시 개정 목록)로 넓힌다(법률 리뷰 L4) | web-static | 지금 `K1~K32`만 잡음 |
 | W5 | 시험: 출시 전 모드 렌더에 테스터판 1-1·1-2 문장이 있고 '지금 받는 것 = 메일뿐' 문장이 없음, 외부 링크는 Google 문서 두 곳만 | web-static | `apps/web-static/test/site.test.mjs` |
 | W6 | Play Console 비공개 테스트 '개인정보처리방침 URL'에 `https://mongmang.ink/privacy` 입력, Data safety를 `store-listing.md` 7절 v0.5 '빌드 2 제출' 행대로 | 오너 | 12-19 제출 전 |
+| W7 | 출시 전 모드에서도 **테스터판 렌더 HTML에 `[ … ]` 꼴 글자가 하나라도 있으면 빌드 실패**(출시 모드 ⑦ 검사와 같은 규칙) — 보호책임자 `[성명 또는 상호 — 오너 기입]` 칸이 빈 채 게시되는 것을 막는다(재리뷰 C1) | web-static | `apps/web-static/scripts/build.mjs` |
+| W8 | 빌드 2 제출 전 송신 증거(재리뷰 C2): 번들 안 API·정적 서버 주소 문자열 0, `eas env` 조회로 원격 환경 변수 0, 실기기 네트워크 캡처(업데이트 확인·ML Kit만), V2(ML Kit)가 빌드 2에서 빠지면 테스터판 1-2절 제외 | 앱·QA-2 | 12-17까지 |
 
 **빌드 2 대조(게시 전, 테스터판이 사실인지)**: ① 빌드 2 바이너리의 `EXPO_PUBLIC_API_BASE`·`EXPO_PUBLIC_STATIC_BASE`가 비어 있음(eas.json preview·production에 없음 — 11-25 확인) → 핑·원격 설정 요청 0. 둘 중 하나라도 넣으면 테스터판 1절에 항목을 더한 뒤 게시 ② `METRICS_SETTING_CONNECTED=false`(`apps/mobile/src/net/gate.ts`) ③ 업데이트 가드 `ready: true`·채널 인증서(없으면 업데이트 확인 자체가 꺼짐 — 1-1을 빼지는 않음: 꺼짐은 '덜 보냄') ④ V2 ML Kit 모듈이 빌드 2에 들어감(아니면 1-2를 빼고 게시) ⑤ 네트워크 캡처(B8·V15)로 위 둘 외 요청 0 ⑥ 10절 '관리 계정 2단계 인증'(K21)을 B6 전에 오너 계정에서 켬 ⑦ 보호책임자 성명 표기는 오너 결정(테스터판은 직책·이메일만 — `legal-review-questions.md` H-5)
 
