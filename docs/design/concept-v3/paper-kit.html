@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>몽망이 종이 키트</title>
+<style>
+  :root {
+    --paper: #EFE8DA; --paper2: #E3DACA; --ink: #1B1A18; --text: #2A2622; --sub: #6B625A;
+    --wash: #B9B3A8; --seal: #C8462C; --line: #CFC5B3; --white: #FFFDF8;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; background: #d9d2c4; color: var(--text);
+    font-family: "Gowun Batang", "Noto Serif KR", "AppleMyungjo", serif; font-size: 10.5pt; line-height: 1.5; }
+  .page { width: 210mm; min-height: 297mm; margin: 8mm auto; padding: 14mm 14mm 12mm; background: var(--white);
+    box-shadow: 0 1px 4px rgba(0,0,0,.15); page-break-after: always; break-after: page; }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  h1 { font-size: 20pt; margin: 0 0 2mm; letter-spacing: -0.5px; }
+  h2 { font-size: 13.5pt; margin: 0 0 3mm; padding-bottom: 1.5mm; border-bottom: 1.5px solid var(--ink); }
+  h3 { font-size: 12pt; margin: 0 0 1mm; }
+  h3 small { font-size: 8.5pt; color: var(--sub); font-weight: normal; margin-left: 2mm; }
+  p { margin: 0 0 2mm; }
+  .lead { color: var(--sub); font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 4mm; }
+  th, td { border: 1px solid var(--line); padding: 1.4mm 2mm; vertical-align: top; text-align: left; }
+  th { background: var(--paper2); font-weight: bold; font-size: 9.5pt; }
+  .t { white-space: nowrap; font-variant-numeric: tabular-nums; width: 20mm; }
+  .say { background: #F6F1E6; }
+  .say::before { content: "말하기  "; font-size: 8pt; color: var(--seal); letter-spacing: 1px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4mm; }
+  .card { border: 1.5px dashed var(--sub); border-radius: 3mm; padding: 4mm; background: var(--paper); break-inside: avoid; }
+  .card.tool { text-align: center; min-height: 72mm; display: flex; flex-direction: column; justify-content: center; }
+  .tool .big { font-size: 26pt; letter-spacing: 6px; margin: 2mm 0; }
+  .tool .msg { font-size: 11pt; margin: 2mm 0; }
+  .tool .how { font-size: 9pt; color: var(--sub); }
+  .fam { display: grid; grid-template-columns: 32mm 1fr; gap: 2.5mm; margin-bottom: 2.5mm; padding: 2.5mm; }
+  .fam header { text-align: center; }
+  .fam .seat { font-size: 8pt; color: var(--sub); margin: 0 0 1mm; }
+  .fam .mark { font-size: 7.6pt; color: var(--sub); text-align: left; margin: 0; }
+  table.mini { margin: 0; font-size: 7.6pt; line-height: 1.35; }
+  .lk table { font-size: 7.6pt; line-height: 1.28; }
+  .lk td, .lk th { padding: 0.8mm 1.2mm; }
+  .lk tr.fh td { background: var(--paper2); font-weight: bold; }
+  .lk tr.fh small { font-weight: normal; color: var(--sub); }
+  table.mini td { padding: 1mm 1.5mm; border-color: #d8cfbf; background: rgba(255,255,255,.35); }
+  td.g { white-space: nowrap; font-weight: bold; width: 18mm; }
+  .dir { font-weight: normal; font-size: 7.5pt; color: var(--sub); margin-left: 1mm; }
+  td.cap, p.cap { color: var(--sub); font-style: italic; }
+  .sp { display: grid; grid-template-columns: 42mm 1fr; gap: 3mm; align-items: center; }
+  .note { font-size: 8.5pt; color: var(--seal); }
+  .ritual { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; }
+  .ritual div { border: 1px solid var(--line); border-radius: 2mm; padding: 2.5mm; background: var(--paper); font-size: 9pt; }
+  .ritual b { display: block; font-size: 10.5pt; }
+  .mukbar { display: flex; gap: 1.5mm; margin: 2mm 0; }
+  .mukbar span { flex: 1; border: 1px solid var(--ink); height: 9mm; border-radius: 1mm; text-align: center; font-size: 8pt; line-height: 9mm; }
+  .chips { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; }
+  .chip { border: 1px dashed var(--sub); border-radius: 2mm; padding: 2mm; font-size: 8.5pt; background: var(--paper); }
+  .end { text-align: center; min-height: 40mm; display: flex; flex-direction: column; justify-content: center; }
+  .end .big { font-size: 16pt; margin-bottom: 2mm; }
+  .scale { display: flex; gap: 2mm; margin: 1mm 0 3mm; }
+  .scale span { border: 1px solid var(--ink); border-radius: 50%; width: 8mm; height: 8mm; text-align: center; line-height: 8mm; font-size: 9pt; }
+  .scale em { font-style: normal; font-size: 8pt; color: var(--sub); align-self: center; }
+  .q { margin-bottom: 3mm; break-inside: avoid; }
+  .q b { display: block; }
+  .blank { border-bottom: 1px solid var(--line); height: 7mm; }
+  .seal { display: inline-block; border: 2px solid var(--seal); color: var(--seal); padding: 0 2mm; font-size: 9pt; border-radius: 1mm; }
+  .final { display: grid; grid-template-columns: 70mm 1fr; gap: 4mm; align-items: center; }
+  .cut { font-size: 8pt; color: var(--sub); text-align: right; margin-top: -2mm; }
+  footer { font-size: 8pt; color: var(--sub); margin-top: 3mm; }
+  @media print {
+    body { background: none; }
+    .page { margin: 0; box-shadow: none; width: 210mm; height: 297mm; min-height: 0; overflow: hidden; padding: 11mm 12mm 9mm; }
+    body { font-size: 9.6pt; }
+    table.mini { font-size: 7.3pt; }
+    @page { size: A4; margin: 0; }
+  }
+  @media screen and (max-width: 800px) {
+    .page { width: auto; margin: 0; padding: 16px; min-height: 0; }
+    .grid2, .grid3, .ritual, .chips, .final { grid-template-columns: 1fr; }
+    .fam header, .sp { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 1쪽: 진행 -->
+<section class="page">
+  <h1>스물여덟 밤의 몽망이 — 종이 프로토타입</h1>
+  <p class="lead">D-26 검증 ① · 테스터 5명 · 한 사람 15분 · 진행자 1명 + 기록자 1명(없으면 녹음) · 2026-11-24 PL-1·PL-2 v0</p>
+
+  <h2>준비물</h2>
+  <p>이 키트 1부(카드는 점선을 따라 오림) · 기록 양식(9쪽) 5장 · 붓펜 1자루 · 한지나 미색 종이를 A6로 자른 '쓰기 한지' 약 20장 · 타이머 · 물방울 스티커나 작은 스포이트 · 연필</p>
+
+  <h2>시작 전에 지킬 것</h2>
+  <table>
+    <tr><th style="width:28mm">대상</th><td>앱을 모르는 사람 5명. <b>만 19세 이상을 권한다</b>(14~18세라면 보호자 동의서가 필요하다). 팀원·가족은 제외한다.</td></tr>
+    <tr><th>동의</th><td>말로 설명하고 서명을 받는다: 무엇을 하는지, 녹음 여부, 쓴 글씨 카드를 사진으로 남기는지, 언제든 그만둘 수 있다는 것. 이름은 적지 않고 T1~T5로만 적는다. 기록과 사진은 30일 뒤 지운다.</td></tr>
+    <tr><th>말하지 않을 것</th><td>"감정을 써 주세요", "기분을 적어 주세요"라고 말하지 않는다. 늘 <b>"몽망이에게 오늘 들려줄 한 마디"</b>라고 한다. 맞고 틀림, 점수, 예시 낱말도 주지 않는다(멈춤을 재야 하기 때문이다).</td></tr>
+    <tr><th>안전</th><td>테스터가 위기 낱말(7쪽 커닝표의 ‘곁에 앉기’ 줄)을 쓰면 정해진 대로 '곁에 앉기' 카드를 보이고 진행을 이어 간다. <b>끝난 뒤</b> 따로 조용히 "오늘 괜찮으세요?"라고 한 번만 묻고, 상담 안내 쪽지(자살예방상담 109, 24시간 [번호 확인 필요])를 건넨다. 캐묻지 않고, 기록 양식에는 '안전 절차 진행'만 적는다. 그 낱말은 분석에서 빼지 않는다.</td></tr>
+  </table>
+
+  <footer>다음 쪽: 진행 대본</footer>
+</section>
+
+<section class="page">
+  <h2>진행 대본 (15분)</h2>
+  <table>
+    <tr><th class="t">시간</th><th>진행자가 하는 일</th><th style="width:38mm">기록자가 보는 것</th></tr>
+    <tr><td class="t">0:00–1:30</td><td class="say">"오늘은 아직 만들고 있는 게임을 종이로 해 볼 거예요. 정답은 없고, 언제든 멈춰도 돼요. 생각나는 대로 말해 주시면 큰 도움이 돼요."<br>동의를 확인한다.</td><td>—</td></tr>
+    <tr><td class="t">1:30–3:00</td><td>먹 방울 카드(3쪽)를 가운데에 놓는다. <span class="say">"한지에 떨어진 먹 한 방울, 몽망이예요. 날마다 이 세 가지로 돌봐요."</span> 도구 카드 셋을 왼쪽부터 벼루·붓·연적 순서로 놓고 한 줄씩 읽는다. 하루 의례 띠를 아래에 놓는다.</td><td>도구 카드에서 처음 손이 가는 것</td></tr>
+    <tr><td class="t">3:00–9:00</td><td><b>하루를 세 번 돈다(한 번에 약 2분).</b><br>① <b>벼루</b>: <span class="say">"먹을 갈아 볼까요? 손가락으로 벼루 위에 원을 그려 주세요. 됐다 싶을 때 멈추면 돼요."</span> 그린 시간을 재서 먹 칸에 연필로 칠한다(3초마다 한 칸, 최소 1칸, 최대 6칸). <span class="say">"오늘은 ○글자까지 쓸 수 있어요."</span><br>② <b>붓</b>: <span class="say">"몽망이에게 오늘 들려줄 한 마디를 써 주세요."</span> <b>시간을 재고 아무 말도 하지 않는다.</b><br>③ 쓴 한지를 몽망이 카드 위에 겹쳐 '마시게' 한다. 커닝표(7쪽)에서 결을 찾아(10초 안에, 활용형은 줄기로 찾음) 대답 카드(4~6쪽)를 들고 몸짓을 손으로 3초쯤 흉내 낸 뒤, 자막을 읽는다(그 결이 처음 3번일 때만). 커닝표에 없으면 '모르는 말' 카드다. <b>비슷한 결을 지어내지 않는다.</b><br>④ <b>연적</b>: <span class="say">"이제 재워 줄까요? 물 한 방울."</span> 쓴 한지에 물방울을 올린다.<br>⑤ <b>아침</b>: <span class="say">"밤새 이런 꿈을 꿨대요."</span> 커닝표의 꿈 이름을 꿈 카드(8쪽)에 연필로 적어 건넨다.</td><td>각 날의 낱말 · 붓을 들고 첫 획까지 걸린 초 · 10초 넘게 멈췄는지 · 대답 카드를 볼 때의 반응(웃음·"아"·무반응) · 혼잣말 그대로</td></tr>
+    <tr><td class="t">9:00–11:00</td><td><b>28밤으로 건너뛴다.</b> <span class="say">"이렇게 스물여덟 밤을 지내면 이 아이가 다 여물어요."</span> 완성 카드(8쪽)에 테스터가 쓴 세 말의 가족 흔적 조각을 순서대로 붙이고, 낙관 칸에 붉은 도장(또는 붉은 펜 동그라미)을 찍는다.<br>결말 카드 A·B를 <b>테스터마다 순서를 바꿔</b> 나란히 놓는다(T1·T3·T5는 A가 왼쪽, T2·T4는 B가 왼쪽).</td><td>완성 카드를 처음 볼 때의 반응, 사진을 찍으려 하는지</td></tr>
+    <tr><td class="t">11:00–15:00</td><td>측정 질문(9쪽)을 읽고, 답은 기록자가 적는다. 마지막으로 <span class="say">"내일이라면 뭐라고 써 주고 싶으세요?"</span></td><td>Q1~Q7, 자유 의견</td></tr>
+  </table>
+  <footer>통과 기준과 분석은 docs/design/concept-v3/paper-prototype.md에 있다 · 이 키트는 앱 화면이 아니라 '경험'을 재는 도구다.</footer>
+</section>
+
+<!-- 2쪽: 도구·의례·먹 방울 -->
+<section class="page">
+  <h2>도구 카드 · 먹 방울 · 하루 의례</h2>
+  <div class="grid3">
+    <div class="card tool"><div class="big">벼루</div><div class="msg">마음 고르기</div><p>"서두르지 않아도 돼요."</p><p class="how">간 만큼 오늘 쓸 수 있는 글자 수(1~6)와<br>먹의 진하기가 정해져요.</p></div>
+    <div class="card tool"><div class="big">붓</div><div class="msg">오늘의 한 마디</div><p>"네 말은 이 아이의<br>몸과 마음이 돼요."</p><p class="how">낱말 하나를 쓰면 몽망이가 마시고<br>3초 안에 몸으로 대답해요.</p></div>
+    <div class="card tool"><div class="big">연적</div><div class="msg">내려놓기</div><p>"오늘을 내려놓고 쉬어요."</p><p class="how">물 한 방울이 오늘 쓴 말을 풀어<br>꿈으로 보내요.</p></div>
+  </div>
+  <p class="cut">✂ 점선을 따라 오림</p>
+
+  <div class="grid2" style="margin-top:4mm">
+    <div class="card" style="text-align:center"><h3>몽망이</h3><svg viewBox="0 0 150 120" width="190" height="150" aria-hidden="true"><ellipse cx="75" cy="105.0" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="66.6" y1="41.0" x2="66.6" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 66.6 41.0)"/><line x1="75.0" y1="41.0" x2="75.0" y2="19.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 75.0 41.0)"/><line x1="83.4" y1="41.0" x2="83.4" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 83.4 41.0)"/><ellipse cx="75" cy="72" rx="44.0" ry="35.0" fill="var(--ink)"/><circle cx="60.0" cy="78" r="6.5" fill="var(--paper)"/><circle cx="90.0" cy="78" r="6.5" fill="var(--paper)"/></g></svg><p class="lead">한지에 막 떨어진 먹 한 방울. 눈은 먹이 비껴간 종이 두 점.</p></div>
+    <div class="card"><h3>벼루 먹 칸</h3><p class="lead">3초마다 한 칸을 연필로 칠한다(최소 1, 최대 6). 칠한 칸 수 = 오늘 쓸 수 있는 글자 수.</p>
+      <p><b>1일</b></p><div class="mukbar"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+      <p><b>2일</b></p><div class="mukbar"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+      <p><b>3일</b></p><div class="mukbar"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:5mm">하루 의례 띠 <small class="lead">(아래에 길게 놓음)</small></h2>
+  <div class="ritual">
+    <div><b>아침 · 한지</b>어젯밤 말이 꿈이 되어 돌아와요</div>
+    <div><b>낮 · 벼루</b>먹을 갈아요(마음 고르기)</div>
+    <div><b>낮 · 붓</b>한 마디를 써요 → 몽망이가 마시고 몸으로 대답해요</div>
+    <div><b>낮 · 손</b>쓰다듬기·부르기(오늘 시험에서는 생략)</div>
+    <div><b>밤 · 연적</b>물 한 방울로 재워요</div>
+  </div>
+  <p class="lead" style="margin-top:3mm">하루에 진행이 걸린 일은 '한 마디' 하나다. 하루 2분을 넘기지 않는다. 하루를 걸러도 생애는 줄지 않는다(밤 = 함께 잔 잠의 수).</p>
+</section>
+
+<!-- 대답 카드 -->
+<section class="page">
+  <h2>대답 카드 ① — 마음 가족 (진행자만 봄)</h2>
+  <p class="lead">카드 그림은 그 가족의 바탕 몸짓이다. 결마다 다른 몸짓은 표의 묘사대로 손으로 흉내 낸다. 3초 = 따라 하기(0~1.5초) → 제자리로 돌아와 테스터를 보기(1.5~3초). 자막은 그 결이 처음 나왔을 때만 읽는다. '안·밖'은 진행자 참고용이다.</p>
+  <section class="card fam"><header><svg viewBox="0 0 150 120" width="100" height="80" aria-hidden="true"><ellipse cx="75" cy="108" rx="38.0" ry="5" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="67.02" y1="30.199999999999996" x2="67.02" y2="14.199999999999996" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-8.400000000000002 67.02 30.199999999999996)"/><line x1="75.0" y1="30.199999999999996" x2="75.0" y2="8.199999999999996" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 75.0 30.199999999999996)"/><line x1="82.98" y1="30.199999999999996" x2="82.98" y2="14.199999999999996" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(8.400000000000002 82.98 30.199999999999996)"/><ellipse cx="75" cy="64" rx="41.8" ry="37.800000000000004" fill="var(--ink)"/><path d="M53.75,73 Q60.75,63 67.75,73" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M82.25,73 Q89.25,63 96.25,73" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg><h3>들뜸</h3><p class="seat">쾌 + 각성 높음</p><p class="mark">이레 흔적: 빗 기본 각도가 위로 6° 들리고, 번짐 고리 가장자리에 잔방울이 톡톡 맺힌다</p></header><table class="mini"><tbody><tr><td class="g">기쁨<span class="dir">안</span></td><td>몸이 0.85로 눌렸다가 1.08로 통 튄다(스프링 허용 유일) → 바닥에 내려앉아 두 눈이 ^ ^ 호로 휜다</td><td class="cap">“기쁨 한 방울이 스며 몸이 통 튀었어요”</td></tr><tr><td class="g">설렘<span class="dir">안</span></td><td>제자리에서 통통 두 번 작게 뜬다 → 눈이 1.1배 커진 채 유저 쪽을 본다</td><td class="cap">“설렘 한 방울이 스며 제자리에서 통통 떴어요”</td></tr><tr><td class="g">뿌듯<span class="dir">안</span></td><td>몸 높이가 5% 늘며 빗을 앞으로 곧게 뻗는다(1초) → 천천히 원래 키로 내려와 유저를 본다</td><td class="cap">“뿌듯 한 방울이 스며 빗이 앞으로 곧게 뻗었어요”</td></tr><tr><td class="g">신남<span class="dir">밖</span></td><td>제자리에서 반 바퀴 빙그르 → 정면으로 돌아와 빗을 한 번 흔든다</td><td class="cap">“신남 한 방울이 스며 빙그르 돌았어요”</td></tr><tr><td class="g">웃음<span class="dir">밖</span></td><td>몸이 좌우로 작게 세 번 흔들린다 → 눈이 ^ ^인 채 멈춘다</td><td class="cap">“웃음 한 방울이 스며 몸이 흔들렸어요”</td></tr><tr><td class="g">반가움<span class="dir">밖</span></td><td>유저 쪽으로 0.1W 다가온다 → 빗을 빠르게 두 번 흔든다</td><td class="cap">“인사 한 방울이 스며 빗이 두 번 흔들렸어요”</td></tr></tbody></table></section><section class="card fam"><header><svg viewBox="0 0 150 120" width="100" height="80" aria-hidden="true"><ellipse cx="75" cy="101.5" rx="58.18999999999999" ry="6" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="65.34" y1="44.5" x2="65.34" y2="28.5" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(10.0 65.34 44.5)"/><line x1="75.0" y1="44.5" x2="75.0" y2="22.5" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(10.0 75.0 44.5)"/><line x1="84.66" y1="44.5" x2="84.66" y2="28.5" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(10.0 84.66 44.5)"/><ellipse cx="75" cy="72" rx="50.599999999999994" ry="31.5" fill="var(--ink)"/><path d="M51.75,78 Q57.75,84 63.75,78" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M86.25,78 Q92.25,84 98.25,78" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg><h3>포근</h3><p class="seat">쾌 + 각성 낮음</p><p class="mark">이레 흔적: 번짐 고리가 넓고 부드러워지고, 숨 주기가 길어진다</p></header><table class="mini"><tbody><tr><td class="g">고요<span class="dir">안</span></td><td>숨이 5.5초 주기로 느려진다 → 번짐 고리가 천천히 넓어지고 눈이 반쯤 감긴다</td><td class="cap">“고요 한 방울이 스며 숨이 느려졌어요”</td></tr><tr><td class="g">나른<span class="dir">안</span></td><td>몸이 옆으로 녹아내리듯 1.3:0.8로 퍼진다 → 작게 하품하고 천천히 둥글게 돌아온다</td><td class="cap">“나른 한 방울이 스며 몸이 옆으로 퍼졌어요”</td></tr><tr><td class="g">졸림<span class="dir">안</span></td><td>눈이 가로선이 되며 꾸벅 한 번 → 빗이 −25° 처졌다가 천천히 수평으로</td><td class="cap">“졸린 한 방울이 스며 꾸벅했어요”</td></tr><tr><td class="g">다정<span class="dir">밖</span></td><td>유저 쪽으로 몸을 6° 기울인다 → 눈이 기쁨 호가 되고 기울인 채 1초 머문다</td><td class="cap">“다정한 한 방울이 스며 몸이 손 쪽으로 기울었어요”</td></tr><tr><td class="g">고마움<span class="dir">밖</span></td><td>몸을 앞으로 8° 숙여 꾸벅 → 천천히 들어 유저를 본다</td><td class="cap">“고마움 한 방울이 스며 꾸벅했어요”</td></tr><tr><td class="g">안심<span class="dir">밖</span></td><td>몸이 1.05로 부풀었다가 0.95로 천천히 내쉰다 → 번짐이 넓게 퍼지며 제 크기로</td><td class="cap">“안심 한 방울이 스며 길게 숨을 내쉬었어요”</td></tr></tbody></table></section><section class="card fam"><header><svg viewBox="0 0 150 120" width="100" height="80" aria-hidden="true"><ellipse cx="75" cy="105.7" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="66.6" y1="40.3" x2="66.6" y2="24.299999999999997" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-14.0 66.6 40.3)"/><line x1="75.0" y1="40.3" x2="75.0" y2="18.299999999999997" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 75.0 40.3)"/><line x1="83.4" y1="40.3" x2="83.4" y2="24.299999999999997" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(14.0 83.4 40.3)"/><ellipse cx="75" cy="72" rx="44.0" ry="35.7" fill="var(--ink)"/><circle cx="63.0" cy="78" r="4" fill="var(--paper)"/><circle cx="87.0" cy="78" r="4" fill="var(--paper)"/></g></svg><h3>뾰족</h3><p class="seat">불쾌 + 각성 높음</p><p class="mark">이레 흔적: 빗 끝이 곧고 각진 방필이 되고, 번짐 경계가 또렷해진다(&#x27;단단한 아이&#x27;)</p></header><table class="mini"><tbody><tr><td class="g">짜증<span class="dir">밖</span></td><td>빗이 곤두서고 몸이 한 번 부르르(떨림 0.02W, 150ms) → 빗이 천천히 가라앉고 유저를 본다</td><td class="cap">“짜증 한 방울이 스며 빗이 곤두섰어요”</td></tr><tr><td class="g">화<span class="dir">밖</span></td><td>몸이 1.06으로 부풀며 바닥 번짐이 탁 퍼진다(먹이 튐) → 부푼 몸이 천천히 가라앉고 숨을 한 번 고른다</td><td class="cap">“화 한 방울이 스며 먹이 탁 튀었어요”</td></tr><tr><td class="g">억울<span class="dir">밖</span></td><td>몸을 좌우로 짧게 두 번 젓는다 → 한쪽으로 기울인 채 유저를 본다</td><td class="cap">“억울한 한 방울이 스며 몸을 두 번 저었어요”</td></tr><tr><td class="g">걱정<span class="dir">안</span></td><td>두 눈이 작게 모이고 몸이 약하게 오래 떨린다(1초) → 떨림이 멎고 유저 쪽으로 조금 붙는다</td><td class="cap">“걱정 한 방울이 스며 몸이 가늘게 떨렸어요”</td></tr><tr><td class="g">답답<span class="dir">안</span></td><td>몸이 0.92로 눌렸다가 &#x27;푸&#x27; 하고 번짐을 내뱉는다 → 제 모양으로 돌아와 눈을 한 번 깜빡인다</td><td class="cap">“답답한 한 방울이 스며 &#x27;푸&#x27; 하고 번졌어요”</td></tr><tr><td class="g">무서움<span class="dir">안</span></td><td>움찔(떨림 150ms) 하며 몸이 0.94로 작아진다 → 유저 손 쪽으로 붙어 선다</td><td class="cap">“놀란 한 방울이 스며 움찔했어요”</td></tr></tbody></table></section><section class="card fam"><header><svg viewBox="0 0 150 120" width="100" height="80" aria-hidden="true"><ellipse cx="75" cy="104.7" rx="63.24999999999999" ry="6" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="64.5" y1="53.3" x2="64.5" y2="37.3" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(26.4 64.5 53.3)"/><line x1="75.0" y1="53.3" x2="75.0" y2="31.299999999999997" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(25.0 75.0 53.3)"/><line x1="85.5" y1="53.3" x2="85.5" y2="37.3" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(23.6 85.5 53.3)"/><ellipse cx="75" cy="78" rx="55.0" ry="28.7" fill="var(--ink)"/><circle cx="56.25" cy="84" r="6.5" fill="var(--paper)"/><circle cx="93.75" cy="84" r="6.5" fill="var(--paper)"/></g></svg><h3>가라앉음</h3><p class="seat">불쾌 + 각성 낮음</p><p class="mark">이레 흔적: 번짐이 깊고 느려지며 먹에 물기가 돈다(젖은 먹의 윤). 빗 끝이 부드럽게 늘어진다(처짐 아님, −8°까지)</p></header><table class="mini"><tbody><tr><td class="g">그리움<span class="dir">밖</span></td><td>종이 끝 쪽을 1초 바라본다 → 시선이 천천히 유저 쪽으로 돌아온다</td><td class="cap">“그리운 한 방울이 스며 먼 데를 보았어요”</td></tr><tr><td class="g">서운<span class="dir">밖</span></td><td>몸이 0.95로 작아지고 빗이 몸 쪽으로 내려온다 → 유저 손 쪽으로 몸을 기울인다</td><td class="cap">“서운한 한 방울이 스며 몸이 손 쪽으로 기울었어요”</td></tr><tr><td class="g">외로움<span class="dir">밖</span></td><td>몸이 작게 한 번 흔들린다 → 유저 쪽으로 다가와 0.05W 곁에 붙는다(따라 하기보다 곁에 오기)</td><td class="cap">“쓸쓸한 한 방울이 스며 손 곁으로 왔어요”</td></tr><tr><td class="g">슬픔<span class="dir">안</span></td><td>몸이 천천히 낮게 퍼지며 번짐이 넓어지고 먹이 조금 풀린다(농담 −10%) → 0.8초 머문 뒤 천천히 둥글게 돌아와 위를 본다</td><td class="cap">“슬픈 한 방울이 스며 먹이 넓게 번졌어요”</td></tr><tr><td class="g">지침<span class="dir">안</span></td><td>몸이 1.3:0.8로 납작해지며 숨을 길게 한 번 내쉰다 → 천천히 둥글게 돌아와 눈을 한 번 감았다 뜬다</td><td class="cap">“무거운 한 방울이 스며 길게 숨을 내쉬었어요”</td></tr><tr><td class="g">심심<span class="dir">안</span></td><td>두리번(시선 좌우 한 번) → 빗 끝으로 종이를 톡톡 두 번 친다</td><td class="cap">“심심한 한 방울이 스며 종이를 톡톡 쳤어요”</td></tr></tbody></table></section>
+</section>
+
+<section class="page">
+  <h2>대답 카드 ② — 세상 가족</h2>
+  <section class="card fam"><header><svg viewBox="0 0 150 120" width="100" height="80" aria-hidden="true"><ellipse cx="75" cy="103.0" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(-8 75 80)"><line x1="66.6" y1="39.0" x2="66.6" y2="23.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-17.8 66.6 39.0)"/><line x1="75.0" y1="39.0" x2="75.0" y2="17.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-15.0 75.0 39.0)"/><line x1="83.4" y1="39.0" x2="83.4" y2="23.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-12.200000000000001 83.4 39.0)"/><ellipse cx="75" cy="70" rx="44.0" ry="35.0" fill="var(--ink)"/><circle cx="60.0" cy="76" r="6.5" fill="var(--paper)"/><circle cx="90.0" cy="76" r="6.5" fill="var(--paper)"/></g></svg><h3>자연</h3><p class="seat">날씨·풀·물·하늘</p><p class="mark">이레 흔적: 번짐이 바람 방향으로 한쪽에 살짝 길어진다(물결 결)</p></header><table class="mini"><tbody><tr><td class="g">비<span class="dir">안</span></td><td>고개를 들어 위를 본다 → 빗 끝이 빗방울 맞듯 톡톡 떨린다</td><td class="cap">“비 한 방울이 스며 위를 올려다보았어요”</td></tr><tr><td class="g">눈<span class="dir">안</span></td><td>위를 보며 몸이 아주 작게 움츠러든다(약한 떨림) → 천천히 펴지며 눈을 깜빡인다</td><td class="cap">“눈 한 송이가 스며 몸을 살짝 움츠렸어요”</td></tr><tr><td class="g">풀꽃<span class="dir">안</span></td><td>몸 위쪽 한 곳이 싹처럼 살짝 솟는다 → 빗이 살랑 흔들리며 돌아온다</td><td class="cap">“풀꽃 한 방울이 스며 싹처럼 솟았어요”</td></tr><tr><td class="g">바다<span class="dir">밖</span></td><td>몸이 너울처럼 좌우로 천천히 두 번 출렁인다 → 종이 끝 쪽을 한 번 보고 돌아온다</td><td class="cap">“바다 한 방울이 스며 몸이 출렁였어요”</td></tr><tr><td class="g">하늘<span class="dir">밖</span></td><td>고개를 들어 멀리 본다 → 빗이 바람에 날리듯 한쪽으로 흐른다</td><td class="cap">“하늘 한 방울이 스며 먼 데를 올려다보았어요”</td></tr><tr><td class="g">달별<span class="dir">밖</span></td><td>눈을 감고 위로 0.05W 떠오른다(그림자만 남음) → 천천히 내려앉아 눈을 뜬다</td><td class="cap">“별 한 방울이 스며 살짝 떠올랐어요”</td></tr></tbody></table></section><section class="card fam"><header><svg viewBox="0 0 150 120" width="100" height="80" aria-hidden="true"><ellipse cx="75" cy="103.94999999999999" rx="56.672" ry="6" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="65.592" y1="42.050000000000004" x2="65.592" y2="26.050000000000004" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 65.592 42.050000000000004)"/><line x1="75.0" y1="42.050000000000004" x2="75.0" y2="20.050000000000004" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 75.0 42.050000000000004)"/><line x1="84.408" y1="42.050000000000004" x2="84.408" y2="26.050000000000004" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 84.408 42.050000000000004)"/><ellipse cx="75" cy="72" rx="49.28" ry="33.949999999999996" fill="var(--ink)"/><path d="M51.2,81 Q58.2,71 65.2,81" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M84.8,81 Q91.8,71 98.8,81" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg><h3>살림</h3><p class="seat">먹을 것·집·물건</p><p class="mark">이레 흔적: 몸이 아주 조금 더 동글어지고(폭:높이 +0.03), 바닥 받침 띠가 넓어진다</p></header><table class="mini"><tbody><tr><td class="g">밥<span class="dir">안</span></td><td>몸 아래쪽이 볼처럼 살짝 부풀고 오물오물 두 번 → 눈이 기쁨 호로</td><td class="cap">“밥 한 방울이 스며 오물오물했어요”</td></tr><tr><td class="g">단것<span class="dir">안</span></td><td>통 한 번 작게 튄다 → 볼이 살짝 부푼 채 눈이 ^ ^</td><td class="cap">“단 한 방울이 스며 통 튀었어요”</td></tr><tr><td class="g">마실 것<span class="dir">안</span></td><td>몸 표면에 동심원 잔물결이 한 번 돈다 → 따뜻한 숨처럼 번짐이 퍼진다</td><td class="cap">“따뜻한 한 방울이 스며 몸에 잔물결이 돌았어요”</td></tr><tr><td class="g">집<span class="dir">밖</span></td><td>제자리에서 빙그르 한 바퀴 돌며 자리를 잡는다 → 납작하게 앉는다</td><td class="cap">“집 한 방울이 스며 제자리를 잡았어요”</td></tr><tr><td class="g">물건<span class="dir">밖</span></td><td>앞으로 기울여 고개를 갸웃 살핀다(집중 눈) → 제자리로 돌아와 빗을 한 번 흔든다</td><td class="cap">“물건 한 방울이 스며 갸웃 살펴보았어요”</td></tr><tr><td class="g">옷·꾸밈<span class="dir">밖</span></td><td>빗을 가지런히 다듬는다(아이들 &#x27;빗 정리&#x27; 재사용) → 몸을 살짝 돌려 한쪽을 보여 준다</td><td class="cap">“꾸밈 한 방울이 스며 빗을 다듬었어요”</td></tr></tbody></table></section><section class="card fam"><header><svg viewBox="0 0 150 120" width="100" height="80" aria-hidden="true"><ellipse cx="75" cy="105.0" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(8 75 80)"><line x1="66.6" y1="41.0" x2="66.6" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(10.599999999999998 66.6 41.0)"/><line x1="75.0" y1="41.0" x2="75.0" y2="19.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(12.0 75.0 41.0)"/><line x1="83.4" y1="41.0" x2="83.4" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(13.400000000000002 83.4 41.0)"/><ellipse cx="75" cy="72" rx="44.0" ry="35.0" fill="var(--ink)"/><path d="M54.0,78 Q60.0,84 66.0,78" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M84.0,78 Q90.0,84 96.0,78" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg><h3>곁</h3><p class="seat">사람·동물</p><p class="mark">이레 흔적: 반김 몸짓(다가와 비비기)이 한 박자 빨라지고, 빗 두 가닥이 서로 가까워진다</p></header><table class="mini"><tbody><tr><td class="g">가족<span class="dir">안</span></td><td>눈을 감고 한쪽으로 기댄다 → 기댄 채 숨을 한 번 쉬고 돌아온다</td><td class="cap">“가족 한 방울이 스며 한쪽으로 기댔어요”</td></tr><tr><td class="g">친구<span class="dir">안</span></td><td>빗을 빠르게 두 번 튕기고 옆으로 콩 한 번 → 정면으로 돌아와 눈이 ^ ^</td><td class="cap">“친구 한 방울이 스며 옆으로 콩 뛰었어요”</td></tr><tr><td class="g">좋아하는 사람<span class="dir">안</span></td><td>두 눈이 가늘게 휘며 몸을 좌우로 천천히 비빈다 → 유저 쪽에서 멈춘다</td><td class="cap">“좋아한다는 말 한 방울이 스며 몸을 비볐어요”</td></tr><tr><td class="g">털 동물<span class="dir">밖</span></td><td>빗을 귀처럼 쫑긋 세운다 → 몸을 웅크렸다가 기지개를 켠다</td><td class="cap">“털 동물 한 방울이 스며 빗이 쫑긋 섰어요”</td></tr><tr><td class="g">날개·지느러미<span class="dir">밖</span></td><td>빗이 날개처럼 두 번 펄럭인다 → 살짝 떴다 내려앉는다</td><td class="cap">“날개 한 방울이 스며 빗이 펄럭였어요”</td></tr><tr><td class="g">아기<span class="dir">밖</span></td><td>몸을 0.9로 동글게 오므린다 → 요람처럼 천천히 두 번 흔들린다</td><td class="cap">“아기 한 방울이 스며 동글게 오므렸어요”</td></tr></tbody></table></section><section class="card fam"><header><svg viewBox="0 0 150 120" width="100" height="80" aria-hidden="true"><ellipse cx="75" cy="105.0" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(6 75 80)"><line x1="66.6" y1="41.0" x2="66.6" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-22.2 66.6 41.0)"/><line x1="75.0" y1="41.0" x2="75.0" y2="19.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-25.0 75.0 41.0)"/><line x1="83.4" y1="41.0" x2="83.4" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-27.8 83.4 41.0)"/><ellipse cx="75" cy="72" rx="44.0" ry="35.0" fill="var(--ink)"/><circle cx="63.0" cy="78" r="4" fill="var(--paper)"/><circle cx="87.0" cy="78" r="4" fill="var(--paper)"/></g></svg><h3>나날</h3><p class="seat">공부·일·때·놀이</p><p class="mark">이레 흔적: 숨에 박자가 생긴다(들숨·날숨 길이가 또렷이 나뉨). 빗이 조금 더 곧게 선다</p></header><table class="mini"><tbody><tr><td class="g">공부·시험<span class="dir">안</span></td><td>빗이 납작해지고 작은 숨 한 번 → 두 눈이 작게 모여 앞을 본다(집중)</td><td class="cap">“시험 한 방울이 스며 빗이 납작해졌어요”</td></tr><tr><td class="g">일<span class="dir">안</span></td><td>앞으로 기울어 1초 집중한다 → 길게 숨을 내쉬며 펴진다</td><td class="cap">“일 한 방울이 스며 길게 숨을 내쉬었어요”</td></tr><tr><td class="g">때<span class="dir">안</span></td><td>눈을 두 번 깜빡인다 → 작게 기지개를 켠다</td><td class="cap">“하루 한 방울이 스며 기지개를 켰어요”</td></tr><tr><td class="g">놀이<span class="dir">밖</span></td><td>제자리에서 작게 콩콩콩 세 번 → 멈춰서 유저를 본다</td><td class="cap">“놀이 한 방울이 스며 콩콩 뛰었어요”</td></tr><tr><td class="g">노래<span class="dir">밖</span></td><td>몸이 좌우로 박자를 타며 허밍 한 소절(M2 가락 재사용) → 끝음에서 멈춘다</td><td class="cap">“노래 한 방울이 스며 박자를 탔어요”</td></tr><tr><td class="g">나들이<span class="dir">밖</span></td><td>종이 끝 쪽으로 몸을 기울여 멀리 본다 → 빗이 바람에 날리며 돌아온다</td><td class="cap">“나들이 한 방울이 스며 먼 데로 몸이 기울었어요”</td></tr></tbody></table></section>
+</section>
+
+<section class="page">
+  <h2>대답 카드 ③ — 특수 결</h2>
+  <div class="grid3" style="grid-template-columns:1fr"><section class="card sp"><div><svg viewBox="0 0 150 120" width="150" height="120" aria-hidden="true"><ellipse cx="75" cy="105.0" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(-14 75 80)"><line x1="66.6" y1="41.0" x2="66.6" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-10.0 66.6 41.0)"/><line x1="75.0" y1="41.0" x2="75.0" y2="19.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-10.0 75.0 41.0)"/><line x1="83.4" y1="41.0" x2="83.4" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-10.0 83.4 41.0)"/><ellipse cx="75" cy="72" rx="44.0" ry="35.0" fill="var(--ink)"/><circle cx="60.0" cy="78" r="6.5" fill="var(--paper)"/><circle cx="90.0" cy="78" r="6.5" fill="var(--paper)"/></g></svg></div><div><h3>모르는 말</h3><p>고개를 한 번 갸웃 → 빗 끝이 물음표처럼 말림 → 글자를 천천히 마심</p><p class="cap">“처음 듣는 말을 천천히 마셨어요”</p><p class="note">커닝표에 없는 말이면 <b>가까운 결을 고르지 말고</b> 이 카드</p></div></section><section class="card sp"><div><svg viewBox="0 0 150 120" width="150" height="120" aria-hidden="true"><ellipse cx="75" cy="105.0" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="66.6" y1="41.0" x2="66.6" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-25.599999999999998 66.6 41.0)"/><line x1="75.0" y1="41.0" x2="75.0" y2="19.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-20.0 75.0 41.0)"/><line x1="83.4" y1="41.0" x2="83.4" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-14.400000000000002 83.4 41.0)"/><ellipse cx="75" cy="72" rx="44.0" ry="35.0" fill="var(--ink)"/><path d="M53.0,81 Q60.0,71 67.0,81" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M83.0,81 Q90.0,71 97.0,81" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg></div><div><h3>부르기</h3><p>이름을 쓰면 고개를 돌리고 ‘응?’ 하고, 빗을 한 번 튕김</p><p class="cap">“이름을 부르자 고개를 돌렸어요”</p></div></section><section class="card sp"><div><svg viewBox="0 0 150 120" width="150" height="120" aria-hidden="true"><ellipse cx="75" cy="103.25" rx="53.13" ry="6" fill="var(--wash)"/><g transform="rotate(10 75 80)"><line x1="66.18" y1="42.75" x2="66.18" y2="26.75" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(30.0 66.18 42.75)"/><line x1="75.0" y1="42.75" x2="75.0" y2="20.75" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(30.0 75.0 42.75)"/><line x1="83.82" y1="42.75" x2="83.82" y2="26.75" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(30.0 83.82 42.75)"/><ellipse cx="75" cy="72" rx="46.2" ry="33.25" fill="var(--ink)"/><path d="M53.25,78 Q59.25,84 65.25,78" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M84.75,78 Q90.75,84 96.75,78" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/></g><path d='M128,60 q14,4 14,24 q0,18 -10,22' stroke='var(--sub)' stroke-width='3' fill='none' stroke-dasharray='4 4'/></svg></div><div><h3>곁에 앉기</h3><p>결 몸짓 대신 손 쪽으로 다가와 붙어 앉고, 천천히 함께 숨 쉼(6초)</p><p class="cap">(자막 없음)</p><p class="note">위기 낱말일 때. 진행은 계속하고, 끝난 뒤 안전 절차(1쪽)</p></div></section></div>
+</section>
+
+<!-- 5쪽: 커닝표 -->
+<section class="page">
+  <h2>진행자 커닝표 — 낱말 → 결 → 꿈</h2>
+  <p class="lead">활용형은 줄기로 찾는다(설렌다 → 설렘, 짜증나 → 짜증). 앞에 '개·완전·너무'가 붙으면 몸짓을 크게, '좀·조금'이 붙으면 작게 한다. 두 말이 붙어 있으면(엄마보고싶어) 마음 쪽 말의 결로 대답한다. 여기에 없으면 '모르는 말'이다.</p>
+  <div class="grid2 lk">
+    <table><thead><tr><th>결</th><th>예(사전 v0)</th><th>꿈 이름</th></tr></thead><tbody><tr class="fh"><td colspan="3">들뜸 <small>쾌 + 각성 높음</small></td></tr><tr><td>기쁨</td><td>기쁨 · 행복 · 좋아 · 야호</td><td>작은 싹</td></tr><tr><td>설렘</td><td>설렘 · 두근 · 기대 · 고백</td><td>은하수 다리</td></tr><tr><td>뿌듯</td><td>뿌듯 · 해냈다 · 성공 · 최고</td><td>먼 산</td></tr><tr><td>신남</td><td>신나 · 대박 · 축하 · 생일</td><td>줄지은 기러기</td></tr><tr><td>웃음</td><td>ㅋㅋ · ㅎㅎ · 웃겨 · 하하</td><td>찻잔 둘</td></tr><tr><td>반가움</td><td>안녕 · 반가워 · 좋은아침 · 왔어</td><td>창가의 손</td></tr><tr class="fh"><td colspan="3">포근 <small>쾌 + 각성 낮음</small></td></tr><tr><td>고요</td><td>고요 · 평화 · 편안 · 차분</td><td>떠가는 잎</td></tr><tr><td>나른</td><td>나른 · 귀찮아 · 뒹굴 · 느긋</td><td>포근한 이불</td></tr><tr><td>졸림</td><td>졸려 · 잠 · 잘자 · 꿈</td><td>포근한 이불</td></tr><tr><td>다정</td><td>사랑해 · 좋아해 · 귀여워 · 예뻐</td><td>오목한 손</td></tr><tr><td>고마움</td><td>고마워 · 감사 · 땡큐 · 덕분</td><td>문틈의 편지</td></tr><tr><td>안심</td><td>다행 · 휴 · 안심 · 괜찮아</td><td>우산 하나에 둘</td></tr><tr class="fh"><td colspan="3">뾰족 <small>불쾌 + 각성 높음</small></td></tr><tr><td>짜증</td><td>짜증 · 개짜증 · 성가셔 · 싫어</td><td>지나가는 바람</td></tr><tr><td>화</td><td>화나 · 열받아 · 빡쳐 · 분노</td><td>지나가는 바람</td></tr><tr><td>억울</td><td>억울 · 치사 · 불공평 · 왜나만</td><td>굽이진 길</td></tr><tr><td>걱정</td><td>걱정 · 불안 · 긴장 · 떨려</td><td>우산 하나에 둘</td></tr><tr><td>답답</td><td>답답 · 막막 · 스트레스 · 갑갑</td><td>지나가는 바람</td></tr><tr><td>무서움</td><td>무서워 · 겁나 · 소름 · 귀신</td><td>오목한 손</td></tr><tr class="fh"><td colspan="3">가라앉음 <small>불쾌 + 각성 낮음</small></td></tr><tr><td>그리움</td><td>보고싶어 · 그리워 · 생각나 · 추억</td><td>문틈의 편지</td></tr><tr><td>서운</td><td>서운 · 섭섭 · 속상해 · 서러워</td><td>우산 하나에 둘</td></tr><tr><td>외로움</td><td>외로워 · 쓸쓸 · 혼자</td><td>찻잔 둘</td></tr><tr><td>슬픔</td><td>슬퍼 · 우울 · ㅠㅠ · 눈물</td><td>빗소리</td></tr><tr><td>지침</td><td>힘들어 · 지쳐 · 피곤 · 아파</td><td>포근한 이불</td></tr><tr><td>심심</td><td>심심 · 지루 · 노잼 · 할거없어</td><td>종이배</td></tr><tr class="fh"><td colspan="3">특수</td></tr><tr><td>부르기</td><td>몽망이 · 몽망 · 망이 · (테스터가 지은 이름)</td><td>—</td></tr><tr><td>곁에 앉기</td><td>죽고싶다 · 자살 · 자해 · 살기싫어 · 사라지고싶어 · ㅈㅅ · 죽겠다 · 포기할래</td><td>오목한 손</td></tr></tbody></table>
+    <table><thead><tr><th>결</th><th>예(사전 v0)</th><th>꿈 이름</th></tr></thead><tbody><tr class="fh"><td colspan="3">자연 <small>날씨·풀·물·하늘</small></td></tr><tr><td>비</td><td>비 · 소나기 · 장마 · 우산</td><td>빗소리</td></tr><tr><td>눈</td><td>눈 · 첫눈 · 눈사람 · 겨울</td><td>소리 없는 눈</td></tr><tr><td>풀꽃</td><td>꽃 · 나무 · 벚꽃 · 단풍</td><td>작은 싹</td></tr><tr><td>바다</td><td>바다 · 파도 · 강 · 호수</td><td>혼자 보는 바다</td></tr><tr><td>하늘</td><td>하늘 · 구름 · 바람 · 노을</td><td>높이 뜬 연</td></tr><tr><td>달별</td><td>달 · 별 · 밤 · 우주</td><td>둥근 달</td></tr><tr class="fh"><td colspan="3">살림 <small>먹을 것·집·물건</small></td></tr><tr><td>밥</td><td>밥 · 배고파 · 라면 · 치킨</td><td>찻잔 하나</td></tr><tr><td>단것</td><td>귤 · 과자 · 빵 · 케이크</td><td>찻잔 하나</td></tr><tr><td>마실 것</td><td>차 · 커피 · 우유 · 녹차</td><td>찻잔 하나</td></tr><tr><td>집</td><td>집 · 방 · 이불 · 침대</td><td>포근한 이불</td></tr><tr><td>물건</td><td>책 · 폰 · 연필 · 붓</td><td>벼루 곁 낮잠</td></tr><tr><td>옷·꾸밈</td><td>옷 · 신발 · 머리 · 모자</td><td>빨랫줄</td></tr><tr class="fh"><td colspan="3">곁 <small>사람·동물</small></td></tr><tr><td>가족</td><td>엄마 · 아빠 · 할머니 · 할아버지</td><td>창가의 손</td></tr><tr><td>친구</td><td>친구 · 베프 · 짝꿍 · 우리</td><td>찻잔 둘</td></tr><tr><td>좋아하는 사람</td><td>최애 · 남친 · 여친 · 짝사랑</td><td>손잡고 본 바다</td></tr><tr><td>털 동물</td><td>고양이 · 강아지 · 토끼 · 햄스터</td><td>포근한 이불</td></tr><tr><td>날개·지느러미</td><td>새 · 물고기 · 나비 · 오리</td><td>줄지은 기러기</td></tr><tr><td>아기</td><td>아기 · 조카 · 병아리</td><td>오목한 손</td></tr><tr class="fh"><td colspan="3">나날 <small>공부·일·때·놀이</small></td></tr><tr><td>공부·시험</td><td>시험 · 공부 · 숙제 · 학교</td><td>벼루 곁 낮잠</td></tr><tr><td>일</td><td>출근 · 회사 · 일 · 알바</td><td>벼루 곁 낮잠</td></tr><tr><td>때</td><td>아침 · 월요일 · 주말 · 오늘</td><td>떠가는 잎</td></tr><tr><td>놀이</td><td>놀자 · 게임 · 축구 · 운동</td><td>징검다리</td></tr><tr><td>노래</td><td>노래 · 음악 · 춤 · 콘서트</td><td>별과 물방울</td></tr><tr><td>나들이</td><td>여행 · 산책 · 소풍 · 기차</td><td>굽이진 길</td></tr></tbody></table>
+  </div>
+</section>
+
+<!-- 6쪽: 꿈·완성·결말 -->
+<section class="page">
+  <h2>꿈 카드 (3장 오림)</h2>
+  <div class="grid3">
+    <div class="card"><h3>1일 아침의 꿈</h3><div class="blank"></div><p class="lead">한 귀퉁이에 어제 쓴 말의 먹 자국(글자는 보이지 않음)</p></div>
+    <div class="card"><h3>2일 아침의 꿈</h3><div class="blank"></div><p class="lead">한 귀퉁이에 어제 쓴 말의 먹 자국</p></div>
+    <div class="card"><h3>3일 아침의 꿈</h3><div class="blank"></div><p class="lead">한 귀퉁이에 어제 쓴 말의 먹 자국</p></div>
+  </div>
+
+  <h2 style="margin-top:5mm">28번째 아침 — 완성 카드</h2>
+  <div class="card final"><div style="text-align:center"><svg viewBox="0 0 150 120" width="230" height="184" aria-hidden="true"><ellipse cx="75" cy="105.0" rx="53.13" ry="6" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="66.18" y1="41.0" x2="66.18" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 66.18 41.0)"/><line x1="75.0" y1="41.0" x2="75.0" y2="19.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 75.0 41.0)"/><line x1="83.82" y1="41.0" x2="83.82" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(0.0 83.82 41.0)"/><ellipse cx="75" cy="72" rx="46.2" ry="35.0" fill="var(--ink)"/><circle cx="59.25" cy="78" r="6.5" fill="var(--paper)"/><circle cx="90.75" cy="78" r="6.5" fill="var(--paper)"/></g></svg></div>
+    <div><p>테스터가 쓴 세 말의 <b>가족 흔적 조각</b>을 쓴 순서대로 몸 둘레에 붙인다(같은 가족이 겹치면 한 번만).</p>
+      <p>오른쪽 아래 낙관 칸: <span class="seal">몽</span></p>
+      <p class="lead">"스물여덟 밤 동안 당신이 쓴 말로 자란 아이예요."</p></div></div>
+
+  <h3 style="margin-top:4mm">가족 흔적 조각 (오려서 붙임)</h3>
+  <div class="chips"><div class="chip"><b>들뜸</b> 빗 기본 각도가 위로 6° 들리고, 번짐 고리 가장자리에 잔방울이 톡톡 맺힌다</div><div class="chip"><b>포근</b> 번짐 고리가 넓고 부드러워지고, 숨 주기가 길어진다</div><div class="chip"><b>뾰족</b> 빗 끝이 곧고 각진 방필이 되고, 번짐 경계가 또렷해진다(&#x27;단단한 아이&#x27;)</div><div class="chip"><b>가라앉음</b> 번짐이 깊고 느려지며 먹에 물기가 돈다(젖은 먹의 윤). 빗 끝이 부드럽게 늘어진다(처짐 아님, −8°까지)</div><div class="chip"><b>자연</b> 번짐이 바람 방향으로 한쪽에 살짝 길어진다(물결 결)</div><div class="chip"><b>살림</b> 몸이 아주 조금 더 동글어지고(폭:높이 +0.03), 바닥 받침 띠가 넓어진다</div><div class="chip"><b>곁</b> 반김 몸짓(다가와 비비기)이 한 박자 빨라지고, 빗 두 가닥이 서로 가까워진다</div><div class="chip"><b>나날</b> 숨에 박자가 생긴다(들숨·날숨 길이가 또렷이 나뉨). 빗이 조금 더 곧게 선다</div></div>
+
+  <h2 style="margin-top:5mm">결말 카드 (같은 크기, 같은 무게로 보여 줌)</h2>
+  <div class="grid2">
+    <div class="card end"><div class="big">A · 곁에 남아요</div><p>다 여문 아이는 떠나지 않아요. 더 자라지는 않지만, 쓰다듬고 부르고 함께 꿈꿔요. 원하면 화첩의 새 쪽에서 새 먹 방울을 시작해요.</p></div>
+    <div class="card end"><div class="big">B · 꿈으로 떠나요</div><p>다 여문 아이는 28번째 밤에 꿈으로 떠나고, 화첩에 그림으로 남아요. 다음 날 새 먹 방울이 찾아와요.</p></div>
+  </div>
+</section>
+
+<!-- 7쪽: 측정·기록 -->
+<section class="page">
+  <h2>측정 질문과 기록 양식 <small class="lead">(테스터마다 1장 · 5장 인쇄)</small></h2>
+  <table>
+    <tr><th style="width:24mm">테스터</th><td>T__ · 나이대 ____ · 평소 모바일 게임: 매일 / 가끔 / 거의 안 함 · 손글씨를 즐겨 쓰나: 예 / 아니오</td></tr>
+    <tr><th>날짜·진행</th><td>____ · 진행 ____ · 기록 ____ · 녹음 동의: 예 / 아니오 · 사진 동의: 예 / 아니오</td></tr>
+  </table>
+
+  <table>
+    <tr><th style="width:12mm">날</th><th style="width:16mm">먹 칸</th><th>쓴 말</th><th style="width:24mm">첫 획까지(초)</th><th style="width:20mm">10초+ 멈춤</th><th style="width:30mm">판정한 결</th><th>반응(웃음·"아"·무반응·혼잣말)</th></tr>
+    <tr><td>1</td><td></td><td></td><td></td><td>예 / 아니오</td><td></td><td></td></tr>
+    <tr><td>2</td><td></td><td></td><td></td><td>예 / 아니오</td><td></td><td></td></tr>
+    <tr><td>3</td><td></td><td></td><td></td><td>예 / 아니오</td><td></td><td></td></tr>
+  </table>
+
+  <div class="q"><b>Q1. 내가 쓴 말이 몽망이에게 반영됐다고 느꼈나요?</b>
+    <div class="scale"><em>전혀</em><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><em>아주 많이</em></div>
+    어느 순간에 가장 그랬나요? <div class="blank"></div></div>
+  <div class="q"><b>Q2. 이 아이를 '내가 키웠다'고 느껴지나요?</b>
+    <div class="scale"><em>전혀</em><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><em>아주 많이</em></div></div>
+  <div class="q"><b>Q3. 스물여덟 밤이 지난 뒤, 어느 쪽이 더 좋나요?</b> &nbsp; A 곁에 남기 / B 꿈으로 떠나기 / 둘 다 괜찮음 &nbsp; (왼쪽에 놓인 카드: A / B)
+    왜 그런가요? <div class="blank"></div></div>
+  <div class="q"><b>Q4. 다 자란 이 아이를 누군가에게 보여 주고 싶나요?</b>
+    <div class="scale"><em>전혀</em><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><em>꼭</em></div>
+    누구에게? ______ · 무엇을? 그림만 / 그림 + 내가 쓴 말 몇 개 / 모르겠음</div>
+  <div class="q"><b>Q5. 하는 동안 '감정 일기를 쓰는 것 같아 부담스럽다'고 느꼈나요?</b> &nbsp; 예 / 조금 / 아니오</div>
+  <div class="q"><b>Q6. 몽망이의 대답(몸짓) 가운데 기억에 남는 것은?</b> <div class="blank"></div></div>
+  <div class="q"><b>Q7. 내일이라면 뭐라고 써 주고 싶나요?</b> <div class="blank"></div></div>
+  <table>
+    <tr><th style="width:30mm">기록자 관찰</th><td>완성 카드에서 사진을 찍으려 했다: 예 / 아니오 · 안전 절차 진행: 예 / 아니오 · 그 밖: <div class="blank"></div></td></tr>
+  </table>
+</section>
+</body>
+</html>

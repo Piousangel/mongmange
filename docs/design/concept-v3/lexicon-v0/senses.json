@@ -1,0 +1,1085 @@
+{
+ "sensesVer": "0.1.0",
+ "families": [
+  {
+   "id": "bright",
+   "ko": "들뜸",
+   "en": "Bright",
+   "kind": "mind",
+   "seat": "쾌 + 각성 높음",
+   "dirIn": "내 안에서 차오름(혼자)",
+   "dirOut": "누군가·무엇에게 뻗음(함께)",
+   "lean": "tempo +, boldness +",
+   "expr": "기쁨",
+   "mark": "빗 기본 각도가 위로 6° 들리고, 번짐 고리 가장자리에 잔방울이 톡톡 맺힌다",
+   "zone": "in → near-alone 쪽, out → far-with 쪽",
+   "name": "볕결"
+  },
+  {
+   "id": "warm",
+   "ko": "포근",
+   "en": "Soft",
+   "kind": "mind",
+   "seat": "쾌 + 각성 낮음",
+   "dirIn": "내 안에 고임(쉼)",
+   "dirOut": "곁에 건넴(다정)",
+   "lean": "tempo −, closeness +",
+   "expr": "기본 → 졸림 사이",
+   "mark": "번짐 고리가 넓고 부드러워지고, 숨 주기가 길어진다",
+   "zone": "in → near-alone, out → near-with",
+   "name": "솜결"
+  },
+  {
+   "id": "spiky",
+   "ko": "뾰족",
+   "en": "Prickly",
+   "kind": "mind",
+   "seat": "불쾌 + 각성 높음",
+   "dirIn": "안으로 조임(걱정·두려움)",
+   "dirOut": "밖으로 튐(화·짜증)",
+   "lean": "out: boldness +, closeness − / in: tempo +, boldness −",
+   "expr": "집중 → 놀람 사이",
+   "mark": "빗 끝이 곧고 각진 방필이 되고, 번짐 경계가 또렷해진다('단단한 아이')",
+   "zone": "in → near-with(감싸 주는 꿈), out → far-alone(바람·연)",
+   "name": "바람결"
+  },
+  {
+   "id": "low",
+   "ko": "가라앉음",
+   "en": "Deep",
+   "kind": "mind",
+   "seat": "불쾌 + 각성 낮음",
+   "dirIn": "안으로 가라앉음(슬픔·지침)",
+   "dirOut": "누군가를 향함(그리움·서운)",
+   "lean": "tempo −, out: closeness + / in: curiosity −",
+   "expr": "기본(시무룩 표정은 쓰지 않음)",
+   "mark": "번짐이 깊고 느려지며 먹에 물기가 돈다(젖은 먹의 윤). 빗 끝이 부드럽게 늘어진다(처짐 아님, −8°까지)",
+   "zone": "in → near-alone(비·이불), out → near-with(우산 하나에 둘·편지)",
+   "name": "이슬결"
+  },
+  {
+   "id": "nature",
+   "ko": "자연",
+   "en": "Nature",
+   "kind": "world",
+   "seat": "날씨·풀·물·하늘",
+   "dirIn": "가까운 자연(창밖)",
+   "dirOut": "먼 자연(바다·하늘·밤)",
+   "lean": "out: curiosity +",
+   "expr": "기본",
+   "mark": "번짐이 바람 방향으로 한쪽에 살짝 길어진다(물결 결)",
+   "zone": "in → center, out → far-alone",
+   "name": "하늘결"
+  },
+  {
+   "id": "home",
+   "ko": "살림",
+   "en": "Home",
+   "kind": "world",
+   "seat": "먹을 것·집·물건",
+   "dirIn": "몸으로 들어오는 것(먹고 마심)",
+   "dirOut": "둘레의 살림(집·물건·옷)",
+   "lean": "curiosity −, tempo −",
+   "expr": "기본 → 기쁨 사이",
+   "mark": "몸이 아주 조금 더 동글어지고(폭:높이 +0.03), 바닥 받침 띠가 넓어진다",
+   "zone": "near-alone",
+   "name": "소반결"
+  },
+  {
+   "id": "kin",
+   "ko": "곁",
+   "en": "Kin",
+   "kind": "world",
+   "seat": "사람·동물",
+   "dirIn": "가까운 사람",
+   "dirOut": "작고 다른 생명",
+   "lean": "closeness +",
+   "expr": "기쁨",
+   "mark": "반김 몸짓(다가와 비비기)이 한 박자 빨라지고, 빗 두 가닥이 서로 가까워진다",
+   "zone": "near-with / far-with",
+   "name": "곁결"
+  },
+  {
+   "id": "days",
+   "ko": "나날",
+   "en": "Days",
+   "kind": "world",
+   "seat": "공부·일·때·놀이",
+   "dirIn": "해야 하는 날(공부·일·때)",
+   "dirOut": "노는 날(놀이·노래·나들이)",
+   "lean": "in: tempo + / out: curiosity +",
+   "expr": "집중",
+   "mark": "숨에 박자가 생긴다(들숨·날숨 길이가 또렷이 나뉨). 빗이 조금 더 곧게 선다",
+   "zone": "in → near-alone(벼루 곁), out → far-with(징검다리·길)",
+   "name": "걸음결"
+  }
+ ],
+ "senses": [
+  {
+   "id": "bright.in.joy",
+   "family": "bright",
+   "dir": "in",
+   "ko": "기쁨",
+   "en": "Joy",
+   "gloss": "좋은 일이 안에서 차오름",
+   "answer": {
+    "echo": "몸이 0.85로 눌렸다가 1.08로 통 튄다(스프링 허용 유일)",
+    "back": "바닥에 내려앉아 두 눈이 ^ ^ 호로 휜다"
+   },
+   "comb": "위로 +20° 두 번 튕김",
+   "ink": "짙고 윤기, 번짐 고리 한 번 퍼짐",
+   "dreamMotifs": [
+    "near-alone.sprout",
+    "far-with.stars-drops"
+   ],
+   "caption": "기쁨 한 방울이 스며 몸이 통 튀었어요"
+  },
+  {
+   "id": "bright.in.flutter",
+   "family": "bright",
+   "dir": "in",
+   "ko": "설렘",
+   "en": "Flutter",
+   "gloss": "곧 올 일을 기다리며 두근거림",
+   "answer": {
+    "echo": "제자리에서 통통 두 번 작게 뜬다",
+    "back": "눈이 1.1배 커진 채 유저 쪽을 본다"
+   },
+   "comb": "부채꼴로 살짝 벌어져 떨림",
+   "ink": "농담 그대로, 고리가 두 번 잔물결",
+   "dreamMotifs": [
+    "far-with.star-bridge",
+    "far-alone.kite"
+   ],
+   "caption": "설렘 한 방울이 스며 제자리에서 통통 떴어요"
+  },
+  {
+   "id": "bright.in.pride",
+   "family": "bright",
+   "dir": "in",
+   "ko": "뿌듯",
+   "en": "Pride",
+   "gloss": "해낸 것이 있어 가슴을 폄",
+   "answer": {
+    "echo": "몸 높이가 5% 늘며 빗을 앞으로 곧게 뻗는다(1초)",
+    "back": "천천히 원래 키로 내려와 유저를 본다"
+   },
+   "comb": "앞으로 곧게",
+   "ink": "짙게, 번짐 좁고 또렷",
+   "dreamMotifs": [
+    "far-alone.mountain",
+    "far-alone.kite"
+   ],
+   "caption": "뿌듯 한 방울이 스며 빗이 앞으로 곧게 뻗었어요"
+  },
+  {
+   "id": "bright.out.glee",
+   "family": "bright",
+   "dir": "out",
+   "ko": "신남",
+   "en": "Glee",
+   "gloss": "들떠서 몸이 먼저 움직임",
+   "answer": {
+    "echo": "제자리에서 반 바퀴 빙그르",
+    "back": "정면으로 돌아와 빗을 한 번 흔든다"
+   },
+   "comb": "펄럭 두 번",
+   "ink": "고리가 크게 한 번 퍼짐",
+   "dreamMotifs": [
+    "far-with.geese",
+    "far-with.star-bridge"
+   ],
+   "caption": "신남 한 방울이 스며 빙그르 돌았어요"
+  },
+  {
+   "id": "bright.out.laugh",
+   "family": "bright",
+   "dir": "out",
+   "ko": "웃음",
+   "en": "Laughter",
+   "gloss": "웃음·장난",
+   "answer": {
+    "echo": "몸이 좌우로 작게 세 번 흔들린다",
+    "back": "눈이 ^ ^인 채 멈춘다"
+   },
+   "comb": "가닥마다 엇갈려 까딱",
+   "ink": "농담 그대로",
+   "dreamMotifs": [
+    "near-with.teacup-two",
+    "far-with.stars-drops"
+   ],
+   "caption": "웃음 한 방울이 스며 몸이 흔들렸어요"
+  },
+  {
+   "id": "bright.out.welcome",
+   "family": "bright",
+   "dir": "out",
+   "ko": "반가움",
+   "en": "Welcome",
+   "gloss": "인사·반김",
+   "answer": {
+    "echo": "유저 쪽으로 0.1W 다가온다",
+    "back": "빗을 빠르게 두 번 흔든다"
+   },
+   "comb": "빠르게 두 번 튕김(+120ms)",
+   "ink": "고리 한 번 퍼짐",
+   "dreamMotifs": [
+    "near-with.window-hand",
+    "near-with.letter"
+   ],
+   "caption": "인사 한 방울이 스며 빗이 두 번 흔들렸어요"
+  },
+  {
+   "id": "warm.in.still",
+   "family": "warm",
+   "dir": "in",
+   "ko": "고요",
+   "en": "Stillness",
+   "gloss": "가라앉은 평온",
+   "answer": {
+    "echo": "숨이 5.5초 주기로 느려진다",
+    "back": "번짐 고리가 천천히 넓어지고 눈이 반쯤 감긴다"
+   },
+   "comb": "수평, 아주 느린 흔들림",
+   "ink": "번짐 넓게(+30%)",
+   "dreamMotifs": [
+    "center.leaf",
+    "near-alone.teacup"
+   ],
+   "caption": "고요 한 방울이 스며 숨이 느려졌어요"
+  },
+  {
+   "id": "warm.in.languid",
+   "family": "warm",
+   "dir": "in",
+   "ko": "나른",
+   "en": "Languor",
+   "gloss": "늘어지고 싶음",
+   "answer": {
+    "echo": "몸이 옆으로 녹아내리듯 1.3:0.8로 퍼진다",
+    "back": "작게 하품하고 천천히 둥글게 돌아온다"
+   },
+   "comb": "옆으로 늘어뜨림",
+   "ink": "번짐 넓게, 농담 −5%",
+   "dreamMotifs": [
+    "near-alone.quilt",
+    "near-alone.washing-line"
+   ],
+   "caption": "나른 한 방울이 스며 몸이 옆으로 퍼졌어요"
+  },
+  {
+   "id": "warm.in.sleepy",
+   "family": "warm",
+   "dir": "in",
+   "ko": "졸림",
+   "en": "Sleepy",
+   "gloss": "잠과 꿈",
+   "answer": {
+    "echo": "눈이 가로선이 되며 꾸벅 한 번",
+    "back": "빗이 −25° 처졌다가 천천히 수평으로"
+   },
+   "comb": "아래로 처짐 후 복귀",
+   "ink": "번짐 반경 +60%(밤의 예고)",
+   "dreamMotifs": [
+    "near-alone.quilt",
+    "center.moon"
+   ],
+   "caption": "졸린 한 방울이 스며 꾸벅했어요"
+  },
+  {
+   "id": "warm.out.tender",
+   "family": "warm",
+   "dir": "out",
+   "ko": "다정",
+   "en": "Tenderness",
+   "gloss": "아끼는 마음을 건넴",
+   "answer": {
+    "echo": "유저 쪽으로 몸을 6° 기울인다",
+    "back": "눈이 기쁨 호가 되고 기울인 채 1초 머문다"
+   },
+   "comb": "부드럽게 손 쪽으로",
+   "ink": "고리 한 번 천천히 퍼짐",
+   "dreamMotifs": [
+    "near-with.palm",
+    "near-with.teacup-two"
+   ],
+   "caption": "다정한 한 방울이 스며 몸이 손 쪽으로 기울었어요"
+  },
+  {
+   "id": "warm.out.thanks",
+   "family": "warm",
+   "dir": "out",
+   "ko": "고마움",
+   "en": "Thanks",
+   "gloss": "고마움·미안함을 건넴",
+   "answer": {
+    "echo": "몸을 앞으로 8° 숙여 꾸벅",
+    "back": "천천히 들어 유저를 본다"
+   },
+   "comb": "숙일 때 앞으로, 들 때 살랑",
+   "ink": "농담 그대로",
+   "dreamMotifs": [
+    "near-with.letter",
+    "near-with.teacup-two"
+   ],
+   "caption": "고마움 한 방울이 스며 꾸벅했어요"
+  },
+  {
+   "id": "warm.out.relief",
+   "family": "warm",
+   "dir": "out",
+   "ko": "안심",
+   "en": "Relief",
+   "gloss": "걱정이 풀림",
+   "answer": {
+    "echo": "몸이 1.05로 부풀었다가 0.95로 천천히 내쉰다",
+    "back": "번짐이 넓게 퍼지며 제 크기로"
+   },
+   "comb": "올라갔다 수평으로 내려앉음",
+   "ink": "번짐 넓게",
+   "dreamMotifs": [
+    "near-with.umbrella",
+    "center.leaf"
+   ],
+   "caption": "안심 한 방울이 스며 길게 숨을 내쉬었어요"
+  },
+  {
+   "id": "spiky.out.irritated",
+   "family": "spiky",
+   "dir": "out",
+   "ko": "짜증",
+   "en": "Irritation",
+   "gloss": "작은 것이 거슬림",
+   "answer": {
+    "echo": "빗이 곤두서고 몸이 한 번 부르르(떨림 0.02W, 150ms)",
+    "back": "빗이 천천히 가라앉고 유저를 본다"
+   },
+   "comb": "곤두섬 → 천천히 수평",
+   "ink": "번짐 좁고 또렷",
+   "dreamMotifs": [
+    "center.wind",
+    "far-alone.kite"
+   ],
+   "caption": "짜증 한 방울이 스며 빗이 곤두섰어요"
+  },
+  {
+   "id": "spiky.out.angry",
+   "family": "spiky",
+   "dir": "out",
+   "ko": "화",
+   "en": "Anger",
+   "gloss": "크게 치밀어 오름",
+   "answer": {
+    "echo": "몸이 1.06으로 부풀며 바닥 번짐이 탁 퍼진다(먹이 튐)",
+    "back": "부푼 몸이 천천히 가라앉고 숨을 한 번 고른다"
+   },
+   "comb": "부채꼴로 섬",
+   "ink": "가장자리 또렷, 농담 짙게",
+   "dreamMotifs": [
+    "center.wind",
+    "far-alone.mountain"
+   ],
+   "caption": "화 한 방울이 스며 먹이 탁 튀었어요"
+  },
+  {
+   "id": "spiky.out.wronged",
+   "family": "spiky",
+   "dir": "out",
+   "ko": "억울",
+   "en": "Unfair",
+   "gloss": "내 탓이 아닌데 억울함",
+   "answer": {
+    "echo": "몸을 좌우로 짧게 두 번 젓는다",
+    "back": "한쪽으로 기울인 채 유저를 본다"
+   },
+   "comb": "한쪽 가닥만 섬",
+   "ink": "번짐 한쪽으로 쏠림",
+   "dreamMotifs": [
+    "far-alone.path",
+    "center.wind"
+   ],
+   "caption": "억울한 한 방울이 스며 몸을 두 번 저었어요"
+  },
+  {
+   "id": "spiky.in.worry",
+   "family": "spiky",
+   "dir": "in",
+   "ko": "걱정",
+   "en": "Worry",
+   "gloss": "일이 어찌 될지 마음 졸임",
+   "answer": {
+    "echo": "두 눈이 작게 모이고 몸이 약하게 오래 떨린다(1초)",
+    "back": "떨림이 멎고 유저 쪽으로 조금 붙는다"
+   },
+   "comb": "몸에 붙음",
+   "ink": "번짐 좁게",
+   "dreamMotifs": [
+    "near-with.umbrella",
+    "near-with.window-hand"
+   ],
+   "caption": "걱정 한 방울이 스며 몸이 가늘게 떨렸어요"
+  },
+  {
+   "id": "spiky.in.stuffy",
+   "family": "spiky",
+   "dir": "in",
+   "ko": "답답",
+   "en": "Stifled",
+   "gloss": "꽉 막혀 갑갑함",
+   "answer": {
+    "echo": "몸이 0.92로 눌렸다가 '푸' 하고 번짐을 내뱉는다",
+    "back": "제 모양으로 돌아와 눈을 한 번 깜빡인다"
+   },
+   "comb": "눌렸다 펴짐",
+   "ink": "번짐이 한 번에 넓게",
+   "dreamMotifs": [
+    "center.wind",
+    "far-alone.sea"
+   ],
+   "caption": "답답한 한 방울이 스며 '푸' 하고 번졌어요"
+  },
+  {
+   "id": "spiky.in.scared",
+   "family": "spiky",
+   "dir": "in",
+   "ko": "무서움",
+   "en": "Fear",
+   "gloss": "겁이 남",
+   "answer": {
+    "echo": "움찔(떨림 150ms) 하며 몸이 0.94로 작아진다",
+    "back": "유저 손 쪽으로 붙어 선다"
+   },
+   "comb": "부채꼴로 섰다가 몸에 붙음",
+   "ink": "고리가 잠깐 사라짐",
+   "dreamMotifs": [
+    "near-with.palm",
+    "near-with.window-hand"
+   ],
+   "caption": "놀란 한 방울이 스며 움찔했어요"
+  },
+  {
+   "id": "low.out.longing",
+   "family": "low",
+   "dir": "out",
+   "ko": "그리움",
+   "en": "Longing",
+   "gloss": "멀리 있는 누군가를 생각함",
+   "answer": {
+    "echo": "종이 끝 쪽을 1초 바라본다",
+    "back": "시선이 천천히 유저 쪽으로 돌아온다"
+   },
+   "comb": "먼 쪽으로 늘어뜨림",
+   "ink": "번짐 느리게",
+   "dreamMotifs": [
+    "near-with.letter",
+    "far-with.sea-hand"
+   ],
+   "caption": "그리운 한 방울이 스며 먼 데를 보았어요"
+  },
+  {
+   "id": "low.out.hurt",
+   "family": "low",
+   "dir": "out",
+   "ko": "서운",
+   "en": "Hurt",
+   "gloss": "마음이 다침·삐짐",
+   "answer": {
+    "echo": "몸이 0.95로 작아지고 빗이 몸 쪽으로 내려온다",
+    "back": "유저 손 쪽으로 몸을 기울인다"
+   },
+   "comb": "몸 쪽으로 → 손 쪽으로",
+   "ink": "농담 −5%",
+   "dreamMotifs": [
+    "near-with.umbrella",
+    "near-with.letter"
+   ],
+   "caption": "서운한 한 방울이 스며 몸이 손 쪽으로 기울었어요"
+  },
+  {
+   "id": "low.out.lonely",
+   "family": "low",
+   "dir": "out",
+   "ko": "외로움",
+   "en": "Lonely",
+   "gloss": "혼자인 느낌",
+   "answer": {
+    "echo": "몸이 작게 한 번 흔들린다",
+    "back": "유저 쪽으로 다가와 0.05W 곁에 붙는다(따라 하기보다 곁에 오기)"
+   },
+   "comb": "손 쪽으로 늘어뜨림",
+   "ink": "번짐 넓게",
+   "dreamMotifs": [
+    "near-with.teacup-two",
+    "far-with.sea-hand"
+   ],
+   "caption": "쓸쓸한 한 방울이 스며 손 곁으로 왔어요"
+  },
+  {
+   "id": "low.in.sad",
+   "family": "low",
+   "dir": "in",
+   "ko": "슬픔",
+   "en": "Sadness",
+   "gloss": "슬픔·눈물",
+   "answer": {
+    "echo": "몸이 천천히 낮게 퍼지며 번짐이 넓어지고 먹이 조금 풀린다(농담 −10%)",
+    "back": "0.8초 머문 뒤 천천히 둥글게 돌아와 위를 본다"
+   },
+   "comb": "부드럽게 늘어뜨림(−8°)",
+   "ink": "번짐 넓고 젖은 윤",
+   "dreamMotifs": [
+    "center.rain",
+    "far-alone.sea"
+   ],
+   "caption": "슬픈 한 방울이 스며 먹이 넓게 번졌어요"
+  },
+  {
+   "id": "low.in.weary",
+   "family": "low",
+   "dir": "in",
+   "ko": "지침",
+   "en": "Weary",
+   "gloss": "몸·마음이 무거움, 아픔",
+   "answer": {
+    "echo": "몸이 1.3:0.8로 납작해지며 숨을 길게 한 번 내쉰다",
+    "back": "천천히 둥글게 돌아와 눈을 한 번 감았다 뜬다"
+   },
+   "comb": "수평으로 늘어짐",
+   "ink": "번짐 넓게",
+   "dreamMotifs": [
+    "near-alone.quilt",
+    "center.rain"
+   ],
+   "caption": "무거운 한 방울이 스며 길게 숨을 내쉬었어요"
+  },
+  {
+   "id": "low.in.bored",
+   "family": "low",
+   "dir": "in",
+   "ko": "심심",
+   "en": "Bored",
+   "gloss": "할 게 없음",
+   "answer": {
+    "echo": "두리번(시선 좌우 한 번)",
+    "back": "빗 끝으로 종이를 톡톡 두 번 친다"
+   },
+   "comb": "끝이 까딱",
+   "ink": "농담 그대로",
+   "dreamMotifs": [
+    "far-alone.paper-boat",
+    "center.leaf"
+   ],
+   "caption": "심심한 한 방울이 스며 종이를 톡톡 쳤어요"
+  },
+  {
+   "id": "nature.in.rain",
+   "family": "nature",
+   "dir": "in",
+   "ko": "비",
+   "en": "Rain",
+   "gloss": "비·소나기·천둥",
+   "answer": {
+    "echo": "고개를 들어 위를 본다",
+    "back": "빗 끝이 빗방울 맞듯 톡톡 떨린다"
+   },
+   "comb": "끝이 톡톡",
+   "ink": "번짐에 작은 점 번짐",
+   "dreamMotifs": [
+    "center.rain",
+    "near-with.umbrella"
+   ],
+   "caption": "비 한 방울이 스며 위를 올려다보았어요"
+  },
+  {
+   "id": "nature.in.snow",
+   "family": "nature",
+   "dir": "in",
+   "ko": "눈",
+   "en": "Snow",
+   "gloss": "눈·겨울·추위",
+   "answer": {
+    "echo": "위를 보며 몸이 아주 작게 움츠러든다(약한 떨림)",
+    "back": "천천히 펴지며 눈을 깜빡인다"
+   },
+   "comb": "몸에 붙었다 펴짐",
+   "ink": "가장자리 하얗게 살짝 밝아짐(종이 쪽)",
+   "dreamMotifs": [
+    "center.snow",
+    "near-alone.quilt"
+   ],
+   "caption": "눈 한 송이가 스며 몸을 살짝 움츠렸어요"
+  },
+  {
+   "id": "nature.in.plant",
+   "family": "nature",
+   "dir": "in",
+   "ko": "풀꽃",
+   "en": "Bloom",
+   "gloss": "꽃·나무·잎·봄",
+   "answer": {
+    "echo": "몸 위쪽 한 곳이 싹처럼 살짝 솟는다",
+    "back": "빗이 살랑 흔들리며 돌아온다"
+   },
+   "comb": "살랑",
+   "ink": "번짐 고리 한쪽이 잎 모양으로",
+   "dreamMotifs": [
+    "near-alone.sprout",
+    "center.leaf"
+   ],
+   "caption": "풀꽃 한 방울이 스며 싹처럼 솟았어요"
+  },
+  {
+   "id": "nature.out.sea",
+   "family": "nature",
+   "dir": "out",
+   "ko": "바다",
+   "en": "Sea",
+   "gloss": "바다·강·물·여름",
+   "answer": {
+    "echo": "몸이 너울처럼 좌우로 천천히 두 번 출렁인다",
+    "back": "종이 끝 쪽을 한 번 보고 돌아온다"
+   },
+   "comb": "물결처럼 이어 흔들",
+   "ink": "번짐이 길게 출렁",
+   "dreamMotifs": [
+    "far-alone.sea",
+    "far-alone.paper-boat",
+    "far-with.sea-hand"
+   ],
+   "caption": "바다 한 방울이 스며 몸이 출렁였어요"
+  },
+  {
+   "id": "nature.out.sky",
+   "family": "nature",
+   "dir": "out",
+   "ko": "하늘",
+   "en": "Sky",
+   "gloss": "하늘·구름·바람·산·노을·해",
+   "answer": {
+    "echo": "고개를 들어 멀리 본다",
+    "back": "빗이 바람에 날리듯 한쪽으로 흐른다"
+   },
+   "comb": "한쪽으로 날림",
+   "ink": "번짐 한쪽으로 길게",
+   "dreamMotifs": [
+    "far-alone.kite",
+    "center.wind",
+    "far-alone.mountain"
+   ],
+   "caption": "하늘 한 방울이 스며 먼 데를 올려다보았어요"
+  },
+  {
+   "id": "nature.out.night",
+   "family": "nature",
+   "dir": "out",
+   "ko": "달별",
+   "en": "Night sky",
+   "gloss": "달·별·밤·우주",
+   "answer": {
+    "echo": "눈을 감고 위로 0.05W 떠오른다(그림자만 남음)",
+    "back": "천천히 내려앉아 눈을 뜬다"
+   },
+   "comb": "위로 가지런히",
+   "ink": "가장자리에 잔빛(밤에는 테 밝기 +)",
+   "dreamMotifs": [
+    "center.moon",
+    "far-with.stars-drops",
+    "far-with.star-bridge"
+   ],
+   "caption": "별 한 방울이 스며 살짝 떠올랐어요"
+  },
+  {
+   "id": "home.in.meal",
+   "family": "home",
+   "dir": "in",
+   "ko": "밥",
+   "en": "Meal",
+   "gloss": "밥·배고픔·음식",
+   "answer": {
+    "echo": "몸 아래쪽이 볼처럼 살짝 부풀고 오물오물 두 번",
+    "back": "눈이 기쁨 호로"
+   },
+   "comb": "까딱",
+   "ink": "농담 그대로",
+   "dreamMotifs": [
+    "near-alone.teacup",
+    "near-with.teacup-two"
+   ],
+   "caption": "밥 한 방울이 스며 오물오물했어요"
+  },
+  {
+   "id": "home.in.sweet",
+   "family": "home",
+   "dir": "in",
+   "ko": "단것",
+   "en": "Treat",
+   "gloss": "과일·간식·단것",
+   "answer": {
+    "echo": "통 한 번 작게 튄다",
+    "back": "볼이 살짝 부푼 채 눈이 ^ ^"
+   },
+   "comb": "한 번 튕김",
+   "ink": "고리 한 번 퍼짐",
+   "dreamMotifs": [
+    "near-alone.teacup",
+    "near-alone.sprout"
+   ],
+   "caption": "단 한 방울이 스며 통 튀었어요"
+  },
+  {
+   "id": "home.in.drink",
+   "family": "home",
+   "dir": "in",
+   "ko": "마실 것",
+   "en": "Drink",
+   "gloss": "차·커피·우유·물 마시기",
+   "answer": {
+    "echo": "몸 표면에 동심원 잔물결이 한 번 돈다",
+    "back": "따뜻한 숨처럼 번짐이 퍼진다"
+   },
+   "comb": "수평",
+   "ink": "번짐 넓게(김처럼)",
+   "dreamMotifs": [
+    "near-alone.teacup",
+    "near-with.teacup-two"
+   ],
+   "caption": "따뜻한 한 방울이 스며 몸에 잔물결이 돌았어요"
+  },
+  {
+   "id": "home.out.house",
+   "family": "home",
+   "dir": "out",
+   "ko": "집",
+   "en": "Home",
+   "gloss": "집·방·이불·침대",
+   "answer": {
+    "echo": "제자리에서 빙그르 한 바퀴 돌며 자리를 잡는다",
+    "back": "납작하게 앉는다"
+   },
+   "comb": "가지런히 눕힘",
+   "ink": "받침 띠 넓게",
+   "dreamMotifs": [
+    "near-alone.quilt",
+    "near-alone.inkstone"
+   ],
+   "caption": "집 한 방울이 스며 제자리를 잡았어요"
+  },
+  {
+   "id": "home.out.thing",
+   "family": "home",
+   "dir": "out",
+   "ko": "물건",
+   "en": "Thing",
+   "gloss": "책·폰·선물·편지·붓",
+   "answer": {
+    "echo": "앞으로 기울여 고개를 갸웃 살핀다(집중 눈)",
+    "back": "제자리로 돌아와 빗을 한 번 흔든다"
+   },
+   "comb": "앞으로 곧게",
+   "ink": "번짐 또렷",
+   "dreamMotifs": [
+    "near-alone.inkstone",
+    "near-with.letter"
+   ],
+   "caption": "물건 한 방울이 스며 갸웃 살펴보았어요"
+  },
+  {
+   "id": "home.out.wear",
+   "family": "home",
+   "dir": "out",
+   "ko": "옷·꾸밈",
+   "en": "Dress",
+   "gloss": "옷·신발·머리·꾸밈",
+   "answer": {
+    "echo": "빗을 가지런히 다듬는다(아이들 '빗 정리' 재사용)",
+    "back": "몸을 살짝 돌려 한쪽을 보여 준다"
+   },
+   "comb": "가지런히",
+   "ink": "고리 매끈하게",
+   "dreamMotifs": [
+    "near-alone.washing-line",
+    "near-alone.inkstone"
+   ],
+   "caption": "꾸밈 한 방울이 스며 빗을 다듬었어요"
+  },
+  {
+   "id": "kin.in.family",
+   "family": "kin",
+   "dir": "in",
+   "ko": "가족",
+   "en": "Family",
+   "gloss": "엄마·아빠·할머니·형제",
+   "answer": {
+    "echo": "눈을 감고 한쪽으로 기댄다",
+    "back": "기댄 채 숨을 한 번 쉬고 돌아온다"
+   },
+   "comb": "기대는 쪽으로 늘어뜨림",
+   "ink": "번짐 부드럽게",
+   "dreamMotifs": [
+    "near-with.window-hand",
+    "near-with.palm"
+   ],
+   "caption": "가족 한 방울이 스며 한쪽으로 기댔어요"
+  },
+  {
+   "id": "kin.in.friend",
+   "family": "kin",
+   "dir": "in",
+   "ko": "친구",
+   "en": "Friend",
+   "gloss": "친구·우리",
+   "answer": {
+    "echo": "빗을 빠르게 두 번 튕기고 옆으로 콩 한 번",
+    "back": "정면으로 돌아와 눈이 ^ ^"
+   },
+   "comb": "두 번 튕김",
+   "ink": "고리 한 번 퍼짐",
+   "dreamMotifs": [
+    "near-with.teacup-two",
+    "far-with.geese"
+   ],
+   "caption": "친구 한 방울이 스며 옆으로 콩 뛰었어요"
+  },
+  {
+   "id": "kin.in.beloved",
+   "family": "kin",
+   "dir": "in",
+   "ko": "좋아하는 사람",
+   "en": "Beloved",
+   "gloss": "애인·짝사랑·최애",
+   "answer": {
+    "echo": "두 눈이 가늘게 휘며 몸을 좌우로 천천히 비빈다",
+    "back": "유저 쪽에서 멈춘다"
+   },
+   "comb": "부드럽게 모임",
+   "ink": "고리 천천히 두 번",
+   "dreamMotifs": [
+    "far-with.sea-hand",
+    "near-with.umbrella"
+   ],
+   "caption": "좋아한다는 말 한 방울이 스며 몸을 비볐어요"
+  },
+  {
+   "id": "kin.out.furry",
+   "family": "kin",
+   "dir": "out",
+   "ko": "털 동물",
+   "en": "Furry friend",
+   "gloss": "고양이·강아지·토끼",
+   "answer": {
+    "echo": "빗을 귀처럼 쫑긋 세운다",
+    "back": "몸을 웅크렸다가 기지개를 켠다"
+   },
+   "comb": "귀처럼 쫑긋",
+   "ink": "가장자리 보송하게(블러 +1px)",
+   "dreamMotifs": [
+    "near-alone.quilt",
+    "near-with.window-hand"
+   ],
+   "caption": "털 동물 한 방울이 스며 빗이 쫑긋 섰어요"
+  },
+  {
+   "id": "kin.out.wing",
+   "family": "kin",
+   "dir": "out",
+   "ko": "날개·지느러미",
+   "en": "Wing & fin",
+   "gloss": "새·물고기·나비·고래",
+   "answer": {
+    "echo": "빗이 날개처럼 두 번 펄럭인다",
+    "back": "살짝 떴다 내려앉는다"
+   },
+   "comb": "펄럭 두 번",
+   "ink": "고리가 물결처럼",
+   "dreamMotifs": [
+    "far-with.geese",
+    "far-alone.paper-boat"
+   ],
+   "caption": "날개 한 방울이 스며 빗이 펄럭였어요"
+  },
+  {
+   "id": "kin.out.baby",
+   "family": "kin",
+   "dir": "out",
+   "ko": "아기",
+   "en": "Little one",
+   "gloss": "아기·동생·작은 것",
+   "answer": {
+    "echo": "몸을 0.9로 동글게 오므린다",
+    "back": "요람처럼 천천히 두 번 흔들린다"
+   },
+   "comb": "몸에 붙어 동글",
+   "ink": "번짐 부드럽게",
+   "dreamMotifs": [
+    "near-with.palm",
+    "near-alone.quilt"
+   ],
+   "caption": "아기 한 방울이 스며 동글게 오므렸어요"
+  },
+  {
+   "id": "days.in.study",
+   "family": "days",
+   "dir": "in",
+   "ko": "공부·시험",
+   "en": "Study",
+   "gloss": "시험·공부·숙제·학교",
+   "answer": {
+    "echo": "빗이 납작해지고 작은 숨 한 번",
+    "back": "두 눈이 작게 모여 앞을 본다(집중)"
+   },
+   "comb": "납작 → 앞으로",
+   "ink": "번짐 좁고 또렷",
+   "dreamMotifs": [
+    "near-alone.inkstone",
+    "far-alone.path"
+   ],
+   "caption": "시험 한 방울이 스며 빗이 납작해졌어요"
+  },
+  {
+   "id": "days.in.work",
+   "family": "days",
+   "dir": "in",
+   "ko": "일",
+   "en": "Work",
+   "gloss": "일·출근·회사·알바",
+   "answer": {
+    "echo": "앞으로 기울어 1초 집중한다",
+    "back": "길게 숨을 내쉬며 펴진다"
+   },
+   "comb": "앞으로 곧게 → 수평",
+   "ink": "번짐 좁았다 넓게",
+   "dreamMotifs": [
+    "near-alone.inkstone",
+    "far-alone.path"
+   ],
+   "caption": "일 한 방울이 스며 길게 숨을 내쉬었어요"
+  },
+  {
+   "id": "days.in.time",
+   "family": "days",
+   "dir": "in",
+   "ko": "때",
+   "en": "Time",
+   "gloss": "아침·주말·월요일·오늘·내일",
+   "answer": {
+    "echo": "눈을 두 번 깜빡인다",
+    "back": "작게 기지개를 켠다"
+   },
+   "comb": "위로 한 번 폄",
+   "ink": "농담 그대로",
+   "dreamMotifs": [
+    "center.leaf",
+    "near-alone.washing-line"
+   ],
+   "caption": "하루 한 방울이 스며 기지개를 켰어요"
+  },
+  {
+   "id": "days.out.play",
+   "family": "days",
+   "dir": "out",
+   "ko": "놀이",
+   "en": "Play",
+   "gloss": "놀자·게임·운동·그림",
+   "answer": {
+    "echo": "제자리에서 작게 콩콩콩 세 번",
+    "back": "멈춰서 유저를 본다"
+   },
+   "comb": "박자 맞춰 까딱",
+   "ink": "고리 세 번 잔물결",
+   "dreamMotifs": [
+    "far-with.stepping-stones",
+    "far-alone.kite"
+   ],
+   "caption": "놀이 한 방울이 스며 콩콩 뛰었어요"
+  },
+  {
+   "id": "days.out.song",
+   "family": "days",
+   "dir": "out",
+   "ko": "노래",
+   "en": "Song",
+   "gloss": "노래·음악·춤",
+   "answer": {
+    "echo": "몸이 좌우로 박자를 타며 허밍 한 소절(M2 가락 재사용)",
+    "back": "끝음에서 멈춘다"
+   },
+   "comb": "박자 맞춰 흔들",
+   "ink": "고리 박자 맞춰",
+   "dreamMotifs": [
+    "far-with.stars-drops",
+    "center.wind"
+   ],
+   "caption": "노래 한 방울이 스며 박자를 탔어요"
+  },
+  {
+   "id": "days.out.outing",
+   "family": "days",
+   "dir": "out",
+   "ko": "나들이",
+   "en": "Outing",
+   "gloss": "여행·산책·소풍·기차",
+   "answer": {
+    "echo": "종이 끝 쪽으로 몸을 기울여 멀리 본다",
+    "back": "빗이 바람에 날리며 돌아온다"
+   },
+   "comb": "뒤로 날림",
+   "ink": "번짐 한쪽으로 길게",
+   "dreamMotifs": [
+    "far-alone.path",
+    "far-with.stepping-stones",
+    "far-alone.paper-boat"
+   ],
+   "caption": "나들이 한 방울이 스며 먼 데로 몸이 기울었어요"
+  }
+ ],
+ "special": [
+  {
+   "id": "x.call",
+   "ko": "부르기",
+   "en": "Call",
+   "gloss": "몽망이 이름(기본 이름·유저가 지은 이름)",
+   "answer": {
+    "echo": "정 0~1: 고개를 돌림 + '응?' / 정 2+: 이름 가락 + 빗 튕김(아트 8절 '부르기 대답' 그대로)",
+    "back": "정면"
+   },
+   "comb": "튕김",
+   "ink": "그대로",
+   "dreamMotifs": [],
+   "caption": "이름을 부르자 고개를 돌렸어요",
+   "heart": "없음(마음 벡터에 넣지 않음, 정·관계 쪽)"
+  },
+  {
+   "id": "x.unknown",
+   "ko": "모르는 말",
+   "en": "Unknown word",
+   "gloss": "사전 밖·인식 실패·가림 낱말",
+   "answer": {
+    "echo": "고개를 한 번 갸웃(머뭇거림 갸웃과 다른 프레임: 빗 끝이 물음표처럼 한 번 말림)",
+    "back": "글자를 천천히 마시고 정면"
+   },
+   "comb": "끝이 한 번 말림",
+   "ink": "그대로",
+   "dreamMotifs": [],
+   "caption": "처음 듣는 말을 천천히 마셨어요",
+   "heart": "없음(어느 가족에도 넣지 않음). 같은 미지어를 3밤 쓰면 '익은 말'(아래)"
+  },
+  {
+   "id": "x.crisis",
+   "ko": "안전 결",
+   "en": "Stay close",
+   "gloss": "자해·자살 암시(strong) / 모호한 위기 신호(soft)",
+   "answer": {
+    "echo": "평소 결 몸짓 대신, 다가와 유저 쪽에 붙어 앉는다",
+    "back": "숨을 8초 주기로 늦춰 곁에서 함께 숨 쉰다(M5 재사용), 6초 유지"
+   },
+   "comb": "손 쪽으로 늘어뜨림",
+   "ink": "번짐 넓고 부드럽게",
+   "dreamMotifs": [
+    "near-with.palm",
+    "near-with.window-hand"
+   ],
+   "caption": "(자막 없음)",
+   "heart": "없음(기록은 결 id만, 마음 벡터·스냅숏·공유에 반영하지 않음)"
+  }
+ ]
+}

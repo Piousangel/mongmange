@@ -1,0 +1,255 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "mongmange/lexicon/v0",
+ "title": "몽망이 낱말 사전 파일(언어별 1개)",
+ "description": "사전 v0 형식. 최종 v1(약 5천 어)도 같은 형식으로 간다. 결 id는 senses.json(sensesVer)과 맞아야 한다.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "lexVer",
+  "lang",
+  "sensesVer",
+  "lengthLimit",
+  "entries"
+ ],
+ "properties": {
+  "lexVer": {
+   "type": "string",
+   "pattern": "^\\d+\\.\\d+\\.\\d+$",
+   "description": "세이브 word.lexVer에 그대로 저장(D-13). 결이 바뀌는 수정은 minor 이상"
+  },
+  "lang": {
+   "enum": [
+    "ko",
+    "en"
+   ]
+  },
+  "sensesVer": {
+   "type": "string"
+  },
+  "lengthLimit": {
+   "type": "integer",
+   "description": "ko 6글자, en 15글자(쓰기 영역 시험 뒤 확정)"
+  },
+  "generated": {
+   "type": "string"
+  },
+  "entries": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/entry"
+   }
+  }
+ },
+ "$defs": {
+  "entry": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "id",
+    "lemma",
+    "forms",
+    "sense",
+    "intensity",
+    "flags",
+    "pos",
+    "source",
+    "review"
+   ],
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^(ko|en)\\.\\d{4,5}$",
+     "description": "한 번 준 id는 다시 쓰지 않는다(지운 항목도 번호 비움)"
+    },
+    "lemma": {
+     "type": "string",
+     "minLength": 1,
+     "description": "표제어(NFC)"
+    },
+    "forms": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "uniqueItems": true,
+     "description": "활용형·줄임·구어·오타·자모형. 정규화 뒤 모습으로 적는다(띄어쓰기 없음, en 소문자)"
+    },
+    "sense": {
+     "enum": [
+      "bright.in.joy",
+      "bright.in.flutter",
+      "bright.in.pride",
+      "bright.out.glee",
+      "bright.out.laugh",
+      "bright.out.welcome",
+      "warm.in.still",
+      "warm.in.languid",
+      "warm.in.sleepy",
+      "warm.out.tender",
+      "warm.out.thanks",
+      "warm.out.relief",
+      "spiky.out.irritated",
+      "spiky.out.angry",
+      "spiky.out.wronged",
+      "spiky.in.worry",
+      "spiky.in.stuffy",
+      "spiky.in.scared",
+      "low.out.longing",
+      "low.out.hurt",
+      "low.out.lonely",
+      "low.in.sad",
+      "low.in.weary",
+      "low.in.bored",
+      "nature.in.rain",
+      "nature.in.snow",
+      "nature.in.plant",
+      "nature.out.sea",
+      "nature.out.sky",
+      "nature.out.night",
+      "home.in.meal",
+      "home.in.sweet",
+      "home.in.drink",
+      "home.out.house",
+      "home.out.thing",
+      "home.out.wear",
+      "kin.in.family",
+      "kin.in.friend",
+      "kin.in.beloved",
+      "kin.out.furry",
+      "kin.out.wing",
+      "kin.out.baby",
+      "days.in.study",
+      "days.in.work",
+      "days.in.time",
+      "days.out.play",
+      "days.out.song",
+      "days.out.outing",
+      "x.call",
+      "x.unknown",
+      "x.crisis"
+     ]
+    },
+    "intensity": {
+     "enum": [
+      1,
+      2,
+      3
+     ],
+     "description": "화면에 보이지 않는 내부 값. 몸짓 진폭에만 쓴다"
+    },
+    "flags": {
+     "type": "array",
+     "uniqueItems": true,
+     "items": {
+      "enum": [
+       "profane",
+       "crisis_strong",
+       "crisis_soft",
+       "homonym",
+       "hyperbole",
+       "silly",
+       "muted"
+      ]
+     }
+    },
+    "pos": {
+     "enum": [
+      "noun",
+      "verb",
+      "adj",
+      "interj",
+      "phrase",
+      "jamo",
+      "emoticon",
+      "name"
+     ]
+    },
+    "source": {
+     "enum": [
+      "hand-v0",
+      "llm",
+      "llm+edit"
+     ],
+     "description": "llm이면 model·promptVer를 review.notes에"
+    },
+    "review": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "status",
+      "by"
+     ],
+     "properties": {
+      "status": {
+       "enum": [
+        "draft",
+        "agreed",
+        "disputed",
+        "rejected"
+       ]
+      },
+      "by": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "검수자 머리글자(2명 이상이면 agreed 가능)"
+      },
+      "notes": {
+       "type": "string"
+      }
+     }
+    },
+    "note": {
+     "type": "string"
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "sense": {
+        "const": "x.crisis"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "flags": {
+        "contains": {
+         "enum": [
+          "crisis_strong",
+          "crisis_soft"
+         ]
+        }
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "flags": {
+        "contains": {
+         "enum": [
+          "crisis_strong",
+          "crisis_soft"
+         ]
+        }
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "sense": {
+        "const": "x.crisis"
+       }
+      }
+     }
+    }
+   ]
+  }
+ }
+}

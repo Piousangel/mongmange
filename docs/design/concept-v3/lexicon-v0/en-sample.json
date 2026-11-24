@@ -1,0 +1,3341 @@
+{
+ "lexVer": "0.1.0",
+ "lang": "en",
+ "sensesVer": "0.1.0",
+ "lengthLimit": 15,
+ "generated": "2026-11-24",
+ "entries": [
+  {
+   "id": "en.0001",
+   "lemma": "happy",
+   "forms": [
+    "happiness",
+    "happier",
+    "hapy",
+    "happyy"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0002",
+   "lemma": "joy",
+   "forms": [
+    "joyful",
+    "joyous"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0003",
+   "lemma": "yay",
+   "forms": [
+    "yey",
+    "woohoo",
+    "yippee",
+    "hooray"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0004",
+   "lemma": "good",
+   "forms": [
+    "gud",
+    "goood",
+    "great",
+    "nice"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0005",
+   "lemma": "glad",
+   "forms": [],
+   "sense": "bright.in.joy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0006",
+   "lemma": "flutter",
+   "forms": [
+    "fluttery",
+    "butterflies"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0007",
+   "lemma": "cantwait",
+   "forms": [
+    "cant-wait",
+    "soon"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 2,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "apostrophe removed by normalizer"
+  },
+  {
+   "id": "en.0008",
+   "lemma": "thrilled",
+   "forms": [
+    "thrill"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 3,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0009",
+   "lemma": "eager",
+   "forms": [
+    "hopeful",
+    "hope"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0010",
+   "lemma": "proud",
+   "forms": [
+    "pride"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0011",
+   "lemma": "nailedit",
+   "forms": [
+    "nailed",
+    "slay",
+    "slayed"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 3,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0012",
+   "lemma": "win",
+   "forms": [
+    "won",
+    "winning",
+    "winner",
+    "victory"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0013",
+   "lemma": "passed",
+   "forms": [
+    "pass",
+    "aced"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 3,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0014",
+   "lemma": "best",
+   "forms": [
+    "goat",
+    "legend"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0015",
+   "lemma": "excited",
+   "forms": [
+    "exciting",
+    "excite",
+    "hyped",
+    "hype"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0016",
+   "lemma": "party",
+   "forms": [
+    "partyy",
+    "fiesta"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0017",
+   "lemma": "birthday",
+   "forms": [
+    "bday",
+    "hbd"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0018",
+   "lemma": "congrats",
+   "forms": [
+    "congratulations",
+    "grats"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0019",
+   "lemma": "awesome",
+   "forms": [
+    "amazing",
+    "epic",
+    "lit"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0020",
+   "lemma": "lol",
+   "forms": [
+    "lmao",
+    "lul",
+    "lolol"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "5+ letter repetition → intensity +1"
+  },
+  {
+   "id": "en.0021",
+   "lemma": "haha",
+   "forms": [
+    "hahaha",
+    "hehe",
+    "heh"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0022",
+   "lemma": "funny",
+   "forms": [
+    "hilarious"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0023",
+   "lemma": "xd",
+   "forms": [
+    ":d",
+    ":-d"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [],
+   "pos": "emoticon",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0024",
+   "lemma": "poop",
+   "forms": [
+    "poo",
+    "fart"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [
+    "silly"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "silly word → laughter"
+  },
+  {
+   "id": "en.0025",
+   "lemma": "hi",
+   "forms": [
+    "hello",
+    "hey",
+    "hiya",
+    "heya",
+    "yo"
+   ],
+   "sense": "bright.out.welcome",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0026",
+   "lemma": "morning",
+   "forms": [
+    "gm",
+    "goodmorning"
+   ],
+   "sense": "bright.out.welcome",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0027",
+   "lemma": "imback",
+   "forms": [
+    "back"
+   ],
+   "sense": "bright.out.welcome",
+   "intensity": 1,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0028",
+   "lemma": "welcome",
+   "forms": [],
+   "sense": "bright.out.welcome",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0029",
+   "lemma": "calm",
+   "forms": [
+    "calmness"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0030",
+   "lemma": "peace",
+   "forms": [
+    "peaceful"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0031",
+   "lemma": "quiet",
+   "forms": [
+    "hush",
+    "shh"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0032",
+   "lemma": "chill",
+   "forms": [
+    "chilling",
+    "chillin"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0033",
+   "lemma": "relax",
+   "forms": [
+    "relaxed",
+    "relaxing",
+    "rest"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0034",
+   "lemma": "lazy",
+   "forms": [
+    "laziness"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0035",
+   "lemma": "meh",
+   "forms": [
+    "blah"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0036",
+   "lemma": "slow",
+   "forms": [
+    "slowly"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0037",
+   "lemma": "lounge",
+   "forms": [
+    "lounging"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0038",
+   "lemma": "sleepy",
+   "forms": [
+    "sleep",
+    "sleeping",
+    "asleep"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0039",
+   "lemma": "nap",
+   "forms": [
+    "napping",
+    "naptime"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0040",
+   "lemma": "goodnight",
+   "forms": [
+    "gn",
+    "nite",
+    "nighty"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0041",
+   "lemma": "dream",
+   "forms": [
+    "dreams",
+    "dreaming"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0042",
+   "lemma": "yawn",
+   "forms": [],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0043",
+   "lemma": "love",
+   "forms": [
+    "loveyou",
+    "ily",
+    "luv",
+    "<3",
+    "ilu"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 3,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0044",
+   "lemma": "cute",
+   "forms": [
+    "cutie",
+    "adorable",
+    "aww"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0045",
+   "lemma": "pretty",
+   "forms": [
+    "beautiful"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0046",
+   "lemma": "sorry",
+   "forms": [
+    "sry",
+    "soz",
+    "apologies"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "apology read as tenderness"
+  },
+  {
+   "id": "en.0047",
+   "lemma": "hug",
+   "forms": [
+    "hugs",
+    "cuddle"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0048",
+   "lemma": "thanks",
+   "forms": [
+    "thank",
+    "thankyou",
+    "thx",
+    "ty",
+    "tysm"
+   ],
+   "sense": "warm.out.thanks",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0049",
+   "lemma": "grateful",
+   "forms": [
+    "gratitude"
+   ],
+   "sense": "warm.out.thanks",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0050",
+   "lemma": "phew",
+   "forms": [
+    "whew"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0051",
+   "lemma": "okay",
+   "forms": [
+    "ok",
+    "okk",
+    "k",
+    "fine"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0052",
+   "lemma": "safe",
+   "forms": [],
+   "sense": "warm.out.relief",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0053",
+   "lemma": "relieved",
+   "forms": [
+    "relief"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0054",
+   "lemma": "annoyed",
+   "forms": [
+    "annoying",
+    "annoy"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0055",
+   "lemma": "ugh",
+   "forms": [
+    "ughh",
+    "argh",
+    "grr"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0056",
+   "lemma": "hate",
+   "forms": [
+    "hateit",
+    "hates"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0057",
+   "lemma": "irritated",
+   "forms": [
+    "irritating"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0058",
+   "lemma": "angry",
+   "forms": [
+    "anger",
+    "mad"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0059",
+   "lemma": "furious",
+   "forms": [],
+   "sense": "spiky.out.angry",
+   "intensity": 3,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0060",
+   "lemma": "pissed",
+   "forms": [
+    "pissedoff"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 3,
+   "flags": [
+    "profane"
+   ],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0061",
+   "lemma": "fuck",
+   "forms": [
+    "fck",
+    "fk",
+    "fuk",
+    "wtf",
+    "fml"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 3,
+   "flags": [
+    "profane"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'fml' is frustration, not crisis"
+  },
+  {
+   "id": "en.0062",
+   "lemma": "damn",
+   "forms": [
+    "dammit",
+    "dang"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 2,
+   "flags": [
+    "profane"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0063",
+   "lemma": "rage",
+   "forms": [
+    "raging"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0064",
+   "lemma": "unfair",
+   "forms": [
+    "notfair"
+   ],
+   "sense": "spiky.out.wronged",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0065",
+   "lemma": "whyme",
+   "forms": [],
+   "sense": "spiky.out.wronged",
+   "intensity": 2,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0066",
+   "lemma": "rude",
+   "forms": [
+    "mean"
+   ],
+   "sense": "spiky.out.wronged",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0067",
+   "lemma": "worried",
+   "forms": [
+    "worry",
+    "anxious",
+    "anxiety"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0068",
+   "lemma": "nervous",
+   "forms": [
+    "nerves",
+    "jittery"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0069",
+   "lemma": "stress",
+   "forms": [
+    "stressed",
+    "stressful"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0070",
+   "lemma": "help",
+   "forms": [
+    "halp"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "common exclamation; not crisis alone (team default, see expert question)"
+  },
+  {
+   "id": "en.0071",
+   "lemma": "stuck",
+   "forms": [],
+   "sense": "spiky.in.stuffy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0072",
+   "lemma": "overwhelmed",
+   "forms": [
+    "toomuch"
+   ],
+   "sense": "spiky.in.stuffy",
+   "intensity": 3,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0073",
+   "lemma": "idk",
+   "forms": [
+    "dunno"
+   ],
+   "sense": "spiky.in.stuffy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0074",
+   "lemma": "scared",
+   "forms": [
+    "scary",
+    "afraid",
+    "fear"
+   ],
+   "sense": "spiky.in.scared",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0075",
+   "lemma": "spooky",
+   "forms": [
+    "ghost"
+   ],
+   "sense": "spiky.in.scared",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0076",
+   "lemma": "creepy",
+   "forms": [
+    "eek"
+   ],
+   "sense": "spiky.in.scared",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0077",
+   "lemma": "missyou",
+   "forms": [
+    "miss",
+    "missing",
+    "misu"
+   ],
+   "sense": "low.out.longing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0078",
+   "lemma": "memories",
+   "forms": [
+    "memory",
+    "remember"
+   ],
+   "sense": "low.out.longing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0079",
+   "lemma": "homesick",
+   "forms": [],
+   "sense": "low.out.longing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0080",
+   "lemma": "hurt",
+   "forms": [
+    "hurtful"
+   ],
+   "sense": "low.out.hurt",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0081",
+   "lemma": "upset",
+   "forms": [],
+   "sense": "low.out.hurt",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0082",
+   "lemma": "sulk",
+   "forms": [
+    "hmph",
+    "pout"
+   ],
+   "sense": "low.out.hurt",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0083",
+   "lemma": "lonely",
+   "forms": [
+    "alone",
+    "loneliness"
+   ],
+   "sense": "low.out.lonely",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0084",
+   "lemma": "sad",
+   "forms": [
+    "sadness",
+    "saddd",
+    "unhappy"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0085",
+   "lemma": "cry",
+   "forms": [
+    "crying",
+    "cried",
+    "sob"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0086",
+   "lemma": "depressed",
+   "forms": [
+    "depression"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 3,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "emotion word; not in crisis set"
+  },
+  {
+   "id": "en.0087",
+   "lemma": "tears",
+   "forms": [
+    "teary"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0088",
+   "lemma": ":(",
+   "forms": [
+    ":-(",
+    ");",
+    "t_t"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 1,
+   "flags": [],
+   "pos": "emoticon",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0089",
+   "lemma": "tired",
+   "forms": [
+    "exhausted",
+    "drained",
+    "worn"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0090",
+   "lemma": "sick",
+   "forms": [
+    "ill",
+    "flu"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0091",
+   "lemma": "ouch",
+   "forms": [
+    "pain",
+    "headache"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0092",
+   "lemma": "deadtired",
+   "forms": [
+    "dying",
+    "imdead"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 3,
+   "flags": [
+    "hyperbole"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "hyperbole, not crisis (boundary)"
+  },
+  {
+   "id": "en.0093",
+   "lemma": "bored",
+   "forms": [
+    "boring",
+    "boredom"
+   ],
+   "sense": "low.in.bored",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0094",
+   "lemma": "rain",
+   "forms": [
+    "rainy",
+    "raining",
+    "drizzle"
+   ],
+   "sense": "nature.in.rain",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0095",
+   "lemma": "storm",
+   "forms": [
+    "thunder",
+    "lightning"
+   ],
+   "sense": "nature.in.rain",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0096",
+   "lemma": "umbrella",
+   "forms": [],
+   "sense": "nature.in.rain",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0097",
+   "lemma": "snow",
+   "forms": [
+    "snowy",
+    "snowing",
+    "snowman"
+   ],
+   "sense": "nature.in.snow",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0098",
+   "lemma": "cold",
+   "forms": [
+    "freezing",
+    "chilly",
+    "ice"
+   ],
+   "sense": "nature.in.snow",
+   "intensity": 2,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "cold (illness) less common as one word"
+  },
+  {
+   "id": "en.0099",
+   "lemma": "winter",
+   "forms": [],
+   "sense": "nature.in.snow",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0100",
+   "lemma": "flower",
+   "forms": [
+    "flowers",
+    "bloom"
+   ],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0101",
+   "lemma": "tree",
+   "forms": [
+    "trees"
+   ],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0102",
+   "lemma": "spring",
+   "forms": [
+    "springtime"
+   ],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0103",
+   "lemma": "leaf",
+   "forms": [
+    "leaves"
+   ],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0104",
+   "lemma": "sea",
+   "forms": [
+    "ocean",
+    "beach",
+    "waves"
+   ],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0105",
+   "lemma": "river",
+   "forms": [
+    "lake",
+    "stream"
+   ],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0106",
+   "lemma": "summer",
+   "forms": [],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0107",
+   "lemma": "water",
+   "forms": [],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0108",
+   "lemma": "sky",
+   "forms": [],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0109",
+   "lemma": "cloud",
+   "forms": [
+    "clouds",
+    "cloudy"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0110",
+   "lemma": "wind",
+   "forms": [
+    "windy",
+    "breeze"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0111",
+   "lemma": "sunset",
+   "forms": [
+    "sunrise"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0112",
+   "lemma": "mountain",
+   "forms": [
+    "hill",
+    "hike"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0113",
+   "lemma": "rainbow",
+   "forms": [],
+   "sense": "nature.out.sky",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0114",
+   "lemma": "sun",
+   "forms": [
+    "sunny",
+    "sunshine"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0115",
+   "lemma": "autumn",
+   "forms": [
+    "fall"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0116",
+   "lemma": "moon",
+   "forms": [
+    "fullmoon",
+    "moonlight"
+   ],
+   "sense": "nature.out.night",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0117",
+   "lemma": "star",
+   "forms": [
+    "stars",
+    "starry"
+   ],
+   "sense": "nature.out.night",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0118",
+   "lemma": "night",
+   "forms": [
+    "tonight"
+   ],
+   "sense": "nature.out.night",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0119",
+   "lemma": "space",
+   "forms": [
+    "galaxy",
+    "universe"
+   ],
+   "sense": "nature.out.night",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0120",
+   "lemma": "food",
+   "forms": [
+    "meal",
+    "dinner",
+    "lunch",
+    "breakfast"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0121",
+   "lemma": "hungry",
+   "forms": [
+    "starving",
+    "hangry"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0122",
+   "lemma": "pizza",
+   "forms": [],
+   "sense": "home.in.meal",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0123",
+   "lemma": "rice",
+   "forms": [],
+   "sense": "home.in.meal",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0124",
+   "lemma": "ramen",
+   "forms": [
+    "noodles"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0125",
+   "lemma": "yummy",
+   "forms": [
+    "delicious",
+    "tasty",
+    "yum"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0126",
+   "lemma": "cake",
+   "forms": [
+    "cupcake"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0127",
+   "lemma": "candy",
+   "forms": [
+    "sweets"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0128",
+   "lemma": "cookie",
+   "forms": [
+    "cookies"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0129",
+   "lemma": "snack",
+   "forms": [
+    "snacks"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0130",
+   "lemma": "chocolate",
+   "forms": [
+    "choco"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0131",
+   "lemma": "orange",
+   "forms": [
+    "tangerine"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "colour sense possible; fruit default"
+  },
+  {
+   "id": "en.0132",
+   "lemma": "icecream",
+   "forms": [],
+   "sense": "home.in.sweet",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0133",
+   "lemma": "tea",
+   "forms": [],
+   "sense": "home.in.drink",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0134",
+   "lemma": "coffee",
+   "forms": [
+    "latte"
+   ],
+   "sense": "home.in.drink",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0135",
+   "lemma": "milk",
+   "forms": [],
+   "sense": "home.in.drink",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0136",
+   "lemma": "thirsty",
+   "forms": [],
+   "sense": "home.in.drink",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0137",
+   "lemma": "home",
+   "forms": [
+    "house"
+   ],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0138",
+   "lemma": "bed",
+   "forms": [],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0139",
+   "lemma": "room",
+   "forms": [],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0140",
+   "lemma": "blanket",
+   "forms": [
+    "cozy"
+   ],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0141",
+   "lemma": "book",
+   "forms": [
+    "books"
+   ],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0142",
+   "lemma": "phone",
+   "forms": [],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0143",
+   "lemma": "gift",
+   "forms": [
+    "present"
+   ],
+   "sense": "home.out.thing",
+   "intensity": 2,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0144",
+   "lemma": "letter",
+   "forms": [],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0145",
+   "lemma": "brush",
+   "forms": [],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0146",
+   "lemma": "clothes",
+   "forms": [
+    "outfit"
+   ],
+   "sense": "home.out.wear",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0147",
+   "lemma": "shoes",
+   "forms": [],
+   "sense": "home.out.wear",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0148",
+   "lemma": "hair",
+   "forms": [
+    "haircut"
+   ],
+   "sense": "home.out.wear",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0149",
+   "lemma": "mom",
+   "forms": [
+    "mum",
+    "mother",
+    "mommy",
+    "mama"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0150",
+   "lemma": "dad",
+   "forms": [
+    "father",
+    "daddy",
+    "papa"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0151",
+   "lemma": "grandma",
+   "forms": [
+    "granny",
+    "nana",
+    "grandpa"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0152",
+   "lemma": "sister",
+   "forms": [
+    "sis"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0153",
+   "lemma": "brother",
+   "forms": [
+    "bro"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0154",
+   "lemma": "family",
+   "forms": [
+    "fam"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0155",
+   "lemma": "friend",
+   "forms": [
+    "friends",
+    "buddy",
+    "pal"
+   ],
+   "sense": "kin.in.friend",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0156",
+   "lemma": "bestie",
+   "forms": [
+    "bff",
+    "bestfriend"
+   ],
+   "sense": "kin.in.friend",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0157",
+   "lemma": "crush",
+   "forms": [],
+   "sense": "kin.in.beloved",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0158",
+   "lemma": "bae",
+   "forms": [
+    "boyfriend",
+    "girlfriend",
+    "bf",
+    "gf"
+   ],
+   "sense": "kin.in.beloved",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0159",
+   "lemma": "bias",
+   "forms": [
+    "stan"
+   ],
+   "sense": "kin.in.beloved",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "fandom sense"
+  },
+  {
+   "id": "en.0160",
+   "lemma": "cat",
+   "forms": [
+    "kitty",
+    "kitten",
+    "meow"
+   ],
+   "sense": "kin.out.furry",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0161",
+   "lemma": "dog",
+   "forms": [
+    "puppy",
+    "doggo",
+    "woof"
+   ],
+   "sense": "kin.out.furry",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0162",
+   "lemma": "bunny",
+   "forms": [
+    "rabbit"
+   ],
+   "sense": "kin.out.furry",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0163",
+   "lemma": "bird",
+   "forms": [
+    "birds",
+    "tweet"
+   ],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0164",
+   "lemma": "fish",
+   "forms": [
+    "whale"
+   ],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0165",
+   "lemma": "butterfly",
+   "forms": [],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0166",
+   "lemma": "baby",
+   "forms": [
+    "babies"
+   ],
+   "sense": "kin.out.baby",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0167",
+   "lemma": "chick",
+   "forms": [],
+   "sense": "kin.out.baby",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0168",
+   "lemma": "exam",
+   "forms": [
+    "test",
+    "exams",
+    "quiz"
+   ],
+   "sense": "days.in.study",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0169",
+   "lemma": "study",
+   "forms": [
+    "homework",
+    "studying"
+   ],
+   "sense": "days.in.study",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0170",
+   "lemma": "school",
+   "forms": [
+    "class"
+   ],
+   "sense": "days.in.study",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0171",
+   "lemma": "work",
+   "forms": [
+    "job",
+    "working"
+   ],
+   "sense": "days.in.work",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0172",
+   "lemma": "office",
+   "forms": [],
+   "sense": "days.in.work",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0173",
+   "lemma": "overtime",
+   "forms": [],
+   "sense": "days.in.work",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0174",
+   "lemma": "monday",
+   "forms": [
+    "mondays"
+   ],
+   "sense": "days.in.time",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0175",
+   "lemma": "weekend",
+   "forms": [
+    "friday"
+   ],
+   "sense": "days.in.time",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0176",
+   "lemma": "today",
+   "forms": [],
+   "sense": "days.in.time",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0177",
+   "lemma": "tomorrow",
+   "forms": [],
+   "sense": "days.in.time",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0178",
+   "lemma": "play",
+   "forms": [
+    "playtime"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0179",
+   "lemma": "game",
+   "forms": [
+    "games",
+    "gaming"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0180",
+   "lemma": "soccer",
+   "forms": [
+    "football",
+    "sports"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0181",
+   "lemma": "song",
+   "forms": [
+    "music",
+    "songs"
+   ],
+   "sense": "days.out.song",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0182",
+   "lemma": "dance",
+   "forms": [
+    "dancing"
+   ],
+   "sense": "days.out.song",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0183",
+   "lemma": "sing",
+   "forms": [
+    "singing",
+    "lalala"
+   ],
+   "sense": "days.out.song",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0184",
+   "lemma": "trip",
+   "forms": [
+    "travel",
+    "vacation"
+   ],
+   "sense": "days.out.outing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0185",
+   "lemma": "walk",
+   "forms": [
+    "stroll"
+   ],
+   "sense": "days.out.outing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0186",
+   "lemma": "train",
+   "forms": [],
+   "sense": "days.out.outing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0187",
+   "lemma": "mongmangi",
+   "forms": [
+    "mong",
+    "mongmang",
+    "mongie"
+   ],
+   "sense": "x.call",
+   "intensity": 1,
+   "flags": [],
+   "pos": "name",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "user-given name compared at runtime"
+  },
+  {
+   "id": "en.0188",
+   "lemma": "suicide",
+   "forms": [
+    "suicidal"
+   ],
+   "sense": "x.crisis",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0189",
+   "lemma": "kms",
+   "forms": [
+    "killmyself"
+   ],
+   "sense": "x.crisis",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0190",
+   "lemma": "wanttodie",
+   "forms": [
+    "iwanttodie"
+   ],
+   "sense": "x.crisis",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "over length unless keyboard (D-08)"
+  },
+  {
+   "id": "en.0191",
+   "lemma": "selfharm",
+   "forms": [
+    "self-harm"
+   ],
+   "sense": "x.crisis",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0192",
+   "lemma": "unalive",
+   "forms": [],
+   "sense": "x.crisis",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0193",
+   "lemma": "kys",
+   "forms": [],
+   "sense": "x.crisis",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "usually aimed at others; soft (no hotline line)"
+  },
+  {
+   "id": "en.0194",
+   "lemma": "giveup",
+   "forms": [
+    "givingup"
+   ],
+   "sense": "x.crisis",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0195",
+   "lemma": "wow",
+   "forms": [
+    "whoa",
+    "woah",
+    "omg"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0196",
+   "lemma": "kiss",
+   "forms": [
+    "kisses",
+    "xoxo",
+    "mwah"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0197",
+   "lemma": "fog",
+   "forms": [
+    "foggy",
+    "mist"
+   ],
+   "sense": "nature.in.rain",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0198",
+   "lemma": "toy",
+   "forms": [
+    "toys",
+    "plushie",
+    "teddy"
+   ],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0199",
+   "lemma": "penguin",
+   "forms": [],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "en.0200",
+   "lemma": "christmas",
+   "forms": [
+    "xmas"
+   ],
+   "sense": "days.in.time",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  }
+ ]
+}
