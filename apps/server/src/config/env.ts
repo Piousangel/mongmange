@@ -60,6 +60,11 @@ export const envSchema = z
       .default('1.0')
       .transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean))
       .pipe(z.array(z.string().regex(/^\d{1,2}\.\d{1,2}$/)).min(1)),
+    /**
+     * 집계 핑 받기 스위치(B4). off면 모든 핑을 204로 받고 버린다(까닭 'off'로 개수만). 서버는 동의를 구별하지 못하므로
+     * 앱 쪽 동의·연령 버그가 퍼졌을 때 멈추는 손잡이다(architecture.md 3-6-1)
+     */
+    METRICS_INGEST: z.enum(['on', 'off']).default('on'),
     /** 인스턴스당 하루(UTC) 새 집계 칸 상한. 넘는 새 칸은 버리고 개수만 로그(I5) */
     METRIC_NEW_CELLS_PER_DAY: z.coerce.number().int().min(1).max(1_000_000).default(20_000),
     /** /healthz의 ver. CI가 이미지 빌드 때 git sha를 넣는다 */

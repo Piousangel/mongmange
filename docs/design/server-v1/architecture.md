@@ -45,7 +45,7 @@ B2~B7 담당은 아래 '읽을 절'만 보고 착수한다. '끝났다는 기준
 | core 함수 | 달 위상 완료(C4), 스냅숏 남음 | **3-5-1**(`toPublicSnapshot`·`parsePublicSnapshot`)과 그 **착수 조건 5개**, 6-1 | `snap:1` | Node·RN·DOM 금지, 런타임 의존성 0. 남은 공수는 0-4 결정 대기 |
 | **B2** 맡겨 두기 | **코드 완료(커밋 대기, 11-20)** — 구현에서 정한 것은 부록 A-3 #21~#36(독립 리뷰 `docs/team/reviews/2026-11-20-b2-review.md` 반영) | 3-3(계정·연령·세션·글귀·JWT), **3-4·3-4-1**(동기화·이력), 3-8 '삭제' | `save_versions`, **`user_auth`**, `creatures.recovery_*`, `deletion_log`(영수증), `storage_gc(creature_id)` | 3-2 인증 공통 규칙(401·410), 3-4-1 남용 상한, 5-2 로그 가림, 7절 L4·L5·L6. **core `normalizeName` 숫자 규칙(3-5-2)은 B2에서** |
 | **B3** 링크·웹 정적 | **코드 완료(커밋 대기, 11-20)** — 구현에서 정한 것은 부록 A-3 #37~#52, DECISIONS 'B3 구현 결정'. '서버 렌더 없음' = React SSR·서버 그림 그리기 없음(Nest 고정 틀 + 이스케이프 값, PM 승인) | 3-2 링크 행, **3-5·3-5-1~3-5-3**, 3-6 '링크 퍼널', 3-9, 2-4 Storage | `public_pages`·`storage_gc`·`link_daily`·`link_funnel_daily` | 부록 A-3 #15(`/m/**`를 Cloud Run으로 옮김), 3-8 레이트 리밋, 5-2(IP와 코드 분리). **B3 체크**: `page-staging` 버킷·서명 URL 유효 시간·버킷 상한 시험(3-5-3), 이름 이스케이프(3-5-2), `/m` `s-maxage` 300 + CDN 무효화(3-9), 포스터·루프 렌더에 이름 인자 없음(C11과 함께), **공개 이름 검사는 반드시 core `normalizeName`**(불러오기 검사 `nameShape`는 숫자 규칙이 없어 조작 세이브의 전화번호가 통과한다 — B2 리뷰 m4), **`DELETE /me` ① `public_pages` 경로 모으기·② `link_daily` 삭제·④ CDN 무효화, Storage 삭제기 실제 구현**(B2가 남긴 자리, A-3 #30) |
-| **B4** 플래그·모티프 | 계약·정적 배포 준비 완료, 앱 연결·첫 원격 모티프 남음 | **3-7·3-7-1**, **3-10**, 3-11 순서 규칙 | `config/v1.json`·`content/v1.json`(contract) | 3-11 iOS 2.3.1 원칙 |
+| **B4** 플래그·모티프·사전 팩·핑 | **서버 몫 구현(11-25, 커밋 대기)**: 계약 서명(RS256)·크래시 루프 탈출 값·사전 팩 `lex`, 오프라인 서명 CLI `remote-cli`, 핑 거절 개수·수집 끄기. 남음: web-static 반영(서명·캐시 머리글·사전 팩 검사)·앱 로더(C11)·첫 원격 모티프 — `B4-report.md` | **3-6-1**, **3-7·3-7-1·3-7-2**, **3-10**, 3-11 순서 규칙 | `config/v1.json`·`content/v1.json`(contract) | 3-11 iOS 2.3.1 원칙 |
 | **B5** 안전 | **코드 완료(커밋 대기, 11-20)** — 구현에서 정한 것은 부록 A-3 #57~#71(독립 리뷰 `docs/team/reviews/2026-11-20-b5-review.md` 반영), DECISIONS 'B5 안전 장치 구현 결정'. 운영 런북 `docs/ops/moderation/README.md`, 삭제 요청 절차 `docs/ops/deletion-requests.md` | 3-8(XFF·리밋·신고), 3-9(상태 전이), 3-12(SQL 함수·CLI), 3-5-2 '이름 가리기' | `reports`·`report_hits`·`admin_actions`, `creatures.name_blocked`, `users.delete_requested_at`, 마이그레이션 `20261123000000_b5_safety` | 7절 L5. **B6 체크**: Scheduler `moderation` 5분마다(OIDC, `CRON_AUDIENCE`), 로그 알림 `report_auto_hidden`·`report_held`(warn)·`report_auto_hidden_burst`·`moderation_sla`(error), 비공개 `quarantine` 버킷 Studio 미리보기, **Studio 실행 롤(`postgres`)의 운영 함수 EXECUTE·RLS 확인**(리뷰 M4), **XFF 실측 전 `REPORT_AUTO_HIDE` 끔 유지 — 출시 차단 조건**(리뷰 H2), Firebase `/m/**` rewrite가 `Sec-Fetch-Site`·`Origin`을 넘기는지(리뷰 C1) |
 | **B6** 배포 | 대기(오너 계정) | 2-3·2-4·5-2·6-4, 12절 #1·#2·#4 | — | B6 체크: 서울 rewrite, XFF 실측 → `TRUSTED_PROXY_HOPS_*`, 로그 버킷 7일, `pg_cron`(`rollup_metric_daily` 포함), `metrics_reader` 롤·GRANT 재실행, `.well-known` curl, **Scheduler OIDC 검사**(`aud`·서비스 계정 이메일, 2-4), Hosting 릴리스 권한만 가진 무효화용 서비스 계정. **B2가 더한 값**: 운영 필수 `SUPABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`·`RECOVERY_PEPPER`(없으면 부팅 거부), `CRON_AUDIENCE`·`CRON_SA_EMAIL`(없으면 cron 404 = 삭제 재시도·옛 기기 정리가 멈춤), 정적 빌드 `API_ORIGIN`, `pg_cron`에 `app.prune_save_versions()`·`app.expire_deletion_log()`. **Scheduler 잡의 OIDC audience는 `CRON_AUDIENCE`와 정확히 같은 문자열 = 서비스 URL 전체(경로 없음, `https://mong-api-…-du.a.run.app`)로 명시**한다 — 비워 두면 Google이 대상 URL 전체(`…/internal/cron/storage-gc`)를 aud로 넣어 늘 404(B2 리뷰 I2). `gc_stuck` error 로그(3회 넘게 실패한 대기 행·24시간 넘은 미완료 삭제)를 알림에 건다. **B3가 더한 확인(리뷰 I3·M3·M4)**: ① Firebase `/m/**` rewrite에서 **서버 `Cache-Control`이 보존되는지** curl 실측(live 300·사라진 링크 60·503·429 no-store, 두 번째 요청 `x-cache`) ② Supabase 서명 업로드 URL의 **실제 수명·재사용 여부**와 버킷 상한(600KB·jpeg/mp4)이 서명 업로드에도 걸리는지 ③ 공개 객체 `cacheControl` 3600·삭제 때 Smart CDN 퍼지 ④ `cdn-purge` Scheduler(1분)·`rollup_link_daily` pg_cron 등록, Firebase 릴리스 무효화 구현(Hosting 릴리스 권한만) ⑤ `/w/ck/0.41.0/`에 canvaskit-wasm LICENSE 함께 배포. **Cloud Run 플랫폼 요청 로그(`httpRequest.requestUrl`)에는 `GET /deletion/{receipt}`의 영수증이 남는다** — 24시간짜리 상태 조회 값이라 영향은 작지만 로그 버킷 7일 확인 때 함께 본다(B2 리뷰 m3) |
 | **B7** 부하 | 대기 | 7절(12월분 L2·L4·L5·L6) | — | 9-1 기준. L5에 3-4-1 남용 시나리오(미래 버전 쓰레기·계정 반복 생성). **B2 관찰 항목**: 새 계정 IP 접두 5/시간이 CGNAT 뒤 실사용자를 막는지(B2 리뷰 m9), 같은 사용자의 `recover`와 `DELETE /me`가 겹칠 때 교착 감지 500 빈도(데이터는 안전 — 한쪽만 커밋, m10), 복원 리허설에 `reapply-deletions` 한 바퀴 |
@@ -152,7 +152,7 @@ v1 그대로. 결론만: **Cloud Run 서울.** ① Prisma는 한 요청에 쿼�
 | Auth | 익명 로그인 켬, 수동 연결 켬(1.0.x 대비), 익명 가입 IP 한도 기본 30/시간 → CGNAT로 막히면 120 |
 | JWT 검증 | JWKS(`/auth/v1/.well-known/jwks.json`) 비대칭 서명 검증(`jose`). 검사 항목은 3-3 ⑧. 프로젝트 기본 서명 방식·새 API 키 체계는 B1에서 확인 **[확인 필요]** |
 | `pg_cron`(DB만) | 매일 04:00 KST: ① 데이터 없는 익명 사용자 30일 뒤 삭제([Anonymous](https://supabase.com/docs/guides/auth/auth-anonymous)) ② 이력 솎기 28일·30일(3-4-1의 SQL) ③ 판정 창(7일)이 끝난 신고의 소금·`report_hits` 삭제(3-8) ④ `link_daily` 30일 지난 행을 코드 없이 `link_funnel_daily`로 말고 지움 ⑤ **`select app.rollup_metric_daily()`** — `metric_daily` 90일 이전 행을 `metric_monthly`로 말기(함수는 B0에서 구현됨 `migrations/20261120140000_metric_rollup`, 첫 실제 이동은 03월) [v2.2] ⑥ `reports` 1년 지난 행 삭제 (⑦ 옛 기기 로그인(`user_auth.revoked_at`) 30일 뒤 정리는 `auth.users`를 지워야 해서 Scheduler 쪽, 아래 행). **예약 등록은 B6 체크 항목** |
-| Cloud Scheduler(Storage 포함) | 매일 04:30 KST `POST /internal/cron/storage-gc`(지난 판 파일 2시간 유예 뒤 삭제, **발급 6시간 지나도 commit 없는 업로드 삭제**, 격리 30일 지난 파일 처리(3-9 기본값), 실패한 삭제 작업 재시도, **되찾기로 끊긴 옛 기기 로그인 30일 뒤 `auth.users` 삭제**), **같은 실행에서 2년 미사용 정리**(V25, PM 11-25: 별도 잡 없음 — 대기열 처리 뒤 서로 독립. **500은 대기열 실패에만**, 정리 실패는 error 로그 + 다음 날. 정리는 **하루 1회**(`app.inactive_sweep.last_day` 날짜 잠금 — 재시도가 같은 날 정리를 다시 돌리지 않음)·한 번 200명·**시간 예산 60초**, 넘친 분은 `more=true`로 다음 날. 차단기: 대상 > min(전체 1%, 200)이면 0명 삭제 `inactive_sweep_tripped`, 서버 이달 > DB 최신 활동 달 + 2달이면 `inactive_sweep_clock`. `POST /internal/cron/inactive-sweep[?confirm=<대상 수>]`은 수동 실행·운영자 확인용). **B6 설정값**: Scheduler `storage-gc` attemptDeadline **300초**(대기열 최대 약 200건 + 정리 예산 60초 + 여유), retryCount **2**·minBackoff **10분**·maxDoublings 1(재시도는 대기열만 다시 — 정리는 날짜 잠금으로 0), Cloud Run 요청 timeout **300초 이상**. 무료 3개 안(storage-gc가 Auth 정리·미사용 정리도 겸함). 무료 3개 안(storage-gc가 Auth 정리·미사용 정리도 겸함). `/internal/cron/*`는 **OIDC 검사: `aud` = 서비스 URL, `email` = 전용 Scheduler 서비스 계정**만(B6) |
+| Cloud Scheduler(Storage 포함) | 매일 04:30 KST `POST /internal/cron/storage-gc`(지난 판 파일 2시간 유예 뒤 삭제, **발급 6시간 지나도 commit 없는 업로드 삭제**, 격리 30일 지난 파일 처리(3-9 기본값), 실패한 삭제 작업 재시도, **되찾기로 끊긴 옛 기기 로그인 30일 뒤 `auth.users` 삭제**), **같은 실행에서 2년 미사용 정리**(V25, PM 11-25: 별도 잡 없음 — 대기열 처리 뒤 서로 독립. **500은 대기열 실패에만**, 정리 실패는 error 로그 + 다음 날. 정리는 **하루 1회**(`app.inactive_sweep.last_day` 날짜 잠금 — 재시도가 같은 날 정리를 다시 돌리지 않음)·한 번 200명·**시간 예산 60초**, 넘친 분은 `more=true`로 다음 날. 차단기: 대상 > min(전체 1%, 200)이면 0명 삭제 `inactive_sweep_tripped`, 서버 이달 > DB 최신 활동 달 + 1달이면 `inactive_sweep_clock`(V25c). `POST /internal/cron/inactive-sweep[?confirm=<대상 수>]`은 수동 실행·운영자 확인용). **B6 설정값**: Scheduler `storage-gc` attemptDeadline **300초**(대기열 최대 약 200건 + 정리 예산 60초 + 여유), retryCount **2**·minBackoff **10분**·maxDoublings 1(재시도는 대기열만 다시 — 정리는 날짜 잠금으로 0), Cloud Run 요청 timeout **300초 이상**. 무료 3개 안(storage-gc가 Auth 정리·미사용 정리도 겸함). 무료 3개 안(storage-gc가 Auth 정리·미사용 정리도 겸함). `/internal/cron/*`는 **OIDC 검사: `aud` = 서비스 URL, `email` = 전용 Scheduler 서비스 계정**만(B6) |
 
 ### 2-5. Prisma 운영
 
@@ -555,6 +555,15 @@ POST /api/v1/ping
 - **링크 퍼널**: 페이지 인라인 스크립트가 `navigator.sendBeacon('/m/{code}/seen')`을 한 번 보낸다(쿠키·식별자 없음, `no-store`, Firebase 경로). 크롤러는 스크립트를 거의 돌리지 않아 자연히 빠진다. 같은 메모리 합산 → `link_daily(view)`. **대시보드 표기는 '고유 방문자'가 아니라 '페이지 로드 수'.** `/get` 302는 원래 Nest를 지난다. `link_daily`는 30일 뒤 코드 없이 말아 둔다(3-1).
 - 설치 귀속: Play `utm_*`·App Store `pt`/`ct` 캠페인 링크 **[확인 필요: 콘솔에서 첫 링크로 검증]**.
 
+#### 3-6-1. 동의를 서버가 구별하지 못한다 — 그 전제의 설계 [B4, 11-25]
+
+- **동의·연령은 앱만 안다**(K1 opt-in·K25 14세 확인 통과자만 토글, `net/gate.ts`). 서버는 인증 없는 핑 하나가 동의한 사람의 것인지, 14세 미만의 것인지, 옛 판의 버그인지, 남이 꾸민 것인지 **구별할 수 없다**. 핑에 `consent` 같은 칸도 두지 않는다 — 위조 가능한 장식이고 '표시가 있으니 괜찮다'는 착시를 만든다(칸이 오면 모르는 키라 통째 버림, `test/ping-b4.e2e.test.ts`).
+- 그래서 **동의하지 않은 핑이 섞여도 개인 단위로 남는 것이 없게** 만든다: 식별자 0(strict 스키마), 운영자 코드는 IP·UA를 저장하지 않음(DB·앱 로그 0 — 레이트 리밋 키는 IP 접두를 throttler 메모리 60초 창에만), Cloud Run 플랫폼 요청 로그에는 IP·UA·경로·시각이 7일 남음(B6에서 보존 기간 최소화 검토), 칸 합계만, 사람은 `metric_daily_k5`만, 90일 월 합계. (B4 리뷰 L1: 'IP 저장 0'은 과장이었다 — iOS 기본 UA에는 빌드 번호가 실린다. 핑 요청 UA를 고정값으로 덮을지는 C11에서 정한다.)
+- **집계 공개 기준(B4 리뷰 L2)**: 밖으로 내는(사람이 보는·보고서에 싣는) 수치는 **`count ≥ 5` 칸에서만**(`metric_daily_k5`) 만든다. 원표 `metric_daily`는 판정 SQL(서비스 롤)만 읽는다. 원표에 닿는 롤 목록(service role·Studio `postgres`)을 B6 체크에 넣고, **플랫폼 요청 로그(7일)와 원표를 함께 보지 않는다** — 출시 초기에는 칸 하나가 사실상 한 사람이라, 그날 그 플랫폼의 핑 IP가 하나뿐이면 둘을 맞춰 IP 단위로 이을 수 있기 때문이다.
+- **멈추는 손잡이**: ① `METRICS_INGEST=off`(전부 204로 받고 버림, 까닭 `off`로 개수만) ② `METRIC_APP_VERSIONS`에서 그 판을 뺌(까닭 `version`) ③ 이미 쌓인 칸은 `DELETE FROM app.metric_daily WHERE app_ver = $1`(필요하면 `cohort_day` 범위)로 지운다 — 칸에 `app_ver`가 있어 판 단위로 걷어 낼 수 있다. **부수 효과(리뷰 L3)**: 같은 판의 정상 동의자 칸도 함께 지워진다(구별할 수 없으므로) — 그 기간 지표는 빈다고 판정 보고에 적는다. 런북은 `docs/ops/metrics/`(B6, 운영 담당).
+- **거절은 숫자만 센다**: 까닭 `schema`(모르는 키·화이트리스트 밖 이벤트·차원 값)·`version`·`date`·`off`별 개수를 다음 flush 때 경고 로그 한 줄(`{msg:'집계 핑 거절', rejected:{…}}`). 값(이벤트 이름·판·날짜)은 싣지 않는다. 핑을 일부만 받지 않는다 — 한 칸이라도 틀리면 통째 버린다(B0 결정 유지: 식별자가 실린 핑의 나머지 칸도 믿지 않음).
+- **레이트 리밋 근거**: `/api/v1/ping`은 전역 `ClientIpThrottlerGuard`(IP 접두 = IPv4 /32·IPv6 /64, `@nestjs/throttler` 메모리 저장소, 60초 창) + 경로 한도 분당 20. 키는 IP 접두 문자열뿐이고 창이 끝나면 지워진다 → 처리방침 3-1 '약 1분, 저장 안 함'과 같다. 새 저장소·새 키를 만들지 않았다.
+
 ### 3-7. 원격 기능 플래그 [v2.2]
 
 정본 = `@mong/contract`의 `remoteConfigSchema`(앱, lenient)·`remoteConfigStrictSchema`(CI, strict). 파일 = `apps/web-static/src/config/v1.json` → `https://mongmang.ink/config/v1.json`(`Cache-Control: public, max-age=300`). 지금 배포본은 서버 스위치 넷만 `false`로 적은 최소본이다(B0).
@@ -604,6 +613,37 @@ B0 보고(7-4 '연결 대기 ②')가 짚은 대로 원격 키 9개와 앱 `FEAT
 
 - `birthTraits`·`inkChoice`·`naming`·`nameMelody`·`temperamentLabel`·`relation`·`thumbLod`·`breathe`·`share`·`review`는 **원격 키가 아니다**(바이너리·OTA로 켜는 출시 기능, 개발 메뉴로만 덮음). 원격으로 끌 손잡이가 필요해지면 `REMOTE_FLAG_KEYS`에 더하는 contract PR + 처리방침과 무관함 확인 + 이 표 갱신을 한 번에 한다.
 - iOS 2.3.1(3-11): 위 '켜는 때'가 소프트런칭 중인 키(`cloud`·`link`·`remoteMotifs`·`widget`)는 iOS에서 그 기능이 든 번들로 베타 심사를 받거나 심사 노트에 적은 뒤 켠다.
+
+#### 3-7-2. 서명·크래시 루프 탈출·캐시 머리글 [B4, 11-25]
+
+**서명**(정본 = `@mong/contract` `verifyRemoteDoc`·`remoteSigningInput`, 서명 도구 = `apps/server/src/remote/remote-cli.ts`)
+
+| 항목 | 값 |
+|---|---|
+| 대상 | `config/v1.json`·`content/v1.json`(매니페스트). 팩 파일(모티프·사전)은 매니페스트의 `sha256`이 묶는다(앱은 계약 `sha256Hex`로 검사) |
+| 알고리즘 | **RS256**(RSASSA-PKCS1-v1_5 + SHA-256), 키 2048~4096비트(만들기 기본 3072). 앱(Hermes)에 WebCrypto가 없어 계약에 **순수 JS 검사기**를 둔다 — 공개 지수 거듭제곱 한 번 + 기대 바이트열 통째 비교(파싱 없음). 버린 안: Ed25519(같은 일에 코드 3배, 점 연산 버그 자리), 해시만(같은 응답 안의 해시는 변조를 못 막는다) |
+| 서명 원문 | `mong-remote-sig:1\n{config/v1\|content/v1}\n{sig를 뺀 정규 JSON}` — 종류가 묶여 서명을 다른 문서로 옮길 수 없다. 정규 JSON = 키 정렬·공백 없음. **받은 그대로의 객체**(zod 기본값·키 지우기 전)로 검사한다. **`__proto__`·`constructor`·`prototype` 키가 어디든 있으면 서명 검사 전에 거부**하고, 본문 복사는 프로토타입 없는 객체로 한다(`remoteDocBody` — 서명 도구도 같은 함수, B4 리뷰 M1: `JSON.parse`가 만든 자기 속성 `__proto__`가 일반 객체 대입에서 프로토타입으로 바뀌어 원문에서 빠지던 우회) |
+| 칸 | 문서 맨 끝 `sig: {alg:"RS256", kid, value(base64url)}`, 그리고 서명 안의 **`expiresAt`**(UTC `YYYY-MM-DDTHH:MM:SSZ`). 스키마에서는 둘 다 선택(B0 배포본 그대로 통과) — 요구는 앱 검사(`verifyRemoteDocStrict`)와 출시 모드 정적 빌드가 한다 |
+| 만료 | `remote-cli sign`이 **지금 + 14일**(기본, 최대 30일)을 넣는다. 14일 = 호스팅을 쥔 쪽이 마지막 정상 판을 계속 내주는 '동결'의 최대 길이. 만료된 문서는 번들 기본값(서버 스위치 모두 꺼짐)으로 — 그래서 **주 1회 판을 올려 다시 서명**하고, 출시 모드 정적 빌드는 만료 7일 안이면 실패(web-static 후속). 버린 안: 30일(동결 한 달), 3일(주말 한 번에 기능이 꺼짐) |
+| 키 | 오프라인 개인키 — 오너 보관(비밀번호 관리자 + 오프라인 사본 1, OTA 키와 **따로**), 서버·저장소·CI에 없음. `remote-cli keygen`이 저장소 안 경로를 거부. 공개키 `{kid,n,e}`는 앱 번들의 목록에. 교체 = 새 공개키를 OTA로 먼저 넣고(OTA 번들은 OTA 키로 서명됨) 그 뒤 새 키로 서명 |
+| 앱 규칙(C11) | **앱 로더는 `verifyRemoteDocStrict`만 쓴다**(서명 필수·만료·바닥 판을 한 번에 — B4 리뷰 M3). `ok`가 아니면 '원격 없음'(캐시 → 번들 기본값). 서명 없는 문서를 받아 주는 길이 계약에 없다. **되감기 막기**: 바닥 = max(번들 `REMOTE_BUNDLE_FLOOR`(빌드 때 배포본 판으로 올림), 지금 쓰는 판) — 새 설치·데이터 지움 뒤에도 옛 서명 문서를 받지 않는다. CLI `sign --prev`가 판 증가를 강제(같은 판 두 문서를 바꿔 끼우지 못하게). 되돌리려면 옛 내용을 새 판 번호로 다시 서명 |
+| 남은 위험 | 개인키와 Firebase 배포 권한이 **함께** 털리면 막지 못한다(OTA와 같은 경계). 키를 서버·CI에 두지 않는 까닭 |
+
+**크래시 루프 탈출 값**(config `escape`, 매니페스트 `escape`)
+
+- **감지 문턱은 앱 번들 상수** `REMOTE_ESCAPE_BUNDLED {afterCrashes 2, withinSec 10}`. config `escape: {afterCrashes 1~2, withinSec 10~60, off: [원격 키]}`는 **더 민감하게만** 바꾼다(`escapeThresholds` = min·max — 죽게 만든 그 문서가 감지를 둔하게 만들지 못하게, B4 리뷰 M4). 적용 뒤 `withinSec` 안에 죽은 실행이 연달아 `afterCrashes`번이면 **탈출 모드**.
+- 탈출 중 키 값 = `escapeFlags(번들, 마지막 원격 실효 값, off)` = **번들 AND (원격이 끈 키는 끈 채) AND NOT off** — 원격 값과 번들 값 중 더 보수적인 쪽(꺼짐 우선). 원격이 꺼 둔 킬 스위치가 탈출로 다시 켜지지 않는다(전수 시험). 원격 팩은 아래 고정 판만. `v`가 더 큰 설정을 받으면 풀린다. v2.2의 '원격 값을 한 번 무시'를 이 규칙으로 바꾼다.
+- 매니페스트 `escape.lexVer: {ko?, en?}` — 탈출 중 쓸 사전 판(0·빠짐 = 번들). **번들로 떨어지면 원격 팩이 덮던 낱말이 '모르는 말'이 되어 같은 말의 결이 흔들리므로**, 운영자가 검증된 옛 판을 고정할 수 있게 한다. 값은 같은 매니페스트의 `lex` 항목이어야 한다(스키마). 원격 모티프는 탈출 중 풀에 새로 넣지 않는다(번들 25 + 보름 3).
+- 탈출 값이 같은 문서 안에 있어도 되는 까닭: 문서를 **파싱하는 일**은 스키마가 막아 죽지 않는다 — 죽는 것은 그 값을 **적용한** 화면이다. 탈출은 적용을 멈추는 것이다.
+
+**캐시 머리글**(Firebase `firebase.json`, web-static 담당이 반영 — `B4-report.md` 3절)
+
+| 경로 | `Cache-Control` | 까닭 |
+|---|---|---|
+| `/config/v1.json` | `public, max-age=300`(그대로) | 끄는 손잡이 지연 = 앱 TTL 1시간(포그라운드 15분) + 기기 HTTP 캐시 5분. Firebase는 새 배포 때 CDN 캐시를 비운다 |
+| `/content/v1.json` | **`public, max-age=300`**(지금 3600 → 바꿈) | 철회(`revoked`)·탈출 고정·사전 판 교체가 설정과 같은 지연으로 닿게. 1KB라 비용 0 |
+| `/content/motifs/*`·**`/content/lex/*`** | `public, max-age=31536000, immutable` | 이름에 내용 해시. 사전 팩 경로는 새로 더함 |
+| `POST /api/v1/ping` | `no-store`(그대로) | — |
 
 ### 3-8. 남용 방지·신고·백업·삭제 [v2.2]
 
@@ -703,7 +743,9 @@ B0 보고(7-4 '연결 대기 ②')가 짚은 대로 원격 키 9개와 앱 `FEAT
 
 **정본 [v2.2]**: 스키마는 **`@mong/contract`의 `contentManifestSchema`·`motifFileSchema`**(B0 구현)이고, 그 내용은 D-25가 가리키는 `docs/design/content-v1/dreams-30days.md` v1.1 5-2(스키마 1)와 같다. core는 의존성 0이라 같은 모양의 **구조 타입만**(`packages/core/src/moon/motifs.ts`) 두고, contract 값이 core 타입에 대입되는지를 `apps/mobile/test/moon-contract.test.ts`가 묶는다. 원본 파일은 `apps/web-static/src/content/`(지금 빈 매니페스트 `{v:1, seq:0, motifs:[], revoked:[]}`).
 
-**매니페스트** `https://mongmang.ink/content/v1.json`(`Cache-Control: public, max-age=3600`)
+**매니페스트** `https://mongmang.ink/content/v1.json`(`Cache-Control: public, max-age=3600` → **B4: 300**으로, 3-7-2)
+
+> **[B4 11-25] 원격 사전 팩(D-26 `lexVer`)도 이 매니페스트에 싣는다**: `lex: [{lang: ko|en, lexVer ≥1, minAppBuild, url: /content/lex/{lang}-{lexVer}.{해시 8}.json, sha256, bytes ≤ 1MB}]`(빠지면 `[]`), (언어, 판) 중복 금지, url의 언어·판 = 항목. 팩 파일 머리 `{schema:1, lang, lexVer, …}`(본문은 V5d core 몫, `lexPackHeaderSchema`)가 항목과 같아야 한다. 고르기 = `pickLexPack`(이 빌드가 받는 판 중 번들보다 큰 가장 큰 판, 탈출 중이면 `escape.lexVer` 고정 판). 한 번 낸 (언어, 판)은 바꾸지 않는다 — 세이브가 `lexVer`·`sense`를 남기고 다시 계산하지 않으므로(heart-grain 9-2), 고치려면 판을 올린다. 서명·탈출은 3-7-2.
 
 ```json
 { "v": 1, "seq": 31,
@@ -955,9 +997,9 @@ v1 그대로(net 모듈 가짜 fetch, core 고정물 세이브를 core·서버 e
 **장기 미사용 2년 [V25 구현 11-25 — `auth/activity.ts`·`deletion/inactive-sweep.ts`, 시험 `test/v25-inactive.db.test.ts`]**
 - '활동' = **인증 가드를 통과한 요청 전부**(세이브·링크 켜기/끄기/다시 만들기·`GET /creature`·되찾기 글귀·계정 요청. PM 11-24 '활동 날짜는 인증된 요청마다', 처리방침 리뷰 H3·PIA R13). 갱신 위치는 `AuthGuard` 한 곳 — 가드의 로그인 조회를 **`user_auth JOIN users` 한 문장**으로 바꿔 활동 달을 함께 읽는다(요청당 읽기 1회 = V25 전과 같음, V25 리뷰 M1 — 처음 판의 Prisma 관계 select는 SELECT 2개였다. 시험이 드라이버 문장을 센다). 이달보다 앞설 때만 `UPDATE … WHERE last_active_month IS NULL OR last_active_month < 이달`(같은 달이면 쓰기 0, 동시 요청은 같은 값 또는 0행, 시계가 늦은 인스턴스가 값을 되돌리지 못함). 세이브 경로의 개별 갱신은 지웠다. 인증 없는 길(삭제 영수증 조회·웹 삭제·`/m`·핑·OTA)은 활동이 아니다. bootstrap(새 행)·recover(새 기기는 아직 가드가 못 씀)는 서비스가 직접 쓰며, recover도 같은 조건부 갱신이다(리뷰 L2).
 - 값은 **그달 1일(UTC, 서버 시계 `Clock`)**뿐 — 월 경계는 UTC 00:00(KST 09:00). 언제 썼는지가 일 단위로 남지 않는다. 갱신 실패는 요청을 막지 않는다(warn `activity_touch_failed` + 인스턴스 누적 개수 — B6 알림 대상, 다음 요청이 다시 씀).
-- 대상 = 활동 달(없으면 만든 달)이 **'이달 1일 − 24개월'보다 앞선** 사용자. 달 값은 그달 말일까지의 활동일 수 있으므로 이 조건이면 마지막 활동 뒤 꼭 2년이 지난 계정만 지운다(예: 2024-11 활동 → 2026-12-01부터. 늦어도 2년 + 한 달 안, 차단기·적체 때는 더 늦어지는 방향뿐).
+- 대상 = 활동 달(없으면 만든 달)이 **'이달 1일 − 25개월'보다 앞선** 사용자 [V25c 11-25, 처리방침 리뷰 privacy-v32 M1]. 처리방침 문구 '마지막 이용 달 뒤 2년이 지난 다음, 서버 시계 오차에 대비해 한 달 여유를 두고 지웁니다'와 같다: 달 값은 그달 말일까지의 활동일 수 있으므로 24개월이면 꼭 2년이고, 한 달을 더 둔다(예: 2024-10 활동 → 2026-11-01에 2년, **2026-12-01부터** 대상. 늦어도 2년 + 두 달 안, 차단기·적체 때는 더 늦어지는 방향뿐). 여유 한 달은 서버 시계 +1달 튐과 '그달 마지막 활동 갱신만 실패해 저장된 달이 한 달 앞서는' 경우를 덮고, +2달 이상 튐은 ②가 멈춘다 — 시험이 +1·+2·+3·+12달 튐 모두 '실제 24개월 미만 삭제 0'을 고정한다.
 - 삭제는 3-8 연쇄 그대로(`deletion_log(kind=inactive, channel=app)` — 여기서 `app`은 시스템 실행, 개수만). 연쇄 안에서 잠근 행을 다시 보고 그 사이 활동했으면 건너뛴다. 정기 실행은 `storage-gc`가 대기열 처리 뒤 독립으로 부른다(Scheduler 잡 추가 없음).
-- **차단기(V25 리뷰 M2, 되돌릴 수 없는 일 — 멈추면 0명 삭제 + error 로그, 운영자 확인)**: ① 하루 대상 > min(전체 계정 1%, 200) → `inactive_sweep_tripped`. 운영자가 대상 수를 확인한 뒤 수동 `inactive-sweep?confirm=<그 수>`로 그 실행만 통과(대상 수가 달라졌으면 통과 못 함) ② 서버 이달이 DB 최신 `last_active_month`보다 2달 넘게 앞섬 → `inactive_sweep_clock`(시계가 미래로 튐, 또는 활동 갱신이 통째로 멈춤 — confirm으로도 넘지 못함) ③ 활동 갱신 실패율로 멈추는 조건은 두지 않는다: 실패 개수는 인스턴스 메모리라 정리 실행과 공유되지 않고, 실패는 다음 요청이 다시 쓰므로 한 사람이 잘못 지워지려면 24개월 동안 그 사람의 모든 요청이 실패해야 한다. 통째 실패는 ②가 2달 안에 잡는다.
+- **차단기(V25 리뷰 M2, 되돌릴 수 없는 일 — 멈추면 0명 삭제 + error 로그, 운영자 확인)**: ① 하루 대상 > min(전체 계정 1%, 200) → `inactive_sweep_tripped`. 운영자가 대상 수를 확인한 뒤 수동 `inactive-sweep?confirm=<그 수>`로 그 실행만 통과(대상 수가 달라졌으면 통과 못 함) ② 서버 이달이 DB 최신 `last_active_month`보다 **1달 넘게** 앞섬(V25c: 2→1) → `inactive_sweep_clock`(시계가 미래로 튐, 또는 활동 갱신이 통째로 멈춤 — confirm으로도 넘지 못함). 정상이면 차이는 0, 달이 막 바뀐 직후 1이라 통과한다. 비용: 한 달 내내 활동이 0인 조용한 서비스면 계속 멈춘다(error 로그 + 운영자 확인) ③ 활동 갱신 실패율로 멈추는 조건은 두지 않는다: 실패 개수는 인스턴스 메모리라 정리 실행과 공유되지 않고, 실패는 다음 요청이 다시 쓰므로 한 사람이 잘못 지워지려면 24개월 동안 그 사람의 모든 요청이 실패해야 한다. 통째 실패는 ②가 2달 안에 잡는다.
   - 주의: 서비스 시작 25개월째처럼 한 달에 1%가 넘게 2년을 채우는 달은 ①이 매일 멈춘다 — 운영자가 confirm으로 하루 200명씩 처리한다(의도된 수동 확인).
 - **시간·재시도(리뷰 M3)**: 한 실행 200명·시간 예산 60초(한 명 처리 뒤 확인 — 실행마다 적어도 한 명), 넘치면 `more=true`로 다음 날. 하루 1회는 `app.inactive_sweep`(한 행, 개수·멈춘 사유만) `last_day`를 오늘로 바꾸는 데 성공한 실행만 — Scheduler 재시도는 `already_ran`. 사용자 삭제 실패는 error `inactive_sweep_failed`(다음 날 다시), 정상 적체는 warn `inactive_sweep_more`. Storage·Auth 실패분은 `storage-gc` 대기열이 재시도. 로그·응답은 개수만(`{inactiveDeleted, skipped, failed, more, candidates, halted}`).
 - 연락 수단이 없으므로 사전 개별 안내(30일 전 등)는 하지 않고 처리방침 6절 사전 고지로 갈음한다 [법률 검토]. v2의 '23개월에 앱 안 표시'는 뺐다(앱을 열어 서버 요청이 나면 곧 활동이 되어 아무에게도 보이지 않는다).

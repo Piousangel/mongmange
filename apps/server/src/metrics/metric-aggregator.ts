@@ -22,6 +22,12 @@ export const MAX_CELLS = 5000;
 export const SHUTDOWN_FLUSH_TRIES = 3;
 
 const SEP = '\u001f';
+
+/**
+ * 핑 거절 까닭(B4). 값은 싣지 않고 **까닭별 개수만** 다음 flush 때 경고 로그 한 줄로 남긴다(조작 감시·앱 버그 발견용).
+ * schema 모르는 키·화이트리스트 밖 이벤트·차원 / version 알려진 출시 판 밖 / date 서버 날짜 ±2일 밖 / off 수집 끔(METRICS_INGEST)
+ */
+export type PingRejectReason = 'schema' | 'version' | 'date' | 'off';
 const keyOf = (c: MetricCell) => METRIC_CELL_KEYS.map((k) => String(c[k])).join(SEP);
 const utcDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
@@ -37,6 +43,8 @@ export class MetricAggregator implements BeforeApplicationShutdown {
   private seenToday = new Set<string>();
   /** 상한 때문에 버린 칸 수(다음 flush 때 개수만 로그) */
   private dropped = 0;
+  /** 까닭별 거절 수(다음 flush 때 개수만 로그) */
+  private rejected: Partial<Record<PingRejectReason, number>> = {};
   private readonly newCellsPerDay: number;
   /** 시험이 바꿔 끼우는 시계 */
   now: () => number = () => Date.now();
@@ -79,6 +87,18 @@ export class MetricAggregator implements BeforeApplicationShutdown {
     return allKept;
   }
 
+  /** 거절한 핑 하나를 센다(값은 받지 않는다) */
+  reject(reason: PingRejectReason): void {
+    this.lastFlushAt ??= this.now();
+    this.rejected[reason] = (this.rejected[reason] ?? 0) + 1;
+  }
+
+  private logRejected(): void {
+    if (Object.keys(this.rejected).length === 0) return;
+    this.log.warn({ msg: '집계 핑 거절', rejected: this.rejected });
+    this.rejected = {};
+  }
+
   /** 지금 메모리에 있는 칸 수(시험·관찰용) */
   get size(): number {
     return this.cells.size;
@@ -86,7 +106,7 @@ export class MetricAggregator implements BeforeApplicationShutdown {
 
   /** 요청 끝에서 부른다: 10초가 지났거나 칸이 꽉 찼으면 flush를 시작하고 최대 FLUSH_REQUEST_BUDGET_MS만 기다린다 */
   async maybeFlush(): Promise<void> {
-    if (this.cells.size === 0) return;
+    if (this.cells.size === 0 && Object.keys(this.rejected).length === 0) return;
     if (this.now() - (this.lastFlushAt ?? this.now()) < FLUSH_EVERY_MS && this.cells.size < MAX_CELLS) return;
     let timer: NodeJS.Timeout | undefined;
     const budget = new Promise<void>((r) => {
@@ -99,7 +119,11 @@ export class MetricAggregator implements BeforeApplicationShutdown {
   /** UPSERT는 한 번에 하나. 진행 중이면 그것을 기다린 뒤, 그사이 쌓인 칸이 있으면 이어서 쓴다 */
   async flush(): Promise<void> {
     while (this.inflight) await this.inflight;
-    if (this.cells.size === 0) return;
+    this.logRejected();
+    if (this.cells.size === 0) {
+      this.lastFlushAt = this.now();
+      return;
+    }
     const batch = [...this.cells.values()];
     this.cells = new Map();
     this.lastFlushAt = this.now();
@@ -142,5 +166,6 @@ export class MetricAggregator implements BeforeApplicationShutdown {
   async beforeApplicationShutdown(): Promise<void> {
     for (let i = 0; i < SHUTDOWN_FLUSH_TRIES && (this.cells.size > 0 || this.inflight); i++) await this.flush();
     if (this.dropped > 0) this.log.warn({ msg: '집계 칸 상한 초과로 버림', dropped: this.dropped });
+    this.logRejected();
   }
 }

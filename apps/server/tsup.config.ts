@@ -5,7 +5,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: { main: 'src/main.ts', openapi: 'src/openapi.ts', 'ota-cli': 'src/ota/ota-cli.ts' },
+  entry: { main: 'src/main.ts', openapi: 'src/openapi.ts', 'ota-cli': 'src/ota/ota-cli.ts', 'remote-cli': 'src/remote/remote-cli.ts' },
   format: ['esm'],
   platform: 'node',
   target: 'node24',

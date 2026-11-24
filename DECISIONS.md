@@ -530,6 +530,16 @@
   - [팀] systems-v1 3.6 알림 줄·plan-v2 Q8 본문의 문구 갱신은 다음 정본 개정 때(담당 PL-1·PM).
 - [PL-1 11-25] **QA-3 조건 반영**: 판정 `docs/design/concept-v3/reviews/2026-11-25-care-qa3-answers.md`(R3 승인, R1·R2·R4~R7 조건부)을 `care-rituals.md` v3.2에 반영 — 알림 id 고정·data 비움·문구 선택은 말결 무관 입력만, 기본 문구 ko·en 3번, 섭식 은어·자기 지시형 → 위기 soft(흔적 0)·섭식 수단은 해시만·몸이 힘든 섭식 상태 → 지침 그물·몸·체중 말 → 중립, #31 배고픔 기쁨·먹을 때 몸 부풂 제거, 평가기 빈 입력 결함 고침(시험 고정). 사람 전문가 확인 H-1~H-5는 열린 항목.
 
+## 2026-11-25 B4 원격 플래그·모티프 팩·사전 팩·집계 핑 — 서버 쪽 (DV-3, `docs/design/server-v1/B4-report.md`) [잠정 — 독립 리뷰 조건부 승인 반영 11-25]
+- 근거: 로드맵 B4·D-26('원격 사전 팩을 같은 매니페스트로'), architecture.md **3-6-1·3-7-2·3-10 B4 상자**(정본), PM 11-24 V22 ③(통계 opt-in·14세 확인).
+- **배포는 Firebase 정적 그대로**(Nest로 옮기지 않음 — 처리방침 3-3 '운영자는 이 요청을 기록하지 않음'·PIA B행 유지). 서버 몫 = 계약 + 오프라인 서명 CLI + 핑.
+- **무결성 = RS256 서명**: `config/v1.json`·`content/v1.json` 맨 끝 `sig {alg, kid, value}`, 원문 = `mong-remote-sig:1\n{종류}\n{sig 뺀 정규 JSON}`(종류가 묶임). 개인키는 오너 오프라인(OTA 키와 따로), 서명은 `remote-cli sign`(strict 스키마 통과만, 저장소 안 키 거부). 앱 로더는 계약의 **`verifyRemoteDocStrict`만** 쓴다(순수 JS — Hermes에 WebCrypto 없음. 서명 필수·`expiresAt` 만료·바닥 판 = max(번들 `REMOTE_BUNDLE_FLOOR`, 지금 판)). **`__proto__`·`constructor`·`prototype` 키는 서명 검사 전에 거부**, 본문 복사는 프로토타입 없는 객체(`remoteDocBody`, 서명 도구와 같은 함수 — 리뷰 M1 우회 재현 뒤 고침). **`expiresAt` 기본 14일·최대 30일**(동결 공격 상한 두 주, 만료 → 번들 기본값, 주 1회 재서명, 출시 모드 정적 빌드는 서명 없음·만료 7일 안이면 실패 — web-static 후속). `sign --prev`가 판 증가·사전 팩 (언어, 판) 불변을 강제. 팩 파일은 서명된 매니페스트의 sha256(`sha256Hex`)이 묶는다. 스키마에서 `sig`·`expiresAt`은 선택(B0 배포본 통과) — 요구는 앱 검사와 출시 모드 빌드가 한다. 버린 안: Ed25519(코드 3배), 해시만(같은 응답 안 해시는 변조를 못 막음), 요청 때 서버 서명(서버에 키).
+- **크래시 루프 탈출**: 감지 문턱은 **앱 번들 상수**(2번·10초), config `escape {afterCrashes 1~2, withinSec 10~60, off}`는 더 민감하게만(`escapeThresholds`). 탈출 중 키 값 = `escapeFlags` = 번들 AND (원격이 끈 키는 끈 채) AND NOT off — 꺼짐 우선, 원격이 꺼 둔 킬 스위치가 다시 켜지지 않음(전수 시험, 리뷰 M4). 더 큰 `v`에서 풀림. 매니페스트 `escape.lexVer`(탈출 중 쓸 사전 판 — 번들로 떨어지면 같은 말의 결이 흔들리므로). v2.2 '원격 값을 한 번 무시'를 대체.
+- **사전 팩 = 매니페스트 `lex [{lang, lexVer, minAppBuild, url /content/lex/{lang}-{lexVer}.{해시}.json, sha256, bytes ≤1MB}]`**, (언어, 판)은 한 번 내면 바꾸지 않음, 고르기 `pickLexPack`. 사전 본문 형식은 V5d(core) 몫 — 계약은 봉투·머리(`lexPackHeaderSchema`)만.
+- **캐시 머리글**: config 300 그대로, 매니페스트 3600 → **300**, `/content/lex/**` immutable 추가(web-static 반영 대기), 핑 no-store.
+- **핑**: 이벤트 10 + open·차원 3 그대로(`life_done`·`drop_new`는 K3 절차로 따로). 거절은 까닭별 **개수만** 로그(`schema·version·date·off`). **서버는 동의·연령을 구별하지 못한다** → 핑에 동의 칸을 두지 않고(위조 가능한 장식), 섞여도 개인 단위로 남는 것이 없게(식별자 0·**운영자 코드는 IP·UA를 저장하지 않음, Cloud Run 플랫폼 요청 로그에는 7일 남음(B6에서 보존 기간 최소화 검토)**·합계·k5, 밖으로 내는 수치는 k≥5 칸만, 플랫폼 로그와 원표를 함께 보지 않음) + 멈추는 손잡이 `METRICS_INGEST=off`·판 빼기·`app_ver` 단위 삭제(같은 판 정상 동의자 칸도 함께 지워짐). 레이트 리밋은 기존 전역 throttler(IP 접두 메모리 60초 창) 그대로.
+- 증거: contract 97·server 239·test:db 163 통과, migrate diff 차이 없음, verify(typecheck·lint·directives·server-bundle) 통과, 변이 7개 모두 잡힘 → cmp 원본 일치. 처리방침·PIA 고칠 곳 P1~P8은 B4-report 4절(QA-3·PM 몫).
+
 ## 2026-11-25 PM 판정 — 빌드 2 Data safety 범위와 테스터판 방침
 
 - 선택: 빌드 2 Data safety·App Privacy = 테스터판 방침과 같은 범위(기기 ID·진단 — ML Kit). **OTA·원격 플래그를 포함한 모든 배포 전에** 데이터 흐름이 늘어나면 신고와 게시 방침을 먼저 넓힌다(Play: 테스트 트랙 포함 배포 중인 모든 판의 합을 늘 정확히). 11-20 '빌드 2부터 전부 선언'을 대체.

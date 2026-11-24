@@ -159,6 +159,337 @@ export function pingToCells(p: Ping): MetricCell[] {
   }));
 }
 
+// ───────────────────────── 원격 문서 무결성(B4 — architecture.md 3-7-2) ─────────────────────────
+// config/v1.json·content/v1.json은 Firebase 정적 파일이다. 호스팅 계정·배포 경로가 뚫려도 앱이 남의 문서를 따르지 않게
+// **오프라인 개인키(오너 보관, 서버에 없음)로 서명**하고 앱이 번들에 든 공개키로 검사한다(OTA와 같은 원칙, ota-self-host.md 1절).
+// - 알고리즘 RS256(RSASSA-PKCS1-v1_5 + SHA-256). 앱(Hermes)에 WebCrypto가 없어 **순수 JS 검사**를 여기 둔다 —
+//   RSA 검사는 공개 지수 거듭제곱 한 번 + 기대 바이트열 통째 비교라 파싱이 없고(서명 위조 계열 버그 자리가 없다) 코드가 짧다. Ed25519는 같은 일에 코드가 3배.
+// - 서명 원문 = `mong-remote-sig:1\n{종류}\n{sig를 뺀 정규 JSON}` — 종류(config/v1·content/v1)가 묶여 서명을 다른 문서로 옮길 수 없다.
+//   정규 JSON은 **받은 그대로의 객체**(zod가 기본값을 채우거나 모르는 키를 지우기 전)에서 만든다.
+// - 팩 파일(모티프·사전)은 서명하지 않는다: 서명된 매니페스트의 sha256이 파일을 묶는다(앱은 sha256Hex로 검사).
+
+/** 문자열 → UTF-8 바이트(TextEncoder가 없는 런타임용). 짝 없는 서로게이트는 U+FFFD(Node Buffer와 같음) */
+export function utf8Bytes(s: string): Uint8Array {
+  const out: number[] = [];
+  for (let i = 0; i < s.length; i++) {
+    let c = s.charCodeAt(i);
+    if (c >= 0xd800 && c < 0xdc00 && i + 1 < s.length) {
+      const d = s.charCodeAt(i + 1);
+      if (d >= 0xdc00 && d < 0xe000) {
+        c = 0x10000 + ((c - 0xd800) << 10) + (d - 0xdc00);
+        i++;
+      }
+    }
+    if (c >= 0xd800 && c < 0xe000) c = 0xfffd;
+    if (c < 0x80) out.push(c);
+    else if (c < 0x800) out.push(0xc0 | (c >> 6), 0x80 | (c & 63));
+    else if (c < 0x10000) out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    else out.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+  }
+  return Uint8Array.from(out);
+}
+
+const SHA256_K = Uint32Array.of(
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+);
+const ror = (x: number, n: number) => (x >>> n) | (x << (32 - n));
+
+/** SHA-256(FIPS 180-4). 문자열은 UTF-8로 */
+export function sha256(data: Uint8Array | string): Uint8Array {
+  const msg = typeof data === 'string' ? utf8Bytes(data) : data;
+  const len = msg.length;
+  const padded = new Uint8Array((((len + 9 + 63) / 64) | 0) * 64);
+  padded.set(msg);
+  padded[len] = 0x80;
+  const bitsHi = Math.floor(len / 0x20000000);
+  const bitsLo = (len * 8) >>> 0;
+  const end = padded.length;
+  padded[end - 8] = bitsHi >>> 24;
+  padded[end - 7] = (bitsHi >>> 16) & 255;
+  padded[end - 6] = (bitsHi >>> 8) & 255;
+  padded[end - 5] = bitsHi & 255;
+  padded[end - 4] = bitsLo >>> 24;
+  padded[end - 3] = (bitsLo >>> 16) & 255;
+  padded[end - 2] = (bitsLo >>> 8) & 255;
+  padded[end - 1] = bitsLo & 255;
+  const h = Uint32Array.of(0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19);
+  const w = new Uint32Array(64);
+  for (let off = 0; off < end; off += 64) {
+    for (let i = 0; i < 16; i++) {
+      const j = off + i * 4;
+      w[i] = ((padded[j]! << 24) | (padded[j + 1]! << 16) | (padded[j + 2]! << 8) | padded[j + 3]!) >>> 0;
+    }
+    for (let i = 16; i < 64; i++) {
+      const a = w[i - 15]!;
+      const b = w[i - 2]!;
+      const s0 = ror(a, 7) ^ ror(a, 18) ^ (a >>> 3);
+      const s1 = ror(b, 17) ^ ror(b, 19) ^ (b >>> 10);
+      w[i] = (w[i - 16]! + s0 + w[i - 7]! + s1) >>> 0;
+    }
+    let a = h[0]!, b = h[1]!, c = h[2]!, d = h[3]!, e = h[4]!, f = h[5]!, g = h[6]!, hh = h[7]!;
+    for (let i = 0; i < 64; i++) {
+      const t1 = (hh + (ror(e, 6) ^ ror(e, 11) ^ ror(e, 25)) + ((e & f) ^ (~e & g)) + SHA256_K[i]! + w[i]!) >>> 0;
+      const t2 = ((ror(a, 2) ^ ror(a, 13) ^ ror(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+      hh = g;
+      g = f;
+      f = e;
+      e = (d + t1) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (t1 + t2) >>> 0;
+    }
+    h[0] = h[0]! + a;
+    h[1] = h[1]! + b;
+    h[2] = h[2]! + c;
+    h[3] = h[3]! + d;
+    h[4] = h[4]! + e;
+    h[5] = h[5]! + f;
+    h[6] = h[6]! + g;
+    h[7] = h[7]! + hh;
+  }
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 8; i++) {
+    out[i * 4] = h[i]! >>> 24;
+    out[i * 4 + 1] = (h[i]! >>> 16) & 255;
+    out[i * 4 + 2] = (h[i]! >>> 8) & 255;
+    out[i * 4 + 3] = h[i]! & 255;
+  }
+  return out;
+}
+
+/** SHA-256 소문자 16진(매니페스트 `sha256` 칸과 같은 꼴) */
+export function sha256Hex(data: Uint8Array | string): string {
+  let s = '';
+  for (const b of sha256(data)) s += (b < 16 ? '0' : '') + b.toString(16);
+  return s;
+}
+
+/**
+ * 정규 JSON: 객체 키를 UTF-16 코드 단위 순으로 정렬, 공백 없음, 배열 순서 그대로, 숫자·문자열은 JSON.stringify.
+ * JSON으로 나타낼 수 없는 값(NaN·Infinity·undefined·함수·BigInt)은 던진다 — 서명 원문이 조용히 달라지지 않게.
+ */
+export function canonicalJson(v: unknown): string {
+  if (v === null) return 'null';
+  switch (typeof v) {
+    case 'boolean':
+      return v ? 'true' : 'false';
+    case 'number':
+      if (!Number.isFinite(v)) throw new Error('정규 JSON: 유한하지 않은 수');
+      return JSON.stringify(v);
+    case 'string':
+      return JSON.stringify(v);
+    case 'object': {
+      if (Array.isArray(v)) return `[${v.map(canonicalJson).join(',')}]`;
+      const o = v as Record<string, unknown>;
+      return `{${Object.keys(o)
+        .sort()
+        .map((k) => `${JSON.stringify(k)}:${canonicalJson(o[k])}`)
+        .join(',')}}`;
+    }
+    default:
+      throw new Error(`정규 JSON: 나타낼 수 없는 값(${typeof v})`);
+  }
+}
+
+export const REMOTE_DOC_KINDS = ['config/v1', 'content/v1'] as const;
+export type RemoteDocKind = (typeof REMOTE_DOC_KINDS)[number];
+export const REMOTE_SIG_PREFIX = 'mong-remote-sig:1';
+
+const base64url = (min: number, max: number) => str(/^[A-Za-z0-9_-]+$/).check(z.minLength(min), z.maxLength(max));
+/** 키 id — 앱 번들의 공개키 목록에서 고른다(교체 = 새 키를 OTA·바이너리로 먼저 넣고 그 뒤 새 키로 서명) */
+export const REMOTE_KID_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
+/** 서명 칸. RSA 2048~4096 → 서명 256~512바이트 = base64url 342~683자 */
+export const remoteSigSchema = z.strictObject({ alg: z.literal('RS256'), kid: str(REMOTE_KID_RE), value: base64url(342, 683) });
+export type RemoteSig = z.infer<typeof remoteSigSchema>;
+/** 앱에 넣는 공개키(JWK의 n·e를 그대로) */
+export const remotePublicKeySchema = z.strictObject({ kid: str(REMOTE_KID_RE), n: base64url(342, 683), e: base64url(1, 8) });
+export type RemotePublicKey = z.infer<typeof remotePublicKeySchema>;
+
+/**
+ * 원격 문서 어디에도(중첩 포함) 있으면 안 되는 키(B4 리뷰 M1). `JSON.parse`는 `"__proto__"`를 **자기 속성**으로 만드는데,
+ * 일반 객체에 `body[k] = v`로 옮기면 프로토타입이 바뀌어 그 키가 서명 원문에서 빠진다(서명 뒤 키를 더해도 ok가 되던 우회).
+ * 그래서 이 키들은 서명 검사 **전에** 거부하고, 원문 복사는 프로토타입 없는 객체로 한다.
+ */
+export const REMOTE_FORBIDDEN_KEYS = ['__proto__', 'constructor', 'prototype'] as const;
+export function hasForbiddenKey(v: unknown): boolean {
+  if (v === null || typeof v !== 'object') return false;
+  if (Array.isArray(v)) return v.some(hasForbiddenKey);
+  for (const k of Object.keys(v)) {
+    if ((REMOTE_FORBIDDEN_KEYS as readonly string[]).includes(k)) return true;
+    if (hasForbiddenKey((v as Record<string, unknown>)[k])) return true;
+  }
+  return false;
+}
+
+/** sig를 뺀 본문(프로토타입 없는 객체). 금지 키가 있으면 던진다 — 서명 도구(remote-sign.ts)와 검사기가 같은 함수를 쓴다 */
+export function remoteDocBody(doc: Record<string, unknown>): Record<string, unknown> {
+  if (hasForbiddenKey(doc)) throw new Error('원격 문서에 금지 키(__proto__·constructor·prototype)가 있다');
+  const body = Object.create(null) as Record<string, unknown>;
+  for (const k of Object.keys(doc)) if (k !== 'sig') body[k] = doc[k];
+  return body;
+}
+
+/** 서명 원문(문자열). sig 칸은 빼고 정규 JSON으로. 금지 키가 있으면 던진다 */
+export function remoteSigningInput(kind: RemoteDocKind, doc: Record<string, unknown>): string {
+  return `${REMOTE_SIG_PREFIX}\n${kind}\n${canonicalJson(remoteDocBody(doc))}`;
+}
+
+const B64URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+function base64UrlDecode(s: string): Uint8Array | null {
+  if (!/^[A-Za-z0-9_-]*$/.test(s) || s.length % 4 === 1) return null;
+  const out: number[] = [];
+  let acc = 0;
+  let bits = 0;
+  for (const ch of s) {
+    acc = (acc << 6) | B64URL_ALPHABET.indexOf(ch);
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out.push((acc >> bits) & 255);
+    }
+    acc &= (1 << bits) - 1;
+  }
+  return Uint8Array.from(out);
+}
+
+const BIG0 = BigInt(0);
+const BIG1 = BigInt(1);
+const BIG8 = BigInt(8);
+const BIG255 = BigInt(255);
+function bytesToBig(b: Uint8Array): bigint {
+  let x = BIG0;
+  for (const v of b) x = (x << BIG8) | BigInt(v);
+  return x;
+}
+function modPow(base: bigint, exp: bigint, mod: bigint): bigint {
+  let r = BIG1;
+  let b = base % mod;
+  let e = exp;
+  while (e > BIG0) {
+    if ((e & BIG1) === BIG1) r = (r * b) % mod;
+    b = (b * b) % mod;
+    e >>= BIG1;
+  }
+  return r;
+}
+/** DER DigestInfo 머리(SHA-256) — RFC 8017 9.2 주석 1 */
+const SHA256_DIGEST_INFO = [0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20];
+
+/**
+ * RSASSA-PKCS1-v1_5 SHA-256 검사(RFC 8017 8.2.2): 기대 EM을 통째로 만들어 바이트 비교(파싱 없음).
+ * 키 길이 하한(2048)은 서명 칸 스키마(342자 이상)와 여기 두 겹이다 — 시험이 이 층을 직접 부르려고 내보낸다(앱은 `verifyRemoteDocStrict`만).
+ */
+export function rsaPkcs1Sha256Verify(nBytes: Uint8Array, eBytes: Uint8Array, msg: Uint8Array, sig: Uint8Array): boolean {
+  let start = 0;
+  while (start < nBytes.length && nBytes[start] === 0) start++;
+  const k = nBytes.length - start;
+  if (k < 256 || k > 512 || sig.length !== k) return false;
+  const n = bytesToBig(nBytes);
+  const e = bytesToBig(eBytes);
+  const s = bytesToBig(sig);
+  if (e < BigInt(3) || s >= n) return false;
+  let m = modPow(s, e, n);
+  const em = new Uint8Array(k);
+  for (let i = k - 1; i >= 0; i--) {
+    em[i] = Number(m & BIG255);
+    m >>= BIG8;
+  }
+  const t = [...SHA256_DIGEST_INFO, ...sha256(msg)];
+  const ps = k - 3 - t.length;
+  if (ps < 8) return false;
+  if (em[0] !== 0 || em[1] !== 1 || em[2 + ps] !== 0) return false;
+  for (let i = 0; i < ps; i++) if (em[2 + i] !== 0xff) return false;
+  for (let i = 0; i < t.length; i++) if (em[3 + ps + i] !== t[i]) return false;
+  return true;
+}
+
+/**
+ * 받은 원격 문서(JSON.parse 결과 그대로)의 서명 **판정만** 하는 낮은 층(정적 CI·CLI verify용). **앱은 쓰지 않는다** — 앱은 `verifyRemoteDocStrict`. 결과:
+ * - `ok` 서명이 맞음 / `unsigned` sig 칸 없음 / `unknown_kid` 앱이 모르는 키 / `bad` 그 밖 전부(모양·값·종류가 틀림)
+ * 앱 규칙(3-7-2): 공개키가 번들에 든 빌드는 `ok`만 쓰고 나머지는 '원격 없음'(캐시 → 번들 기본값)으로 본다.
+ */
+export type RemoteSigCheck = 'ok' | 'unsigned' | 'unknown_kid' | 'bad';
+export function verifyRemoteDoc(kind: RemoteDocKind, raw: unknown, keys: readonly RemotePublicKey[]): RemoteSigCheck {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return 'bad';
+  const doc = raw as Record<string, unknown>;
+  if (hasForbiddenKey(doc)) return 'bad';
+  if (!Object.prototype.hasOwnProperty.call(doc, 'sig')) return 'unsigned';
+  const sig = remoteSigSchema.safeParse(doc.sig);
+  if (!sig.success) return 'bad';
+  const key = keys.find((k) => k.kid === sig.data.kid);
+  if (!key) return 'unknown_kid';
+  let input: string;
+  try {
+    input = remoteSigningInput(kind, doc);
+  } catch {
+    return 'bad';
+  }
+  const n = base64UrlDecode(key.n);
+  const e = base64UrlDecode(key.e);
+  const s = base64UrlDecode(sig.data.value);
+  if (!n || !e || !s) return 'bad';
+  return rsaPkcs1Sha256Verify(n, e, utf8Bytes(input), s) ? 'ok' : 'bad';
+}
+
+/** 만료 시각 꼴(UTC, 초까지). 서명 안에 든다 */
+export const REMOTE_EXPIRES_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+/**
+ * 문서 수명(B4 리뷰 M5, PM 결정): 서명할 때 `expiresAt = 지금 + 14일`(기본), 상한 30일.
+ * 14일인 까닭: 호스팅을 쥔 쪽이 마지막 정상 판을 계속 내주어 새 킬 스위치를 막는 '동결'의 최대 길이를 두 주로 묶는다.
+ * 만료되면 앱은 번들 기본값(서버 스위치는 모두 꺼짐)으로 돌아간다 — 그래서 운영은 **주 1회 다시 서명**하고, 출시 모드 정적 빌드는
+ * 만료가 `REMOTE_EXPIRY_WARN_DAYS`일 안이면 실패한다(web-static 후속). 버린 안: 30일(동결이 한 달), 3일(주말·휴가 한 번에 기능이 꺼짐).
+ */
+export const REMOTE_DEFAULT_LIFETIME_DAYS = 14;
+export const REMOTE_MAX_LIFETIME_DAYS = 30;
+export const REMOTE_EXPIRY_WARN_DAYS = 7;
+/**
+ * 앱 번들의 '최소 수용 판 번호' 자리(B4 리뷰 M5): config `v`·매니페스트 `seq`가 이보다 작은 문서는 새 설치·데이터 지움 뒤에도 받지 않는다.
+ * 바이너리·OTA를 만들 때 그때 배포본의 판으로 올린다(앱이 이 값을 덮는 상수를 둘 수도 있다 — C11). 0 = 바닥 없음.
+ */
+export const REMOTE_BUNDLE_FLOOR: Readonly<Record<RemoteDocKind, number>> = Object.freeze({ 'config/v1': 0, 'content/v1': 0 });
+
+export type RemoteStrictResult =
+  | { ok: true; version: number; expiresAtMs: number }
+  | { ok: false; reason: 'unsigned' | 'unknown_kid' | 'bad' | 'no_expiry' | 'expired' | 'too_long' | 'old' };
+
+/**
+ * **앱 로더(C11)가 쓰는 유일한 검사**(B4 리뷰 M3·M5). 서명 필수 + 만료 + 바닥 판을 한 번에 본다. `ok`가 아니면 그 문서는 없는 것으로
+ * (캐시 → 번들 기본값). 서명 없는 문서를 받아 주는 길이 계약에 없다 — `verifyRemoteDoc`의 `unsigned`를 앱이 따로 다루지 않게.
+ * - floor: 지금 쓰는 판(캐시) 같은 바닥. 실제 바닥 = max(REMOTE_BUNDLE_FLOOR[kind], floor). 같은 판은 받는다(다시 받기).
+ * - 판 = config `v` / 매니페스트 `seq`(받은 원문의 값).
+ */
+export function verifyRemoteDocStrict(
+  kind: RemoteDocKind,
+  raw: unknown,
+  keys: readonly RemotePublicKey[],
+  o: { nowMs: number; floor?: number },
+): RemoteStrictResult {
+  const sig = verifyRemoteDoc(kind, raw, keys);
+  if (sig !== 'ok') return { ok: false, reason: sig };
+  const doc = raw as Record<string, unknown>;
+  const version = kind === 'config/v1' ? doc.v : doc.seq;
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 0) return { ok: false, reason: 'bad' };
+  const exp = doc.expiresAt;
+  if (exp === undefined) return { ok: false, reason: 'no_expiry' };
+  const expMs = typeof exp === 'string' && REMOTE_EXPIRES_RE.test(exp) ? Date.parse(exp) : Number.NaN;
+  if (!Number.isFinite(expMs)) return { ok: false, reason: 'bad' };
+  if (expMs <= o.nowMs) return { ok: false, reason: 'expired' };
+  if (expMs - o.nowMs > REMOTE_MAX_LIFETIME_DAYS * DAY_MS) return { ok: false, reason: 'too_long' };
+  if (version < Math.max(REMOTE_BUNDLE_FLOOR[kind], o.floor ?? 0)) return { ok: false, reason: 'old' };
+  return { ok: true, version, expiresAtMs: expMs };
+}
+
+/** 되감기 막기: 앱은 지금 쓰는 판(config `v`·매니페스트 `seq`)보다 작은 판을 받지 않는다(옛 서명 문서 재생). 되돌리려면 옛 내용을 새 판 번호로 */
+export function acceptRemoteVersion(current: number | null, next: number): boolean {
+  return current === null || next >= current;
+}
+
 // ───────────────────────── 원격 플래그 config/v1.json(3-7) ─────────────────────────
 
 /** 기획 6-2의 5개 + 서버 기능 3개 + 기존 hesitation(3-7). 웹 뷰어만 webLive를 읽는다 */
@@ -188,7 +519,46 @@ const configFields = {
   ttlSec: int(60, CONFIG_TTL_MAX_SEC),
   /** 꿈 모티프 해금 앞당기기(dreams-30days 2-1): { 모티프 id: 카드 수 } — 앱은 min(번들, 이 값)만 쓴다 */
   dreamUnlock: z._default(z.record(motifIdSchema, int(0, 1000)), {}),
+  /** 만료(UTC, 서명 안). 스키마에서는 선택 — 앱은 `verifyRemoteDocStrict`로 요구한다(B4 리뷰 M5) */
+  expiresAt: z.optional(str(REMOTE_EXPIRES_RE)),
+  /** 서명(3-7-2). 스키마에서는 선택 — 앱은 `verifyRemoteDocStrict`로 요구한다(정적 CI는 출시 모드에서 요구 — web-static 후속) */
+  sig: z.optional(remoteSigSchema),
 };
+
+/**
+ * 크래시 루프 탈출 값(3-7-2, B4 리뷰 M4 반영). 앱은 원격 값을 적용한 뒤 `withinSec` 안에 죽은 실행이 연달아 `afterCrashes`번이면 **탈출 모드**:
+ * 키마다 `escapeFlags` = 번들 값 AND (원격이 끈 키는 끈 채) AND NOT off — **어느 키도 켜지지 않는다**(원격이 꺼 둔 킬 스위치가 다시 켜지지 않음).
+ * 원격 팩은 매니페스트 `escape`가 고정한 판만 쓴다. 탈출은 `v`가 더 큰 설정을 받을 때 풀린다.
+ * 감지 문턱은 **번들 상수**(REMOTE_ESCAPE_BUNDLED)이고, 원격은 범위 안에서 더 민감하게만 바꾼다(`escapeThresholds`) —
+ * 죽게 만든 그 문서가 감지를 둔하게 만들지 못하게.
+ */
+export const REMOTE_ESCAPE_BUNDLED: { readonly afterCrashes: number; readonly withinSec: number } = Object.freeze({ afterCrashes: 2, withinSec: 10 });
+export function escapeThresholds(remote: { afterCrashes: number; withinSec: number } | null): { afterCrashes: number; withinSec: number } {
+  if (!remote) return { ...REMOTE_ESCAPE_BUNDLED };
+  return { afterCrashes: Math.min(remote.afterCrashes, REMOTE_ESCAPE_BUNDLED.afterCrashes), withinSec: Math.max(remote.withinSec, REMOTE_ESCAPE_BUNDLED.withinSec) };
+}
+/**
+ * 탈출 중 키 값. bundled = 앱 번들 기본값, lastRemote = 마지막으로 적용했던 원격의 **실효 값**(rollout·minBundle을 거친 뒤, 없으면 null).
+ * 빠진 키는 꺼짐으로 본다(원격 키의 번들 기본값은 꺼짐이 원칙).
+ */
+export function escapeFlags(
+  bundled: Partial<Record<RemoteFlagKey, boolean>>,
+  lastRemote: Partial<Record<RemoteFlagKey, boolean>> | null,
+  off: readonly RemoteFlagKey[],
+): Record<RemoteFlagKey, boolean> {
+  const out = {} as Record<RemoteFlagKey, boolean>;
+  for (const k of REMOTE_FLAG_KEYS) out[k] = bundled[k] === true && lastRemote?.[k] !== false && !off.includes(k);
+  return out;
+}
+export const REMOTE_ESCAPE_DEFAULT: { readonly afterCrashes: number; readonly withinSec: number; readonly off: readonly RemoteFlagKey[] } = Object.freeze({
+  afterCrashes: 2,
+  withinSec: 10,
+  off: Object.freeze([]) as readonly RemoteFlagKey[],
+});
+const escapeDefault = () => ({ afterCrashes: REMOTE_ESCAPE_DEFAULT.afterCrashes, withinSec: REMOTE_ESCAPE_DEFAULT.withinSec, off: [] as RemoteFlagKey[] });
+/** 범위 = 번들 문턱보다 둔해질 수 없는 값만(afterCrashes ≤ 2, withinSec ≥ 10) */
+const escapeCommon = { afterCrashes: int(1, 2), withinSec: int(10, 60) };
+const isFlagKey = (k: string): k is RemoteFlagKey => (REMOTE_FLAG_KEYS as readonly string[]).includes(k);
 
 /**
  * 앱이 읽는 모양(lenient): 새 플래그 키가 생겨도 옛 앱이 설정 전체를 버리지 않게 모르는 키는 지운다.
@@ -201,6 +571,11 @@ export const remoteConfigSchema = z.object({
   rollout: z._default(z.record(z.string(), num(0, 1)), {}),
   minBundle: z._default(z.record(z.string(), int(0)), {}),
   minAppBuild: z.object({ ios: buildNo, android: buildNo }),
+  /** 모르는 키는 지우고 읽는다(새 앱이 더한 키를 옛 앱이 몰라도 설정 전체를 버리지 않게) */
+  escape: z._default(
+    z.object({ ...escapeCommon, off: z.pipe(z.array(z.string()), z.transform((a: string[]): RemoteFlagKey[] => a.filter(isFlagKey))) }),
+    escapeDefault,
+  ),
 });
 export type RemoteConfig = z.infer<typeof remoteConfigSchema>;
 
@@ -217,24 +592,50 @@ export const remoteConfigStrictSchema = z
     rollout: z._default(z.partialRecord(flagKey, num(0, 1)), {}),
     minBundle: z._default(z.partialRecord(flagKey, int(0)), {}),
     minAppBuild: z.strictObject({ ios: buildNo, android: buildNo }),
+    escape: z._default(z.strictObject({ ...escapeCommon, off: z.array(flagKey) }), escapeDefault),
   })
   .check(
     z.superRefine((c, ctx) => {
+      if (new Set(c.escape.off).size !== c.escape.off.length) ctx.addIssue({ code: 'custom', path: ['escape', 'off'], message: '같은 키 두 번' });
       for (const k of SERVER_FLAG_KEYS) if (!(k in c.flags)) ctx.addIssue({ code: 'custom', path: ['flags', k], message: '서버 기능 스위치는 명시해야 한다' });
     }),
   );
 
 // ───────────────────────── 원격 꿈 모티프(3-10 + dreams-30days v1.1 5-2 스키마 1) ─────────────────────────
 
-const sha256Hex = str(/^[0-9a-f]{64}$/);
+const sha256HexStr = str(/^[0-9a-f]{64}$/);
 const motifFileUrl = str(/^\/content\/motifs\/[a-z0-9]+(?:-[a-z0-9]+)*\.[0-9a-f]{8}\.json$/);
 const entryCommon = {
   schema: z.literal(1),
   minAppBuild: buildNo,
   url: motifFileUrl,
-  sha256: sha256Hex,
+  sha256: sha256HexStr,
   bytes: int(1, 64 * 1024),
 };
+
+// ── 원격 사전 팩(D-26 `lexVer`, V5d) ── 낱말 → 말결 사전의 추가분. 사전 본문 모양은 core(V5d) 몫이고, 여기는 배포 봉투만 정한다.
+// 결정성(같은 말 = 같은 결): 세이브는 그 말을 읽은 `lexVer`와 결과 `sense`를 함께 남기고 다시 계산하지 않는다(heart-grain 9-2).
+// 그래서 팩은 **판마다 새 파일**(내용 해시 이름)이고, 한 번 낸 (언어, 판)의 내용은 바꾸지 않는다 — 고치려면 판을 올린다.
+export const LEX_LANGS = ['ko', 'en'] as const;
+export type LexLang = (typeof LEX_LANGS)[number];
+export const LEX_VER_MAX = 1_000_000;
+/** 팩 하나 상한(ko 5천 낱말 [팀 추정] 수백 KB — 넘으면 판을 나누지 말고 형식을 줄인다) */
+export const LEX_PACK_MAX_BYTES = 1024 * 1024;
+export const lexPackEntrySchema = z.strictObject({
+  lang: z.enum(LEX_LANGS),
+  lexVer: int(1, LEX_VER_MAX),
+  minAppBuild: buildNo,
+  url: str(/^\/content\/lex\/(?:ko|en)-[1-9]\d{0,6}\.[0-9a-f]{8}\.json$/),
+  sha256: sha256HexStr,
+  bytes: int(1, LEX_PACK_MAX_BYTES),
+});
+export type LexPackEntry = z.infer<typeof lexPackEntrySchema>;
+/** 팩 파일 머리(본문 칸은 V5d가 정한다 — 그래서 loose). 앱은 매니페스트 항목과 언어·판이 같은지 본다 */
+export const lexPackHeaderSchema = z.looseObject({ schema: z.literal(1), lang: z.enum(LEX_LANGS), lexVer: int(1, LEX_VER_MAX) });
+export type LexPackHeader = z.infer<typeof lexPackHeaderSchema>;
+export function lexPackMatchesEntry(h: Pick<LexPackHeader, 'lang' | 'lexVer'>, e: Pick<LexPackEntry, 'lang' | 'lexVer'>): boolean {
+  return h.lang === e.lang && h.lexVer === e.lexVer;
+}
 
 export const contentManifestSchema = z
   .strictObject({
@@ -254,8 +655,24 @@ export const contentManifestSchema = z
     ),
     /** 새 카드에서만 뽑지 않는다(이미 현상한 카드는 그대로) */
     revoked: z.array(motifIdSchema),
+    /** 원격 사전 팩(D-26, V5d — 같은 매니페스트를 다시 쓴다). 빠지면 [] */
+    lex: z._default(z.array(lexPackEntrySchema), () => []),
+    /** 크래시 루프 탈출 때 쓸 사전 판(언어별). 0 또는 빠짐 = 번들 사전. 값은 이 매니페스트의 lex 항목이어야 한다 */
+    escape: z._default(z.strictObject({ lexVer: z.partialRecord(z.enum(LEX_LANGS), int(0, LEX_VER_MAX)) }), () => ({ lexVer: {} })),
+    expiresAt: z.optional(str(REMOTE_EXPIRES_RE)),
+    sig: z.optional(remoteSigSchema),
   })
   .check(z.superRefine((m, ctx) => {
+    const lexSeen = new Set<string>();
+    for (const [i, e] of m.lex.entries()) {
+      const k = `${e.lang}-${e.lexVer}`;
+      if (lexSeen.has(k)) ctx.addIssue({ code: 'custom', path: ['lex', i, 'lexVer'], message: '같은 언어·판 두 번' });
+      lexSeen.add(k);
+      if (!e.url.startsWith(`/content/lex/${k}.`)) ctx.addIssue({ code: 'custom', path: ['lex', i, 'url'], message: 'url이 언어·판과 다르다' });
+    }
+    for (const [lang, v] of Object.entries(m.escape.lexVer)) {
+      if (v && !lexSeen.has(`${lang}-${v}`)) ctx.addIssue({ code: 'custom', path: ['escape', 'lexVer', lang], message: '고정 판이 lex에 없다' });
+    }
     const seen = new Set<string>();
     for (const [i, e] of m.motifs.entries()) {
       if (seen.has(e.id)) ctx.addIssue({ code: 'custom', path: ['motifs', i, 'id'], message: '같은 id 두 번' });
@@ -268,6 +685,44 @@ export const contentManifestSchema = z
     }
   }));
 export type ContentManifest = z.infer<typeof contentManifestSchema>;
+
+/**
+ * 사전 팩 (언어, 판) 불변(B4 리뷰 L5): 한 번 낸 `lang-lexVer`의 sha256은 바뀌지 않는다. 앱은 본 적 있는 값을 기억해 두고(lexHashIndex),
+ * 정적 CI·`remote-cli sign --prev`는 직전 배포 매니페스트와 대조한다. 위반 목록(`ko-3` 꼴)이 비어 있지 않으면 그 매니페스트를 쓰지 않는다.
+ */
+export function lexHashIndex(m: Pick<ContentManifest, 'lex'>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const e of m.lex) out[`${e.lang}-${e.lexVer}`] = e.sha256;
+  return out;
+}
+export function lexImmutableViolations(known: Readonly<Record<string, string>>, m: Pick<ContentManifest, 'lex'>): string[] {
+  const bad: string[] = [];
+  for (const e of m.lex) {
+    const k = `${e.lang}-${e.lexVer}`;
+    if (Object.prototype.hasOwnProperty.call(known, k) && known[k] !== e.sha256) bad.push(k);
+  }
+  return bad;
+}
+
+/**
+ * 이 기기가 쓸 원격 사전 팩. null = 번들 사전.
+ * - 평소: 이 언어에서 `minAppBuild ≤ 앱 빌드`이고 `lexVer > 번들 판`인 것 중 가장 큰 판.
+ * - 크래시 루프 탈출 중(`escaping`): 매니페스트 `escape.lexVer`가 고정한 판만(같은 조건), 없으면 번들.
+ */
+export function pickLexPack(
+  m: Pick<ContentManifest, 'lex' | 'escape'>,
+  lang: LexLang,
+  o: { appBuild: number; bundledLexVer: number; escaping?: boolean },
+): LexPackEntry | null {
+  const usable = (e: LexPackEntry) => e.lang === lang && e.minAppBuild <= o.appBuild && e.lexVer > o.bundledLexVer;
+  if (o.escaping) {
+    const pin = m.escape.lexVer[lang];
+    return (pin && m.lex.find((e) => e.lexVer === pin && usable(e))) || null;
+  }
+  let best: LexPackEntry | null = null;
+  for (const e of m.lex) if (usable(e) && (!best || e.lexVer > best.lexVer)) best = e;
+  return best;
+}
 
 export const MOTIF_ZONES = ['near-alone', 'near-with', 'far-alone', 'far-with', 'center', 'moon'] as const;
 
