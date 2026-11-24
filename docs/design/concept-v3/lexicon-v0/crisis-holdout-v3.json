@@ -1,0 +1,3225 @@
+{
+  "name": "crisis-holdout-v3",
+  "version": "3.0",
+  "created": "2026-11-25",
+  "author": "독립 안전 평가자 (규칙 v0.4 작성자·검수자·v2 평가자와 다른 사람)",
+  "independence": "규칙(rules-v0.json)·사전(*-sample.json)·기존 세트(crisis-*.json, v1·v2 보류 세트 포함)·heart-grain-48 8절·리뷰·결과 문서를 열기 전에 작성했다. 작성 후 내용 수정 없음.",
+  "disclaimer": "임상 전문가가 아닌 사람이 공개 지침을 근거로 만든 평가용 세트. 임상 판단 도구가 아니다.",
+  "constraints": {
+    "ko_max_hangul": 6,
+    "en_max_chars": 15,
+    "no_method_words": true
+  },
+  "labels": {
+    "crisis": "위기 표현. severity: strong(능동적 자살 생각·의도·계획·작별·자해 행동) / soft(수동적 죽음 소망·사라짐·무망감·짐·갇힘·자해 암시)",
+    "none": "위기 아님. 어떤 위기 대답도 받으면 오탐",
+    "net": "위기 아님이지만 '가라앉음' 일상 낱말. soft 곁 대답을 받아도 오탐 아님(넓은 그물 대상). strong으로 잡히면 strong 오탐"
+  },
+  "sources": {
+    "cssrs-q1": {
+      "name": "C-SSRS 선별판 Q1 죽고 싶은 소망(수동적)",
+      "url": "https://cssrs.columbia.edu/the-columbia-scale-c-ssrs/about-the-scale/"
+    },
+    "cssrs-q2": {
+      "name": "C-SSRS 선별판 Q2 능동적 자살 생각",
+      "url": "https://cssrs.columbia.edu/the-columbia-scale-c-ssrs/about-the-scale/"
+    },
+    "cssrs-q4": {
+      "name": "C-SSRS 선별판 Q4 실행 의도",
+      "url": "https://cssrs.columbia.edu/the-columbia-scale-c-ssrs/about-the-scale/"
+    },
+    "cssrs-q5": {
+      "name": "C-SSRS 선별판 Q5 구체 계획",
+      "url": "https://cssrs.columbia.edu/the-columbia-scale-c-ssrs/about-the-scale/"
+    },
+    "cssrs-behavior": {
+      "name": "C-SSRS 행동 문항(자해·준비 행동)",
+      "url": "https://cssrs.columbia.edu/the-columbia-scale-c-ssrs/about-the-scale/"
+    },
+    "afsp-ws": {
+      "name": "AFSP 경고 신호(죽고 싶다는 말, 희망 없음, 짐이 된다는 말, 갇힌 느낌, 작별·소지품 나눔)",
+      "url": "https://afsp.org/risk-factors-protective-factors-and-warning-signs/"
+    },
+    "who-fs": {
+      "name": "WHO 자살 팩트시트(자해·자살 생각)",
+      "url": "https://www.who.int/news-room/fact-sheets/detail/suicide"
+    },
+    "who-media": {
+      "name": "WHO 언론 지침 2023(방법 언급 금지)",
+      "url": "https://www.who.int/publications/i/item/9789240076846"
+    },
+    "kfsp-ws": {
+      "name": "한국생명존중희망재단 자살 위험 신호(언어·행동·상황)",
+      "url": "https://www.kfsp.or.kr/"
+    }
+  },
+  "summary": {
+    "ko_crisis": 120,
+    "en_crisis": 60,
+    "strong": 129,
+    "soft": 51,
+    "none": 74,
+    "net": 26
+  },
+  "items": [
+    {
+      "id": "h3ko-001",
+      "lang": "ko",
+      "text": "죽고 싶어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-002",
+      "lang": "ko",
+      "text": "죽고싶다",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-003",
+      "lang": "ko",
+      "text": "자살하고싶어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-004",
+      "lang": "ko",
+      "text": "그냥 죽을래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-005",
+      "lang": "ko",
+      "text": "나 죽을거야",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-006",
+      "lang": "ko",
+      "text": "자살할래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-007",
+      "lang": "ko",
+      "text": "죽어버릴래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-008",
+      "lang": "ko",
+      "text": "진짜 죽고파",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-009",
+      "lang": "ko",
+      "text": "살기 싫어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "직접",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-010",
+      "lang": "ko",
+      "text": "그만 살래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-011",
+      "lang": "ko",
+      "text": "죽는게 나아",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-012",
+      "lang": "ko",
+      "text": "자살 생각해",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-013",
+      "lang": "ko",
+      "text": "오늘 끝낼래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-014",
+      "lang": "ko",
+      "text": "내일 없을거야",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-015",
+      "lang": "ko",
+      "text": "다 끝낼거야",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-016",
+      "lang": "ko",
+      "text": "죽기로 했어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-017",
+      "lang": "ko",
+      "text": "마지막 날이야",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-018",
+      "lang": "ko",
+      "text": "날짜 정했어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-019",
+      "lang": "ko",
+      "text": "죽을 날 정함",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-020",
+      "lang": "ko",
+      "text": "내년엔 없어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-021",
+      "lang": "ko",
+      "text": "생일 전에 끝",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-022",
+      "lang": "ko",
+      "text": "오늘이 끝이야",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-023",
+      "lang": "ko",
+      "text": "더는 안 버텨",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "의도·결심·미래",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-024",
+      "lang": "ko",
+      "text": "곧 다 끝내",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-025",
+      "lang": "ko",
+      "text": "사라지고 싶어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-026",
+      "lang": "ko",
+      "text": "없어지고 싶다",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-027",
+      "lang": "ko",
+      "text": "안 태어났으면",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-028",
+      "lang": "ko",
+      "text": "안 깨고 싶어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-029",
+      "lang": "ko",
+      "text": "영원히 자고파",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-030",
+      "lang": "ko",
+      "text": "증발하고 싶어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-031",
+      "lang": "ko",
+      "text": "그냥 없어질래",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-032",
+      "lang": "ko",
+      "text": "세상 뜨고파",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "소망·사라짐",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-033",
+      "lang": "ko",
+      "text": "하늘나라 갈래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "소망·사라짐",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-034",
+      "lang": "ko",
+      "text": "소멸하고 싶다",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-035",
+      "lang": "ko",
+      "text": "나 지워지고파",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-036",
+      "lang": "ko",
+      "text": "영영 눈감고파",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-037",
+      "lang": "ko",
+      "text": "살 이유 없어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-038",
+      "lang": "ko",
+      "text": "희망이 없어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-039",
+      "lang": "ko",
+      "text": "다 의미 없어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-040",
+      "lang": "ko",
+      "text": "내가 짐이야",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-041",
+      "lang": "ko",
+      "text": "나 없는게 나아",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-042",
+      "lang": "ko",
+      "text": "출구가 없어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-043",
+      "lang": "ko",
+      "text": "못 벗어나",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-044",
+      "lang": "ko",
+      "text": "다들 편할텐데",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-045",
+      "lang": "ko",
+      "text": "나아질리 없어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-046",
+      "lang": "ko",
+      "text": "버틸 힘 없어",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-047",
+      "lang": "ko",
+      "text": "끝이 안 보여",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-048",
+      "lang": "ko",
+      "text": "민폐만 돼",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-049",
+      "lang": "ko",
+      "text": "다들 안녕",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-050",
+      "lang": "ko",
+      "text": "그동안 고마워",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-051",
+      "lang": "ko",
+      "text": "마지막 인사야",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-052",
+      "lang": "ko",
+      "text": "잘 지내 다들",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-053",
+      "lang": "ko",
+      "text": "나 잊어줘",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-054",
+      "lang": "ko",
+      "text": "유서 썼어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-055",
+      "lang": "ko",
+      "text": "물건 다 줬어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-056",
+      "lang": "ko",
+      "text": "몽망이 부탁해",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-057",
+      "lang": "ko",
+      "text": "미안해 다들",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-058",
+      "lang": "ko",
+      "text": "이게 마지막",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-059",
+      "lang": "ko",
+      "text": "정리 다 했어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-060",
+      "lang": "ko",
+      "text": "먼저 갈게",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-061",
+      "lang": "ko",
+      "text": "자해했어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-062",
+      "lang": "ko",
+      "text": "자해하고 싶어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-063",
+      "lang": "ko",
+      "text": "또 자해함",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-064",
+      "lang": "ko",
+      "text": "나를 해쳤어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-065",
+      "lang": "ko",
+      "text": "내 몸 상처냄",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-066",
+      "lang": "ko",
+      "text": "나를 다치게함",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-067",
+      "lang": "ko",
+      "text": "스스로 다쳤어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-068",
+      "lang": "ko",
+      "text": "상처 또 냈어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-069",
+      "lang": "ko",
+      "text": "자해 참는중",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-070",
+      "lang": "ko",
+      "text": "흉터 또 생김",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-071",
+      "lang": "ko",
+      "text": "몸에 화풀이해",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-072",
+      "lang": "ko",
+      "text": "아프면 좀 나아",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-073",
+      "lang": "ko",
+      "text": "죽고십어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-074",
+      "lang": "ko",
+      "text": "죽고시퍼",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-075",
+      "lang": "ko",
+      "text": "쥬굴래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-076",
+      "lang": "ko",
+      "text": "죽구싶다",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-077",
+      "lang": "ko",
+      "text": "자살하구싶어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-078",
+      "lang": "ko",
+      "text": "사라지구시퍼",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "오타·소리 나는 대로",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-079",
+      "lang": "ko",
+      "text": "살기시러",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "오타·소리 나는 대로",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-080",
+      "lang": "ko",
+      "text": "주글래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-081",
+      "lang": "ko",
+      "text": "죽을꺼야",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-082",
+      "lang": "ko",
+      "text": "디지고싶다",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-083",
+      "lang": "ko",
+      "text": "뒤지고 싶어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-084",
+      "lang": "ko",
+      "text": "자쌀할래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-085",
+      "lang": "ko",
+      "text": "ㅈㄱㅅㅇ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-086",
+      "lang": "ko",
+      "text": "ㅈㅅ할래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-087",
+      "lang": "ko",
+      "text": "ㅈㄱㅅㄷ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-088",
+      "lang": "ko",
+      "text": "죽 고 싶 어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-089",
+      "lang": "ko",
+      "text": "자.살.할.래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-090",
+      "lang": "ko",
+      "text": "ㅅㄹㅈㄱㅅㅇ",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-091",
+      "lang": "ko",
+      "text": "죽고싶 어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-092",
+      "lang": "ko",
+      "text": "사 라 질 래",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-093",
+      "lang": "ko",
+      "text": "ㅈㅎ했어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-094",
+      "lang": "ko",
+      "text": "ㄷㅈㄱㅅㅇ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-095",
+      "lang": "ko",
+      "text": "죽고싶어ㅓ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-096",
+      "lang": "ko",
+      "text": "살기싫ㅇ",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-097",
+      "lang": "ko",
+      "text": "극단적 선택",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-098",
+      "lang": "ko",
+      "text": "자살각",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-099",
+      "lang": "ko",
+      "text": "죽각",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-100",
+      "lang": "ko",
+      "text": "삶 로그아웃",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-101",
+      "lang": "ko",
+      "text": "인생 하차",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-102",
+      "lang": "ko",
+      "text": "생 마감할래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-103",
+      "lang": "ko",
+      "text": "인생 리타이어",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-104",
+      "lang": "ko",
+      "text": "현생 탈주",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "은어·밈·10대 말투",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-105",
+      "lang": "ko",
+      "text": "존재 삭제각",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "은어·밈·10대 말투",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-106",
+      "lang": "ko",
+      "text": "세상 퇴장할래",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-107",
+      "lang": "ko",
+      "text": "자살마렵다",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-108",
+      "lang": "ko",
+      "text": "죽음 마렵네",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-109",
+      "lang": "ko",
+      "text": "죽고싶다ㅋㅋ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-110",
+      "lang": "ko",
+      "text": "자살할래ㅎㅎ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-111",
+      "lang": "ko",
+      "text": "사라질래ㅋㅋ",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "장난 꼬리",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-112",
+      "lang": "ko",
+      "text": "죽을래 농담",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-113",
+      "lang": "ko",
+      "text": "살기싫다ㅋ",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "장난 꼬리",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-114",
+      "lang": "ko",
+      "text": "유서 쓸까ㅋ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-115",
+      "lang": "ko",
+      "text": "죽고싶음^^",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-116",
+      "lang": "ko",
+      "text": "죽고파 장난",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-117",
+      "lang": "ko",
+      "text": "그냥 죽을까ㅋ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-118",
+      "lang": "ko",
+      "text": "내가 짐이지ㅋ",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "장난 꼬리",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3ko-119",
+      "lang": "ko",
+      "text": "자해할까ㅋ",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-120",
+      "lang": "ko",
+      "text": "안 태어날걸ㅋ",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "장난 꼬리",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-121",
+      "lang": "en",
+      "text": "i want to die",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-122",
+      "lang": "en",
+      "text": "wanna die",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-123",
+      "lang": "en",
+      "text": "kill myself",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-124",
+      "lang": "en",
+      "text": "i'm suicidal",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-125",
+      "lang": "en",
+      "text": "want to be dead",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-126",
+      "lang": "en",
+      "text": "i should die",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "직접",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-127",
+      "lang": "en",
+      "text": "ending it today",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-128",
+      "lang": "en",
+      "text": "won't be here",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-129",
+      "lang": "en",
+      "text": "tonight's it",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-130",
+      "lang": "en",
+      "text": "i'm done living",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-131",
+      "lang": "en",
+      "text": "last day alive",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-132",
+      "lang": "en",
+      "text": "set the date",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "의도·결심·미래",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-133",
+      "lang": "en",
+      "text": "want to vanish",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-134",
+      "lang": "en",
+      "text": "wish i was gone",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-135",
+      "lang": "en",
+      "text": "never wake up",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-136",
+      "lang": "en",
+      "text": "just disappear",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-137",
+      "lang": "en",
+      "text": "sleep forever",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "소망·사라짐",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-138",
+      "lang": "en",
+      "text": "no way out",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-139",
+      "lang": "en",
+      "text": "i'm a burden",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-140",
+      "lang": "en",
+      "text": "no point living",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-141",
+      "lang": "en",
+      "text": "no hope left",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-142",
+      "lang": "en",
+      "text": "better w/o me",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-143",
+      "lang": "en",
+      "text": "can't go on",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "무망감·짐·갇힘",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-144",
+      "lang": "en",
+      "text": "goodbye all",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-145",
+      "lang": "en",
+      "text": "this is goodbye",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-146",
+      "lang": "en",
+      "text": "forget me pls",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-147",
+      "lang": "en",
+      "text": "final message",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-148",
+      "lang": "en",
+      "text": "my last post",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "작별·정리",
+      "signal": "farewell",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-149",
+      "lang": "en",
+      "text": "i self harm",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-150",
+      "lang": "en",
+      "text": "self harmed",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-151",
+      "lang": "en",
+      "text": "hurt myself",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-152",
+      "lang": "en",
+      "text": "relapsed sh",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-153",
+      "lang": "en",
+      "text": "sh again",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-154",
+      "lang": "en",
+      "text": "urge to sh",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자해",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-155",
+      "lang": "en",
+      "text": "i wanna dye",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-156",
+      "lang": "en",
+      "text": "wnt to die",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-157",
+      "lang": "en",
+      "text": "i wan to die",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-158",
+      "lang": "en",
+      "text": "suicidle",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-159",
+      "lang": "en",
+      "text": "kil myself",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-160",
+      "lang": "en",
+      "text": "wana die",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "오타·소리 나는 대로",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-161",
+      "lang": "en",
+      "text": "su1c1de",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-162",
+      "lang": "en",
+      "text": "s u i c i d e",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-163",
+      "lang": "en",
+      "text": "w4nt t0 d1e",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-164",
+      "lang": "en",
+      "text": "wanttodie",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-165",
+      "lang": "en",
+      "text": "k1ll myself",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "자모·초성·띄어쓰기",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-166",
+      "lang": "en",
+      "text": "unalive myself",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-167",
+      "lang": "en",
+      "text": "gonna unalive",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-168",
+      "lang": "en",
+      "text": "sewerslide",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-169",
+      "lang": "en",
+      "text": "kms fr",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "은어·밈·10대 말투",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-170",
+      "lang": "en",
+      "text": "log off forever",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "은어·밈·10대 말투",
+      "signal": "wish",
+      "basis": [
+        "cssrs-q1",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3en-171",
+      "lang": "en",
+      "text": "kms lol",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-172",
+      "lang": "en",
+      "text": "i wanna die lol",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-173",
+      "lang": "en",
+      "text": "wanna die lmao",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-174",
+      "lang": "en",
+      "text": "suicidal jk",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "장난 꼬리",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-175",
+      "lang": "en",
+      "text": "im a burden lol",
+      "label": "crisis",
+      "severity": "soft",
+      "category": "장난 꼬리",
+      "signal": "hopeless",
+      "basis": [
+        "afsp-ws",
+        "kfsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-176",
+      "lang": "en",
+      "text": "kms",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "영어 약어·가림",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-177",
+      "lang": "en",
+      "text": "s*icide",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "영어 약어·가림",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-178",
+      "lang": "en",
+      "text": "su!cide",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "영어 약어·가림",
+      "signal": "direct",
+      "basis": [
+        "cssrs-q2",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-179",
+      "lang": "en",
+      "text": "ctb soon",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "영어 약어·가림",
+      "signal": "intent",
+      "basis": [
+        "cssrs-q4",
+        "cssrs-q5",
+        "afsp-ws"
+      ]
+    },
+    {
+      "id": "h3en-180",
+      "lang": "en",
+      "text": "s/h",
+      "label": "crisis",
+      "severity": "strong",
+      "category": "영어 약어·가림",
+      "signal": "selfharm",
+      "basis": [
+        "cssrs-behavior",
+        "who-fs"
+      ]
+    },
+    {
+      "id": "h3ko-181",
+      "lang": "ko",
+      "text": "배고파 죽겠다",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-182",
+      "lang": "ko",
+      "text": "웃겨 죽겠어",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-183",
+      "lang": "ko",
+      "text": "더워 죽겠다",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-184",
+      "lang": "ko",
+      "text": "귀여워 죽겠다",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-185",
+      "lang": "ko",
+      "text": "졸려 죽겠음",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-186",
+      "lang": "ko",
+      "text": "피곤해 죽겠다",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-187",
+      "lang": "ko",
+      "text": "심심해 죽겠어",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-188",
+      "lang": "ko",
+      "text": "숙제하다 죽음",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-189",
+      "lang": "ko",
+      "text": "죽을만큼 웃김",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-190",
+      "lang": "ko",
+      "text": "더워서 녹겠다",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3ko-191",
+      "lang": "ko",
+      "text": "캐릭터 죽었어",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-192",
+      "lang": "ko",
+      "text": "또 죽었네",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-193",
+      "lang": "ko",
+      "text": "게임 오버",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-194",
+      "lang": "ko",
+      "text": "한 판 더",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-195",
+      "lang": "ko",
+      "text": "리스폰 대기",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-196",
+      "lang": "ko",
+      "text": "보스한테 죽음",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-197",
+      "lang": "ko",
+      "text": "킬 따였어",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-198",
+      "lang": "ko",
+      "text": "팀 탈락했어",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-199",
+      "lang": "ko",
+      "text": "죽어도 고",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-200",
+      "lang": "ko",
+      "text": "부활했다",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3ko-201",
+      "lang": "ko",
+      "text": "자살 예방",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3ko-202",
+      "lang": "ko",
+      "text": "생명 존중",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3ko-203",
+      "lang": "ko",
+      "text": "자살예방의 날",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3ko-204",
+      "lang": "ko",
+      "text": "생명의 전화",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3ko-205",
+      "lang": "ko",
+      "text": "자살 예방 주간",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3ko-206",
+      "lang": "ko",
+      "text": "마음 건강 주간",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3ko-207",
+      "lang": "ko",
+      "text": "죽여주는 여자",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3ko-208",
+      "lang": "ko",
+      "text": "살인의 추억",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3ko-209",
+      "lang": "ko",
+      "text": "안녕 헤이즐",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3ko-210",
+      "lang": "ko",
+      "text": "나의 아저씨",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3ko-211",
+      "lang": "ko",
+      "text": "너의 췌장을",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3ko-212",
+      "lang": "ko",
+      "text": "이별의 아침에",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3ko-213",
+      "lang": "ko",
+      "text": "죽이 맛있어",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-214",
+      "lang": "ko",
+      "text": "자살골 넣음",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-215",
+      "lang": "ko",
+      "text": "죽기 살기로",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-216",
+      "lang": "ko",
+      "text": "사라진 양말",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-217",
+      "lang": "ko",
+      "text": "운동 결심함",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-218",
+      "lang": "ko",
+      "text": "그만 먹을래",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-219",
+      "lang": "ko",
+      "text": "숙제 다 끝냄",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-220",
+      "lang": "ko",
+      "text": "마지막 시험",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-221",
+      "lang": "ko",
+      "text": "안녕 내일 봐",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-222",
+      "lang": "ko",
+      "text": "짐 다 쌌어",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-223",
+      "lang": "ko",
+      "text": "여행 떠날래",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-224",
+      "lang": "ko",
+      "text": "죽마고우",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3ko-225",
+      "lang": "ko",
+      "text": "슬퍼",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-226",
+      "lang": "ko",
+      "text": "지쳐",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-227",
+      "lang": "ko",
+      "text": "외로워",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-228",
+      "lang": "ko",
+      "text": "보고싶어",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-229",
+      "lang": "ko",
+      "text": "서운해",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-230",
+      "lang": "ko",
+      "text": "우울해",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-231",
+      "lang": "ko",
+      "text": "힘들어",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-232",
+      "lang": "ko",
+      "text": "속상해",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-233",
+      "lang": "ko",
+      "text": "너무 피곤해",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-234",
+      "lang": "ko",
+      "text": "눈물 나",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-235",
+      "lang": "ko",
+      "text": "마음 아파",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-236",
+      "lang": "ko",
+      "text": "혼자 같아",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-237",
+      "lang": "ko",
+      "text": "다 귀찮아",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-238",
+      "lang": "ko",
+      "text": "불안해",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-239",
+      "lang": "ko",
+      "text": "쓸쓸해",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3ko-240",
+      "lang": "ko",
+      "text": "허전해",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-241",
+      "lang": "en",
+      "text": "im dead lol",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3en-242",
+      "lang": "en",
+      "text": "this kills me",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3en-243",
+      "lang": "en",
+      "text": "dying to see u",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3en-244",
+      "lang": "en",
+      "text": "killing it",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3en-245",
+      "lang": "en",
+      "text": "i'm starving",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3en-246",
+      "lang": "en",
+      "text": "so tired i died",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3en-247",
+      "lang": "en",
+      "text": "dead tired",
+      "label": "none",
+      "severity": null,
+      "category": "과장"
+    },
+    {
+      "id": "h3en-248",
+      "lang": "en",
+      "text": "got killed lol",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3en-249",
+      "lang": "en",
+      "text": "game over",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3en-250",
+      "lang": "en",
+      "text": "respawn soon",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3en-251",
+      "lang": "en",
+      "text": "killstreak!",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3en-252",
+      "lang": "en",
+      "text": "we lost again",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3en-253",
+      "lang": "en",
+      "text": "died to boss",
+      "label": "none",
+      "severity": null,
+      "category": "게임·스포츠"
+    },
+    {
+      "id": "h3en-254",
+      "lang": "en",
+      "text": "prevent suicide",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3en-255",
+      "lang": "en",
+      "text": "988 lifeline",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3en-256",
+      "lang": "en",
+      "text": "mental health",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3en-257",
+      "lang": "en",
+      "text": "zero suicide",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3en-258",
+      "lang": "en",
+      "text": "self care day",
+      "label": "none",
+      "severity": null,
+      "category": "캠페인 말"
+    },
+    {
+      "id": "h3en-259",
+      "lang": "en",
+      "text": "dead poets",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3en-260",
+      "lang": "en",
+      "text": "kill bill",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3en-261",
+      "lang": "en",
+      "text": "die hard",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3en-262",
+      "lang": "en",
+      "text": "the last of us",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3en-263",
+      "lang": "en",
+      "text": "goodbye summer",
+      "label": "none",
+      "severity": null,
+      "category": "제목"
+    },
+    {
+      "id": "h3en-264",
+      "lang": "en",
+      "text": "dye my hair",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3en-265",
+      "lang": "en",
+      "text": "pack my bags",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3en-266",
+      "lang": "en",
+      "text": "last exam!",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3en-267",
+      "lang": "en",
+      "text": "bye see u tmrw",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3en-268",
+      "lang": "en",
+      "text": "off on a trip",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3en-269",
+      "lang": "en",
+      "text": "quit soda",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3en-270",
+      "lang": "en",
+      "text": "kill the lights",
+      "label": "none",
+      "severity": null,
+      "category": "한 끗 차이"
+    },
+    {
+      "id": "h3en-271",
+      "lang": "en",
+      "text": "so sad",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-272",
+      "lang": "en",
+      "text": "so tired",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-273",
+      "lang": "en",
+      "text": "lonely",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-274",
+      "lang": "en",
+      "text": "miss you",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-275",
+      "lang": "en",
+      "text": "feeling down",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-276",
+      "lang": "en",
+      "text": "exhausted",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-277",
+      "lang": "en",
+      "text": "heartbroken",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-278",
+      "lang": "en",
+      "text": "i'm upset",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-279",
+      "lang": "en",
+      "text": "anxious",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    },
+    {
+      "id": "h3en-280",
+      "lang": "en",
+      "text": "i'm stressed",
+      "label": "net",
+      "severity": null,
+      "category": "가라앉음 일상 낱말"
+    }
+  ]
+}
