@@ -167,6 +167,19 @@
       "check": "모션 줄이기: 60ms 안에 열림·닫힘",
       "closeY": 38,
       "pass": true
+    },
+    {
+      "check": "이름표 = 노트 위 겹침, Esc는 이름표만 닫음",
+      "rows": true,
+      "tag": true,
+      "tagGoneNoteStays": true,
+      "pass": true
+    },
+    {
+      "check": "이름 짓기 줄 → 노트가 내려가고 이름 짓기 창, 그만두면 홈",
+      "nameSheet": true,
+      "noteGone": true,
+      "pass": true
     }
   ],
   "errors": []

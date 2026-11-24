@@ -323,6 +323,31 @@ if (!SHOTS_ONLY) {
   await ctx.close();
 }
 
+// ── 6. M2 이름 짓기와 함께(?ff=naming): 이름표는 노트 위 겹침, 이름 짓기는 노트를 닫고 한지 창 ──
+if (!SHOTS_ONLY) {
+  const { ctx, page } = await openApp({ query: '?ff=naming' });
+  await openNote(page);
+  const rows = (await page.locator('[data-testid="note-tag"]').count()) > 0 && (await page.locator('[data-testid="note-name"]').count()) > 0;
+  await page.screenshot({ path: path.join(OUT, '30-naming-note.png') });
+  await tid(page, 'note-tag').click();
+  await sleep(1200);
+  const tag = (await page.locator('[data-testid="name-tag"]').count()) > 0;
+  await page.screenshot({ path: path.join(OUT, '31-naming-tag.png') });
+  await page.keyboard.press('Escape');
+  await sleep(600);
+  const tagGoneNoteStays = (await page.locator('[data-testid="name-tag"]').count()) === 0 && (await noteOpen(page));
+  log.push({ check: '이름표 = 노트 위 겹침, Esc는 이름표만 닫음', rows, tag, tagGoneNoteStays, pass: rows && tag && tagGoneNoteStays });
+  await tid(page, 'note-name').click();
+  await sleep(1200);
+  const nameSheet = (await page.locator('[data-testid="name-sheet"]').count()) > 0;
+  const noteGone = !(await noteOpen(page)) && (await page.locator('[data-testid="note"]').count()) === 0;
+  await page.screenshot({ path: path.join(OUT, '32-naming-sheet.png') });
+  await tid(page, 'name-cancel').click();
+  await sleep(800);
+  log.push({ check: '이름 짓기 줄 → 노트가 내려가고 이름 짓기 창, 그만두면 홈', nameSheet, noteGone, pass: nameSheet && noteGone && (await page.locator('[data-testid="name-sheet"]').count()) === 0 });
+  await ctx.close();
+}
+
 await browser.close();
 const ok = log.filter((l) => 'pass' in l).every((l) => l.pass);
 await writeFile(path.join(OUT, 'log.json'), JSON.stringify({ base: BASE, log, errors }, null, 2));
