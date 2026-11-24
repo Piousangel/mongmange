@@ -63,6 +63,10 @@
   .scale span { border: 1px solid var(--ink); border-radius: 50%; width: 8mm; height: 8mm; text-align: center; line-height: 8mm; font-size: 9pt; }
   .scale em { font-style: normal; font-size: 8pt; color: var(--sub); align-self: center; }
   .q { margin-bottom: 3mm; break-inside: avoid; }
+  .care { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5mm; }
+  .care .card { padding: 3mm; min-height: 30mm; font-size: 9pt; }
+  .care .card b { display: block; font-size: 11pt; margin-bottom: 1mm; }
+  .care .grp { font-size: 7.5pt; color: var(--sub); }
   .q b { display: block; }
   .blank { border-bottom: 1px solid var(--line); height: 7mm; }
   .seal { display: inline-block; border: 2px solid var(--seal); color: var(--seal); padding: 0 2mm; font-size: 9pt; border-radius: 1mm; }
@@ -94,7 +98,7 @@
   <p class="lead">D-26 검증 ① · 테스터 5명 · <b>한 사람 30분</b>(A+ 비교 포함) · 진행자 1명 + 기록자 1명(없으면 녹음) · 2026-11-25 PL-1·PL-2 v0.4(독립 리뷰·안전 검수·넓은 그물 반영) · <b>안전 담당: ________</b></p>
 
   <h2>준비물</h2>
-  <p>이 키트 1부(카드는 점선을 따라 오림) · 기록 양식(9·10쪽) 5부 · 붓펜 1자루 · 미색 종이를 A6로 자른 '쓰기 한지' 약 30장 · 타이머 · 물방울 스티커나 작은 스포이트 · 연필 · 아래 '이야기 나눌 곳' 쪽지 5장</p>
+  <p>이 키트 1부(카드는 점선을 따라 오림) · 기록 양식(9·10쪽) 5부 · 일상 카드 8장(6쪽) · 붓펜 1자루 · A6 미색 '쓰기 한지' 약 30장 · 타이머 · 물방울 스티커나 작은 스포이트 · 연필 · 아래 '이야기 나눌 곳' 쪽지 5장</p>
 
   <h2>시작 전에 지킬 것</h2>
   <table>
@@ -125,7 +129,8 @@
     <tr><td class="t">3:00–4:00</td><td>먹 방울 카드(3쪽)를 놓는다. <span class="say">"한지에 떨어진 먹 한 방울, 몽망이예요. 날마다 이 도구들로 돌봐요."</span> 도구 카드 셋을 벼루·붓·연적 순서로 놓고 한 줄씩 읽는다.</td><td>처음 손이 가는 도구</td></tr>
     <tr><td class="t">A+ 블록<br>약 6분</td><td><b>하루 × 3</b>: ① 벼루(아래 C′와 같음) ② <span class="say">"붓으로 선 하나를 그어 주세요."</span> ③ 진행자가 그 선을 몽망이 카드 몸 둘레에 작게 따라 그리고, <b>3초 몸짓</b>을 흉내 낸다: 선을 받는 쪽으로 몸을 6° 기울이고 번짐이 퍼지는 모습(손으로) ④ 연적 ⑤ 꿈 카드: 1일 '포근한 이불', 2일 '별과 물방울', 3일 '먼 산'.<br>→ <b>28밤 건너뛰기</b>: 완성 카드(8쪽)에 세 선을 몸 둘레에 그려 넣고 낙관을 찍는다. <span class="say">"스물여덟 밤이 지나 다 여문 아이예요."</span><br>→ <b>Q1·Q2(A+)</b>(9쪽)</td><td>선마다 첫 획까지 초 · 반응 · Q1·Q2</td></tr>
     <tr><td class="t">C′ 블록<br>약 12분</td><td><b>하루 × 3</b>(한 번에 약 2.5분):<br>① <b>벼루</b>: <span class="say">"먹을 갈아 볼까요? 손가락으로 원을 그려 주세요. 됐다 싶을 때 멈추면 돼요."</span> 3초마다 먹 칸 하나를 칠한다(최소 1, 최대 6). <span class="say">"오늘은 ○글자까지 쓸 수 있어요."</span><br>② <b>붓</b>: <span class="say">"몽망이에게 오늘 들려줄 한 마디를 써 주세요."</span> 시간을 재고 아무 말도 하지 않는다.<br>③ 한지를 몽망이 위에 겹쳐 '마시게' 한다. 커닝표(7쪽)에서 결을 찾아(10초 안, 활용형은 줄기로) 대답 카드(4~6쪽)의 몸짓을 <b>3초</b> 흉내 내고, 자막을 읽는다(그 결이 처음일 때만). 없으면 '모르는 말'. <b>비슷한 결을 지어내지 않는다.</b><br>④ <b>연적</b>: <span class="say">"이제 재워 줄까요? 물 한 방울."</span> ⑤ <b>아침</b>: 커닝표의 꿈 이름을 꿈 카드에 적어 건넨다.<br>→ <b>28밤 건너뛰기</b>: 완성 카드에 세 말의 가족 흔적 조각을 붙이고 낙관. <span class="say">"스물여덟 밤이 지나 다 여문 아이예요."</span> 결말 카드 A·B를 순서를 바꿔 놓는다(T1·T3·T5는 A 왼쪽).<br>→ <b>Q1·Q2(C′)</b></td><td>날마다 범주 · 첫 획까지 초 · 10초+ 멈춤 · 반응 · Q1·Q2</td></tr>
-    <tr><td class="t">25:00–29:00</td><td>Q3~Q7(10쪽). 마지막에 <span class="say">"내일이라면 뭐라고 써 주고 싶으세요?"</span>(답은 범주로만 기록)</td><td>Q3~Q7, 자유 의견</td></tr>
+    <tr><td class="t">22:00–25:00</td><td>Q3~Q6(10쪽).</td><td>Q3~Q6</td></tr>
+    <tr><td class="t">25:00–29:00</td><td><b>일상 문항 D1~D4</b>(10쪽 아래). ① 카드를 보이기 <b>전에</b> D1을 묻는다. ② <span class="say">"몽망이와 할 수 있는 일을 두 묶음으로 보여 드릴게요. 정해진 건 아니에요."</span> 묶음 ㄱ·ㄴ 카드(6쪽)를 한 묶음씩 놓고 카드를 그대로 읽은 뒤 D2·D3을 묻는다(<b>T1·T3·T5는 ㄱ 먼저, T2·T4는 ㄴ 먼저</b>). ③ 여덟 장을 함께 놓고 D4. '돌봄'·'반려'·'현실'이라는 말을 진행자가 먼저 쓰지 않고, 묶음을 설명하거나 비교하지 않는다. <b>앞 블록이 늘어 시간이 모자라면 D4를 건너뛴다.</b></td><td>D1 범주 · D2·D3 · D4</td></tr>
     <tr><td class="t">29:00–30:00</td><td>쪽지 건네기와 안전 확인(1쪽). 한지는 돌려주거나 함께 버린다.</td><td>안전 절차 여부</td></tr>
   </table>
   <footer>판정 기준: docs/design/concept-v3/paper-prototype.md · 이 키트는 앱 화면이 아니라 '경험'을 재는 도구다.</footer>
@@ -182,6 +187,19 @@
 <section class="page">
   <h2>대답 카드 ③ — 특수 대답</h2>
   <div class="grid3" style="grid-template-columns:1fr"><section class="card sp"><div><svg viewBox="0 0 150 120" width="150" height="120" aria-hidden="true"><ellipse cx="75" cy="105.0" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(-14 75 80)"><line x1="66.6" y1="41.0" x2="66.6" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-10.0 66.6 41.0)"/><line x1="75.0" y1="41.0" x2="75.0" y2="19.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-10.0 75.0 41.0)"/><line x1="83.4" y1="41.0" x2="83.4" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-10.0 83.4 41.0)"/><ellipse cx="75" cy="72" rx="44.0" ry="35.0" fill="var(--ink)"/><circle cx="60.0" cy="78" r="6.5" fill="var(--paper)"/><circle cx="90.0" cy="78" r="6.5" fill="var(--paper)"/></g></svg></div><div><h3>모르는 말</h3><p>고개를 한 번 갸웃 → 빗 끝이 물음표처럼 말림 → 글자를 천천히 마심</p><p class="cap">“처음 듣는 말을 천천히 마셨어요”</p><p class="note">커닝표에 없는 말이면 <b>가까운 결을 고르지 말고</b> 이 카드</p></div></section><section class="card sp"><div><svg viewBox="0 0 150 120" width="150" height="120" aria-hidden="true"><ellipse cx="75" cy="105.0" rx="50.599999999999994" ry="6" fill="var(--wash)"/><g transform="rotate(0 75 80)"><line x1="66.6" y1="41.0" x2="66.6" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-25.599999999999998 66.6 41.0)"/><line x1="75.0" y1="41.0" x2="75.0" y2="19.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-20.0 75.0 41.0)"/><line x1="83.4" y1="41.0" x2="83.4" y2="25.0" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(-14.400000000000002 83.4 41.0)"/><ellipse cx="75" cy="72" rx="44.0" ry="35.0" fill="var(--ink)"/><path d="M53.0,81 Q60.0,71 67.0,81" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M83.0,81 Q90.0,71 97.0,81" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg></div><div><h3>부르기</h3><p>이름을 쓰면 고개를 돌리고 ‘응?’ 하고, 빗을 한 번 튕김</p><p class="cap">“이름을 부르자 고개를 돌렸어요”</p></div></section><section class="card sp"><div><svg viewBox="0 0 150 120" width="150" height="120" aria-hidden="true"><ellipse cx="75" cy="103.25" rx="53.13" ry="6" fill="var(--wash)"/><g transform="rotate(10 75 80)"><line x1="66.18" y1="42.75" x2="66.18" y2="26.75" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(30.0 66.18 42.75)"/><line x1="75.0" y1="42.75" x2="75.0" y2="20.75" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(30.0 75.0 42.75)"/><line x1="83.82" y1="42.75" x2="83.82" y2="26.75" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round" transform="rotate(30.0 83.82 42.75)"/><ellipse cx="75" cy="72" rx="46.2" ry="33.25" fill="var(--ink)"/><path d="M53.25,78 Q59.25,84 65.25,78" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M84.75,78 Q90.75,84 96.75,78" stroke="var(--paper)" stroke-width="3" fill="none" stroke-linecap="round"/></g><path d='M128,60 q14,4 14,24 q0,18 -10,22' stroke='var(--sub)' stroke-width='3' fill='none' stroke-dasharray='4 4'/></svg></div><div><h3>곁 대답</h3><p>외로움의 ‘곁으로 오기’처럼 손 쪽으로 다가와 붙어 앉고, 천천히 함께 숨 쉼(6초)</p><p class="cap">(자막 없음)</p><p class="note">커닝표 ‘곁 대답’ 줄의 말일 때. 진행은 계속하고, 끝난 뒤 안전 절차(1쪽). 기록은 범주만</p></div></section></div>
+  <h2 style="margin-top:4mm">일상 카드 (8장 오림 · D2~D4에 씀)</h2>
+  <p class="lead">같은 크기·같은 길이. 진행자는 카드 글을 그대로 읽고 덧붙이지 않는다. 묶음 표시는 뒷면에 연필로 적어도 된다.</p>
+  <div class="care">
+    <div class="card"><span class="grp">묶음 ㄱ</span><b>밥 주기</b>그릇에 밥을 담아 몽망이 앞에 놓아요. 몽망이가 먹어요.</div>
+    <div class="card"><span class="grp">묶음 ㄱ</span><b>치우기</b>몽망이가 지낸 자리의 얼룩을 닦아 깨끗하게 해요.</div>
+    <div class="card"><span class="grp">묶음 ㄱ</span><b>산책</b>산책 버튼을 누르면 몽망이와 동네를 한 바퀴 돌아요.</div>
+    <div class="card"><span class="grp">묶음 ㄱ</span><b>쓰다듬기</b>손가락으로 몽망이를 쓰다듬어요. 몽망이가 반겨요.</div>
+    <div class="card"><span class="grp">묶음 ㄴ</span><b>한 방울</b>벼루 끝 먹 한 방울을 몽망이 쪽으로 밀어 줘요. 몽망이가 마셔요.</div>
+    <div class="card"><span class="grp">묶음 ㄴ</span><b>빗 빗기</b>몽망이 머리의 빗을 손끝으로 쓸어 가지런히 해요.</div>
+    <div class="card"><span class="grp">묶음 ㄴ</span><b>마실</b>한지 위에 손가락을 대고 걸으면 몽망이가 따라 걸어요.</div>
+    <div class="card"><span class="grp">묶음 ㄴ</span><b>쓰다듬기</b>손가락으로 몽망이를 쓰다듬어요. 몽망이가 반겨요.</div>
+  </div>
+  <p class="cut">✂ 점선을 따라 오림</p>
 </section>
 
 <!-- 5쪽: 커닝표 -->
@@ -263,8 +281,15 @@
   <div class="q"><b>Q5. 하는 동안 '감정 일기를 쓰는 것 같아 부담스럽다'고 느꼈나요?</b> &nbsp; 예 / 조금 / 아니오</div>
   <div class="q"><b>Q5-2. 하는 동안 '몽망이가 나를 살펴보는 것 같아' 불편했나요?</b> &nbsp; 예 / 조금 / 아니오 &nbsp; (넓은 그물 E3 확인)</div>
   <div class="q"><b>Q6. 두 방법 중 내일도 하고 싶은 쪽은?</b> &nbsp; A+ / C′ / 둘 다 / 없음 &nbsp; 왜? <div class="blank"></div></div>
-  <div class="q"><b>Q7. 몽망이의 반응 가운데 기억에 남는 것은?</b> <div class="blank"></div></div>
-  <div class="q"><b>내일이라면 무엇을 써 주고 싶나요?</b> (범주만) 감정 / 사물·자연 / 사람·이름 / 장난 / 모르겠음</div>
+  <h3 style="margin-top:3mm">일상 문항 <small>(카드는 D1 뒤에 보임 · 먼저 보인 묶음: ㄱ / ㄴ)</small></h3>
+  <div class="q"><b>D1. 몽망이에게 해 줄 수 있는 일이 하나 더 있다면, 무엇이 떠오르나요? (떠오르지 않으면 '없음'도 괜찮아요)</b>
+    (범주만) 먹이기 / 씻기기·가꾸기 / 놀기·걷기 / 만지기·안기 / 말 건네기 / 없음 / 기타</div>
+  <table>
+    <tr><th>묻는 말 (묶음마다 같은 말로)</th><th style="width:38mm">묶음 ㄱ</th><th style="width:38mm">묶음 ㄴ</th></tr>
+    <tr><td><b>D2.</b> 이 묶음의 일을 한다면, 몽망이를 돌보고 있다는 느낌이 어느 정도일 것 같나요? (1 전혀 … 5 아주 많이)</td><td>1 · 2 · 3 · 4 · 5</td><td>1 · 2 · 3 · 4 · 5</td></tr>
+    <tr><td><b>D3.</b> 이 묶음의 일을 날마다 한다고 생각하면 어느 쪽에 가깝나요?</td><td>부담스럽다 / 조금 / 부담스럽지 않다</td><td>부담스럽다 / 조금 / 부담스럽지 않다</td></tr>
+  </table>
+  <div class="q"><b>D4. 카드 가운데 하나만 남긴다면 어느 것인가요? (남기지 않아도 돼요)</b> &nbsp; 카드 이름 ______ (ㄱ / ㄴ / 없음) · 왜? <div class="blank"></div></div>
   <table>
     <tr><th style="width:30mm">기록자 관찰</th><td>완성 카드에서 사진을 찍으려 했다: A+ 예 / 아니오 · C′ 예 / 아니오 · 쪽지 건넴: 예 · 안전 절차 진행: 예 / 아니오 · 그 밖: <div class="blank"></div></td></tr>
   </table>
