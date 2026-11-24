@@ -363,10 +363,10 @@
 | 자리 | ko | en |
 |---|---|---|
 | 늘 있는 항목 제목 | 이야기 나눌 곳 | Someone to talk to |
-| 늘 있는 항목 본문 | 마음이 무거운 날엔 사람과 이야기해도 괜찮아요. 무료이고, 이름을 말하지 않아도 되고, 문자로도 할 수 있어요. | On heavy days, it can help to talk with someone. It's free, you don't have to give your name, and you can text. (필리핀판은 "and you can text"를 뺀다) |
-| strong 쪽지 | 힘든 날을 혼자 견디지 않아도 돼요. 지금 이야기할 수 있는 곳이 있어요. · 버튼 [문자] [카카오톡] [전화] · 맨 아래: 지금 위험하다면 112·119 | You don't have to get through hard days alone. There are people you can talk to right now. · [Text] [Call] · If you're in danger right now, call 911 (NZ 111) |
+| 늘 있는 항목 본문 | **조합(아래 8-4-1)**: 마음이 무거운 날엔 사람과 이야기해도 괜찮아요. {무료 절}{이름 절}{채널 절} | **Composed (8-4-1 below)**: On hard days, it can help to talk with someone. {FREE}{NAME}{CHANNELS} |
+| strong 쪽지 | 힘든 날을 혼자 견디지 않아도 돼요. {지금 줄} · 버튼 = 첫 줄 자원의 채널만(문자·채팅 먼저, 전화 마지막) · 맨 아래 긴급 줄: 지금 위험하다면 {긴급}에 바로 연락할 수 있어요. | You don't have to get through hard days alone. {NOW_LINE} · Buttons = only the first resource's channels (text/chat first, call last) · Emergency line: If you or someone else is in immediate danger, call {EMERGENCY}. |
 | 쪽지 닫기 | 'X' 또는 '닫기'만('괜찮아요' 같은 판단 문구 금지) | 'X' or 'Close' only |
-| 도움말 | 몽망이는 상담을 대신하지 않아요. 이야기 나눌 곳은 노트에 늘 있어요. 지금 위험하다면 112·119에 바로 연락할 수 있어요. | Mongmangi isn't a substitute for support from people. 'Someone to talk to' is always in your notebook. If you're in danger right now, you can call 911. |
+| 도움말 | 몽망이는 상담을 대신하지 않아요. 이야기 나눌 곳은 노트에 늘 있어요. 지금 위험하다면 {긴급}에 바로 연락할 수 있어요. | Mongmangi can't take the place of support from real people. "Someone to talk to" is always in your Studio Notebook. If you or someone else is in immediate danger, call {EMERGENCY}. |
 | **접근성: 모든 3초 대답** | 스크린리더(VoiceOver·TalkBack)에 대답마다 한 줄을 정중한(polite) 알림으로 읽힌다. 처음 3번은 관찰 자막, 그 뒤로는 짧은 라벨(예: "빗이 곤두섰어요") | 같음(en 원작) |
 | **접근성: 곁 대답** | **몽망이가 곁에 와서 함께 숨을 쉬어요** — 외로움 결의 라벨과 같은 계열 문장이라 위기만 튀지 않는다 | **Mongmangi comes close and breathes with you** |
 | 접근성: 쪽지 | 쪽지가 놓이면 "쪽지가 놓였어요" 한 줄 알림. 본문·버튼·닫기에 라벨. **모션 줄이기에서도 쪽지는 나온다** | "A note was left for you." |
@@ -374,6 +374,40 @@
 
 - 문구 규칙: 감시 표현('알아챘어요'), 진단어, 몽망이 1인칭, 느낌표를 쓰지 않는다. '비밀이 지켜져요'는 쓰지 않는다(1388은 생명 위협 때 신고 의무를 안내한다). 명령형 금지의 **예외는 긴급 줄 하나**다('…에 연락할 수 있어요'처럼 분명하게 쓴다).
 - 28밤 결말 B('꿈으로 떠나요')를 남기더라도 죽음·사라짐 비유를 쓰지 않고, '다시 만날 수 있음'을 분명히 한다. 기본안은 '곁에 남기'다.
+
+#### 8-4-1. 나라별 값으로 조합하는 규칙 (11-25, en 검수 H3·H4 반영)
+
+- **정본 데이터**: `docs/ops/crisis-resources.v1.json`(사람용 `docs/ops/crisis-resources.md`). 번호·채널·무료·익명·시간은 **문구에 고정하지 않고** 이 데이터에서 끼운다. 911·112 같은 번호를 문자열 사전에 직접 쓰지 않는다(시험으로 막는다: ko·en 문자열에 긴급 번호 숫자 0).
+- **나라 판정**: 기기 지역 설정의 지역 코드만 쓴다(위치·IP·SIM·스토어 국가 읽지 않음). 코드가 없거나 표에 없으면 `_default`(Find A Helpline + '지금 있는 곳의 긴급 번호'). 앱 언어와 나라는 따로 정한다(예: 한국어 앱 + 지역 NZ → 한국어 문장에 NZ 값).
+- **절을 넣는 조건** — 공식 출처로 확인된 값만 절이 된다. `null`(확인 못 함)이면 그 절을 **빼고**, 다른 말로 채우지 않는다.
+
+| 조각 | 넣는 조건(첫 줄 자원 `primary` 기준) | ko | en |
+|---|---|---|---|
+| {무료 절}·{FREE} | `free.call`과 `free.text`(문자 채널이 있으면)가 모두 `true` | 무료이고, | It's free, |
+| | `free.call = true`, `free.text = "conditional"` | 전화는 무료이고, | Calling is free, |
+| | 그 밖(`null` 포함) | (뺌) | (뺌) |
+| {이름 절}·{NAME} | `anonymousOk = true` | 이름을 말하지 않아도 되고, | you don't have to give your name, |
+| {채널 절}·{CHANNELS} | 첫 줄 자원 채널 종류의 합 | 전화만: 전화로 이야기할 수 있어요. / 전화+문자: 전화나 문자로 할 수 있어요. / 전화+문자+카카오톡: 전화나 문자, 카카오톡으로도 할 수 있어요. | call only: and you can call any time of day. / call+text: and you can call or text. / (+chat: and you can call, text or chat.) |
+| {지금 줄}·{NOW_LINE} | 첫 줄 자원 `hours = "24/7"` | 지금 이야기할 수 있는 곳이 있어요. | There are people you can talk to right now. |
+| | 첫 줄이 디렉터리(`_default`) | 이야기 나눌 곳을 찾아볼 수 있어요. | You can find someone to talk to near you. |
+| {긴급}·{EMERGENCY} | 나라 `emergency` 자원의 `emergencyPhrase` | 112나 119 · 911 · 111 · 지금 있는 곳의 긴급 번호 | 112 or 119 · 911 · 111 · your local emergency number |
+
+- 무료·이름 절이 둘 다 빠지면 채널 절 앞의 연결어를 고친다: ko `…괜찮아요. 전화로 이야기할 수 있어요.`(문장 첫머리), en `…with someone. You can call any time of day.`(대문자, 'and' 뺌). 절이 하나만 남으면 ko `무료이고, 전화나 문자로 할 수 있어요.`, en `It's free, and you can call or text.`처럼 쉼표 하나 + 연결어로 맺는다.
+- **조합 결과 예시(2026-11-25 데이터 기준)** — 구현 시험의 기대값으로 쓴다.
+
+| 나라 | 늘 있는 항목 본문 | 긴급 줄 |
+|---|---|---|
+| KR (ko) | 마음이 무거운 날엔 사람과 이야기해도 괜찮아요. 무료이고, 전화나 문자, 카카오톡으로도 할 수 있어요. | 지금 위험하다면 112나 119에 바로 연락할 수 있어요. |
+| CA (en) | On hard days, it can help to talk with someone. Calling is free, you don't have to give your name, and you can call or text. | If you or someone else is in immediate danger, call 911. |
+| NZ (en) | On hard days, it can help to talk with someone. It's free, and you can call or text. | If you or someone else is in immediate danger, call 111. |
+| PH (en) | On hard days, it can help to talk with someone. You can call any time of day. | If you or someone else is in immediate danger, call 911. |
+| 그 밖 (en) | On hard days, it can help to talk with someone. You can find someone to talk to near you at findahelpline.com. | If you or someone else is in immediate danger, call your local emergency number. |
+| 그 밖 (ko) | 마음이 무거운 날엔 사람과 이야기해도 괜찮아요. findahelpline.com에서 가까운 곳을 찾아볼 수 있어요. | 지금 위험하다면 지금 있는 곳의 긴급 번호로 바로 연락할 수 있어요. |
+
+- **판정이 불확실할 때**(지역 코드 없음): 그 밖의 나라 문장 + '지금 있는 곳의 긴급 번호' 줄을 함께 보여 준다. 표에 있는 나라여도 연락처 화면 맨 아래에 'findahelpline.com' 한 줄을 늘 둔다.
+- **버튼**: 첫 줄 자원에 있는 채널만 만든다. PH는 [Call]만(NCMH는 전화만), NZ 0508 828 865는 전화만. `dial = null`인 채널(예: 휴대전화 1388)은 버튼 대신 안내 문장만 보여 준다.
+- **'지금 바로'**: 첫 줄 자원이 24/7일 때만 쓴다. 시간이 [확인 필요]인 자원(NZ 0508)은 첫 줄로 올리지 않는다.
+- 이 규칙은 8-6 표의 고정 문구('필리핀판은 text를 뺀다', '911 (NZ 111)')를 대신한다. 8-6 표의 값은 정본 데이터 확인 결과(`crisis-resources.md` 7절)와 다를 수 있으며, 다르면 정본이 맞다.
 
 ### 8-5. '이야기 나눌 곳'의 자리 (제안)
 
