@@ -119,6 +119,13 @@ export const en: Messages = {
   'temper.name': '{key, select, tempoNeg {Slow-spread} tempoPos {Quick-breath} boldnessNeg {Fine-tip} boldnessPos {Firm-stroke} closenessNeg {Own-pace} closenessPos {Close-by} curiosityNeg {Homebody} other {Far-gazer}}',
   'card.rendering': 'Developing…',
 
+  // ── shared bottom sheet (ui/BottomSheet) ──
+  'sheet.handle': 'Sheet handle',
+  'sheet.handle.hint': 'Double-tap to close',
+  'sheet.handle.hintAdjust': 'Swipe up or down to resize, double-tap to close',
+  'sheet.close': 'Close',
+  'sheet.closeBackdrop': 'Close',
+
   // ── studio notebook ──
   'note.title': 'Studio Notebook',
   'note.close': 'Close',

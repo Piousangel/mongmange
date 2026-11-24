@@ -1,0 +1,123 @@
+{
+  "base": "http://localhost:8093",
+  "log": [
+    {
+      "shot": "01-note-390",
+      "open": true
+    },
+    {
+      "shot": "02-note-fs200",
+      "open": true
+    },
+    {
+      "shot": "03-note-320",
+      "open": true
+    },
+    {
+      "shot": "04-note-430",
+      "open": true
+    },
+    {
+      "shot": "05-note-rm",
+      "open": true
+    },
+    {
+      "check": "덜 끌면 제자리",
+      "y0": 38,
+      "during": 88,
+      "after": 38,
+      "pass": true
+    },
+    {
+      "check": "위로 과도 당김 저항",
+      "y0": 38,
+      "during": 6.865940093994141,
+      "moved": 31.13405990600586,
+      "after": 38,
+      "pass": true
+    },
+    {
+      "check": "많이 끌어 내리면 닫힘",
+      "pass": true
+    },
+    {
+      "check": "스크롤이 내려가 있으면 내용 드래그로 시트가 닫히지 않음",
+      "scrollTopBefore": 363,
+      "open": true,
+      "pass": true
+    },
+    {
+      "check": "스크롤 맨 위에서 내용 드래그 → 시트가 따라옴",
+      "y0": 38,
+      "during": 104.66667175292969,
+      "pass": true
+    },
+    {
+      "check": "안쪽 탭(언어 라디오) 동작 — 끌기가 탭을 먹지 않음",
+      "pass": true
+    },
+    {
+      "check": "배경 탭 → 닫힘",
+      "pass": true
+    },
+    {
+      "check": "Esc → 닫힘",
+      "pass": true
+    },
+    {
+      "check": "대화상자(aria-modal)·닫기 버튼 라벨",
+      "modal": true,
+      "closeBtn": {
+        "role": "button",
+        "label": "Close"
+      },
+      "pass": true
+    },
+    {
+      "check": "앨범 → 카드 보기 → 돌아가기(노트는 열린 채)",
+      "viewer": true,
+      "pass": true
+    },
+    {
+      "check": "확인판: 처음은 낮은 스냅(35%)",
+      "visible": 295.4000244140625,
+      "pass": true
+    },
+    {
+      "check": "천천히 위로 180 → 가까운 85%",
+      "visible": 717.4000015258789,
+      "pass": true
+    },
+    {
+      "check": "천천히 아래로 100 → 85% 그대로",
+      "visible": 717.4000015258789,
+      "pass": true
+    },
+    {
+      "check": "빠른 아래 튕김 70 → 한 칸만(35%), 닫히지 않음",
+      "visible": 295.4000244140625,
+      "pass": true
+    },
+    {
+      "check": "빠른 위 튕김 90 → 85%",
+      "visible": 717.4000015258789,
+      "pass": true
+    },
+    {
+      "check": "35%에서 내용 위로 200 → 시트가 85%로, 스크롤은 0",
+      "visible": 717.4000015258789,
+      "scrollTop": 0,
+      "pass": true
+    },
+    {
+      "check": "35%에서 아래로 튕김 90 → 닫힘",
+      "pass": true
+    },
+    {
+      "check": "모션 줄이기: 60ms 안에 열림·닫힘",
+      "closeY": 38,
+      "pass": true
+    }
+  ],
+  "errors": []
+}

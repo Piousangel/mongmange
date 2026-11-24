@@ -117,6 +117,13 @@ export const ko = {
   'temper.name': '{key, select, tempoNeg {느긋결} tempoPos {날랜결} boldnessNeg {여린결} boldnessPos {굳센결} closenessNeg {홀로결} closenessPos {곁결} curiosityNeg {아늑결} other {먼눈결}}',
   'card.rendering': '인화 중…',
 
+  // ── 공통 바텀시트(ui/BottomSheet) — 손잡이는 스크린리더에서 조절 막대 ──
+  'sheet.handle': '시트 손잡이',
+  'sheet.handle.hint': '두 번 눌러 닫기',
+  'sheet.handle.hintAdjust': '위아래로 쓸어 크기 바꾸기, 두 번 눌러 닫기',
+  'sheet.close': '닫기',
+  'sheet.closeBackdrop': '닫기',
+
   // ── 공방 노트(아트 7-2) ──
   'note.title': '공방 노트',
   'note.close': '닫기',

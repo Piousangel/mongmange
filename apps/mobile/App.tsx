@@ -13,6 +13,7 @@ import { StrokeScreen } from './src/screens/StrokeScreen';
 import { DreamCardPreview } from './src/render/dreamCard/DreamCardPreview';
 import { M1Board } from './src/screens/M1Board';
 import { IreFramesBoard } from './src/screens/IreFramesBoard';
+import { SheetBoard } from './src/screens/SheetBoard';
 import { NetBridge } from './src/net/NetBridge';
 import { registerIreEncoder } from './src/share/ireVideo';
 import { nativeIreEncoder } from './src/share/ireNativeEncoder';
@@ -47,6 +48,7 @@ function Root() {
       {screen === 'card' && <DreamCardPreview />}
       {screen === 'm1' && <M1Board />}
       {screen === 'ire' && <IreFramesBoard />}
+      {screen === 'sheet' && <SheetBoard />}
       {screen === 'stroke' && <StrokeScreen initial={p.day} />}
       {(screen === 'day' || screen === 'night') && <HomeScreen day={p.day} startNight={screen === 'night'} />}
       {spike !== null && (

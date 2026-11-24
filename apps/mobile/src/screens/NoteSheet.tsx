@@ -4,8 +4,8 @@ import { displayName } from '../game/naming';
 import { NameTag } from './NameTag';
 import { useFeature } from '../features';
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { morningLine, motifName, visibleCaption } from '../game/text';
 import { LANGUAGE_NAMES, clockTime, dayName, t, type LanguagePref } from '../i18n';
@@ -15,11 +15,12 @@ import { ShareBar, cardA11y, cardLabels, nightName } from './cardText';
 import type { Meta } from '../game/store';
 import { PARAMS } from '../render/clock';
 import { KText, track } from '../ui/type';
+import { BottomSheet } from '../ui/BottomSheet';
 import { SANS, SERIF } from './ui';
 
 /**
  * 공방 노트(아트 7-2, D-08): 평범한 목록 UI. 앨범·설정(소리·진동·알림)·접근성·잠/아침 시각·오늘 상태 한 줄.
- * 배경은 제자리에서 페이드, 시트만 아래에서 올라온다(리뷰 U8). 토글은 먹·한지 색 자체 컴포넌트(청록 금지).
+ * 시트·배경·제스처는 공통 BottomSheet(ui/BottomSheet): 배경은 제자리에서 페이드, 시트만 아래에서 올라오고(리뷰 U8) 손잡이·내용을 끌어 닫는다. 토글은 먹·한지 색 자체 컴포넌트(청록 금지).
  * 잠·아침 시각 변경은 sim setTimes 이벤트로 보낸다(검증·첫날 재계산은 sim).
  */
 export function NoteSheet({
@@ -53,7 +54,7 @@ export function NoteSheet({
   const look = useMongLook(state);
   const inkFlag = useFeature('inkChoice');
   const namingFlag = useFeature('naming');
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const [viewing, setViewing] = useState<number | null>(null);
   const [tagOpen, setTagOpen] = useState(false);
   const strokeInks = useStrokeInks(state);
@@ -64,22 +65,6 @@ export function NoteSheet({
     }
   }, [visible]);
   const myName = displayName(state);
-  const insets = useSafeAreaInsets();
-  const [mounted, setMounted] = useState(visible);
-  const k = useSharedValue(0);
-  useEffect(() => {
-    if (visible) {
-      setMounted(true);
-      k.value = withTiming(1, { duration: PARAMS.rm ? 0 : 320, easing: Easing.out(Easing.cubic) });
-    } else if (mounted) {
-      k.value = withTiming(0, { duration: PARAMS.rm ? 0 : 240 }, (done) => {
-        if (done) runOnJS(setMounted)(false);
-      });
-    }
-  }, [visible, mounted, k]);
-  const backSt = useAnimatedStyle(() => ({ opacity: k.value }));
-  const sheetSt = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - k.value) * height * 0.9 }] }));
-
   const s = meta.sound;
   const dry = sim.dryness(state, now);
   const status = [
@@ -90,12 +75,15 @@ export function NoteSheet({
   ].join(' · ');
   const shift = (m: number, d: number) => (m + d + 1440) % 1440;
   return (
-    <Modal visible={mounted} animationType="none" transparent onRequestClose={onClose} statusBarTranslucent>
-      <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backSt]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('note.closeBackdrop')} />
-      </Animated.View>
-      <Animated.View style={[styles.sheet, { maxHeight: height - insets.top - 24, paddingBottom: insets.bottom + 16 }, sheetSt]} accessibilityViewIsModal>
-        <View style={styles.grain} pointerEvents="none" />
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      theme="day"
+      backdropLabel={t('note.closeBackdrop')}
+      announce={t('note.title')}
+      contentContainerStyle={{ paddingBottom: 24 }}
+      testID="note-sheet"
+      header={
         <View style={styles.head}>
           <KText style={styles.title} accessibilityRole="header" serif="title">
             {t('note.title')}
@@ -104,52 +92,55 @@ export function NoteSheet({
             <KText style={styles.closeText}>{t('note.close')}</KText>
           </Pressable>
         </View>
-        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          <KText style={styles.section} serif="title">{t('note.today')}</KText>
-          <KText style={styles.status}>{status}</KText>
-          {saveError !== null && <KText style={[styles.status, { color: PALETTE.day.accent, marginTop: 6 }]}>{t('note.saveError')}</KText>}
-          {onName && (
-            <>
-              <Pressable style={styles.row} onPress={() => setTagOpen(true)} accessibilityRole="button" accessibilityLabel={t('note.tag.a11y')} testID="note-tag">
-                <KText style={styles.rowText}>{t('note.tag')}</KText>
-              </Pressable>
-              <Pressable style={styles.row} onPress={onName} accessibilityRole="button" accessibilityLabel={myName ? t('note.rename', { name: myName }) : t('note.name')} testID="note-name">
-                <KText style={styles.rowText}>{myName ? t('note.rename', { name: myName }) : t('note.name')}</KText>
-              </Pressable>
-            </>
-          )}
-          {onInkChange && state.phase === 'awake' && inkChangeAvailable(state, inkFlag) && (
-            <Pressable style={styles.row} onPress={onInkChange} accessibilityRole="button" accessibilityLabel={t('note.inkChange.a11y')} testID="note-ink-change">
-              <KText style={styles.rowText}>{t('note.inkChange')}</KText>
-            </Pressable>
-          )}
+      }
+      overlay={
+        <>
+          {viewing !== null && state.cards[viewing] && <CardViewer card={state.cards[viewing]!} strokes={state.strokes} look={look} owner={state} onClose={() => setViewing(null)} />}
+          {tagOpen && <NameTag state={state} name={myName} look={look} strokeInks={strokeInks} onClose={() => setTagOpen(false)} />}
+        </>
+      }
+    >
+      <KText style={styles.section} serif="title">{t('note.today')}</KText>
+      <KText style={styles.status}>{status}</KText>
+      {saveError !== null && <KText style={[styles.status, { color: PALETTE.day.accent, marginTop: 6 }]}>{t('note.saveError')}</KText>}
+      {onName && (
+        <>
+          <Pressable style={styles.row} onPress={() => setTagOpen(true)} accessibilityRole="button" accessibilityLabel={t('note.tag.a11y')} testID="note-tag">
+            <KText style={styles.rowText}>{t('note.tag')}</KText>
+          </Pressable>
+          <Pressable style={styles.row} onPress={onName} accessibilityRole="button" accessibilityLabel={myName ? t('note.rename', { name: myName }) : t('note.name')} testID="note-name">
+            <KText style={styles.rowText}>{myName ? t('note.rename', { name: myName }) : t('note.name')}</KText>
+          </Pressable>
+        </>
+      )}
+      {onInkChange && state.phase === 'awake' && inkChangeAvailable(state, inkFlag) && (
+        <Pressable style={styles.row} onPress={onInkChange} accessibilityRole="button" accessibilityLabel={t('note.inkChange.a11y')} testID="note-ink-change">
+          <KText style={styles.rowText}>{t('note.inkChange')}</KText>
+        </Pressable>
+      )}
 
-          <KText style={styles.section} serif="title">{t('note.soundSection')}</KText>
-          <Row label={t('note.sound')} value={s.soundEnabled} onChange={(v) => onMeta({ sound: { ...s, soundEnabled: v } })} />
-          <Row label={t('note.haptics')} value={s.hapticsEnabled} onChange={(v) => onMeta({ sound: { ...s, hapticsEnabled: v } })} />
+      <KText style={styles.section} serif="title">{t('note.soundSection')}</KText>
+      <Row label={t('note.sound')} value={s.soundEnabled} onChange={(v) => onMeta({ sound: { ...s, soundEnabled: v } })} />
+      <Row label={t('note.haptics')} value={s.hapticsEnabled} onChange={(v) => onMeta({ sound: { ...s, hapticsEnabled: v } })} />
 
-          <KText style={styles.section} serif="title">{t('note.notifSection')}</KText>
-          <Row label={t('note.notif')} value={meta.notifEnabled} onChange={onNotif} />
+      <KText style={styles.section} serif="title">{t('note.notifSection')}</KText>
+      <Row label={t('note.notif')} value={meta.notifEnabled} onChange={onNotif} />
 
-          <KText style={styles.section} serif="title">{t('note.timesSection')}</KText>
-          <Stepper label={t('note.bedtime')} value={clockTime(state.bedtimeLocalMin)} onMinus={() => onTimes(shift(state.bedtimeLocalMin, -30), state.morningLocalMin)} onPlus={() => onTimes(shift(state.bedtimeLocalMin, 30), state.morningLocalMin)} />
-          <Stepper label={t('note.morning')} value={clockTime(state.morningLocalMin)} onMinus={() => onTimes(state.bedtimeLocalMin, shift(state.morningLocalMin, -30))} onPlus={() => onTimes(state.bedtimeLocalMin, shift(state.morningLocalMin, 30))} />
+      <KText style={styles.section} serif="title">{t('note.timesSection')}</KText>
+      <Stepper label={t('note.bedtime')} value={clockTime(state.bedtimeLocalMin)} onMinus={() => onTimes(shift(state.bedtimeLocalMin, -30), state.morningLocalMin)} onPlus={() => onTimes(shift(state.bedtimeLocalMin, 30), state.morningLocalMin)} />
+      <Stepper label={t('note.morning')} value={clockTime(state.morningLocalMin)} onMinus={() => onTimes(state.bedtimeLocalMin, shift(state.morningLocalMin, -30))} onPlus={() => onTimes(state.bedtimeLocalMin, shift(state.morningLocalMin, 30))} />
 
-          <KText style={styles.section} serif="title">{t('note.a11ySection')}</KText>
-          <Row label={t('note.listView')} value={meta.listView} onChange={(v) => onMeta({ listView: v })} />
-          <Row label={t('note.assistStroke')} value={meta.assistStroke} onChange={(v) => onMeta({ assistStroke: v })} />
+      <KText style={styles.section} serif="title">{t('note.a11ySection')}</KText>
+      <Row label={t('note.listView')} value={meta.listView} onChange={(v) => onMeta({ listView: v })} />
+      <Row label={t('note.assistStroke')} value={meta.assistStroke} onChange={(v) => onMeta({ assistStroke: v })} />
 
-          <KText style={styles.section} serif="title">{t('note.langSection')}</KText>
-          <LangPicker value={meta.lang} onChange={(lang) => onMeta({ lang })} />
+      <KText style={styles.section} serif="title">{t('note.langSection')}</KText>
+      <LangPicker value={meta.lang} onChange={(lang) => onMeta({ lang })} />
 
-          <KText style={styles.section} serif="title">{t('note.cards', { n: state.cards.length })}</KText>
-          {state.cards.length === 0 && <KText style={styles.status}>{t('note.cardsEmpty')}</KText>}
-          <Album cards={state.cards} strokes={state.strokes} width={width} onOpen={setViewing} look={look} sealSeed={namingFlag ? state.birth.sealSeed : undefined} />
-        </ScrollView>
-      </Animated.View>
-      {viewing !== null && state.cards[viewing] && <CardViewer card={state.cards[viewing]!} strokes={state.strokes} look={look} owner={state} onClose={() => setViewing(null)} />}
-      {tagOpen && <NameTag state={state} name={myName} look={look} strokeInks={strokeInks} onClose={() => setTagOpen(false)} />}
-    </Modal>
+      <KText style={styles.section} serif="title">{t('note.cards', { n: state.cards.length })}</KText>
+      {state.cards.length === 0 && <KText style={styles.status}>{t('note.cardsEmpty')}</KText>}
+      <Album cards={state.cards} strokes={state.strokes} width={width} onOpen={setViewing} look={look} sealSeed={namingFlag ? state.birth.sealSeed : undefined} />
+    </BottomSheet>
   );
 }
 
@@ -286,9 +277,6 @@ function Stepper({ label, value, onMinus, onPlus }: { label: string; value: stri
 }
 
 const styles = StyleSheet.create({
-  backdrop: { backgroundColor: 'rgba(20,18,16,0.38)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: PALETTE.day.bg, borderTopLeftRadius: 14, borderTopRightRadius: 14, paddingHorizontal: 20, paddingTop: 14, overflow: 'hidden' },
-  grain: { position: 'absolute', left: 0, right: 0, top: 0, height: 6, backgroundColor: PALETTE.day.bgShade, opacity: 0.7 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: PALETTE.day.wash },
   title: { fontFamily: SERIF, fontSize: 19, color: PALETTE.day.text, letterSpacing: track.serif(19) },
   close: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'flex-end' },

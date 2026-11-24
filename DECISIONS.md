@@ -444,3 +444,11 @@
 - 캐나다 유지: 통계는 전 세계 기본 꺼짐(동의 뒤 켬, B0 구조 그대로) + 퀘벡 Law 25 영향 평가(PIA) 문서를 팀이 작성.
 - 팀 결정: 맡겨 두기(클라우드 세이브)는 글자를 복원할 수 없는 형태만 올린다(손글씨 전체 점열 업로드 금지 — D-26 '유저 글 기기 밖 0'과 일치, V1 세이브 v3 요구사항). 개인정보 보호책임자 연락처 = hello@mongmang.ink(+ 안심번호 여부는 변호사 확인).
 - [PM] M2 L-3: 이름을 바꿀 때만 `name.firstAt`을 남기는 세이브 칸 추가 승인(고정 기대값은 firstAt 제외 비교).
+
+## 2026-11-24 UI 공통 바텀시트 = gorhom 설계를 참고한 자체 컴포넌트 [잠정 — 실기기(S25·iPhone) 확인 뒤 확정]
+- 맥락: 오너 11-21 "gorhom/react-native-bottom-sheet를 참고해 밀고 당기기를 잘 처리하는 공통 컴포넌트". 앱의 진짜 바텀시트는 공방 노트 하나(Modal + Reanimated, 제스처 없음).
+- 선택: `apps/mobile/src/ui/BottomSheet`(계산은 `sheetMath.ts` 순수 함수). gorhom에서 가져온 설계: 스냅 지점(px·%·content), 놓은 위치 + 0.2초 × 속도 투영, 과도 당김 sqrt 저항(계수 2.5), 손잡이/내용 두 갈래 제스처, 스크롤이 맨 위일 때만 시트가 내려가고 시트가 손가락을 가진 동안 스크롤을 제자리에 묶기(scrollTo). 우리 것: 튕김 기준 500px/s(Material significantVelocityThreshold)면 한 칸만, RNGH v3 훅(`usePanGesture`·`useNativeGesture`), 튀는 스프링 없이 ease-out(아트 8절), 모션 줄이기 = 0ms, PALETTE 낮/밤.
+- 버린 안: **라이브러리 채택**(@gorhom/bottom-sheet 5.2.14, MIT). 까닭 ① 제스처가 RNGH v3에서 레거시로 남은 빌더 API(`Gesture.Pan()`·`Gesture.Native()`)라 우리 v3 훅 제스처와 관계(`simultaneousWith`)를 한 API로 묶을 수 없다 ② 최신판이 2026-05-09로 반년 멈췄고 우리 스택에 걸리는 열린 이슈가 있다 — Reanimated ≥ 4.6 경고 28곳(#2785), Android 뒤로 가기가 모달 대신 화면을 닫음(#2781), Safari 웹 빠른 끌어내림에서 onDismiss 누락(#2749), 스크롤 뒤 드래그가 최상단으로 튐(#2744) ③ `@gorhom/portal` 포함 의존성 2개, npm 풀린 크기 1.33MB(lib/module JS 209KB, 미압축) — 우리 쓰임은 시트 하나 ④ 기본 애니메이션이 스프링이라 아트 8절('스프링은 기쁨에만')에 맞추려면 설정을 다 덮어야 한다. 출처: npm registry `@gorhom/bottom-sheet`, github.com/gorhom/react-native-bottom-sheet/issues/2785·2781·2749·2744, 패키지 소스 5.2.14 대조.
+- 지키는 것: 부모가 `visible`을 쥔다(제어형) — 배경 탭·Android 뒤로 가기·웹 Esc·끌어 닫기·손잡이 두 번 탭(스크린리더) 모두 `onClose`. 포커스는 Modal이 가둔다(iOS `accessibilityViewIsModal`, 웹 RNW 포커스 트랩). 손잡이는 스크린리더에서 버튼(스냅 하나)·조절 막대(둘 이상), 웹에서는 그림만(RNGH 웹이 role=button 요소에는 포인터 캡처를 하지 않아 마우스가 밖으로 나가면 끌기가 끊김). 키보드 회피는 iOS만 시트를 올리고 Android는 Modal 창 adjustResize, 웹은 브라우저.
+- 옮긴 것: 공방 노트(NoteSheet). 옮기지 않은 것과 이유: 개발 메뉴(DevPanel — 겹치지 않는 펼침판이라 모달로 바꾸면 게임을 가리고 캡처 스크립트의 'DEV 다시 눌러 닫기'가 깨진다), 알림 묻기 카드(답해야 하는 질문 — 끌어 닫기를 '아니요'로 볼지는 기획 결정), 먹 네 자루·공유 버튼·아침 한지(시트가 아니다).
+- 증거: `apps/mobile/test/bottom-sheet-math.test.ts`(26), `node scripts/sheet-capture.mjs <url> docs/app/bottom-sheet/after`(Playwright 마우스 드래그 18항목) → `docs/app/bottom-sheet/{before,after}/`.

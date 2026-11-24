@@ -1,0 +1,26 @@
+{
+  "base": "http://localhost:8093",
+  "log": [
+    {
+      "shot": "01-note-390",
+      "open": true
+    },
+    {
+      "shot": "02-note-fs200",
+      "open": true
+    },
+    {
+      "shot": "03-note-320",
+      "open": true
+    },
+    {
+      "shot": "04-note-430",
+      "open": true
+    },
+    {
+      "shot": "05-note-rm",
+      "open": true
+    }
+  ],
+  "errors": []
+}
