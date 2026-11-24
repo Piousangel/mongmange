@@ -1,0 +1,111 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - link "Mongmangi":
+    - /url: /en
+  - navigation "Site":
+    - list:
+      - listitem:
+        - link "About":
+          - /url: /en
+      - listitem:
+        - link "Facts":
+          - /url: /en/facts
+      - listitem:
+        - link "Press kit":
+          - /url: /en/press
+      - listitem:
+        - link "Privacy":
+          - /url: /en/privacy
+      - listitem:
+        - link "한국어":
+          - /url: /facts
+- main:
+  - heading "Facts about Mongmangi" [level=1]
+  - paragraph:
+    - text: "Last checked:"
+    - time: 2026-11-25
+  - region "What it is":
+    - heading "What it is" [level=2]
+    - paragraph: One word in ink, twenty-eight nights.
+    - paragraph: A mobile game about raising Mongmangi, a drop of ink on paper. Each day you write one word with a brush, and Mongmangi drinks the letters and answers with its body. It grows this way over twenty-eight nights.
+  - region "How a day goes":
+    - heading "How a day goes" [level=2]
+    - list:
+      - listitem: Grind ink on the inkstone. How long you grind sets how much ink there is and how dark it is.
+      - listitem: Write the word of the day with the brush, a single word. The longest stroke of your writing stays on its body.
+      - listitem: Set it down at the water dropper. The water loosens the word into that night’s dream.
+    - paragraph: After 28 nights, a Mongmangi grown from the words you wrote remains. No scores or numbers appear on screen. It is still in development, so the details are being refined through testing.
+  - region "Basics":
+    - heading "Basics" [level=2]
+    - term: Platforms
+    - definition: iOS, Android
+    - term: Languages
+    - definition: Korean, English
+    - term: Price
+    - definition: Free to download
+    - term: Age
+    - definition: 14 and over
+    - term: Release
+    - definition: In development. The date is set after testing
+    - term: Made by
+    - definition: One independent developer
+    - term: Contact
+    - definition: hello@mongmang.ink
+  - region "Privacy":
+    - heading "Privacy" [level=2]
+    - heading "Now" [level=3]
+    - list:
+      - listitem: This site uses no cookies and no analytics tools.
+      - listitem: The only personal information we receive now is test sign-up email. It is deleted 30 days after the official launch.
+    - heading "Principles we are building to" [level=3]
+    - list:
+      - listitem: The word you write each day is being built to be read on your device.
+      - listitem: Usage statistics are being built to be off by default and sent only if you pass the age check and turn them on yourself.
+      - listitem: Share links and cloud backup are being built to exist only if you turn them on, and to be deletable in the app.
+    - paragraph:
+      - link "Read the pre-launch privacy notice":
+        - /url: /en/privacy
+  - region "What it does not have":
+    - heading "What it does not have" [level=2]
+    - list:
+      - listitem: Loot boxes
+      - listitem: Ads that cover the screen
+      - listitem: Energy limits
+      - listitem: Selling what you raised (strokes, ink, grain)
+      - listitem: A feed of strangers’ drawings
+      - listitem: Generative AI making pictures or text in the app
+  - region "Frequently asked questions":
+    - heading "Frequently asked questions" [level=2]
+    - heading "What is Mongmangi?" [level=3]
+    - paragraph: A mobile game about raising a drop of ink on paper for twenty-eight nights. Each day you write one word with a brush, Mongmangi drinks the letters and answers with its body, and each morning leaves a dream card.
+    - heading "When does it come out?" [level=3]
+    - paragraph: It is in development. The date is set after testing. Right now we are preparing a closed test on Android.
+    - heading "Is it free?" [level=3]
+    - paragraph: It is free to download. We do not put in loot boxes or ads that cover the screen.
+    - heading "Which devices does it run on?" [level=3]
+    - paragraph: iPhone (iOS) and Android phones. It is available in Korean and English.
+    - heading "Does my handwriting go to a server?" [level=3]
+    - paragraph: We are building it so your handwriting is read on your device. The handwriting feature is still being made, so the confirmed details will be in the Privacy Policy at launch.
+    - heading "Does AI draw the pictures?" [level=3]
+    - paragraph: No. The app draws Mongmangi’s body and dreams by fixed rules.
+    - heading "What age is it for?" [level=3]
+    - paragraph: It is made for people aged 14 and over.
+    - heading "Who makes it?" [level=3]
+    - paragraph: One person makes it. Please write to hello@mongmang.ink.
+  - paragraph: The facts on this page come from our development records. When a fact changes, this page is updated first.
+- contentinfo:
+  - paragraph: Mongmangi · hello@mongmang.ink
+  - list:
+    - listitem:
+      - link "Facts":
+        - /url: /en/facts
+    - listitem:
+      - link "Press kit":
+        - /url: /en/press
+    - listitem:
+      - link "Privacy":
+        - /url: /en/privacy
+    - listitem:
+      - link "Delete what you stored":
+        - /url: /delete

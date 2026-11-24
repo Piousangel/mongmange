@@ -1,0 +1,91 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - link "Mongmangi":
+    - /url: /en
+  - navigation "Site":
+    - list:
+      - listitem:
+        - link "About":
+          - /url: /en
+      - listitem:
+        - link "Facts":
+          - /url: /en/facts
+      - listitem:
+        - link "Press kit":
+          - /url: /en/press
+      - listitem:
+        - link "Privacy":
+          - /url: /en/privacy
+      - listitem:
+        - link "한국어":
+          - /url: /press
+- main:
+  - heading "Press kit" [level=1]
+  - paragraph: Materials for articles and features, in one place.
+  - paragraph: One word in ink, twenty-eight nights.
+  - paragraph: A mobile game about raising Mongmangi, a drop of ink on paper. Each day you write one word with a brush, and Mongmangi drinks the letters and answers with its body. It grows this way over twenty-eight nights.
+  - region "Basics":
+    - heading "Basics" [level=2]
+    - term: Platforms
+    - definition: iOS, Android
+    - term: Languages
+    - definition: Korean, English
+    - term: Price
+    - definition: Free to download
+    - term: Age
+    - definition: 14 and over
+    - term: Release
+    - definition: In development. The date is set after testing
+    - term: Made by
+    - definition: One independent developer
+    - term: Contact
+    - definition: hello@mongmang.ink
+    - paragraph:
+      - link "Facts about Mongmangi":
+        - /url: /en/facts
+  - region "Screenshots":
+    - heading "Screenshots" [level=2]
+    - paragraph: All are actual app screens. Select an image to download the original.
+    - figure "Actual app screen · Download original":
+      - link "Mongmangi, a small drop of ink on paper, with both eyes open and three short strokes on its head":
+        - /url: /img/face.jpg
+        - img "Mongmangi, a small drop of ink on paper, with both eyes open and three short strokes on its head"
+      - text: Actual app screen ·
+      - link "Download original":
+        - /url: /img/face.jpg
+    - figure "Actual app screen · Download original":
+      - link "The first-week scroll, titled The First Seven Days, Mongmangi’s seven nights. Seven morning dream cards from Day 1 to Day 7 zigzag down the page. On each card Mongmangi sleeps with its eyes closed inside spreading ink patterns, and from Day 5 it sits in one of two teacups":
+        - /url: /img/first-ire.en.jpg
+        - img "The first-week scroll, titled The First Seven Days, Mongmangi’s seven nights. Seven morning dream cards from Day 1 to Day 7 zigzag down the page. On each card Mongmangi sleeps with its eyes closed inside spreading ink patterns, and from Day 5 it sits in one of two teacups"
+      - text: Actual app screen ·
+      - link "Download original":
+        - /url: /img/first-ire.en.jpg
+  - region "Logo and icon":
+    - heading "Logo and icon" [level=2]
+    - paragraph: In preparation. The icon will be posted here after it is chosen in testing.
+  - region "Video":
+    - heading "Video" [level=2]
+    - paragraph: In preparation.
+  - region "Who makes it":
+    - heading "Who makes it" [level=2]
+    - paragraph: One independent developer.
+  - region "Contact":
+    - heading "Contact" [level=2]
+    - paragraph: Send interview and material requests to the address below.
+    - paragraph: hello@mongmang.ink
+- contentinfo:
+  - paragraph: Mongmangi · hello@mongmang.ink
+  - list:
+    - listitem:
+      - link "Facts":
+        - /url: /en/facts
+    - listitem:
+      - link "Press kit":
+        - /url: /en/press
+    - listitem:
+      - link "Privacy":
+        - /url: /en/privacy
+    - listitem:
+      - link "Delete what you stored":
+        - /url: /delete

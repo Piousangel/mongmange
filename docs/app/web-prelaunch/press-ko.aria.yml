@@ -1,0 +1,91 @@
+- link "본문으로 건너뛰기":
+  - /url: "#main"
+- banner:
+  - link "몽망이 키우기":
+    - /url: /
+  - navigation "사이트":
+    - list:
+      - listitem:
+        - link "소개":
+          - /url: /
+      - listitem:
+        - link "사실":
+          - /url: /facts
+      - listitem:
+        - link "프레스킷":
+          - /url: /press
+      - listitem:
+        - link "개인정보":
+          - /url: /privacy
+      - listitem:
+        - link "English":
+          - /url: /en/press
+- main:
+  - heading "프레스킷" [level=1]
+  - paragraph: 기사와 소개에 필요한 자료를 한곳에 모았어요.
+  - paragraph: 먹으로 쓴 한 마디, 스물여덟 밤.
+  - paragraph: 한지 위의 먹 한 방울, 몽망이를 키우는 모바일 게임이에요. 날마다 붓으로 낱말 하나를 쓰면 몽망이가 그 글자를 마시고 몸으로 대답해요. 스물여덟 밤 동안 그렇게 자라요.
+  - region "기본 정보":
+    - heading "기본 정보" [level=2]
+    - term: 플랫폼
+    - definition: iOS, Android
+    - term: 언어
+    - definition: 한국어, 영어
+    - term: 가격
+    - definition: 무료로 내려받아요
+    - term: 대상 연령
+    - definition: 만 14세 이상
+    - term: 출시
+    - definition: 준비 중. 날짜는 테스트를 마친 뒤 정해요
+    - term: 만든 사람
+    - definition: 1인 개발
+    - term: 문의
+    - definition: hello@mongmang.ink
+    - paragraph:
+      - link "몽망이 키우기에 대한 사실":
+        - /url: /facts
+  - region "스크린샷":
+    - heading "스크린샷" [level=2]
+    - paragraph: 모두 실제 앱 화면이에요. 그림을 눌러 원본을 받을 수 있어요.
+    - figure "실제 앱 화면 · 원본 받기":
+      - link "한지 위의 작은 먹 방울 몽망이가 두 눈을 뜨고 있다. 머리 위로 짧은 획 세 개가 뻗어 있다":
+        - /url: /img/face.jpg
+        - img "한지 위의 작은 먹 방울 몽망이가 두 눈을 뜨고 있다. 머리 위로 짧은 획 세 개가 뻗어 있다"
+      - text: 실제 앱 화면 ·
+      - link "원본 받기":
+        - /url: /img/face.jpg
+    - figure "실제 앱 화면 · 원본 받기":
+      - link "첫 이레 두루마리. 제목 첫 이레, 몽망이의 일곱 밤. 첫날부터 이레째까지 아침 꿈 카드 일곱 장이 지그재그로 이어진다. 카드마다 눈을 감은 몽망이가 번지는 먹 무늬 속에 있고, 닷새째부터는 찻잔 두 개에 몽망이가 잠겨 있다":
+        - /url: /img/first-ire.ko.jpg
+        - img "첫 이레 두루마리. 제목 첫 이레, 몽망이의 일곱 밤. 첫날부터 이레째까지 아침 꿈 카드 일곱 장이 지그재그로 이어진다. 카드마다 눈을 감은 몽망이가 번지는 먹 무늬 속에 있고, 닷새째부터는 찻잔 두 개에 몽망이가 잠겨 있다"
+      - text: 실제 앱 화면 ·
+      - link "원본 받기":
+        - /url: /img/first-ire.ko.jpg
+  - region "로고와 아이콘":
+    - heading "로고와 아이콘" [level=2]
+    - paragraph: 준비 중이에요. 아이콘은 테스트에서 고른 뒤 이곳에 올려요.
+  - region "영상":
+    - heading "영상" [level=2]
+    - paragraph: 준비 중이에요.
+  - region "만든 사람":
+    - heading "만든 사람" [level=2]
+    - paragraph: 1인 개발이에요.
+  - region "연락처":
+    - heading "연락처" [level=2]
+    - paragraph: 취재와 자료 요청은 아래 주소로 보내 주세요.
+    - paragraph: hello@mongmang.ink
+- contentinfo:
+  - paragraph: 몽망이 키우기 · hello@mongmang.ink
+  - list:
+    - listitem:
+      - link "사실":
+        - /url: /facts
+    - listitem:
+      - link "프레스킷":
+        - /url: /press
+    - listitem:
+      - link "개인정보":
+        - /url: /privacy
+    - listitem:
+      - link "맡겨 둔 것 지우기":
+        - /url: /delete

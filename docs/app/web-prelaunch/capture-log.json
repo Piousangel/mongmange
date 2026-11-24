@@ -1,0 +1,741 @@
+{
+  "builtWith": "fake injected values (not deploy values)",
+  "warnings": [
+    "처리방침 정본에 [ ] 내부 메모·오너 기입 칸 46곳 — 출시 모드(SITE_MODE=launch)는 이대로면 빌드 실패(K32)"
+  ],
+  "port": 4517,
+  "shots": [
+    {
+      "file": "home-ko-w320.png",
+      "url": "/",
+      "width": 320,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "ko",
+      "h": [
+        "H1:몽망이 키우기",
+        "H2:겨울에 만나요",
+        "H2:테스트에 함께해 주세요",
+        "H2:더 보기"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 52,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.ko.jpg",
+          "alt": 125,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "home-ko-w430.png",
+      "url": "/",
+      "width": 430,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "lang": "ko",
+      "h": [
+        "H1:몽망이 키우기",
+        "H2:겨울에 만나요",
+        "H2:테스트에 함께해 주세요",
+        "H2:더 보기"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 52,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.ko.jpg",
+          "alt": 125,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "home-ko-w320-fs200.png",
+      "url": "/",
+      "width": 320,
+      "fontScale": 200,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "ko",
+      "h": [
+        "H1:몽망이 키우기",
+        "H2:겨울에 만나요",
+        "H2:테스트에 함께해 주세요",
+        "H2:더 보기"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 52,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.ko.jpg",
+          "alt": 125,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "home-en-w320.png",
+      "url": "/en",
+      "width": 320,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "en",
+      "h": [
+        "H1:Mongmangi",
+        "H2:See you in winter",
+        "H2:Help us test",
+        "H2:More"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 96,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.en.jpg",
+          "alt": 272,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "home-en-w430.png",
+      "url": "/en",
+      "width": 430,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "lang": "en",
+      "h": [
+        "H1:Mongmangi",
+        "H2:See you in winter",
+        "H2:Help us test",
+        "H2:More"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 96,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.en.jpg",
+          "alt": 272,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "home-en-w320-fs200.png",
+      "url": "/en",
+      "width": 320,
+      "fontScale": 200,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "en",
+      "h": [
+        "H1:Mongmangi",
+        "H2:See you in winter",
+        "H2:Help us test",
+        "H2:More"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 96,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.en.jpg",
+          "alt": 272,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "press-ko-w320.png",
+      "url": "/press",
+      "width": 320,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "ko",
+      "h": [
+        "H1:프레스킷",
+        "H2:기본 정보",
+        "H2:스크린샷",
+        "H2:로고와 아이콘",
+        "H2:영상",
+        "H2:만든 사람",
+        "H2:연락처"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 52,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.ko.jpg",
+          "alt": 125,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "press-ko-w430.png",
+      "url": "/press",
+      "width": 430,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "lang": "ko",
+      "h": [
+        "H1:프레스킷",
+        "H2:기본 정보",
+        "H2:스크린샷",
+        "H2:로고와 아이콘",
+        "H2:영상",
+        "H2:만든 사람",
+        "H2:연락처"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 52,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.ko.jpg",
+          "alt": 125,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "press-ko-w320-fs200.png",
+      "url": "/press",
+      "width": 320,
+      "fontScale": 200,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "ko",
+      "h": [
+        "H1:프레스킷",
+        "H2:기본 정보",
+        "H2:스크린샷",
+        "H2:로고와 아이콘",
+        "H2:영상",
+        "H2:만든 사람",
+        "H2:연락처"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 52,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.ko.jpg",
+          "alt": 125,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "press-en-w320.png",
+      "url": "/en/press",
+      "width": 320,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "en",
+      "h": [
+        "H1:Press kit",
+        "H2:Basics",
+        "H2:Screenshots",
+        "H2:Logo and icon",
+        "H2:Video",
+        "H2:Who makes it",
+        "H2:Contact"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 96,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.en.jpg",
+          "alt": 272,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "press-en-w430.png",
+      "url": "/en/press",
+      "width": 430,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "lang": "en",
+      "h": [
+        "H1:Press kit",
+        "H2:Basics",
+        "H2:Screenshots",
+        "H2:Logo and icon",
+        "H2:Video",
+        "H2:Who makes it",
+        "H2:Contact"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 96,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.en.jpg",
+          "alt": 272,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "press-en-w320-fs200.png",
+      "url": "/en/press",
+      "width": 320,
+      "fontScale": 200,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "en",
+      "h": [
+        "H1:Press kit",
+        "H2:Basics",
+        "H2:Screenshots",
+        "H2:Logo and icon",
+        "H2:Video",
+        "H2:Who makes it",
+        "H2:Contact"
+      ],
+      "imgs": [
+        {
+          "src": "/img/face.jpg",
+          "alt": 96,
+          "loaded": true
+        },
+        {
+          "src": "/img/first-ire.en.jpg",
+          "alt": 272,
+          "loaded": true
+        }
+      ],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "facts-ko-w320.png",
+      "url": "/facts",
+      "width": 320,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "ko",
+      "h": [
+        "H1:몽망이 키우기에 대한 사실",
+        "H2:무엇인가요",
+        "H2:하루는 이렇게 흘러요",
+        "H2:기본 정보",
+        "H2:개인정보",
+        "H3:지금",
+        "H3:준비 중인 원칙",
+        "H2:하지 않는 것",
+        "H2:자주 묻는 질문",
+        "H3:몽망이 키우기는 어떤 게임인가요?",
+        "H3:언제 나오나요?",
+        "H3:무료인가요?",
+        "H3:어떤 기기에서 할 수 있나요?",
+        "H3:제가 쓴 글씨가 서버로 가나요?",
+        "H3:AI가 그림을 그려 주나요?",
+        "H3:몇 살부터 할 수 있나요?",
+        "H3:누가 만드나요?"
+      ],
+      "imgs": [],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "facts-ko-w430.png",
+      "url": "/facts",
+      "width": 430,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "lang": "ko",
+      "h": [
+        "H1:몽망이 키우기에 대한 사실",
+        "H2:무엇인가요",
+        "H2:하루는 이렇게 흘러요",
+        "H2:기본 정보",
+        "H2:개인정보",
+        "H3:지금",
+        "H3:준비 중인 원칙",
+        "H2:하지 않는 것",
+        "H2:자주 묻는 질문",
+        "H3:몽망이 키우기는 어떤 게임인가요?",
+        "H3:언제 나오나요?",
+        "H3:무료인가요?",
+        "H3:어떤 기기에서 할 수 있나요?",
+        "H3:제가 쓴 글씨가 서버로 가나요?",
+        "H3:AI가 그림을 그려 주나요?",
+        "H3:몇 살부터 할 수 있나요?",
+        "H3:누가 만드나요?"
+      ],
+      "imgs": [],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "facts-ko-w320-fs200.png",
+      "url": "/facts",
+      "width": 320,
+      "fontScale": 200,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "ko",
+      "h": [
+        "H1:몽망이 키우기에 대한 사실",
+        "H2:무엇인가요",
+        "H2:하루는 이렇게 흘러요",
+        "H2:기본 정보",
+        "H2:개인정보",
+        "H3:지금",
+        "H3:준비 중인 원칙",
+        "H2:하지 않는 것",
+        "H2:자주 묻는 질문",
+        "H3:몽망이 키우기는 어떤 게임인가요?",
+        "H3:언제 나오나요?",
+        "H3:무료인가요?",
+        "H3:어떤 기기에서 할 수 있나요?",
+        "H3:제가 쓴 글씨가 서버로 가나요?",
+        "H3:AI가 그림을 그려 주나요?",
+        "H3:몇 살부터 할 수 있나요?",
+        "H3:누가 만드나요?"
+      ],
+      "imgs": [],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "facts-en-w320.png",
+      "url": "/en/facts",
+      "width": 320,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "en",
+      "h": [
+        "H1:Facts about Mongmangi",
+        "H2:What it is",
+        "H2:How a day goes",
+        "H2:Basics",
+        "H2:Privacy",
+        "H3:Now",
+        "H3:Principles we are building to",
+        "H2:What it does not have",
+        "H2:Frequently asked questions",
+        "H3:What is Mongmangi?",
+        "H3:When does it come out?",
+        "H3:Is it free?",
+        "H3:Which devices does it run on?",
+        "H3:Does my handwriting go to a se",
+        "H3:Does AI draw the pictures?",
+        "H3:What age is it for?",
+        "H3:Who makes it?"
+      ],
+      "imgs": [],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "facts-en-w430.png",
+      "url": "/en/facts",
+      "width": 430,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "lang": "en",
+      "h": [
+        "H1:Facts about Mongmangi",
+        "H2:What it is",
+        "H2:How a day goes",
+        "H2:Basics",
+        "H2:Privacy",
+        "H3:Now",
+        "H3:Principles we are building to",
+        "H2:What it does not have",
+        "H2:Frequently asked questions",
+        "H3:What is Mongmangi?",
+        "H3:When does it come out?",
+        "H3:Is it free?",
+        "H3:Which devices does it run on?",
+        "H3:Does my handwriting go to a se",
+        "H3:Does AI draw the pictures?",
+        "H3:What age is it for?",
+        "H3:Who makes it?"
+      ],
+      "imgs": [],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "facts-en-w320-fs200.png",
+      "url": "/en/facts",
+      "width": 320,
+      "fontScale": 200,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "en",
+      "h": [
+        "H1:Facts about Mongmangi",
+        "H2:What it is",
+        "H2:How a day goes",
+        "H2:Basics",
+        "H2:Privacy",
+        "H3:Now",
+        "H3:Principles we are building to",
+        "H2:What it does not have",
+        "H2:Frequently asked questions",
+        "H3:What is Mongmangi?",
+        "H3:When does it come out?",
+        "H3:Is it free?",
+        "H3:Which devices does it run on?",
+        "H3:Does my handwriting go to a se",
+        "H3:Does AI draw the pictures?",
+        "H3:What age is it for?",
+        "H3:Who makes it?"
+      ],
+      "imgs": [],
+      "ld": 1,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "privacy-ko-w320.png",
+      "url": "/privacy",
+      "width": 320,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "ko",
+      "h": [
+        "H1:출시 전 개인정보 안내",
+        "H2:지금 받는 것",
+        "H2:쓰는 곳",
+        "H2:받는 길",
+        "H2:지우는 때",
+        "H2:이 사이트",
+        "H2:문의",
+        "H2:앞으로"
+      ],
+      "imgs": [],
+      "ld": 0,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "privacy-ko-w430.png",
+      "url": "/privacy",
+      "width": 430,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "lang": "ko",
+      "h": [
+        "H1:출시 전 개인정보 안내",
+        "H2:지금 받는 것",
+        "H2:쓰는 곳",
+        "H2:받는 길",
+        "H2:지우는 때",
+        "H2:이 사이트",
+        "H2:문의",
+        "H2:앞으로"
+      ],
+      "imgs": [],
+      "ld": 0,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "privacy-ko-w320-fs200.png",
+      "url": "/privacy",
+      "width": 320,
+      "fontScale": 200,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "ko",
+      "h": [
+        "H1:출시 전 개인정보 안내",
+        "H2:지금 받는 것",
+        "H2:쓰는 곳",
+        "H2:받는 길",
+        "H2:지우는 때",
+        "H2:이 사이트",
+        "H2:문의",
+        "H2:앞으로"
+      ],
+      "imgs": [],
+      "ld": 0,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "privacy-en-w320.png",
+      "url": "/en/privacy",
+      "width": 320,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "en",
+      "h": [
+        "H1:Pre-launch privacy notice",
+        "H2:What we receive now",
+        "H2:What it is used for",
+        "H2:How it reaches us",
+        "H2:When it is deleted",
+        "H2:This site",
+        "H2:Contact",
+        "H2:Next"
+      ],
+      "imgs": [],
+      "ld": 0,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "privacy-en-w430.png",
+      "url": "/en/privacy",
+      "width": 430,
+      "fontScale": 100,
+      "overflowX": false,
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "lang": "en",
+      "h": [
+        "H1:Pre-launch privacy notice",
+        "H2:What we receive now",
+        "H2:What it is used for",
+        "H2:How it reaches us",
+        "H2:When it is deleted",
+        "H2:This site",
+        "H2:Contact",
+        "H2:Next"
+      ],
+      "imgs": [],
+      "ld": 0,
+      "externalRequests": [],
+      "consoleErrors": []
+    },
+    {
+      "file": "privacy-en-w320-fs200.png",
+      "url": "/en/privacy",
+      "width": 320,
+      "fontScale": 200,
+      "overflowX": false,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "lang": "en",
+      "h": [
+        "H1:Pre-launch privacy notice",
+        "H2:What we receive now",
+        "H2:What it is used for",
+        "H2:How it reaches us",
+        "H2:When it is deleted",
+        "H2:This site",
+        "H2:Contact",
+        "H2:Next"
+      ],
+      "imgs": [],
+      "ld": 0,
+      "externalRequests": [],
+      "consoleErrors": []
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - link "Mongmangi":
+    - /url: /en
+  - navigation "Site":
+    - list:
+      - listitem:
+        - link "About":
+          - /url: /en
+      - listitem:
+        - link "Facts":
+          - /url: /en/facts
+      - listitem:
+        - link "Press kit":
+          - /url: /en/press
+      - listitem:
+        - link "Privacy":
+          - /url: /en/privacy
+      - listitem:
+        - link "한국어":
+          - /url: /privacy
+- main:
+  - heading "Pre-launch privacy notice" [level=1]
+  - paragraph: Mongmangi has not launched yet. This notice covers the personal information this site and the test sign-up handle right now.
+  - region "What we receive now":
+    - heading "What we receive now" [level=2]
+    - paragraph: Only email asking to join the closed test on Android. We receive your email address and what you write.
+  - region "What it is used for":
+    - heading "What it is used for" [level=2]
+    - paragraph: Only to add your address to the tester list of the Google Play closed test and to send you test information.
+  - region "How it reaches us":
+    - heading "How it reaches us" [level=2]
+    - paragraph: Email sent to hello@mongmang.ink is forwarded to the operator’s Gmail. It is not stored on our servers.
+  - region "When it is deleted":
+    - heading "When it is deleted" [level=2]
+    - paragraph: 30 days after the official launch, we delete the email we received and your address in the tester list. If you ask earlier, we delete it right away.
+  - region "This site":
+    - heading "This site" [level=2]
+    - paragraph: It uses no cookies, analytics tools or ad tracking. The pages run no scripts.
+  - region "Contact":
+    - heading "Contact" [level=2]
+    - paragraph: hello@mongmang.ink
+  - region "Next":
+    - heading "Next" [level=2]
+    - paragraph: When the app launches, the full Privacy Policy for the app will be posted at this address.
+- contentinfo:
+  - paragraph: Mongmangi · hello@mongmang.ink
+  - list:
+    - listitem:
+      - link "Facts":
+        - /url: /en/facts
+    - listitem:
+      - link "Press kit":
+        - /url: /en/press
+    - listitem:
+      - link "Privacy":
+        - /url: /en/privacy
+    - listitem:
+      - link "Delete what you stored":
+        - /url: /delete

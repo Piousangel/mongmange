@@ -1,0 +1,72 @@
+- link "본문으로 건너뛰기":
+  - /url: "#main"
+- banner:
+  - link "몽망이 키우기":
+    - /url: /
+  - navigation "사이트":
+    - list:
+      - listitem:
+        - link "소개":
+          - /url: /
+      - listitem:
+        - link "사실":
+          - /url: /facts
+      - listitem:
+        - link "프레스킷":
+          - /url: /press
+      - listitem:
+        - link "개인정보":
+          - /url: /privacy
+      - listitem:
+        - link "English":
+          - /url: /en
+- main:
+  - heading "몽망이 키우기" [level=1]
+  - paragraph: 먹으로 쓴 한 마디, 스물여덟 밤.
+  - paragraph: 한지 위의 먹 한 방울, 몽망이를 키우는 모바일 게임이에요. 날마다 붓으로 낱말 하나를 쓰면 몽망이가 그 글자를 마시고 몸으로 대답해요. 스물여덟 밤 동안 그렇게 자라요.
+  - figure "실제 앱 화면":
+    - img "한지 위의 작은 먹 방울 몽망이가 두 눈을 뜨고 있다. 머리 위로 짧은 획 세 개가 뻗어 있다"
+    - text: 실제 앱 화면
+  - figure "실제 앱 화면":
+    - img "첫 이레 두루마리. 제목 첫 이레, 몽망이의 일곱 밤. 첫날부터 이레째까지 아침 꿈 카드 일곱 장이 지그재그로 이어진다. 카드마다 눈을 감은 몽망이가 번지는 먹 무늬 속에 있고, 닷새째부터는 찻잔 두 개에 몽망이가 잠겨 있다"
+    - text: 실제 앱 화면
+  - region "겨울에 만나요":
+    - heading "겨울에 만나요" [level=2]
+    - paragraph: 아직 만들고 있어요. 테스트를 마치면 스토어에서 만날 수 있어요.
+  - region "테스트에 함께해 주세요":
+    - heading "테스트에 함께해 주세요" [level=2]
+    - paragraph: Android 비공개 테스트에 함께할 분을 찾고 있어요. 14일 동안 앱을 지우지 않고 두면 돼요. 하루 한 번 열어 주면 더 좋아요.
+    - paragraph: 만 14세 이상이고, Android 폰과 Google Play에 로그인된 Gmail 주소가 있으면 돼요.
+    - paragraph: 아래 주소로 테스트에 함께하고 싶다고 메일을 보내 주세요. 받은 주소는 테스터 등록과 연락에만 쓰고, 정식 출시 30일 뒤 지워요.
+    - paragraph: hello@mongmang.ink
+    - paragraph: iPhone 테스트는 아직 열지 않았어요.
+  - region "더 보기":
+    - heading "더 보기" [level=2]
+    - list:
+      - listitem:
+        - link "몽망이 키우기에 대한 사실":
+          - /url: /facts
+      - listitem:
+        - link "프레스킷":
+          - /url: /press
+      - listitem:
+        - link "개인정보":
+          - /url: /privacy
+      - listitem:
+        - link "맡겨 둔 것 지우기":
+          - /url: /delete
+- contentinfo:
+  - paragraph: 몽망이 키우기 · hello@mongmang.ink
+  - list:
+    - listitem:
+      - link "사실":
+        - /url: /facts
+    - listitem:
+      - link "프레스킷":
+        - /url: /press
+    - listitem:
+      - link "개인정보":
+        - /url: /privacy
+    - listitem:
+      - link "맡겨 둔 것 지우기":
+        - /url: /delete

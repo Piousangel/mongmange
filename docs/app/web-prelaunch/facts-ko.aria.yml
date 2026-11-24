@@ -1,0 +1,111 @@
+- link "본문으로 건너뛰기":
+  - /url: "#main"
+- banner:
+  - link "몽망이 키우기":
+    - /url: /
+  - navigation "사이트":
+    - list:
+      - listitem:
+        - link "소개":
+          - /url: /
+      - listitem:
+        - link "사실":
+          - /url: /facts
+      - listitem:
+        - link "프레스킷":
+          - /url: /press
+      - listitem:
+        - link "개인정보":
+          - /url: /privacy
+      - listitem:
+        - link "English":
+          - /url: /en/facts
+- main:
+  - heading "몽망이 키우기에 대한 사실" [level=1]
+  - paragraph:
+    - text: "마지막 확인:"
+    - time: 2026-11-25
+  - region "무엇인가요":
+    - heading "무엇인가요" [level=2]
+    - paragraph: 먹으로 쓴 한 마디, 스물여덟 밤.
+    - paragraph: 한지 위의 먹 한 방울, 몽망이를 키우는 모바일 게임이에요. 날마다 붓으로 낱말 하나를 쓰면 몽망이가 그 글자를 마시고 몸으로 대답해요. 스물여덟 밤 동안 그렇게 자라요.
+  - region "하루는 이렇게 흘러요":
+    - heading "하루는 이렇게 흘러요" [level=2]
+    - list:
+      - listitem: 벼루에 먹을 갈아요. 간 만큼 먹의 양과 진하기가 정해져요.
+      - listitem: 붓으로 오늘의 한 마디, 낱말 하나를 써요. 글씨의 가장 긴 획은 몸에 남아요.
+      - listitem: 연적에 내려놓아요. 물이 말을 풀어 그날 밤 꿈이 돼요.
+    - paragraph: 28밤이 지나면 그동안 쓴 말로 자란 몽망이가 남아요. 화면에 점수나 수치는 보이지 않아요. 개발 중이라 세부는 테스트로 다듬고 있어요.
+  - region "기본 정보":
+    - heading "기본 정보" [level=2]
+    - term: 플랫폼
+    - definition: iOS, Android
+    - term: 언어
+    - definition: 한국어, 영어
+    - term: 가격
+    - definition: 무료로 내려받아요
+    - term: 대상 연령
+    - definition: 만 14세 이상
+    - term: 출시
+    - definition: 준비 중. 날짜는 테스트를 마친 뒤 정해요
+    - term: 만든 사람
+    - definition: 1인 개발
+    - term: 문의
+    - definition: hello@mongmang.ink
+  - region "개인정보":
+    - heading "개인정보" [level=2]
+    - heading "지금" [level=3]
+    - list:
+      - listitem: 이 사이트는 쿠키와 분석 도구를 쓰지 않아요.
+      - listitem: 지금 받는 개인정보는 테스트 신청 메일뿐이에요. 정식 출시 30일 뒤 지워요.
+    - heading "준비 중인 원칙" [level=3]
+    - list:
+      - listitem: 날마다 쓰는 한 마디는 기기 안에서 읽도록 만들고 있어요.
+      - listitem: 이용 통계는 기본으로 꺼 두고, 만 14세 확인을 통과한 분이 직접 켰을 때만 보내도록 만들고 있어요.
+      - listitem: 공유 링크와 클라우드 보관은 켠 분에게만 생기고, 앱 안에서 지울 수 있게 만들고 있어요.
+    - paragraph:
+      - link "출시 전 개인정보 안내 보기":
+        - /url: /privacy
+  - region "하지 않는 것":
+    - heading "하지 않는 것" [level=2]
+    - list:
+      - listitem: 확률형 아이템
+      - listitem: 화면을 가리는 광고
+      - listitem: 에너지 제한
+      - listitem: 키운 결과(획·먹·결)를 파는 것
+      - listitem: 모르는 사람의 그림이 흐르는 피드
+      - listitem: 앱 안에서 생성형 AI가 그림이나 글을 만드는 것
+  - region "자주 묻는 질문":
+    - heading "자주 묻는 질문" [level=2]
+    - heading "몽망이 키우기는 어떤 게임인가요?" [level=3]
+    - paragraph: 한지 위의 먹 한 방울을 스물여덟 밤 동안 키우는 모바일 게임이에요. 날마다 붓으로 낱말 하나를 쓰면 몽망이가 그 글자를 마시고 몸으로 대답하고, 아침마다 꿈 카드가 한 장 남아요.
+    - heading "언제 나오나요?" [level=3]
+    - paragraph: 준비 중이에요. 날짜는 테스트를 마친 뒤 정해요. 지금은 Android 비공개 테스트를 준비하고 있어요.
+    - heading "무료인가요?" [level=3]
+    - paragraph: 무료로 내려받아요. 확률형 아이템과 화면을 가리는 광고는 넣지 않아요.
+    - heading "어떤 기기에서 할 수 있나요?" [level=3]
+    - paragraph: iPhone(iOS)과 Android 폰이에요. 한국어와 영어를 지원해요.
+    - heading "제가 쓴 글씨가 서버로 가나요?" [level=3]
+    - paragraph: 글씨는 기기 안에서 읽도록 만들고 있어요. 손글씨 기능은 아직 만드는 중이라, 확정된 내용은 출시 때 개인정보처리방침에 적어요.
+    - heading "AI가 그림을 그려 주나요?" [level=3]
+    - paragraph: 아니요. 몽망이의 몸과 꿈은 앱이 정해진 규칙으로 그려요.
+    - heading "몇 살부터 할 수 있나요?" [level=3]
+    - paragraph: 만 14세 이상을 대상으로 만들어요.
+    - heading "누가 만드나요?" [level=3]
+    - paragraph: 혼자 만들고 있어요. 문의는 hello@mongmang.ink로 보내 주세요.
+  - paragraph: 이 페이지의 사실은 개발 기록에서 옮겼어요. 사실이 바뀌면 이 페이지를 먼저 고쳐요.
+- contentinfo:
+  - paragraph: 몽망이 키우기 · hello@mongmang.ink
+  - list:
+    - listitem:
+      - link "사실":
+        - /url: /facts
+    - listitem:
+      - link "프레스킷":
+        - /url: /press
+    - listitem:
+      - link "개인정보":
+        - /url: /privacy
+    - listitem:
+      - link "맡겨 둔 것 지우기":
+        - /url: /delete

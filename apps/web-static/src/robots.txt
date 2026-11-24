@@ -3,3 +3,6 @@ Allow: /
 # /m/ 는 막지 않는다 — 막으면 크롤러가 noindex(헤더·meta)를 읽지 못해 주소(링크 코드)만 색인될 수 있다(B0 리뷰 I6)
 Disallow: /config/
 Disallow: /content/
+# AI 크롤러(검색용·학습용 모두)도 위 규칙 그대로 — 따로 막지 않는다(PM 11-25 G3, docs/strategy/geo-v1.md 5절)
+
+Sitemap: {{SITE_ORIGIN}}/sitemap.xml

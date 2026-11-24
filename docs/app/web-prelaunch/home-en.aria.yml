@@ -1,0 +1,72 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - link "Mongmangi":
+    - /url: /en
+  - navigation "Site":
+    - list:
+      - listitem:
+        - link "About":
+          - /url: /en
+      - listitem:
+        - link "Facts":
+          - /url: /en/facts
+      - listitem:
+        - link "Press kit":
+          - /url: /en/press
+      - listitem:
+        - link "Privacy":
+          - /url: /en/privacy
+      - listitem:
+        - link "한국어":
+          - /url: /
+- main:
+  - heading "Mongmangi" [level=1]
+  - paragraph: One word in ink, twenty-eight nights.
+  - paragraph: A mobile game about raising Mongmangi, a drop of ink on paper. Each day you write one word with a brush, and Mongmangi drinks the letters and answers with its body. It grows this way over twenty-eight nights.
+  - figure "Actual app screen":
+    - img "Mongmangi, a small drop of ink on paper, with both eyes open and three short strokes on its head"
+    - text: Actual app screen
+  - figure "Actual app screen":
+    - img "The first-week scroll, titled The First Seven Days, Mongmangi’s seven nights. Seven morning dream cards from Day 1 to Day 7 zigzag down the page. On each card Mongmangi sleeps with its eyes closed inside spreading ink patterns, and from Day 5 it sits in one of two teacups"
+    - text: Actual app screen
+  - region "See you in winter":
+    - heading "See you in winter" [level=2]
+    - paragraph: It is still being made. Once testing is done, it will be on the stores.
+  - region "Help us test":
+    - heading "Help us test" [level=2]
+    - paragraph: We are looking for people to join a closed test on Android. Keep the app installed for 14 days. Opening it once a day helps even more.
+    - paragraph: You need to be 14 or over, with an Android phone and a Gmail address signed in to Google Play.
+    - paragraph: Email the address below to say you would like to join. We use your address only to register you as a tester and to contact you, and delete it 30 days after the official launch.
+    - paragraph: hello@mongmang.ink
+    - paragraph: Testing on iPhone has not opened yet.
+  - region "More":
+    - heading "More" [level=2]
+    - list:
+      - listitem:
+        - link "Facts about Mongmangi":
+          - /url: /en/facts
+      - listitem:
+        - link "Press kit":
+          - /url: /en/press
+      - listitem:
+        - link "Privacy":
+          - /url: /en/privacy
+      - listitem:
+        - link "Delete what you stored":
+          - /url: /delete
+- contentinfo:
+  - paragraph: Mongmangi · hello@mongmang.ink
+  - list:
+    - listitem:
+      - link "Facts":
+        - /url: /en/facts
+    - listitem:
+      - link "Press kit":
+        - /url: /en/press
+    - listitem:
+      - link "Privacy":
+        - /url: /en/privacy
+    - listitem:
+      - link "Delete what you stored":
+        - /url: /delete

@@ -84,16 +84,28 @@ describe('정상 빌드', () => {
     expect(al[0].target.sha256_cert_fingerprints).toEqual([FP1, FP2]);
   });
 
-  it('파일 목록: 딥링크 둘·config·content·/delete·랜딩·robots (src/.gitkeep 제외, /m은 Cloud Run이라 정적 파일 없음)', () => {
+  it('파일 목록: 딥링크 둘·config·content·/delete·출시 전 판(한·영 /·facts·press·privacy = 출시 전 개인정보 안내)·그림·sitemap·llms·robots (src/.gitkeep 제외, /m은 Cloud Run이라 정적 파일 없음)', () => {
     const { r } = out();
-    expect(r.files).toEqual([
+    expect([...r.files].sort()).toEqual([
       '.well-known/apple-app-site-association',
       '.well-known/assetlinks.json',
       'config/v1.json',
       'content/v1.json',
       'delete/index.html',
+      'en/facts/index.html',
+      'en/index.html',
+      'en/press/index.html',
+      'en/privacy/index.html',
+      'facts/index.html',
+      'img/face.jpg',
+      'img/first-ire.en.jpg',
+      'img/first-ire.ko.jpg',
       'index.html',
+      'llms.txt',
+      'press/index.html',
+      'privacy/index.html',
       'robots.txt',
+      'sitemap.xml',
     ]);
   });
 
@@ -173,17 +185,17 @@ describe('그럴듯한 오답 — 검사가 잡아야 하는 고장', () => {
     writeFileSync(join(d, 'content/v1.json'), JSON.stringify({ v: 1, seq: 1, motifs: [{ ...entry, url: '/content/motifs/w2027-06-crane.00000000.json' }], revoked: [] }));
     expect(fails(ENV, d)).toMatch(/파일 .* 없다/);
   });
-  it('랜딩 페이지에 분석 스크립트·비콘·외부 주소가 들어오면 실패', () => {
-    for (const inject of ['<script src="https://www.googletagmanager.com/gtag/js"></script>', '<img src="https://tracker.example/p.gif">', '<!-- navigator.sendBeacon -->']) {
+  it('손으로 쓴 페이지(/delete)에 분석 스크립트·비콘·외부 주소가 들어오면 실패(생성 페이지는 check() 시험에서)', () => {
+    for (const inject of ['<script src="https://www.googletagmanager.com/gtag/js"></script>', '<img src="https://tracker.example/p.gif" alt="x" width="1" height="1">', '<!-- navigator.sendBeacon -->']) {
       const d = srcCopy();
-      const p = join(d, 'index.html');
+      const p = join(d, 'delete/index.html');
       writeFileSync(p, readFileSync(p, 'utf8').replace('</main>', `${inject}</main>`));
       expect(fails(ENV, d), inject).toMatch(/외부 스크립트|분석|허용 밖 외부 주소/);
     }
   });
   it('새 {{자리}}를 만들고 값을 안 넣으면 실패', () => {
     const d = srcCopy();
-    const p = join(d, 'index.html');
+    const p = join(d, 'delete/index.html');
     writeFileSync(p, readFileSync(p, 'utf8').replace('</main>', '{{NEW_SECRET}}</main>'));
     expect(fails(ENV, d)).toMatch(/채워지지 않은/);
   });
