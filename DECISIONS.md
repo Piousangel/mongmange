@@ -481,3 +481,9 @@
 - 증거: 변이 7개(console.log 설치 id — 린트·stdout 시험 둘 다, 결속 검사 제거, OTA 그룹 대신 api IP, 채널 키 검사 제거, fingerprint 변환 제거, fail-closed 제거, 설치 id 덮기 제거) 모두 잡힘 → 되돌린 뒤 cmp 일치. 실제 export 재스모크(게시 롤·자동 런타임·channel 키): 매니페스트 200·openssl Verified OK·에셋 53/53.
 - `ready: true`는 PM이 바꾼다(H1·H2·M2·M3 반영 완료, 남은 체크리스트 = ota-self-host.md 8절).
 - [PM 11-25, 웹 리뷰] 출시 전 사이트의 /privacy는 '출시 전 개인정보 안내'(지금 수집하는 것 = 테스터 신청 메일뿐, 출시 30일 뒤 삭제)로 대체하고, 전체 처리방침 v3.1은 '출시 모드' 빌드에서만 렌더(내부 메모·기입 칸이 렌더 HTML에 하나라도 있으면 빌드 실패). 사이트 문구에서 '광고·결제 없음' 같은 D-05보다 강한 약속, 출시 시기 날짜는 쓰지 않는다.
+
+## 2026-11-25 V24 앱 OTA 확인 (DV-1, `docs/design/server-v1/ota-self-host.md` 8-1절)
+
+- 선택: ① 첫 실행 세션은 묻지 않고, 둘째 실행부터 기기 현지 날짜로 하루 1회(콜드 스타트·다시 앞으로 때 판정, 시도를 먼저 기록 — 실패도 1회) ② 새 판·`rollBackToEmbedded` 지시 모두 `fetchUpdateAsync`로 받기만, **적용은 다음 콜드 스타트뿐 — `reloadAsync` 금지**(정적 시험) ③ 개발·웹·모듈 없음·`isEnabled` false = 아무것도 안 함(저장 0) ④ 실패·시간 초과(15초·120초) 조용히, 사용자 문구·로그 0 ⑤ 크래시 루프: 백그라운드를 거치지 않고 끝난 실행 2번 연달아면 하루 제한을 건너뛰고 바로 묻는다(첫 화면 뒤 루프는 expo-updates 내장 복구가 못 잡음) ⑥ 저장 = MMKV `mong.ota` 시각 2·표시·세기, 식별자 0.
+- 버린 안: 백그라운드로 갈 때 `reloadAsync` — 다시 뜬 JS의 `store.boot()`가 `appForeground`를 보내 sim이 부재 시간을 '앞에 있음'으로 정산하고 '열기' 핑이 세어진다(관문 지표 오염). 대가: 오래 살아 있는 세션은 새 판을 늦게 받는다.
+- PM 확인 요청: ⓐ `ready: true` 대조표(8-1절) 리뷰 ⓑ app.json `checkAutomatically: ERROR_RECOVERY_ONLY` 전환 여부(보고만) ⓒ 크래시 루프를 서버 쪽이 알아챌 수단(수집 0 원칙 안에서).

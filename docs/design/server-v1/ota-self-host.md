@@ -116,7 +116,7 @@ node apps/server/dist/ota-cli.js rollback --platform android --channel productio
 
 바꾼 것(빌드는 하지 않음 — 빌드 2에서 PM):
 - `expo-updates ~58.0.22`(MIT, 네이티브 모듈).
-- app.json: `runtimeVersion: {policy: fingerprint}`, `updates.url = https://ota.mongmang.ink/api/v1/ota/manifest`(자리 — 도메인 연결 전), `checkAutomatically: NEVER`, `fallbackToCacheTimeout: 0`, `enableBsdiffPatchSupport: false`. 서명 설정은 app.json에 두지 않는다(채널별로 플러그인이 넣는다).
+- app.json: `runtimeVersion: {policy: fingerprint}`, `updates.url = https://ota.mongmang.ink/api/v1/ota/manifest`(자리 — 도메인 연결 전), `checkAutomatically: NEVER`(**PM 결정 ③ 11-25: `ERROR_RECOVERY_ONLY`로 전환 — 빌드 2 동결 전, 8-1절**), `fallbackToCacheTimeout: 0`, `enableBsdiffPatchSupport: false`. 서명 설정은 app.json에 두지 않는다(채널별로 플러그인이 넣는다).
 - `fingerprint.config.js`(4절).
 - 가드 플러그인 `plugins/withSelfHostedUpdates.js` `{ ready: false }`:
   1. 주소는 https `*.mongmang.ink`만.
@@ -133,6 +133,41 @@ node apps/server/dist/ota-cli.js rollback --platform android --channel productio
 4. **앱 JS의 '둘째 실행부터 하루 1회' `checkForUpdateAsync`/`fetchUpdateAsync` 코드가 빌드 2 바이너리에 있음**(PM 11-25 ⑤, 앱 레인). 없으면 그 바이너리는 OTA를 영영 받지 못한다.
 5. 리허설: preview 빌드 → **EAS 빌드 로그의 런타임 = CLI가 계산한 값** 대조(기계적으로: 빌드 로그 값과 `ota-cli publish`가 찍는 `rv=`를 비교) → preview 게시 → 실기기에서 받기·서명 검증·롤백 1회.
 6. 리허설에서 iOS·Android가 파트 `content-type: application/json; charset=utf-8`·빈 `Expo-Recent-Failed-Update-IDs` 덮기를 문제없이 처리하는지(리뷰 L5).
+
+### 8-1. 앱 확인 코드(V24, DV-1 11-25) — 체크리스트 4와 D-22 크래시 루프
+
+코드: `apps/mobile/src/ota/checker.ts`(규칙) · `src/ota/index.ts`(expo-updates·MMKV·AppState 연결 — 본문 전체 try, 저장소·모듈은 안에서 지연 로드, 진입점 `index.ts`가 Skia를 기다리지 않고 곧바로 try 안에서 `startOta()`) · `src/ota/index.web.ts`(웹 no-op) · `src/lib/rethrowLater.ts`(App 로드 실패 → 다음 틱 크래시, 리뷰 M2). 시험 `apps/mobile/test/ota-check.test.ts`·`ota-entry.test.ts`·`ota-config.test.ts`(가드가 `checkAutomatically`를 덮지 않음).
+
+- **언제 묻나**: 첫 실행 세션은 묻지 않는다. 둘째 실행부터 기기 현지 날짜로 하루 1회 — 콜드 스타트와 '다시 앞으로(active)' 때 판정, **시도를 먼저 기록**(실패·시간 초과·도중 종료도 그날 1회로 센다). 확인 15초·받기 120초 제한.
+- **적용**: `checkForUpdateAsync` → 있으면(새 판 또는 `rollBackToEmbedded` 지시) `fetchUpdateAsync`. **적용은 다음 콜드 스타트뿐, `reloadAsync`는 부르지 않는다**(정적 시험 고정). 백그라운드 재시작을 버린 까닭: 다시 뜬 JS에서 `store.boot()`가 `appForeground`를 보내 sim이 사용자가 없는 동안을 '앞에 있음'으로 정산하고, NetBridge가 '열기' 핑을 센다(관문 D1·D7 지표 오염). 실행 중 재시작은 세이브·의례(쓰기·재우기·이름 창)를 끊는다. 그래서 의례 중 적용은 구조적으로 0이다. 대가: 며칠씩 메모리에 살아 있는 세션은 OS가 앱을 내릴 때까지 새 판을 늦게 받는다.
+- **아무것도 안 함**: `__DEV__`(모듈을 불러 보지도 않음)·웹·expo-updates 없음(optionalModule)·`Updates.isEnabled === false`(가드 ready false·채널·인증서 빠짐 = fail-closed와 같은 판정). 이때 저장소도 쓰지 않는다.
+- **깨끗한 끝**: `background`와 `inactive`(iOS 앱 전환기에서 쓸어 올려 끄면 background 없이 끝날 수 있음, 리뷰 L1). 둘을 거치지 않고 끝난 실행만 크래시로 센다.
+- **진입점 방어**(리뷰 M2·L2): OTA 코드는 무엇을 던져도 앱을 죽이지 않는다(두 겹 try). 반대로 App 로드(Skia 준비 포함)가 실패하면 예전처럼 한지 빈 화면에 멈추지 않고 `rethrowLater`로 다음 틱에 크래시로 끝낸다 — 그래야 크래시 루프 판정과 네이티브 오류 복구가 본다. `registerRootComponent`는 그대로 최상위 동기(11-20 S25).
+- **실패는 조용히**: 사용자 문구·로그 0. 결과는 반환값(`'fetched'|'rollback'|'none'|'failed'|'timeout'|…`)으로만.
+- **저장 값**(MMKV `mong.ota`): `first`·`last`(시각) · `open`(앞에 있음 표시) · `crash`(연속 비정상 종료 수). 식별자 0, 서버로 보내는 값 0(Extra-Params 안 씀).
+
+**D-22 크래시 루프 — expo-updates 동작과 우리 서버 지시의 관계**(설치본 58.0.22 `ErrorRecoveryHandler.kt`·`UpdateDao.kt`, iOS `UpdatesDatabase.swift` 같은 질의):
+
+| 경우 | 누가 벗어나게 하나 | 결과 |
+|---|---|---|
+| 새 판이 **첫 화면 전**에 죽는다(그 판 성공 실행 0). **이 앱에서는 번들 평가 중 오류(`index.ts` 모듈 평가·import 체인)뿐** — Boot가 App을 불러오기 전에 한지 View를 그려 '첫 화면'(`CONTENT_APPEARED`/`RCTContentDidAppear`)이 곧바로 오고, 그 순간 그 판은 성공 실행 1이 된다(리뷰 M1) | expo-updates 내장 복구(`disableAntiBrickingMeasures` false) | 그 판 `failed_launch_count++` → 이전 판·내장판으로 다시 띄움. 실행 가능 판 질의가 `successful_launch_count > 0 OR failed_launch_count < 1`이라 **그 판은 다시 실행되지 않는다**(서버가 또 내보내도 `CheckForUpdateProcedure`가 실패 판은 띄우지 않음). `ERROR_RECOVERY_ONLY`면 그 전에 최대 5초 새 판을 받아 보고, 받았으면 이전 판 대신 그 판을 띄운다 |
+| 새 판이 **첫 화면 뒤**에 반복해 죽는다(성공 1회 이상) — App 모듈 로드·첫 렌더·초기 store 처리 오류 포함, **화면 코드 OTA 결함은 거의 전부 여기** | 네이티브는 되돌리지 않는다(성공 판은 롤백 대상 아님) → **앱 JS + 서버**, 보조로 `ERROR_RECOVERY_ONLY` | 네이티브(`ERROR_RECOVERY_ONLY`): 첫 화면 뒤 10초 창 안의 치명 오류면 파이프라인에 `WAIT_FOR_REMOTE_UPDATE, CRASH`만 남아 최대 5초 새 판을 **받아 두고 그대로 크래시** → 받은 판은 **다음 콜드 스타트**에 실행(띄우지는 않음, `ErrorRecoveryHandler.kt:79`, `REMOTE_LOAD_TIMEOUT_MS = 5000`). 하루 제한·첫 세션 규칙과 무관하고 JS가 죽어도 동작. 앱: 백그라운드·inactive를 거치지 않고 끝난 실행이 2번 연달아면(`CRASH_LOOP_AT`) 하루 제한을 건너뛰고 시작 직후 묻는다. 서버: 1순위 고친 새 판(seq 큼) 또는 `ota-cli rollback`(`rollBackToEmbedded` + 번들 revoked). 받으면 **다음 실행**에 고친 판·내장판 |
+| 서버 롤백 지시 | 앱 확인 코드가 받아야 효과 | 지시도 `fetchUpdateAsync`로 받기만 하고 다음 콜드 스타트에 내장판. `commitTime`이 실행 판보다 늦을 때만(4절) |
+
+- 남은 한계: ⓐ 시작 몇 초 안에 죽는 '첫 화면 뒤' 루프는 JS 확인·받기가 끝나기 전에 죽을 수 있다 → `ERROR_RECOVERY_ONLY`의 네이티브 5초 받기가 10초 창 안 오류는 메운다. 10초 뒤 금방 죽는 루프는 여전히 JS 몫 → 1순위는 출시 전 리허설·플래그 뒤 배포. ⓑ 우리는 크래시를 수집하지 않으므로(`Expo-Fatal-Error` 상수 덮기·Sentry 없음) 서버 쪽이 루프를 **알아채는** 길은 이 문서 밖(QA·리뷰·사용자 문의) [확인 필요: PM — 감지 수단]. ⓒ 앱의 '크래시' 판정은 백그라운드·inactive를 거쳤는지로만 본다 — 앞에서 OS가 강제 종료(메모리)한 것도 1로 센다(결과는 하루 제한을 한 번 더 건너뛰는 것뿐). inactive에서 난 진짜 크래시는 세지 않는다(L1의 대가). ⓓ `ERROR_RECOVERY_ONLY`면 첫 실행 세션이라도 치명 오류가 나면 네이티브가 요청 1번을 보낸다 — '첫 실행 요청 0'의 유일한 예외(헤더는 9절 상수 덮기 그대로).
+- **PM 결정 ③(11-25): `checkAutomatically: ERROR_RECOVERY_ONLY`로 전환**, 빌드 2 동결(12-19) 전. `checkAutomatically`는 `fingerprint.config.js` 제외 4칸에 없으므로 런타임 해시가 바뀐다 — 모든 채널 같은 값이라 채널 간 일치는 유지되고, 빌드 2는 어차피 새 런타임이라 비용 0. 동결 뒤에 바꾸면 기존 바이너리와 OTA가 갈라진다. 가드 플러그인은 이 값을 덮지 않는다(`ota-config.test.ts` 고정). 평소 시작에는 여전히 묻지 않는다(`UpdatesUtils.kt:210`). 가드 `enabled=false`면 이 복구 경로도 꺼진다(fail-closed와 일치). [11-25 현재: app.json 한 줄 변경은 권한 승인 대기 — 반영 전까지 `NEVER`]
+
+**`ready: true` 대조표(11-25, 전환은 PM)**:
+
+| 8절 조건 | 이 코드로 충족? | 근거·남은 일 |
+|---|---|---|
+| 1 도메인·TLS·캐시 헤더 | 무관 | B6 |
+| 2 운영 저장소·DB·게시 롤 | 무관 | B6 |
+| 3 채널별 키·인증서 커밋 | 무관 — 다만 인증서가 없으면 가드가 `enabled=false` → 이 코드는 `isEnabled` false로 'off'(시험 고정) | 오너·B6 |
+| **4 둘째 실행부터 하루 1회 확인 코드가 빌드 2 바이너리에** | **충족(커밋 뒤)** — 진입점에서 try 안 `startOta()`. 변이 근거: DV-1 변이 11(작업 보고)·QA-1 변이 9(`docs/team/reviews/2026-11-25-v24-review.md` 표, 생존 3은 리뷰 반영 시험으로 잡음) | 커밋이 빌드 2(12-10) 전이어야 함. 이 코드는 내장 번들에 있어야 의미가 있다(OTA로 나중에 넣을 수 없음) |
+| 5 리허설(런타임 대조·받기·서명·롤백 1회) | 일부 — 앱 쪽 순서를 리허설 항목으로 더한다 | 실기기: ① 첫 실행 요청 0 ② 둘째 실행 요청 1 ③ 그날 다시 열어도 0 ④ 받은 판은 실행 중 바뀌지 않고 다음 콜드 스타트에 적용 ⑤ 롤백 지시 → 다음 실행 내장판 ⑥ 서버 꺼짐에서 화면 문구 0 ⑦ iOS 앱 전환기에서 쓸어 올려 종료 2회 → 다음 실행 요청 0(같은 날, 리뷰 L1) ⑧ App 로드 실패 판(리허설 전용)을 넣으면 빈 화면이 아니라 크래시로 끝나고, ERROR_RECOVERY_ONLY에서 고친 판이 다음 실행에 뜸 |
+| 6 content-type·빈 헤더 처리 | 무관 | 리허설 |
+| 가드 fail-closed와 일치 | 충족 | 꺼진 바이너리에서 저장 0·요청 0(시험) |
 
 ## 9. 개인정보 — 보내지 않게, 받아도 남기지 않게
 

@@ -98,6 +98,21 @@ describe('withSelfHostedUpdates 가드', () => {
       expect(out.updates?.requestHeaders).toMatchObject({ 'EAS-Client-ID': '00000000-0000-0000-0000-000000000000', 'Expo-Fatal-Error': '-', 'Expo-Recent-Failed-Update-IDs': '' });
     }
   });
+  it('가드는 checkAutomatically·fallbackToCacheTimeout을 덮어쓰지 않는다(app.json 값 그대로, 어떤 구성에서도)', () => {
+    const cases: Array<[Record<string, string>, boolean, string]> = [
+      [{}, false, withCert()],
+      [easEnv('preview', 'preview'), true, withCert('preview')],
+      [easEnv('production', 'production'), true, withCert('production')],
+      [{ MONG_OTA_CHANNEL: 'production' }, true, withCert()],
+    ];
+    for (const value of ['NEVER', 'ERROR_RECOVERY_ONLY']) {
+      for (const [env, ready, projectRoot] of cases) {
+        const out = plugin({ ...app, updates: { ...app.updates, checkAutomatically: value } }, { ready, env, projectRoot });
+        expect(out.updates?.checkAutomatically, `${value} ${JSON.stringify(env)}`).toBe(value);
+        expect(out.updates?.fallbackToCacheTimeout).toBe(0);
+      }
+    }
+  });
   it('업데이트 주소가 우리 도메인이 아니면(Expo·http·비슷한 이름) 늘 멈춘다', () => {
     for (const url of ['https://u.expo.dev/3f2eff79-1c05-4259-85f0-bc6a59b722de', 'http://ota.mongmang.ink/x', 'https://mongmang.ink.evil.example/x', 'https://evilmongmang.ink/x']) {
       expect(() => plugin({ ...app, updates: { ...app.updates, url } }, { env: {}, projectRoot: withCert() })).toThrow(/updates\.url/);
@@ -135,9 +150,9 @@ describe('설치 id 덮어쓰기가 실제로 먹는가 — 설치된 expo-updat
 });
 
 describe('런타임 버전(fingerprint)이 채널·서명 설정에 흔들리지 않는다(리뷰 H1)', () => {
-  it('fingerprint.config.js는 플러그인이 넣는 네 칸만 뺀다', () => {
-    const json = JSON.stringify({ name: 'x', updates: { url: 'u', requestHeaders: { a: '1' }, codeSigningCertificate: 'c', codeSigningMetadata: {}, enabled: false, checkAutomatically: 'NEVER' } });
-    expect(JSON.parse(fpConfig.fileHookTransform({ type: 'contents', id: 'expoConfig' }, json) as string)).toEqual({ name: 'x', updates: { url: 'u', checkAutomatically: 'NEVER' } });
+  it('fingerprint.config.js는 플러그인이 넣는 네 칸만 뺀다 — checkAutomatically는 남아 런타임 해시에 들어간다(값을 바꾸면 새 런타임)', () => {
+    const json = JSON.stringify({ name: 'x', updates: { url: 'u', requestHeaders: { a: '1' }, codeSigningCertificate: 'c', codeSigningMetadata: {}, enabled: false, checkAutomatically: 'ERROR_RECOVERY_ONLY' } });
+    expect(JSON.parse(fpConfig.fileHookTransform({ type: 'contents', id: 'expoConfig' }, json) as string)).toEqual({ name: 'x', updates: { url: 'u', checkAutomatically: 'ERROR_RECOVERY_ONLY' } });
     expect(fpConfig.fileHookTransform({ type: 'contents', id: 'other' }, json)).toBe(json);
   });
   it('실제 runtimeversion:resolve — 채널 env 없음·preview·production에서 플랫폼별 값이 같다', () => {
