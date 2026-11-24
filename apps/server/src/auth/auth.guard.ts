@@ -2,6 +2,7 @@
 //  ① Authorization: Bearer <Supabase JWT> → JwtVerifier(비대칭·iss·aud·exp·role).
 //  ② sub → user_auth. 행이 없으면 401 — 단 bootstrap·recover(@AllowUnlinked)는 계정을 만들거나 붙이는 길이라 통과.
 //  ③ 그 행이 revoked면 410 `moved`(되찾기로 다른 기기에 옮겨 감) — 앱은 세션을 비우고 로컬 게임을 계속한다.
+//  ④ 붙은 사용자가 있으면 활동 달을 갱신(activity.ts, V25·K20) — 인증된 요청의 공통 지점이 여기 하나다. 같은 달이면 쓰기 0.
 // 토큰 문자열은 어디에도 남기지 않는다(로그 규칙은 logging.ts — 헤더는 직렬화하지 않는다).
 import {
   createParamDecorator,
@@ -14,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../prisma/prisma.service';
+import { ActivityTracker } from './activity';
 import { JwtVerifier } from './jwt-verifier';
 
 const ALLOW_UNLINKED = 'mong.allowUnlinked';
@@ -36,6 +38,7 @@ export class AuthGuard implements CanActivate {
     private readonly jwt: JwtVerifier,
     private readonly prisma: PrismaService,
     private readonly reflector: Reflector,
+    private readonly activity: ActivityTracker,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -44,13 +47,19 @@ export class AuthGuard implements CanActivate {
     const m = typeof h === 'string' ? /^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/.exec(h) : null;
     if (!m) throw new UnauthorizedException({ code: 'unauthorized', message: '로그인이 필요합니다' });
     const { sub } = await this.jwt.verify(m[1]!);
-    const link = await this.prisma.userAuth.findUnique({ where: { sub }, select: { userId: true, revokedAt: true } });
+    // 로그인 → 사용자 + 활동 달을 한 문장으로(V25 리뷰 M1 — 관계 select는 Prisma가 SELECT 둘로 낸다). 요청당 DB 읽기는 V25 전과 같은 1회
+    const [link] = await this.prisma.$queryRaw<{ user_id: string; revoked_at: Date | null; last_active_month: Date | null }[]>`
+      SELECT a.user_id, a.revoked_at, u.last_active_month
+        FROM app.user_auth a JOIN app.users u ON u.id = a.user_id
+       WHERE a.sub = ${sub}::uuid`;
     const unlinkedOk = this.reflector.getAllAndOverride<boolean>(ALLOW_UNLINKED, [ctx.getHandler(), ctx.getClass()]);
     if (!unlinkedOk) {
       if (!link) throw new UnauthorizedException({ code: 'unauthorized', message: '로그인이 필요합니다' });
-      if (link.revokedAt) throw movedAway();
+      if (link.revoked_at) throw movedAway();
     }
-    req.auth = { sub, userId: link && !link.revokedAt ? link.userId : null, revoked: !!link?.revokedAt };
+    const userId = link && !link.revoked_at ? link.user_id : null;
+    req.auth = { sub, userId, revoked: !!link?.revoked_at };
+    if (userId) await this.activity.touch(userId, link!.last_active_month);
     return true;
   }
 }

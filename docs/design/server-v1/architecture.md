@@ -152,7 +152,7 @@ v1 그대로. 결론만: **Cloud Run 서울.** ① Prisma는 한 요청에 쿼�
 | Auth | 익명 로그인 켬, 수동 연결 켬(1.0.x 대비), 익명 가입 IP 한도 기본 30/시간 → CGNAT로 막히면 120 |
 | JWT 검증 | JWKS(`/auth/v1/.well-known/jwks.json`) 비대칭 서명 검증(`jose`). 검사 항목은 3-3 ⑧. 프로젝트 기본 서명 방식·새 API 키 체계는 B1에서 확인 **[확인 필요]** |
 | `pg_cron`(DB만) | 매일 04:00 KST: ① 데이터 없는 익명 사용자 30일 뒤 삭제([Anonymous](https://supabase.com/docs/guides/auth/auth-anonymous)) ② 이력 솎기 28일·30일(3-4-1의 SQL) ③ 판정 창(7일)이 끝난 신고의 소금·`report_hits` 삭제(3-8) ④ `link_daily` 30일 지난 행을 코드 없이 `link_funnel_daily`로 말고 지움 ⑤ **`select app.rollup_metric_daily()`** — `metric_daily` 90일 이전 행을 `metric_monthly`로 말기(함수는 B0에서 구현됨 `migrations/20261120140000_metric_rollup`, 첫 실제 이동은 03월) [v2.2] ⑥ `reports` 1년 지난 행 삭제 (⑦ 옛 기기 로그인(`user_auth.revoked_at`) 30일 뒤 정리는 `auth.users`를 지워야 해서 Scheduler 쪽, 아래 행). **예약 등록은 B6 체크 항목** |
-| Cloud Scheduler(Storage 포함) | 매일 04:30 KST `POST /internal/cron/storage-gc`(지난 판 파일 2시간 유예 뒤 삭제, **발급 6시간 지나도 commit 없는 업로드 삭제**, 격리 30일 지난 파일 처리(3-9 기본값), 실패한 삭제 작업 재시도, **되찾기로 끊긴 옛 기기 로그인 30일 뒤 `auth.users` 삭제**) / 1.0.x 매월 1일 `inactive-sweep`. 무료 3개 안(storage-gc가 Auth 정리도 겸함). `/internal/cron/*`는 **OIDC 검사: `aud` = 서비스 URL, `email` = 전용 Scheduler 서비스 계정**만(B6) |
+| Cloud Scheduler(Storage 포함) | 매일 04:30 KST `POST /internal/cron/storage-gc`(지난 판 파일 2시간 유예 뒤 삭제, **발급 6시간 지나도 commit 없는 업로드 삭제**, 격리 30일 지난 파일 처리(3-9 기본값), 실패한 삭제 작업 재시도, **되찾기로 끊긴 옛 기기 로그인 30일 뒤 `auth.users` 삭제**), **같은 실행에서 2년 미사용 정리**(V25, PM 11-25: 별도 잡 없음 — 대기열 처리 뒤 서로 독립. **500은 대기열 실패에만**, 정리 실패는 error 로그 + 다음 날. 정리는 **하루 1회**(`app.inactive_sweep.last_day` 날짜 잠금 — 재시도가 같은 날 정리를 다시 돌리지 않음)·한 번 200명·**시간 예산 60초**, 넘친 분은 `more=true`로 다음 날. 차단기: 대상 > min(전체 1%, 200)이면 0명 삭제 `inactive_sweep_tripped`, 서버 이달 > DB 최신 활동 달 + 2달이면 `inactive_sweep_clock`. `POST /internal/cron/inactive-sweep[?confirm=<대상 수>]`은 수동 실행·운영자 확인용). **B6 설정값**: Scheduler `storage-gc` attemptDeadline **300초**(대기열 최대 약 200건 + 정리 예산 60초 + 여유), retryCount **2**·minBackoff **10분**·maxDoublings 1(재시도는 대기열만 다시 — 정리는 날짜 잠금으로 0), Cloud Run 요청 timeout **300초 이상**. 무료 3개 안(storage-gc가 Auth 정리·미사용 정리도 겸함). 무료 3개 안(storage-gc가 Auth 정리·미사용 정리도 겸함). `/internal/cron/*`는 **OIDC 검사: `aud` = 서비스 URL, `email` = 전용 Scheduler 서비스 계정**만(B6) |
 
 ### 2-5. Prisma 운영
 
@@ -950,13 +950,17 @@ v1 그대로(net 모듈 가짜 fetch, core 고정물 세이브를 core·서버 e
 | 발자국 방문자 키·밤물 맡김(1.0 직후) | 48시간 | `pg_cron` |
 | 백업 속 사본 | 7일 뒤 소멸 | Supabase |
 | 지운 계정의 표지(`deletion_log.subject_hmac`, user id의 단방향 HMAC) [B2] | **7일**(백업 보관 기간과 같음) — 복원 뒤 다시 지울 근거 | `pg_cron` → `app.expire_deletion_log()` |
-| **장기 미사용 계정** | **앱을 2년 동안 열지 않으면 정리** | 아래 |
+| **장기 미사용 계정** | **인증된 요청이 2년 동안 없으면 정리**(V25) | Scheduler `storage-gc`(매일, 함께 실행) |
 
-**장기 미사용 2년(규칙은 1.0 처리방침, 실행은 1.0.x)**
-- '활동' = 인증된 API 호출(세이브 올림·링크 켜기·`/me/touch`). `users.last_active_month`를 **그달 1일로만** 갱신한다(달마다 최대 한 번 UPDATE). 언제 썼는지가 일 단위로 남지 않는다. **이 열은 1.0부터 쌓아야** 1.0.x에 시계가 맞는다.
-- 링크만 켠 사람도 앱을 열면 `/me/touch`로 활동이 된다.
-- 고지 문구는 **'앱을 2년 동안 열지 않으면 서버에 맡긴 것을 정리합니다'**로 단순화한다(리뷰 질문 10 답). v2의 '23개월에 앱 안 표시'는 앱을 열면 곧 활동이 되어 시계가 다시 돌므로 사실상 아무에게도 보이지 않는다 → 뺀다. 연락 수단이 없으므로 처리방침 사전 고지로 갈음한다 [법률 검토].
-- 1.0.x 작업: 매월 1일 Scheduler가 24개월 지난 계정에 3-8 삭제 절차를 실행(`deletion_log(kind=inactive)`).
+**장기 미사용 2년 [V25 구현 11-25 — `auth/activity.ts`·`deletion/inactive-sweep.ts`, 시험 `test/v25-inactive.db.test.ts`]**
+- '활동' = **인증 가드를 통과한 요청 전부**(세이브·링크 켜기/끄기/다시 만들기·`GET /creature`·되찾기 글귀·계정 요청. PM 11-24 '활동 날짜는 인증된 요청마다', 처리방침 리뷰 H3·PIA R13). 갱신 위치는 `AuthGuard` 한 곳 — 가드의 로그인 조회를 **`user_auth JOIN users` 한 문장**으로 바꿔 활동 달을 함께 읽는다(요청당 읽기 1회 = V25 전과 같음, V25 리뷰 M1 — 처음 판의 Prisma 관계 select는 SELECT 2개였다. 시험이 드라이버 문장을 센다). 이달보다 앞설 때만 `UPDATE … WHERE last_active_month IS NULL OR last_active_month < 이달`(같은 달이면 쓰기 0, 동시 요청은 같은 값 또는 0행, 시계가 늦은 인스턴스가 값을 되돌리지 못함). 세이브 경로의 개별 갱신은 지웠다. 인증 없는 길(삭제 영수증 조회·웹 삭제·`/m`·핑·OTA)은 활동이 아니다. bootstrap(새 행)·recover(새 기기는 아직 가드가 못 씀)는 서비스가 직접 쓰며, recover도 같은 조건부 갱신이다(리뷰 L2).
+- 값은 **그달 1일(UTC, 서버 시계 `Clock`)**뿐 — 월 경계는 UTC 00:00(KST 09:00). 언제 썼는지가 일 단위로 남지 않는다. 갱신 실패는 요청을 막지 않는다(warn `activity_touch_failed` + 인스턴스 누적 개수 — B6 알림 대상, 다음 요청이 다시 씀).
+- 대상 = 활동 달(없으면 만든 달)이 **'이달 1일 − 24개월'보다 앞선** 사용자. 달 값은 그달 말일까지의 활동일 수 있으므로 이 조건이면 마지막 활동 뒤 꼭 2년이 지난 계정만 지운다(예: 2024-11 활동 → 2026-12-01부터. 늦어도 2년 + 한 달 안, 차단기·적체 때는 더 늦어지는 방향뿐).
+- 삭제는 3-8 연쇄 그대로(`deletion_log(kind=inactive, channel=app)` — 여기서 `app`은 시스템 실행, 개수만). 연쇄 안에서 잠근 행을 다시 보고 그 사이 활동했으면 건너뛴다. 정기 실행은 `storage-gc`가 대기열 처리 뒤 독립으로 부른다(Scheduler 잡 추가 없음).
+- **차단기(V25 리뷰 M2, 되돌릴 수 없는 일 — 멈추면 0명 삭제 + error 로그, 운영자 확인)**: ① 하루 대상 > min(전체 계정 1%, 200) → `inactive_sweep_tripped`. 운영자가 대상 수를 확인한 뒤 수동 `inactive-sweep?confirm=<그 수>`로 그 실행만 통과(대상 수가 달라졌으면 통과 못 함) ② 서버 이달이 DB 최신 `last_active_month`보다 2달 넘게 앞섬 → `inactive_sweep_clock`(시계가 미래로 튐, 또는 활동 갱신이 통째로 멈춤 — confirm으로도 넘지 못함) ③ 활동 갱신 실패율로 멈추는 조건은 두지 않는다: 실패 개수는 인스턴스 메모리라 정리 실행과 공유되지 않고, 실패는 다음 요청이 다시 쓰므로 한 사람이 잘못 지워지려면 24개월 동안 그 사람의 모든 요청이 실패해야 한다. 통째 실패는 ②가 2달 안에 잡는다.
+  - 주의: 서비스 시작 25개월째처럼 한 달에 1%가 넘게 2년을 채우는 달은 ①이 매일 멈춘다 — 운영자가 confirm으로 하루 200명씩 처리한다(의도된 수동 확인).
+- **시간·재시도(리뷰 M3)**: 한 실행 200명·시간 예산 60초(한 명 처리 뒤 확인 — 실행마다 적어도 한 명), 넘치면 `more=true`로 다음 날. 하루 1회는 `app.inactive_sweep`(한 행, 개수·멈춘 사유만) `last_day`를 오늘로 바꾸는 데 성공한 실행만 — Scheduler 재시도는 `already_ran`. 사용자 삭제 실패는 error `inactive_sweep_failed`(다음 날 다시), 정상 적체는 warn `inactive_sweep_more`. Storage·Auth 실패분은 `storage-gc` 대기열이 재시도. 로그·응답은 개수만(`{inactiveDeleted, skipped, failed, more, candidates, halted}`).
+- 연락 수단이 없으므로 사전 개별 안내(30일 전 등)는 하지 않고 처리방침 6절 사전 고지로 갈음한다 [법률 검토]. v2의 '23개월에 앱 안 표시'는 뺐다(앱을 열어 서버 요청이 나면 곧 활동이 되어 아무에게도 보이지 않는다).
 
 ---
 
@@ -1362,7 +1366,7 @@ A3 반영표(#14)는 '6-2 전부 v2.1에 이미 반영'이라 적었다. 항목�
 | 28 | 미래 판 | '1 이하로만 큼' | `schemaVersion`·`sim.version` 중 하나라도 서버보다 2 이상 크거나 판 번호가 없으면 `422`. 미래 본은 `day_index`·`strokes_total` NULL(열을 NULL 허용으로 바꿈) | 3-4-1 |
 | 29 | 이력 시각 | DB `now()` | 서버 시계 하나(`Clock`)로 `created_at`·ISO 주·하루 상한·영수증 만료를 정한다(시험이 '29일 뒤'를 주입). 솎기 SQL은 `app.prune_save_versions(at)`, 영수증·지운 사용자 HMAC 만료는 `app.expire_deletion_log(at)` 함수(pg_cron 등록은 B6) | 3-4-1, 2-4 |
 | 30 | `DELETE /me` 범위 | ①~⑥ | B2는 ①(그 몽망이의 `storage_gc`)·②·③⑤(요청 안 한 번 + Scheduler 재시도)·⑥. **`public_pages` 경로 모으기·`link_daily` 삭제·④ CDN 무효화는 B3**(표·공개 파일이 B3에서 생김). Storage 삭제기는 B3 전까지 '설정 안 됨'이라 행이 대기열에 남는다(B2에는 파일이 없다) | 3-8 |
-| 31 | Scheduler | `/internal/cron/{job}` OIDC | `POST /internal/cron/storage-gc`(매일)·`reapply-deletions`(복원 뒤 한 번) — Google ID 토큰 RS256, `iss` accounts.google.com, **`aud`가 `CRON_AUDIENCE`(서비스 URL 전체, 경로 없음)와 정확히 같음**, `email = CRON_SA_EMAIL`·`email_verified`. 틀리면 **404**. **운영에서 두 값 필수(없으면 부팅 거부, B2 리뷰 I2)**. 일: Storage·Auth 대기열 + 되찾기로 끊긴 로그인 30일 뒤 `auth_gc`로 + 막힌 일 `gc_stuck` 알림 로그 | 2-4, 3-3 ⑤ 단계 5 |
+| 31 | Scheduler | `/internal/cron/{job}` OIDC | `POST /internal/cron/storage-gc`(매일 — V25부터 2년 미사용 정리도 함께, 정리는 하루 1회·500은 대기열 실패만)·`inactive-sweep`(수동·운영자 confirm·시험용)·`reapply-deletions`(복원 뒤 한 번) — Google ID 토큰 RS256, `iss` accounts.google.com, **`aud`가 `CRON_AUDIENCE`(서비스 URL 전체, 경로 없음)와 정확히 같음**, `email = CRON_SA_EMAIL`·`email_verified`. 틀리면 **404**. **운영에서 두 값 필수(없으면 부팅 거부, B2 리뷰 I2)**. 일: Storage·Auth 대기열 + 되찾기로 끊긴 로그인 30일 뒤 `auth_gc`로 + 막힌 일 `gc_stuck` 알림 로그 | 2-4, 3-3 ⑤ 단계 5 |
 | 32 | JWT | `jose`, 비대칭만 | `ES256`·`RS256` 허용 목록, JWKS 원격 캐시(10분, 모르는 kid는 30초 쿨다운 뒤 재조회), `clockTolerance` 30초. 오류 분류는 **허용 목록**: 토큰 쪽 잘못(서명·클레임·만료·형식·맞는 키 없음·허용 밖 알고리즘)만 401, 그 밖(JWKS 비 200·302·429·시간 초과·파싱 실패·연결 실패)은 전부 **503**(앱이 익명 세션을 버리지 않게, B2 리뷰 I1 — 500·503·429·302·깨진 본문을 시험이 고정). `SUPABASE_URL`이 없으면 모든 토큰 401(로컬·compose) | 3-3 ⑧ |
 | 33 | 이력 기간 두 겹 | 기간 솎기는 `pg_cron`만 | PUT 안에서도 그 몽망이의 28·30일 지난 이력을 지우고 `weekly`는 최신 4벌만(B2 리뷰 I2) — `pg_cron` 등록이 빠져도 처리방침 '최대 4주'가 참. 시험: 일요일 시작 22일 안 ISO 주 5개 → weekly 4, 29일 뒤 PUT 한 번 → 28일 넘은 일반 이력 0 | 3-4-1 |
 | 34 | 이름 숫자 규칙 | '숫자 7개 이상 이어지면' | **구분자(글자도 숫자도 아닌 것)를 뺀 뒤** `\p{Nd}`(전각·다른 문자 체계 숫자 포함) 7개 이상 연속이면 `digits`, 문자·길이 검사보다 먼저(B2 리뷰 m4). `010·1234·5678`·`010 123 4567` 거부, `ab123cd4567`은 통과(글자가 끊음) | 3-5-2 |

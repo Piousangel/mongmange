@@ -471,3 +471,22 @@ model OtaRevoked {
   @@map("ota_revoked")
   @@schema("app")
 }
+
+/// 2년 미사용 정리의 하루 실행 기록(V25 리뷰 M3). 한 행뿐(CHECK id = 1 — SQL에만). 매일 storage-gc가 last_day를 오늘(UTC)로
+/// 바꾸는 데 성공해야 정리를 한다 — Scheduler 재시도가 같은 날 정리를 다시 돌리지 않는다. 개수·멈춘 사유만(식별자 없음)
+model InactiveSweepState {
+  id         Int       @id @default(1) @db.SmallInt
+  lastDay    DateTime? @map("last_day") @db.Date
+  startedAt  DateTime? @map("started_at") @db.Timestamptz(6)
+  finishedAt DateTime? @map("finished_at") @db.Timestamptz(6)
+  deleted    Int       @default(0)
+  skipped    Int       @default(0)
+  failed     Int       @default(0)
+  candidates Int       @default(0)
+  more       Boolean   @default(false)
+  /// limit(하루 대상이 1%·200명 중 작은 값 초과)·clock(서버 시계가 DB 최신 활동 달보다 2달 넘게 앞섬)
+  halted     String?   @db.VarChar(16)
+
+  @@map("inactive_sweep")
+  @@schema("app")
+}

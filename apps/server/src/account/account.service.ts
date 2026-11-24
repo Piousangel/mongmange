@@ -127,7 +127,10 @@ export class AccountService {
         UPDATE app.creatures SET recovery_hash = ${this.pepper.hash(fresh.code16)}, recovery_pepper_v = ${this.pepper.current.v},
                recovery_rotated_at = ${at} WHERE id = ${c.id}::uuid`;
       await tx.$executeRaw`
-        UPDATE app.users SET age_gate_v = ${gate.v}, age_confirmed_on = ${utcDay(now)}::date, last_active_month = ${monthStart(now)}::date
+        UPDATE app.users SET age_gate_v = ${gate.v}, age_confirmed_on = ${utcDay(now)}::date,
+               -- 활동 달은 activity.ts와 같은 조건부 갱신(이달보다 앞설 때만 — 시계가 늦은 인스턴스가 되돌리지 못함, V25 리뷰 L2)
+               last_active_month = CASE WHEN last_active_month IS NULL OR last_active_month < ${monthStart(now)}::date
+                                        THEN ${monthStart(now)}::date ELSE last_active_month END
          WHERE id = ${c.user_id}::uuid`;
       const [s] = await tx.$queryRaw<Parameters<typeof metaOf>[0][]>`
         SELECT creature_id, rev, body_sha256, envelope_ver, sim_ver, validated, client_saved_at, day_index, strokes_total, quota_day, quota_bytes

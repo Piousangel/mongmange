@@ -55,7 +55,7 @@ describe('실제 DB', () => {
       select rolname, rolsuper, rolbypassrls from pg_roles where rolname = current_user`;
     expect(me).toMatchObject({ rolsuper: false, rolbypassrls: false });
     const owners = await prisma.$queryRaw<{ tableowner: string }[]>`select tableowner from pg_tables where schemaname = 'app'`;
-    expect(owners.length).toBe(19);
+    expect(owners.length).toBe(20);
     for (const o of owners) expect(o.tableowner).toBe(me!.rolname);
   });
 
@@ -79,6 +79,7 @@ describe('실제 DB', () => {
         'cdn_purge',
         'creatures',
         'deletion_log',
+        'inactive_sweep',
         'link_daily',
         'link_funnel_daily',
         'metric_daily',

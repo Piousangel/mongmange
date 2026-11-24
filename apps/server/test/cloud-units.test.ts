@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { newCreatureCode, newReceipt, newRecoveryCode, receiptHash, recoveryHash } from '../src/account/codes';
 import { Clock, isoWeekUtc, monthStart } from '../src/common/clock';
 import { MAX_WINDOWS, RateLimiter, SWEEP_EVERY_MS } from '../src/common/rate-limiter';
+import { inactiveBefore, monthsBetween, sweepLimit } from '../src/deletion/inactive-sweep';
 import { parseRev } from '../src/saves/cloud-saves.controller';
 
 describe('isoWeekUtc — Postgres IYYY-"W"IW와 같은 값', () => {
@@ -114,4 +115,21 @@ describe('If-Match 읽기', () => {
     [' 7 ', 7],
   ])('%s → %d', (h, n) => expect(parseRev(h)).toBe(n));
   it.each(['*', 'abc', '-1', '1.5', '', '"1", "2"'])('%s → null', (h) => expect(parseRev(h)).toBeNull());
+});
+
+describe('V25 2년 정리 — 순수 계산', () => {
+  it('차단기 ① 상한 = min(전체의 1% 내림, 200)', () => {
+    expect(sweepLimit(0)).toBe(0);
+    expect(sweepLimit(99)).toBe(0);
+    expect(sweepLimit(1000)).toBe(10);
+    expect(sweepLimit(19_999)).toBe(199);
+    expect(sweepLimit(20_000)).toBe(200);
+    expect(sweepLimit(1_000_000)).toBe(200);
+  });
+  it('차단기 ② 개월 차(해 넘김 포함)와 대상 기준 달(UTC)', () => {
+    expect(monthsBetween(new Date(Date.UTC(2027, 0, 1)), new Date(Date.UTC(2026, 9, 1)))).toBe(3);
+    expect(monthsBetween(new Date(Date.UTC(2027, 0, 1)), new Date(Date.UTC(2026, 10, 1)))).toBe(2);
+    expect(inactiveBefore(Date.parse('2026-11-01T00:00:00Z')).toISOString()).toBe('2024-11-01T00:00:00.000Z');
+    expect(inactiveBefore(Date.parse('2026-10-31T23:59:59Z')).toISOString()).toBe('2024-10-01T00:00:00.000Z');
+  });
 });

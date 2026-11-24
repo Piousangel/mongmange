@@ -25,8 +25,21 @@ export type DeletionSource =
   | { channel: 'app'; kind: 'user_request' }
   | { channel: 'web'; kind: 'web_request' }
   | { channel: 'app'; kind: 'restore_reapply' }
+  /** 2년 미사용 정리(V25, inactive-sweep.ts) — 잠근 행에서 아직 그 달보다 앞서 있을 때만 지운다(그 사이 활동하면 건너뜀) */
+  | { channel: 'app'; kind: 'inactive'; activeBefore: Date }
   /** 운영자가 확인한 삭제 요청(B5, docs/ops/deletion-requests.md — app.request_account_deletion → Scheduler moderation) */
   | { channel: 'email'; kind: 'user_request' };
+
+/** 정리 직전 다시 보니 그 사이 활동한 사용자(지우지 않음) */
+export class InactiveSkipped extends Error {
+  override name = 'InactiveSkipped';
+}
+
+/** 사용자의 활동 달: last_active_month, 없으면 만든 달(UTC). inactive-sweep의 SQL 조건과 같은 정의 */
+function activeMonthOf(u: { last_active_month: Date | null; created_at: Date }): Date {
+  if (u.last_active_month) return u.last_active_month;
+  return new Date(Date.UTC(u.created_at.getUTCFullYear(), u.created_at.getUTCMonth(), 1));
+}
 
 /** 운영 백업 보관 기간(Supabase Pro 일일 백업 7일, 3-8 '백업') — 지운 사용자 HMAC도 이만큼만 */
 export const BACKUP_RETENTION_DAYS = 7;
@@ -53,8 +66,10 @@ export class DeletionService {
     const { receipt, hash } = newReceipt();
     const { deletionId, hadPage } = await this.prisma.$transaction(async (tx) => {
       // 같은 사용자의 삭제가 동시에 둘 오면 하나만 — 사용자 행을 잠근다
-      const [u] = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM app.users WHERE id = ${userId}::uuid FOR UPDATE`;
+      const [u] = await tx.$queryRaw<{ id: string; last_active_month: Date | null; created_at: Date }[]>`
+        SELECT id, last_active_month, created_at FROM app.users WHERE id = ${userId}::uuid FOR UPDATE`;
       if (!u) throw new NotFoundException({ code: 'no_account', message: '이미 지워졌습니다' });
+      if (source.kind === 'inactive' && activeMonthOf(u).getTime() >= source.activeBefore.getTime()) throw new InactiveSkipped();
       const creature = await tx.creature.findUnique({ where: { userId }, select: { id: true, code: true } });
       // ① 공개 페이지 경로 모으기(B3). 페이지 행을 잠가 진행 중인 commit(행 잠금 안에서 이동)이 끝나기를 기다린다(B3 리뷰 I1).
       //    지울 단위는 판 폴더가 아니라 **몽망이 접두(store_key)** — 공개·staging·격리 세 버킷을 통째로 훑는다(마지막 그물: 이동이

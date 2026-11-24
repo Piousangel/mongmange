@@ -14,6 +14,7 @@ import { ReportService } from '../moderation/report.service';
 import { LocalObjectStore } from '../storage/local-store';
 import { NoStore, OBJECT_STORE, type ObjectStore } from '../storage/object-store';
 import { AuthAdmin } from '../auth/auth-admin';
+import { ActivityTracker } from '../auth/activity';
 import { AuthGuard } from '../auth/auth.guard';
 import { JwtVerifier } from '../auth/jwt-verifier';
 import { Clock } from '../common/clock';
@@ -22,6 +23,7 @@ import { RateLimiter } from '../common/rate-limiter';
 import { DeletionController } from '../deletion/deletion.controller';
 import { DeletionService } from '../deletion/deletion.service';
 import { GcService } from '../deletion/gc.service';
+import { InactiveSweep } from '../deletion/inactive-sweep';
 import { CloudSaveService } from '../saves/cloud-save.service';
 import { CloudSavesController } from '../saves/cloud-saves.controller';
 import { AccountController } from './account.controller';
@@ -36,11 +38,13 @@ import { RecoveryPepper } from './recovery-pepper';
     JwtVerifier,
     AuthAdmin,
     AuthGuard,
+    ActivityTracker,
     RecoveryPepper,
     AccountService,
     CloudSaveService,
     DeletionService,
     GcService,
+    InactiveSweep,
     {
       provide: OBJECT_STORE,
       inject: [ConfigService, Clock],

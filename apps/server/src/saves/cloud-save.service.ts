@@ -14,7 +14,7 @@ import {
   type SaveWriteResponse,
 } from '@mong/contract';
 import type { Prisma } from '../generated/prisma/client';
-import { Clock, isoWeekUtc, monthStart, utcDay } from '../common/clock';
+import { Clock, isoWeekUtc, utcDay } from '../common/clock';
 import { RateLimiter } from '../common/rate-limiter';
 import { PrismaService } from '../prisma/prisma.service';
 import { prepareSave, unzipSave } from './save-body';
@@ -168,7 +168,6 @@ export class CloudSaveService {
                     ${p.dayIndex}, ${p.strokesTotal}, ${utcDay(now)}::date, ${p.gz.length}, ${new Date(now)})
             ON CONFLICT (creature_id) DO NOTHING RETURNING rev`;
           if (ins.length) {
-            await this.touchActive(tx, userId, now);
             return { rev: 1, sha };
           }
           continue;
@@ -187,7 +186,6 @@ export class CloudSaveService {
         await this.keepNewest(tx, c, 'weekly');
         await this.keepNewest(tx, c, 'conflict');
         await this.dropAged(tx, c, now);
-        await this.touchActive(tx, userId, now);
         return { rev: row.rev + 1, sha };
       }
       throw new Error('세이브 행 잠금 재시도 초과');
@@ -213,7 +211,6 @@ export class CloudSaveService {
                 ${p.strokesTotal}, ${new Date(clientSavedAt)}, 'conflict', ${new Date(now)})
         RETURNING public_id::text`;
       await this.keepNewest(tx, c, 'conflict');
-      await this.touchActive(tx, userId, now);
       return { id: v!.public_id };
     });
   }
@@ -237,7 +234,6 @@ export class CloudSaveService {
           FROM app.save_versions v
          WHERE s.creature_id = ${c}::uuid AND v.id = ${v.id}`;
       await this.keepNewest(tx, c, 'pre_restore');
-      await this.touchActive(tx, userId, now);
       return { rev: row.rev + 1, sha: hex(v.body_sha256) };
     });
   }
@@ -314,12 +310,6 @@ export class CloudSaveService {
     const used = row.quota_day && row.quota_day.toISOString().slice(0, 10) === today ? row.quota_bytes : 0;
     if (used + bytes > SAVE_DAILY_GZIP_BYTES) throw quotaExceeded();
     await tx.$executeRaw`UPDATE app.saves SET quota_day = ${today}::date, quota_bytes = ${used + bytes} WHERE creature_id = ${row.creature_id}::uuid`;
-  }
-
-  /** 장기 미사용 판단(5-5): 그달 1일로만, 달마다 최대 한 번 UPDATE */
-  private async touchActive(tx: Tx, userId: string, now: number): Promise<void> {
-    const m = monthStart(now);
-    await tx.$executeRaw`UPDATE app.users SET last_active_month = ${m}::date WHERE id = ${userId}::uuid AND last_active_month IS DISTINCT FROM ${m}::date`;
   }
 }
 
