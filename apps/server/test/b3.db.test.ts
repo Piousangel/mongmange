@@ -238,7 +238,7 @@ describe('링크 켜기 → 커밋 → /m (3-5·3-5-3)', () => {
     expect(h.text).toContain(`<video id="loop" src="${store.publicUrl(`${key}/loop.mp4`)}"`);
     expect(await readPublicUrl(store.publicUrl(`${key}/og.jpg`))).toEqual(GOOD.og);
     // 앱 안 표시(즉시)
-    expect((await as(u.d, http().get('/api/v1/creature')).expect(200)).body).toEqual({ code: u.code, linkEnabled: true, nameVisible: false, page: { ver: 1, state: 'live' } });
+    expect((await as(u.d, http().get('/api/v1/creature')).expect(200)).body).toEqual({ code: u.code, linkEnabled: true, nameVisible: false, nameBlocked: false, deletionPendingUntil: null, page: { ver: 1, state: 'live' } });
     expect(put.body.upload.poster.contentType).toBe('image/jpeg');
   });
 

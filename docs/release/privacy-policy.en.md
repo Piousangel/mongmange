@@ -68,6 +68,7 @@ The following is stored on your device. It is not sent to us unless you turn on 
   - Sign-in session records: the anonymous account service (Supabase) may record the IP address, browser information (User-Agent) and time while managing sessions [To verify: whether recorded, how to turn off, retention — this line and sections 6 and 8 will be updated]
   - The public page copy: simplified lines of your strokes, a summary of your Mongmangi's inborn shape, its ink and grain name, its birth date, the number of days together on the day you turned the link on, language, and its name (**only if you turn on name visibility**)
   - Public images and an 8-second video made by the App (the name appears in the image only if name visibility is on)
+- When you create or recover an account, to limit excessive attempts we count your IP address (for IPv6, the first 64 bits) in server memory for up to one day, without storing it.
 - **Why**: to provide the shared-link web page. See section 5 for what is public.
 - **Not sent**: stroke timing and pressure, usual visit hours, time away, visit times, device information such as model or operating system, location.
 
@@ -84,8 +85,10 @@ The following is stored on your device. It is not sent to us unless you turn on 
 
 ### 3-6. Visitors to shared-link web pages
 - When a page opens, we count **one page load**. No cookies or identifiers are used, and this count does not store your IP address.
-- We do not collect our own request logs for these pages, so IP addresses and link addresses are not logged together. To limit excessive requests, we briefly use your IP address in server memory without storing it. Processing by the web delivery provider (Google Firebase Hosting) is described in section 8.
+- We do not collect our own request logs for these pages, so IP addresses and link addresses are not logged together. To limit excessive requests, we use your IP address (for IPv6, the first 64 bits) only in server memory without storing it, and clear it from memory after about one minute for page requests and up to one hour for report counts. Processing by the web delivery provider (Google Firebase Hosting) is described in section 8.
 - If you **report** a page, we keep a **pseudonymous value** derived from your IP address **for up to 7 days per reported page** to tell repeat reports from the same person, then delete it. We do not store information that identifies the reporter.
+  - A report is one choice from a fixed list of reasons; there is no box for writing text.
+  - The pseudonymous value mixes your IP address (for IPv6, the first 48 bits) with **a random value that is different for each reported page** and cannot be turned back, so reports on different pages cannot be linked. When the page is hidden or 7 days pass, it is deleted together with that random value.
 
 ### 3-7. Send feedback
 - "Send feedback" in the Studio Notebook only opens a web survey outside the App. The App does not attach your game record or any device information. Anything you type into the survey is handled under that survey service's policy, and we use it only to improve the game. [Survey tool name and policy link — to fill once chosen]
@@ -96,7 +99,7 @@ The following is stored on your device. It is not sent to us unless you turn on 
 - Right before you first turn on a feature that creates an account ("Share by link", "Keep it safe", or the later "Night Water"), we ask once for your **birth year and month**. The check runs on your device, and **your birth year and month are not stored on your device or our server**.
 - If you are under 14, no account is created and the feature stays off. Your device keeps only "under age" and the date so we do not ask again the same day. You can keep playing on your device and saving or sharing cards.
 - We do not offer a parental consent process and do not create accounts for children under 14. The information in sections 3-1 to 3-3 is sent from every user without an age check. [To be revised after legal review]
-- If we learn that a child under 14's information has been processed on our server, we will delete it without delay. Parents or guardians can contact us at the address in section 17.
+- If we learn that a child under 14's information has been processed on our server, we will delete it without delay. We take the public page down as soon as we confirm, and, so that a mistaken request cannot erase someone else's records, we notify the account in the App and delete what is kept on our server **72 hours** later. Parents or guardians can contact us at the address in section 17. [Legal review: how to verify a guardian]
 
 ## 5. What is public on a shared-link page
 
@@ -105,7 +108,7 @@ The following is stored on your device. It is not sent to us unless you turn on 
 - **Name visibility is off by default.** Even when on, names caught by our word filter or that look like contact details (7 or more digits in a row) are not shown; the page uses the App's name instead. Please do not use a real name or contact details as your Mongmangi's name.
 - Pages are set not to be indexed by search engines, and we offer no list of public pages.
 - **Turning it off**: the link stops at once in the App and on our server; because of caching, the web page disappears **within 1 hour**, and the public files are deleted. We cannot remove copies others have already downloaded or link preview cards already posted in messaging apps.
-- If three different people report a page, it is hidden automatically, and we review it within 7 days to restore or remove it.
+- If three different people report a page, it is hidden automatically, and we review it within 7 days to restore or remove it. If no decision is made within 30 days, it is shown again (or deleted if you turned the link off in the meantime). After review, we may keep the page but **hide only the name**; only we can show a hidden name again.
 
 ## 6. Retention and deletion
 
@@ -114,7 +117,7 @@ The following is stored on your device. It is not sent to us unless you turn on 
 | Current game record (Keep it safe) | Until you delete your account |
 | Earlier copies of the game record (for undo) | Latest 3 + one per week, **up to 4 weeks**; conflict and pre-restore copies 30 days |
 | Public page copy, images, video | While the link is on (deleted when turned off; web cache up to 1 hour) |
-| Public pages hidden after reports | Up to 30 days (restored or removed after review) |
+| Public pages hidden after reports | Up to 30 days (restored or removed after review; restored if no decision within 30 days) |
 | Recovery phrase | Hash only, until you delete your account (replaced with a new phrase after each recovery) |
 | Old account after recovery to another device | **30 days** (the old device can no longer use the server), then deleted |
 | Public images or video whose upload did not finish | Deleted after 6 hours |
@@ -243,4 +246,4 @@ We will post any change on this page and in the App before it takes effect, and 
 | Version | Date | Changes |
 |---|---|---|
 | v1 | Not published | First version (no server, no collection). Pre-publication change (2026-11-20): added the name, ink and relationship values (stored on device) and the "Send feedback" web survey line |
-| **v2** | [Effective date — owner to fill] (draft 2026-11-20) | Reflects the new server: usage statistics (no identifiers, can be turned off), app update checks, settings file requests (3-1 to 3-3); anonymous account and data when you turn on "Share by link" or "Keep it safe" (3-4, 3-5 — usual visit hours, time away, stroke timing and pressure named explicitly); Web Page visitors and 7-day pseudonymous report values (3-6); 14+ audience and age check (4); what is public (5); retention table, 2-year inactivity rule and 30-day old account rule (6); sign-in session records (3-4) and no device value sent (3-5, A4 review decision 2026-11-20); notes for players outside Korea (8); processors (7) and international transfers (8); how to use your rights (12); service-end promise (15) |
+| **v2** | [Effective date — owner to fill] (draft 2026-11-20) | Reflects the new server: usage statistics (no identifiers, can be turned off), app update checks, settings file requests (3-1 to 3-3); anonymous account and data when you turn on "Share by link" or "Keep it safe" (3-4, 3-5 — usual visit hours, time away, stroke timing and pressure named explicitly); Web Page visitors, 7-day pseudonymous report values and fixed report reasons (3-6); 14+ audience and age check (4); what is public, 30-day limit for report-hidden pages and operator name hiding (5); retention table, 2-year inactivity rule and 30-day old account rule (6); sign-in session records (3-4) and no device value sent (3-5, A4 review decision 2026-11-20); notes for players outside Korea (8); processors (7) and international transfers (8); how to use your rights (12); service-end promise (15) |

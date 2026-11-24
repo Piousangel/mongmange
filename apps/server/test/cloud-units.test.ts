@@ -3,7 +3,7 @@ import { RECOVERY_CODE_RE, normalizeRecoveryCode } from '@mong/contract';
 import { describe, expect, it } from 'vitest';
 import { newCreatureCode, newReceipt, newRecoveryCode, receiptHash, recoveryHash } from '../src/account/codes';
 import { Clock, isoWeekUtc, monthStart } from '../src/common/clock';
-import { MAX_WINDOWS, RateLimiter } from '../src/common/rate-limiter';
+import { MAX_WINDOWS, RateLimiter, SWEEP_EVERY_MS } from '../src/common/rate-limiter';
 import { parseRev } from '../src/saves/cloud-saves.controller';
 
 describe('isoWeekUtc — Postgres IYYY-"W"IW와 같은 값', () => {
@@ -71,6 +71,38 @@ describe('RateLimiter 메모리 상한(B2 리뷰 m5)', () => {
     const l = new RateLimiter({ now: () => 0 } as Clock);
     for (let i = 0; i < MAX_WINDOWS + 5_000; i++) l.take([{ name: 'r', key: `k${i}`, limit: 5, windowMs: 3_600_000 }]);
     expect(l.size).toBeLessThanOrEqual(MAX_WINDOWS);
+  });
+});
+
+describe('RateLimiter 만료 정리(B5 리뷰 M5 — 처리방침 \'약 1분\'·신고 최대 1시간)', () => {
+  it('각 창은 자기 길이 + 정리 주기(10초) 안에 메모리에서 사라진다 — 요청이 끊겨도(주기 정리)', () => {
+    const at = { t: 1_000_000 };
+    const l = new RateLimiter({ now: () => at.t } as Clock);
+    try {
+      l.take([{ name: 'ping', key: '198.51.100.7', limit: 20, windowMs: 60_000 }]);
+      l.take([{ name: 'm_report', key: '198.51.100.7', limit: 5, windowMs: 3_600_000 }]);
+      expect(l.size).toBe(2);
+      at.t += 60_000 + SWEEP_EVERY_MS;
+      l.sweepExpired(at.t); // 주기 정리가 부르는 것과 같은 함수
+      expect(l.size).toBe(1); // 1분 창은 지워지고 1시간 창(신고)은 남는다
+      at.t += 3_600_000;
+      l.sweepExpired(at.t);
+      expect(l.size).toBe(0);
+    } finally {
+      l.onModuleDestroy();
+    }
+  });
+  it('요청이 이어지면 take가 10초마다 스스로 정리한다', () => {
+    const at = { t: 0 };
+    const l = new RateLimiter({ now: () => at.t } as Clock);
+    try {
+      l.take([{ name: 'ping', key: 'a', limit: 20, windowMs: 60_000 }]);
+      at.t += 61_000;
+      l.take([{ name: 'ping', key: 'b', limit: 20, windowMs: 60_000 }]);
+      expect(l.size).toBe(1);
+    } finally {
+      l.onModuleDestroy();
+    }
   });
 });
 

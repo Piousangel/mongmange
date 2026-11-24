@@ -530,6 +530,12 @@ export const creatureInfoSchema = z.object({
   linkEnabled: z.boolean(),
   nameVisible: z.boolean(),
   page: z.nullable(z.object({ ver: int(0), state: z.enum(PAGE_STATES) })),
+  /** 운영자가 이름을 가렸다(B5, 3-5-2 '이름 가리기') — 앱은 이름 공개 켜기를 막고 NAME_BLOCKED_NOTICE_KEY 문구를 보인다. 해제는 운영자만 */
+  nameBlocked: z.boolean(),
+  /**
+   * 운영자 계정 삭제 대기(B5 리뷰 H1): 이 시각(ISO)에 서버에 맡긴 것이 지워진다. 앱은 ACCOUNT_DELETION_NOTICE_KEY 문구로 알린다. 대기 아니면 null
+   */
+  deletionPendingUntil: z.nullable(z.string()),
 });
 export type CreatureInfo = z.infer<typeof creatureInfoSchema>;
 export const creaturePatchSchema = z.strictObject({ nameVisible: z.boolean() });
@@ -547,3 +553,45 @@ export const COMMIT_REJECT_REASONS = [
   'box',
 ] as const;
 export type CommitRejectReason = (typeof COMMIT_REJECT_REASONS)[number];
+
+// ───────────────────────── 안전 장치(B5 — architecture.md v2.2 3-8 '신고 → 자동 숨김'·3-9·3-12·3-5-2 '이름 가리기') ─────────────────────────
+
+/**
+ * 신고 사유 코드. **자유 글은 받지 않는다**(D-21 P3 '사람끼리 글을 주고받지 않음' — 신고에도 글 칸이 없다). 순서 = 폼 순서.
+ * sexual 성적인 모양 / hate 혐오·괴롭힘 / personal 실명·연락처 같은 개인정보(이름 가리기 판단) / other 그 밖
+ */
+export const REPORT_REASONS = ['sexual', 'hate', 'personal', 'other'] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+/** `POST /m/{code}/report` 앱 본문(JSON). 웹 폼은 같은 이름의 `reason` 한 칸(x-www-form-urlencoded) */
+export const reportRequestSchema = z.strictObject({ reason: z.enum(REPORT_REASONS) });
+export type ReportRequest = z.infer<typeof reportRequestSchema>;
+/** 판정 창 = 대상별 소금 수명(3-8 ④, 처리방침 3-6 '신고 대상별 최대 7일') */
+export const REPORT_WINDOW_DAYS = 7;
+/**
+ * 창 안 서로 다른 신고자 수가 이만큼이면 즉시 격리(3-8 ③, 처리방침 5절 '서로 다른 3명'). 신고자 = IP 접두 — IPv4 /32·**IPv6 /48**
+ * (B5 리뷰 H2: 흔한 VPS가 /48을 주므로 /64 셋을 얻는 비용이 0이다. 레이트 리밋 키는 /64 그대로)
+ */
+export const REPORT_HIDE_THRESHOLD = 3;
+/** 신고 요청 한도(3-8 표 `/m/*\/report` IP 접두당 5/시간) */
+export const REPORT_PER_HOUR = 5;
+/** 운영자 확인 SLA(3-8 ⑤)와 격리 최대 보관(처리방침 5·6절 '최대 30일' — 넘으면 **복원**이 기본값, B5 리뷰 H2) */
+export const MODERATION_SLA_DAYS = 7;
+export const QUARANTINE_MAX_DAYS = 30;
+/**
+ * 이름을 운영자가 가렸을 때 주인 앱 안내 문구 키(자리만 — **문구·노출 여부는 결정 대기**: architecture 0-4 'name_blocked 해제 뒤 주인 앱 안내 문구', PM·작가).
+ * 앱 문구 파일에는 C11이 이 키로 넣는다. 서버는 `PATCH /creature {nameVisible:true}`·`PUT page {nameVisible:true}`에 409 `name_blocked`를 준다
+ */
+export const NAME_BLOCKED_NOTICE_KEY = 'link.nameBlocked';
+/** 복원된 대상은 이 기간 자동 숨김 면역 — 문턱을 넘어도 운영자 대기 목록에만(B5 리뷰 H2: 복원 직후 같은 공격으로 바로 다시 숨기지 못하게) */
+export const REPORT_IMMUNITY_DAYS = 7;
+/**
+ * 서비스 전체 자동 숨김 차단기: 최근 1시간 자동 숨김이 이만큼이면 그다음부터는 숨기지 않고 대기 목록에만 + error 알림(B5 리뷰 H2).
+ * 5의 근거 [팀 추정]: 소프트런칭 링크 수백~수천 개에서 자동 숨김은 하루 0~1건 수준으로 본다 — 한 시간에 5건은 평소의 100배 넘는 이상치다
+ * (조직적 신고 또는 프록시 남용). 한 시간 5건은 오너 혼자 그날 안에 판단할 수 있는 양이고, 그 뒤 실제로 나쁜 페이지가 늦게 숨는 비용보다
+ * 정상 페이지가 대량으로 숨는 비용이 크다(공개는 주인이 켠 링크뿐 — 피드가 없다)
+ */
+export const REPORT_AUTO_HIDE_PER_HOUR = 5;
+/** 운영자 계정 삭제 대기(B5 리뷰 H1) — 요청 뒤 이만큼 지나야 실행, 그 사이 주인 앱 알림·운영자 취소 */
+export const ACCOUNT_DELETION_WAIT_HOURS = 72;
+/** 삭제 대기 중 주인 앱 안내 문구 키(자리만 — 문구는 작가·PM, 앱 연결은 C11) */
+export const ACCOUNT_DELETION_NOTICE_KEY = 'account.deletionPending';

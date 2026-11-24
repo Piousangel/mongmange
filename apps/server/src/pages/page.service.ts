@@ -4,10 +4,10 @@
 //  commit:     staging 파일 검사(존재·크기·유형·시그니처·해상도, 루프는 faststart·길이·트랙·무음) → public-pages로 옮김 → live.
 //              지난 판 경로는 2시간 유예 뒤 지움(storage_gc old_version). 이미 live였던 판을 바꾸면 /m CDN 무효화(이름을 가린 판 포함).
 //  DELETE:     링크 끄기 — live → off, 공개 파일 즉시 삭제(실패분은 대기열), CDN 무효화. 격리 중이면 link_enabled만.
-//  quarantine: 신고 격리(B5가 부른다) — 공개 파일을 quarantine 버킷으로, CDN 무효화.
+//  quarantine: 신고 격리(B5 ReportService가 신고 트랜잭션 안에서 부른다 — markQuarantined) — 공개 파일을 quarantine 버킷으로, CDN 무효화.
+//  name_blocked(B5 운영자 이름 가리기): 이름 공개 켜기(PATCH·PUT nameVisible:true)는 409 name_blocked, 공개 판정은 늘 거짓.
 // 상태 전이는 3-9 표. 판 번호는 커밋된 판(ver)과 커밋 전 판(pending_ver) 중 큰 값 + 1.
 // 로그에는 코드·이름·스냅숏·pageKey를 남기지 않는다(5-2) — 이 파일의 로그는 code(이유 이름)와 개수뿐.
-import { randomBytes } from 'node:crypto';
 import {
   ConflictException,
   HttpException,
@@ -23,6 +23,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { parsePublicSnapshot, serializePublicSnapshot, sim, type PublicSnapshot } from '@mong/core';
 import {
+  ACCOUNT_DELETION_WAIT_HOURS,
   PAGE_FILES,
   PAGE_PUT_PER_DAY,
   SNAP_MAX_BYTES,
@@ -40,9 +41,9 @@ import { RateLimiter } from '../common/rate-limiter';
 import type { Env } from '../config/env';
 import { GcService } from '../deletion/gc.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BUCKETS, OBJECT_STORE, pageDir, type ObjectStore } from '../storage/object-store';
+import { BUCKETS, newPageKey, OBJECT_STORE, pageDir, type ObjectStore } from '../storage/object-store';
 import { checkJpeg, checkMp4, HEAD_BYTES } from './media-check';
-import { nameBlocked } from './m-copy';
+import { nameBlocked } from './name-blocklist';
 
 type Tx = Prisma.TransactionClient;
 const HOUR = 3_600_000;
@@ -64,16 +65,16 @@ export interface PageMeta {
   bornDate: string;
   dayAtPublish: number;
   lang: 'ko' | 'en';
+  /** 운영자 이름 가리기 뒤(B5): og:image를 포스터로 — 앱이 그린 og.jpg에는 이름이 그려져 있을 수 있다(3-5-2 '이름 가리기' ②) */
+  ogPoster?: true;
+  /** 이름 가리기 SQL 뒤 이름 없는 판이 생길 때까지: /m HTML이 data-snap을 싣지 않는다(옛 snap.json에 이름, B5 리뷰 M3) */
+  snapPending?: true;
 }
 
-/** 서버 난수 pageKey(128비트). 코드에서 파생하지 않는다 — 파일 주소로 코드를 찾을 수 없게 */
-export function newPageKey(): string {
-  return randomBytes(16).toString('base64url');
-}
 
 /**
  * 이름이 실제로 실리는 조건(3-5-2 nameShown): 이름 공개 켬 + 이름이 왔음 + core normalizeName 통과(숫자 규칙 포함) +
- * 통과값이 받은 문자열과 같음(정규화로 바뀌면 거부) + 금칙어 통과 + (B5) 운영자 가리기 아님.
+ * 통과값이 받은 문자열과 같음(정규화로 바뀌면 거부) + 금칙어 통과. 운영자 가리기(name_blocked)는 PUT 트랜잭션이 행을 잠근 뒤 409로 막는다.
  */
 export function judgeName(nameVisible: boolean, raw: string | undefined): string | null {
   if (!nameVisible || raw === undefined) return null;
@@ -89,11 +90,16 @@ function storageDown(): ServiceUnavailableException {
 function blocked(): ConflictException {
   return new ConflictException({ code: 'page_blocked', message: '이 링크는 지금 다시 만들 수 없습니다' });
 }
+/** 운영자가 이름을 가렸다 — 이름 공개를 켤 수 없다(앱 문구 키 contract NAME_BLOCKED_NOTICE_KEY) */
+function nameBlockedConflict(): ConflictException {
+  return new ConflictException({ code: 'name_blocked', message: '이 몽망이의 이름은 링크에 보일 수 없습니다' });
+}
 
 interface PageRow {
   creature_id: string;
   code: string;
   hidden: boolean;
+  name_blocked: boolean;
   store_key: string;
   ver: number;
   state: 'live' | 'off' | 'quarantined' | 'removed';
@@ -125,15 +131,39 @@ export class PageService {
 
   /** GET /creature — 앱 안 표시(즉시) */
   async info(userId: string): Promise<CreatureInfo> {
-    const c = await this.prisma.creature.findUnique({ where: { userId }, select: { code: true, linkEnabled: true, nameVisible: true, page: { select: { ver: true, state: true } } } });
+    const c = await this.prisma.creature.findUnique({
+      where: { userId },
+      select: {
+        code: true,
+        linkEnabled: true,
+        nameVisible: true,
+        nameBlocked: true,
+        page: { select: { ver: true, state: true } },
+        user: { select: { deleteRequestedAt: true } },
+      },
+    });
     if (!c) throw new NotFoundException({ code: 'no_creature', message: '맡긴 몽망이가 없습니다' });
-    return { code: c.code, linkEnabled: c.linkEnabled, nameVisible: c.nameVisible, page: c.page ? { ver: c.page.ver, state: c.page.state } : null };
+    return {
+      code: c.code,
+      linkEnabled: c.linkEnabled,
+      nameVisible: c.nameVisible,
+      page: c.page ? { ver: c.page.ver, state: c.page.state } : null,
+      nameBlocked: c.nameBlocked,
+      // 운영자 삭제 대기(B5 리뷰 H1) — 앱이 알린다(문구 키 ACCOUNT_DELETION_NOTICE_KEY)
+      deletionPendingUntil: c.user.deleteRequestedAt
+        ? new Date(c.user.deleteRequestedAt.getTime() + ACCOUNT_DELETION_WAIT_HOURS * 3_600_000).toISOString()
+        : null,
+    };
   }
 
   /** PATCH /creature {nameVisible} — 다음 판(다시 만들기)부터 반영. 지금 판은 그대로(3-5-2 '바꿀 때') */
   async patch(userId: string, nameVisible: boolean): Promise<CreatureInfo> {
-    const n = await this.prisma.creature.updateMany({ where: { userId }, data: { nameVisible } });
-    if (!n.count) throw new NotFoundException({ code: 'no_creature', message: '맡긴 몽망이가 없습니다' });
+    // 운영자가 가린 이름은 켤 수 없다(B5) — 조건을 같은 UPDATE 문에 넣어 가리기와 엇갈려도 켜진 채로 남지 않게
+    const n = await this.prisma.creature.updateMany({ where: { userId, ...(nameVisible ? { nameBlocked: false } : {}) }, data: { nameVisible } });
+    if (!n.count) {
+      if (await this.prisma.creature.count({ where: { userId } })) throw nameBlockedConflict();
+      throw new NotFoundException({ code: 'no_creature', message: '맡긴 몽망이가 없습니다' });
+    }
     return this.info(userId);
   }
 
@@ -171,6 +201,8 @@ export class PageService {
     const { ver, code, dir, dropped } = await this.prisma.$transaction(async (tx) => {
       const row = await this.lockPage(tx, userId);
       if (row.hidden || row.state === 'quarantined' || row.state === 'removed') throw blocked();
+      // 운영자 가리기(B5): 잠근 행에서 본다 — 판정(judgeName) 뒤에 가려졌어도 이름이 실린 판이 생기지 않는다
+      if (row.name_blocked && req.nameVisible) throw nameBlockedConflict();
       const dropped: bigint[] = [];
       // 커밋 전에 새 PUT이 오면 앞의 커밋 전 판은 지금 지운다(staging + 혹시 일부 옮겨진 공개 쪽)
       if (row.pending_prefix) dropped.push(...(await this.dropPending(tx, row, new Date(now))));
@@ -299,20 +331,29 @@ export class PageService {
   }
 
   /**
-   * 신고 격리(3-8 ③, B5가 부른다): 상태 quarantined + 공개 → quarantine 이동을 **대기열 행으로**(B3 리뷰 M5).
-   * 요청 안에서 한 번 옮겨 보고, 일부만 되면 행이 남아 Scheduler가 나머지를 옮긴다. CDN 무효화
+   * 신고 격리(3-8 ③): 상태 quarantined + 공개 → quarantine 이동을 **대기열 행으로**(B3 리뷰 M5).
+   * 요청 안에서 한 번 옮겨 보고, 일부만 되면 행이 남아 Scheduler가 나머지를 옮긴다. CDN 무효화.
+   * B5 신고 경로는 markQuarantined를 신고 트랜잭션 안에서 부르고(신고 상태와 격리가 함께 커밋) 커밋 뒤 afterQuarantine을 부른다.
    */
   async quarantine(creatureId: string): Promise<void> {
-    const id = await this.prisma.$transaction(async (tx) => {
-      const [r] = await tx.$queryRaw<Array<{ state: string; path_prefix: string | null; store_key: string }>>`
-        SELECT state, path_prefix, store_key FROM app.public_pages WHERE creature_id = ${creatureId}::uuid FOR UPDATE`;
-      if (!r || r.state !== 'live' || !r.path_prefix) return null;
-      const now = new Date(this.clock.now());
-      await tx.$executeRaw`UPDATE app.public_pages SET state = 'quarantined', state_changed_at = ${now} WHERE creature_id = ${creatureId}::uuid`;
-      return (await tx.storageGc.create({ data: { bucket: BUCKETS.public, prefix: pageDir(r.store_key, r.path_prefix), creatureId, reason: 'quarantine_move', notBefore: now }, select: { id: true } })).id;
-    });
+    const id = await this.prisma.$transaction((tx) => this.markQuarantined(tx, creatureId));
+    await this.afterQuarantine(id);
+  }
+
+  /** 페이지 행을 잠그고 live면 quarantined + 이동 대기 행. live가 아니면(꺼짐·이미 격리·삭제) 아무것도 하지 않고 null */
+  async markQuarantined(tx: Tx, creatureId: string): Promise<bigint | null> {
+    const [r] = await tx.$queryRaw<Array<{ state: string; path_prefix: string | null; store_key: string }>>`
+      SELECT state, path_prefix, store_key FROM app.public_pages WHERE creature_id = ${creatureId}::uuid FOR UPDATE`;
+    if (!r || r.state !== 'live' || !r.path_prefix) return null;
+    const now = new Date(this.clock.now());
+    await tx.$executeRaw`UPDATE app.public_pages SET state = 'quarantined', state_changed_at = ${now} WHERE creature_id = ${creatureId}::uuid`;
+    return (await tx.storageGc.create({ data: { bucket: BUCKETS.public, prefix: pageDir(r.store_key, r.path_prefix), creatureId, reason: 'quarantine_move', notBefore: now }, select: { id: true } })).id;
+  }
+
+  /** 커밋 뒤: 이동 한 번 시도(실패분은 대기열) + /m CDN 무효화 */
+  async afterQuarantine(id: bigint | null): Promise<void> {
     if (id === null) return;
-    await this.gc.drainIds([id]);
+    if (this.store.configured) await this.gc.drainIds([id]);
     await this.purgeQuietly('quarantine');
   }
 
@@ -352,7 +393,7 @@ export class PageService {
   /** 있는 행만 잠근다(commit — 없으면 404, 계정 삭제와 겹치면 삭제가 먼저 끝난 것) */
   private async lockExisting(tx: Tx, userId: string): Promise<PageRow> {
     const [r] = await tx.$queryRaw<PageRow[]>`
-      SELECT c.id AS creature_id, c.code, c.hidden, p.store_key, p.ver, p.state, p.path_prefix, p.name_shown, p.pending_ver, p.pending_prefix,
+      SELECT c.id AS creature_id, c.code, c.hidden, c.name_blocked, p.store_key, p.ver, p.state, p.path_prefix, p.name_shown, p.pending_ver, p.pending_prefix,
              p.pending_meta, p.pending_name_shown, p.pending_has_loop
         FROM app.creatures c JOIN app.public_pages p ON p.creature_id = c.id WHERE c.user_id = ${userId}::uuid FOR UPDATE OF p`;
     if (!r) throw new NotFoundException({ code: 'no_creature', message: '맡긴 몽망이가 없습니다' });
@@ -365,7 +406,7 @@ export class PageService {
     if (!c) throw new NotFoundException({ code: 'no_creature', message: '맡긴 몽망이가 없습니다' });
     await tx.$executeRaw`INSERT INTO app.public_pages (creature_id) VALUES (${c.id}::uuid) ON CONFLICT (creature_id) DO NOTHING`;
     const [r] = await tx.$queryRaw<PageRow[]>`
-      SELECT c.id AS creature_id, c.code, c.hidden, p.store_key, p.ver, p.state, p.path_prefix, p.name_shown, p.pending_ver, p.pending_prefix,
+      SELECT c.id AS creature_id, c.code, c.hidden, c.name_blocked, p.store_key, p.ver, p.state, p.path_prefix, p.name_shown, p.pending_ver, p.pending_prefix,
              p.pending_meta, p.pending_name_shown, p.pending_has_loop
         FROM app.creatures c JOIN app.public_pages p ON p.creature_id = c.id WHERE c.id = ${c.id}::uuid FOR UPDATE OF p`;
     return r!;

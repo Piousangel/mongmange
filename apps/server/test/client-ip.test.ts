@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { pickClientIp, rateLimitKey } from '../src/common/client-ip';
+import { pickClientIp, rateLimitKey, reportKeyPrefix } from '../src/common/client-ip';
+import { sameOriginPost } from '../src/pages/m.controller';
 
 describe('pickClientIp — 믿을 XFF 위치는 TRUSTED_PROXY_HOPS 하나', () => {
   it('hops 0이면 XFF를 무시하고 소켓 주소', () => {
@@ -42,4 +43,31 @@ describe('rateLimitKey — IPv6는 /64로 접는다', () => {
     expect(rateLimitKey('64:ff9b::1.2.3.4')).toBe('64:ff9b:0:0::/64');
   });
   it('없으면 unknown', () => expect(rateLimitKey(undefined)).toBe('unknown'));
+});
+
+describe('reportKeyPrefix — 신고자 키는 IPv6 /48(B5 리뷰 H2), 레이트 리밋은 /64 그대로', () => {
+  it('같은 /48의 서로 다른 /64는 신고자 하나, 리밋 키는 둘', () => {
+    expect(reportKeyPrefix('2001:db8:aa:bb::1')).toBe('2001:db8:aa::/48');
+    expect(reportKeyPrefix('2001:db8:aa:ffff:1:2:3:4')).toBe('2001:db8:aa::/48');
+    expect(rateLimitKey('2001:db8:aa:bb::1')).not.toBe(rateLimitKey('2001:db8:aa:cc::1'));
+    expect(reportKeyPrefix('2001:db8:ab::1')).not.toBe(reportKeyPrefix('2001:db8:aa::1'));
+    expect(reportKeyPrefix('::ffff:192.0.2.1')).toBe('192.0.2.1');
+    expect(reportKeyPrefix('192.0.2.1')).toBe('192.0.2.1');
+    expect(reportKeyPrefix(undefined)).toBe('unknown');
+  });
+});
+
+describe('sameOriginPost — 신고 같은 출처 판정(B5 리뷰 C1)', () => {
+  const S = 'https://mongmang.ink';
+  it.each([
+    ['브라우저 같은 출처(no-referrer라 Origin null)', { 'sec-fetch-site': 'same-origin', origin: 'null' }, true, true],
+    ['다른 사이트', { 'sec-fetch-site': 'cross-site', origin: S }, true, false],
+    ['같은 사이트 다른 출처', { 'sec-fetch-site': 'same-site' }, true, false],
+    ['사용자 주도(none)', { 'sec-fetch-site': 'none' }, true, false],
+    ['옛 브라우저 Origin = 사이트', { origin: S }, true, true],
+    ['옛 브라우저 Origin null(샌드박스 iframe)', { origin: 'null' }, true, false],
+    ['옛 브라우저 Origin 없음(폼)', {}, true, false],
+    ['앱 JSON(Origin 없음)', {}, false, true],
+    ['다른 출처 JSON', { origin: 'https://evil.example' }, false, false],
+  ])('%s', (_n, h, form, ok) => expect(sameOriginPost(h as Record<string, string>, S, form)).toBe(ok));
 });

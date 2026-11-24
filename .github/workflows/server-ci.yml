@@ -57,8 +57,10 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      # 서버와 그 의존(core)만 설치 — 모바일(Expo·RN) 의존성은 받지 않는다
-      - run: pnpm install --frozen-lockfile --filter "server..."
+      # 서버와 그 의존(core) + 루트(playwright — B5 신고 폼 실제 브라우저 e2e)만 설치 — 모바일(Expo·RN) 의존성은 받지 않는다
+      - run: pnpm install --frozen-lockfile --filter "server..." --filter mongmange
+      - name: Chromium(헤드리스 셸) 설치 — test:db의 b5-browser 시험(B5 리뷰 C1: 손으로 넣은 머리글로는 Origin null을 못 잡는다)
+        run: pnpm exec playwright install --with-deps --only-shell chromium
       - name: 롤 준비(슈퍼유저로 한 번)
         run: psql -v ON_ERROR_STOP=1 -h localhost -U mong -d mong -f apps/server/prisma/local/00-roles.sql
         env:
@@ -118,6 +120,12 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'authorization: Bearer a.b.c' localhost:8080/api/v1/me/bootstrap)" = 401
           test "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/api/v1/deletion/AAAAAAAAAAAAAAAAAAAAAA)" = 404
           test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/internal/cron/storage-gc)" = 404
+          # B5 신고: 앱 JSON(Origin 없음)은 대상이 없어도 204(DB를 거침 — b5 마이그레이션), Origin 없는 폼은 403, 다른 경로의 폼은 415, 운영 작업은 OIDC 없이 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"reason":"other"}' localhost:8080/m/7K2M9QXA/report)" = 204
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -d 'reason=other' localhost:8080/m/7K2M9QXA/report)" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'sec-fetch-site: same-origin' -H 'origin: null' -d 'reason=other' localhost:8080/m/7K2M9QXA/report)" = 303
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -d 'code=7K2M9QXA&phrase=x' localhost:8080/api/v1/deletion/web)" = 415
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/internal/cron/moderation)" = 404
       - if: failure()
         run: docker compose -f apps/server/compose.yaml logs
       - if: always()

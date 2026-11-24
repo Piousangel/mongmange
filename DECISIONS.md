@@ -409,7 +409,7 @@
 - **[독립 리뷰 반영 11-20 — `docs/team/reviews/2026-11-20-b3-review.md`, 중요 3·보통 5·사소 10]** ① 고아 파일(I1): commit = **의도 기록**(PUT이 판 폴더를 staging·public 두 버킷 모두 6시간 대기 행으로 먼저 적음) + **페이지 행 잠금 안에서 검사·이동·확정**(같은 판 commit 둘·계정 삭제·새 PUT이 줄을 선다), 이동 실패는 503. 계정 삭제는 **몽망이 접두 `store_key`로 세 버킷을 통째로 지우는 접두 소거**를 마지막 그물로 — 파일 키를 `{store_key}/{pageKey}/파일`로 바꿈 ② 이름을 가리면 유예 중인 판까지 **모든 지난 판 즉시 삭제**(I2) ③ firebase.json `/m/*`에서 Cache-Control 제거, 캐시는 서버 응답 헤더만(I3, Firebase가 보존하는지 B6 실측) ④ /m·/get·/seen 리밋을 DB 앞에서, `/get` 30/분 새로(M1) ⑤ 이름의 문은 `name_shown` 하나 — 시험 고정(M2) ⑥ 공개 파일 `max-age=3600`(M3) ⑦ staging 경로는 commit으로 한 번만 + commit 뒤 staging 행 2시간 유지(M4) ⑧ 격리 이동은 대기 행(`quarantine_move`)으로 재시도(M5) ⑨ 사소: PUBLIC EXECUTE 회수·이동 실패 503·무효화 실패 무시·none+live 503·비콘 upsert에 몽망이 존재 조건·커밋 안 한 판의 pending 칸 비움·대기열 updateMany. 리뷰에서 살아남은 변이 5건(사라진 링크 CSP·m_gone·m_seen·commit 재확인·title)은 모두 시험이 잡게 했다. 문서 차이는 architecture 부록 A-3 #38·#41·#43·#48~#51·#53~#56.
 - 결정 대기(PM): 금칙어 목록. 운영자 이름 가리기(`name_blocked`)·신고 격리 경로는 B5(서비스 메서드 `PageService.quarantine`만 둠).
 
-## 2026-11-20 B5 안전 장치 구현 결정 [잠정 — 독립 리뷰 전]
+## 2026-11-20 B5 안전 장치 구현 결정 [잠정 — 독립 리뷰 반영(치명 1·높음 2·중간 5·낮음 5)]
 - 근거: architecture.md v2.2 3-8 '신고 → 자동 숨김'·'삭제'·3-9·3-12·3-5-2 '이름 가리기'(문서 ↔ 구현 차이는 부록 A-3 #57~#66), D-21 P3·P8, 처리방침 ko·en 3-6·5·6·12절, B3 리뷰 M2·M5. 코드 `apps/server/src/moderation/*`·`pages/name-blocklist.ts`, 마이그레이션 `20261123000000_b5_safety`, 계약 `@mong/contract` B5 절, 운영 `docs/ops/moderation/`·`docs/ops/deletion-requests.md`.
 - **신고**: `POST /m/{code}/report` 인증 없음. 사유 코드 넷(`sexual`·`hate`·`personal`·`other`)만, 자유 글 칸 없음(P3). 신고자 키 = HMAC-SHA256(대상별 소금 32바이트, IP 접두 — IPv4 /32·IPv6 /64), 평문 IP 저장 0. 문턱 = 정본 그대로 **서로 다른 3명 / 창 7일**, 넘는 그 요청의 트랜잭션에서 숨김 + 격리(B3 `markQuarantined`) → 커밋 뒤 이동·CDN 무효화. IP 접두당 5/시간(DB 앞). **같은 출처 Origin만**(정본에 없던 것 — 남의 사이트가 방문자 브라우저로 폼을 자동 제출하면 방문자마다 IP가 달라 3명 문턱을 넘길 수 있다). 폼 본문은 이 경로에서만 읽는다(Nest 기본 폼 파서는 모든 API에서 폼을 받아 사전 요청 없는 다른 출처 요청이 가능했다 — 415로 막음).
 - **운영 = Studio SQL 함수 + Scheduler `moderation`(5분), CLI 없음**: Storage 일은 SQL이 대기 행으로 적고 서버가 처리(정본 3-12의 `ops:quarantine`·`ops:mask-name` CLI를 대체 — 오너 노트북에 service role 키를 두지 않는다). 스니펫 9개를 시험이 파일 그대로 실행. 버린 안: 관리 API(정본 3-12가 01월로 미룸), 오너 노트북 CLI(키 노출·설치 부담).
@@ -417,8 +417,14 @@
 - **이름 가리기**: SQL 즉시(name_shown=false·meta.name 삭제·og:image 포스터·커밋 전/지난 판 삭제·name_visible=false) + 서버가 새 pageKey로 이름 없는 판을 쓴다. 문은 `name_shown` 하나(B3 리뷰 M2 시험 유지 + B5 시험이 DB·HTML·세 버킷 파일 바이트 전부에서 이름 0 확인). 주인은 `PATCH`·`PUT {nameVisible:true}` 409 `name_blocked`, 앱 문구 키 `link.nameBlocked` 자리만.
 - **금칙어 로더**: 한 줄 한 항목·`=` 전체 일치·`#` 주석, normalizeName → 소문자 → 공백·가운뎃점 제거로 항목·이름을 같게 접는다. 잘못된 항목은 기동 실패. 목록은 비어 있음.
 - **운영자 계정 삭제 요청**(정본에 없던 길): 처리방침 4절 '아동 정보를 알게 되면 지체 없이 지웁니다'를 지킬 수단이 없었다. `request_account_deletion(code)` → 서버가 앱 삭제와 같은 연쇄(지운 사용자 표지 포함)로. 쓰는 경우는 삭제 요청 절차 2절(아동·법률 검토로 정한 본인 확인·법령)뿐.
-- 처리방침 ko·en: 3-6 신고 사유 코드·대상별 무작위 값·숨김/7일에 파기, 5절 30일 기본 삭제·운영자 이름 가리기(B8 체크 ②를 앞당김).
-- 결정 대기(PM·작가·오너): 금칙어 목록, `name_blocked` 안내 문구(architecture 0-4), 신고 폼·감사 페이지 문구(초안), 이메일 요청 본인 확인 방법(법률 검토), 문의 메일 보관 기간.
+- 처리방침 ko·en: 3-6 신고 사유 코드·대상별 무작위 값·숨김/7일에 파기, 5절 30일 기본 복원(11-24 리뷰 H2 개정)·운영자 이름 가리기(B8 체크 ②를 앞당김).
+- **[독립 리뷰 반영 11-24 — `docs/team/reviews/2026-11-20-b5-review.md`, 팀 결정]**
+  - C1: 같은 출처 판정은 `Sec-Fetch-Site`(same-origin만)를 먼저 보고, 없을 때만 Origin(사이트와 같을 때만, `null` 거부)으로 본다. `/m`이 no-referrer라 진짜 브라우저는 `Origin: null`을 보내 웹 신고가 늘 403이었다. Playwright Chromium e2e를 server-ci test:db에 넣었다.
+  - H1: 운영자 계정 삭제는 요청 → **72시간 대기**(앱 알림 키 `account.deletionPending`, 운영자 취소 `08b`) → 실행. 기록은 근거 유형(guardian·legal·self)과 운영자만. 인장 코드는 신원 근거가 아니다 — 즉시 조치는 공개 내리기뿐, 본인 확인은 법률 검토 B-14 ③.
+  - H2: 신고자 키 IPv6 /48, 복원 뒤 7일 면역, 서비스 전체 1시간 자동 숨김 **5건** 차단기(근거는 contract `REPORT_AUTO_HIDE_PER_HOUR` 주석 — 평소 하루 0~1건 [팀 추정]의 100배), **30일 기본값 = 복원**(처리방침 5·6절 맞춤), 자동 숨김은 운영 기본 꺼짐(env `REPORT_AUTO_HIDE`, B6 XFF 실측 뒤 켬 — 출시 차단 조건).
+  - 중간: 복원 대기 중 끄기 우선, 격리 중 계정 삭제 → 신고 `account_deleted`·1년 만료, 이름 가리기 직후 `data-snap` 없음(`meta.snapPending`), 레이트 리미터 만료 정리(창 + 10초 — 처리방침 3-1 '약 1분'·3-4 하루·3-6 1시간), Studio 롤 확인은 B6.
+  - 낮음: `search_path`·UTC 고정, PUBLIC EXECUTE 회수 시험 + 이 롤의 기본 권한에서도 회수, 메모 '@' 금지·`actor` 열, 금칙어 숫자 끼워 넣기 우회는 한계로 기록. 문서 차이는 architecture 부록 A-3 #67~#71.
+- 결정 대기(PM·작가·오너): 금칙어 목록, `name_blocked`·삭제 대기 안내 문구(architecture 0-4), 신고 폼·감사 페이지 문구(초안), 이메일 요청 본인 확인 방법과 72시간 대기가 '지체 없이 파기'와 맞는지(법률 검토 B-14), 문의 메일 보관 기간, 차단기 5건 확정.
 
 ## 2026-11-24 D-26 컨셉 v3 = 먹으로 쓴 한 마디 × 스물여덟 밤 [오너 승인 11-24, 5일 검증 뒤 세부 확정]
 - 근거: docs/design/concept-v3/concept-review.md(진단 9건, A+ 52 / B 36 / C′ 64), docs/creative/3d-vs-2d/review.md.
@@ -429,3 +435,5 @@
 - 일정: 소프트런칭 약 3주 연기(12-22 → 1월 둘째 주), 출시는 관문 통과 즉시·03-16 상한 유지(오너 승인).
 - 대체: D-10의 '하루 한 획' 동사는 '하루 한 마디'로 바뀐다(획은 글씨 안의 획으로 남음). 연적의 '획 씻기'는 연적에서 뺀다.
 - 버린 안: B(문장 → 서버 AI → 감정 수치 누적: 기존 장르·민감정보·감정의 점수화), A+(뜻이 없어 체감 한계).
+- 로드맵 재편(11-24, P-LEAD) [잠정 — 11-30 V0 결정 뒤 확정]: docs/design/concept-v3/rollout-plan.md·roadmap V절 — 빌드 1 11-29 그대로(14일 시계, 시작 한계 12-04) → 빌드 2 12-19 네이티브 동결 → RC 01-05 → 소프트런칭·TestFlight 01-12 전후 → 판정 02-11~02-16(D-23 규칙 그대로) → 출시 02-23~03-02 목표·03-16 상한. M2는 살림, 영어 사전은 자르지 않음.
+- [PM 11-24] D-22 예외: 최종 몽망이·두루마리·화첩(V10 후반·V11)은 소프트런칭 중 OTA(02-02 마감)로 넣는다 — JS·데이터만, 네이티브 변경 0, 플래그 뒤. 핑 `life_done`·`drop_new` 추가 승인(QA-3 대조 뒤), 관문 Q15~Q17 추가. B5 자동 숨김 차단기 1시간 5건 확정(PM).

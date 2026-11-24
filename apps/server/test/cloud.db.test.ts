@@ -144,7 +144,8 @@ describe('bootstrap — 필요할 때 익명 계정 + 14세 확인', () => {
     expect(row.locale).toBeNull();
     const cols = await prisma.$queryRaw<{ column_name: string }[]>`
       select column_name from information_schema.columns where table_schema = 'app' and table_name = 'users' order by 1`;
-    expect(cols.map((c) => c.column_name)).toEqual(['age_confirmed_on', 'age_gate_v', 'created_at', 'id', 'last_active_month', 'locale']);
+    // delete_requested_at(B5): 운영자가 확인한 삭제 요청 시각 — 사용자 행과 함께 지워진다(5분 안 처리)
+    expect(cols.map((c) => c.column_name)).toEqual(['age_confirmed_on', 'age_gate_v', 'created_at', 'delete_requested_at', 'id', 'last_active_month', 'locale']);
   });
   it('멱등: 두 번·동시에 불러도 몽망이 하나', async () => {
     const d = await device();

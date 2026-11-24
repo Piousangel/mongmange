@@ -76,6 +76,19 @@ export function rateLimitKey(ip: string | undefined): string {
   return `${expandV6(ip).slice(0, 4).join(':')}::/64`;
 }
 
+/**
+ * 신고자 키 접두(B5 리뷰 H2): IPv4는 그대로(/32), IPv4-매핑 IPv6는 IPv4로, IPv6는 **앞 48비트(/48)**.
+ * 흔한 VPS가 /48·/56을 통째로 주므로 /64로 접으면 서로 다른 신고자 셋을 공짜로 만든다. 레이트 리밋(rateLimitKey)은 /64 그대로 —
+ * 같은 /48 안 이웃 가입자가 리밋을 나눠 쓰지 않게. 신고는 반대로 '한 사람이 여럿 행세'를 막는 쪽이 중요하다(진짜 이웃 둘이 1로 묶여도 안전한 방향)
+ */
+export function reportKeyPrefix(ip: string | undefined): string {
+  if (!ip) return 'unknown';
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (mapped) return mapped[1]!;
+  if (isIP(ip) !== 6) return ip;
+  return `${expandV6(ip).slice(0, 3).join(':')}::/48`;
+}
+
 /** IPv6 → 8개 16비트 그룹(소문자, 앞 0 제거). 존 ID(%eth0)는 버린다 */
 function expandV6(ip: string): string[] {
   const addr = ip.split('%')[0]!;

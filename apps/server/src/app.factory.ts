@@ -8,6 +8,7 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import type { Env } from './config/env';
 import { genReqId, ROUTE_TEMPLATE } from './common/logging';
+import { REPORT_PATH_RE } from './pages/m.controller';
 
 /**
  * Fastify 본문 상한. 세이브 상한 512KB는 **이스케이프 전** 문자열 기준이라, JSON 안에 문자열로 실리면 따옴표·역슬래시가
@@ -49,6 +50,16 @@ export async function createApp(
   });
 
   const app = await NestFactory.create<NestFastifyApplication>(RootModule, adapter, { bufferLogs: opts.bufferLogs ?? true });
+  // x-www-form-urlencoded는 신고 폼(B5, `POST /m/{code}/report`)에서만 읽는다 — 다른 경로는 415. Nest 기본 파서는 모든 경로에서 폼을
+  // 객체로 풀어 남의 사이트 폼(사전 요청 없는 단순 요청)이 JSON API(예: 웹 삭제)를 부를 수 있었다. 새 의존성 없이 URLSearchParams로
+  // 평평한 문자열 객체만(같은 키가 여럿이면 마지막 값), 1KB 상한
+  app.useBodyParser('application/x-www-form-urlencoded', { bodyLimit: 1024 }, (req, body, done) => {
+    if (!REPORT_PATH_RE.test(req.url)) {
+      done(Object.assign(new Error('Unsupported Media Type'), { statusCode: 415 }), undefined);
+      return;
+    }
+    done(null, Object.fromEntries(new URLSearchParams(body.toString('utf8'))));
+  });
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
   const config = app.get<ConfigService<Env, true>>(ConfigService);

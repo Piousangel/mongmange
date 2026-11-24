@@ -23,6 +23,8 @@ model User {
   locale           String?   @db.Char(2)
   ageGateV         Int?      @map("age_gate_v") @db.SmallInt
   ageConfirmedOn   DateTime? @map("age_confirmed_on") @db.Date
+  /// 운영자 계정 삭제 요청(B5, docs/ops/deletion-requests.md). 72시간 대기 뒤 서버 작업 moderation이 DELETE /me와 같은 연쇄로 지운다
+  deleteRequestedAt DateTime? @map("delete_requested_at") @db.Timestamptz(6)
   creature         Creature?
   auths            UserAuth[]
 
@@ -40,6 +42,8 @@ model Creature {
   linkEnabled Boolean  @default(false) @map("link_enabled")
   nameVisible Boolean  @default(false) @map("name_visible")
   hidden      Boolean  @default(false)
+  /// 운영자 이름 가리기(B5, 3-5-2). 켜지면 공개 판정은 늘 거짓, 주인은 이름 공개를 다시 켤 수 없다(409). 해제는 운영자 SQL 함수만
+  nameBlocked Boolean  @default(false) @map("name_blocked")
   /// 되찾기 글귀 해시(HMAC-SHA256(pepper, 글귀), 3-3 ⑤). 평문은 어디에도 없다. 되찾으면 새 글귀로 바뀐다
   recoveryHash      Bytes?    @unique @map("recovery_hash")
   recoveryPepperV   Int?      @map("recovery_pepper_v") @db.SmallInt
@@ -176,6 +180,10 @@ enum StorageGcReason {
   deletion
   /// 공개 → quarantine 이동 대기(B3 리뷰 M5 — 일부만 옮겨지면 대기열이 다시 시도)
   quarantine_move
+  /// quarantine → 공개 되돌리기(B5 운영자 복원 — 다 옮기면 live)
+  restore_move
+  /// 이름 뺀 판 다시 쓰기(B5 운영자 이름 가리기 — 새 pageKey에 포스터·루프·이름 없는 snap.json, 옛 경로 삭제)
+  name_mask
 
   @@map("storage_gc_reason")
   @@schema("app")
@@ -336,5 +344,84 @@ model CdnPurge {
   attempts    Int       @default(0) @db.SmallInt
 
   @@map("cdn_purge")
+  @@schema("app")
+}
+
+enum ReportTarget {
+  link
+  encounter
+  cohort
+  footprint
+
+  @@map("report_target")
+  @@schema("app")
+}
+
+enum ReportStatus {
+  open
+  auto_hidden
+  expired
+  restored
+  confirmed
+  dismissed
+  /// 대상 계정이 지워져 닫힘(B5 리뷰 M2)
+  account_deleted
+
+  @@map("report_status")
+  @@schema("app")
+}
+
+/// 신고(B5, 3-1·3-8). 대상마다 열린 행 하나(부분 UNIQUE — SQL에만) + 그 신고 전용 소금(열린 동안만, CHECK — SQL에만).
+/// 닫히면(숨김·창 끝·운영 처리) 트리거가 report_hits를 지운다. 1년 보관(코드만 — 재발 판단)
+model Report {
+  id                BigInt       @id @default(autoincrement())
+  targetKind        ReportTarget @map("target_kind")
+  targetRef         String       @map("target_ref")
+  /// 사유 코드별 개수(자유 글 없음)
+  reasonCounts      Json         @default("{}") @map("reason_counts")
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  windowEndsAt      DateTime     @map("window_ends_at") @db.Timestamptz(6)
+  salt              Bytes?
+  distinctReporters Int          @default(0) @map("distinct_reporters") @db.SmallInt
+  status            ReportStatus @default(open)
+  resolvedAt        DateTime?    @map("resolved_at") @db.Timestamptz(6)
+  /// 자동 숨김 시각(서비스 전체 1시간 차단기)
+  hiddenAt          DateTime?    @map("hidden_at") @db.Timestamptz(6)
+  /// 문턱을 넘었지만 대기 목록에만: immune(최근 7일 복원)·breaker(서비스 차단기)·disabled(자동 숨김 꺼짐). CHECK는 SQL에만
+  held              String?      @db.VarChar(16)
+  hits              ReportHit[]
+
+  @@index([status, windowEndsAt])
+  @@index([targetRef])
+  @@index([createdAt])
+  @@index([hiddenAt])
+  @@map("reports")
+  @@schema("app")
+}
+
+/// 신고자 키 = HMAC-SHA256(reports.salt, IP 접두). 시각·UA·IP 없음
+model ReportHit {
+  reportId    BigInt @map("report_id")
+  report      Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reporterKey Bytes  @map("reporter_key")
+
+  @@id([reportId, reporterKey])
+  @@map("report_hits")
+  @@schema("app")
+}
+
+/// 운영 기록(B5 SQL 함수가 같은 트랜잭션에서 쓴다). 1년 뒤 삭제. 계정 삭제 요청에는 코드를 적지 않는다
+model AdminAction {
+  id         BigInt   @id @default(autoincrement())
+  action     String   @db.VarChar(32)
+  targetKind String   @map("target_kind") @db.VarChar(16)
+  targetRef  String?  @map("target_ref")
+  note       String?
+  /// 실행한 DB 로그인(session_user)
+  actor      String   @db.VarChar(64)
+  at         DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([at])
+  @@map("admin_actions")
   @@schema("app")
 }

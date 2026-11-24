@@ -117,6 +117,14 @@ export const envSchema = z
     SITE_ORIGIN: z.url({ protocol: /^https?$/ }).default('https://mongmang.ink'),
     /** App Store 앱 id(숫자) — /m 스토어 버튼. 없으면 App Store 첫 화면으로 */
     APP_STORE_ID: z.string().regex(/^\d{6,12}$/).optional(),
+    /**
+     * 신고 자동 숨김(B5, 3-8 ③). 끄면 문턱을 넘어도 숨기지 않고 운영자 대기 목록에만 올린다(held 'disabled').
+     * 비우면 운영(production) 꺼짐·그 밖 켜짐 — **B6에서 XFF 위치(TRUSTED_PROXY_HOPS_WEB)를 실측한 뒤에만 운영에서 켠다**:
+     * hops가 실제보다 크면 맨 왼쪽 XFF로 신고자 키를 마음대로 만들어 한 사람이 요청 3번으로 아무 페이지나 숨긴다(B5 리뷰 H2)
+     */
+    REPORT_AUTO_HIDE: bool.optional(),
+    /** 서비스 전체 자동 숨김 차단기 — 최근 1시간 이만큼 숨겼으면 그다음은 대기 목록에만(비우면 contract REPORT_AUTO_HIDE_PER_HOUR = 5) */
+    REPORT_AUTO_HIDE_PER_HOUR: z.coerce.number().int().min(1).max(1000).optional(),
     ANDROID_PACKAGE: z.string().regex(/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/).default('com.piousangel.mongmange'),
   })
   .superRefine((e, ctx) => {

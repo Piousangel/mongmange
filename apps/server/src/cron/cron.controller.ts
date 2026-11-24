@@ -9,6 +9,7 @@ import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import type { Env } from '../config/env';
 import { DeletionService } from '../deletion/deletion.service';
 import { GcService, type GcReport } from '../deletion/gc.service';
+import { ModerationService, type ModerationReport } from '../moderation/moderation.service';
 
 const GOOGLE_ISSUERS = ['https://accounts.google.com', 'accounts.google.com'];
 
@@ -44,16 +45,19 @@ export class CronController {
     private readonly gc: GcService,
     private readonly deletion: DeletionService,
     private readonly cdn: CdnPurgeQueue,
+    private readonly moderation: ModerationService,
   ) {}
 
   @Post(':job')
   @HttpCode(200)
-  async run(@Param('job') job: string, @Headers('authorization') authorization: string | undefined): Promise<GcReport | { reapplied: number } | { cdn: FlushResult }> {
+  async run(@Param('job') job: string, @Headers('authorization') authorization: string | undefined): Promise<GcReport | ModerationReport | { reapplied: number } | { cdn: FlushResult }> {
     await this.auth.check(authorization);
     // 백업 복원 뒤 한 번(운영자가 Scheduler '지금 실행' — docs/ops/restore-runbook.md). 정기 예약은 하지 않는다
     if (job === 'reapply-deletions') return this.deletion.reapplyAfterRestore();
-    // 매일 04:30 KST: Storage 대기열·Auth 사용자 삭제 재시도·되찾기로 끊긴 옛 기기 30일(B2). 격리본 처리는 B5에서 같은 작업에 더한다
+    // 매일 04:30 KST: Storage 대기열·Auth 사용자 삭제 재시도·되찾기로 끊긴 옛 기기 30일(B2)
     if (job === 'storage-gc') return this.gc.runDue();
+    // 5분마다(B6 등록, B5): 신고 창 7일 만료·격리 30일 기본 확정·운영자 삭제 요청·복원/이름 가리기 파일 일·CDN 차례·SLA 알림
+    if (job === 'moderation') return this.moderation.runDue();
     // 1분마다(B6 등록): 1분 묶음에 걸려 기다리는 /m CDN 무효화를 낸다(B3, 3-9)
     if (job === 'cdn-purge') return { cdn: await this.cdn.flush() };
     throw new NotFoundException();

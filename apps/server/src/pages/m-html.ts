@@ -37,6 +37,11 @@ export function url(v: string, allowedOrigins: readonly string[]): Safe {
   if (/["'<>\s`\\]/.test(v)) throw new Error('url: 허용 밖 글자');
   return mk(escapeAttr(v));
 }
+/** 같은 출처 `/m/{code}/report` — 신고 폼 action(B5). 코드는 인장 코드 형식만 */
+export function reportAction(code: string): Safe {
+  if (!/^[0-9A-HJKMNP-TV-Z]{8}$/.test(code)) throw new Error('reportAction: 코드 형식이 아니다');
+  return mk(`/m/${code}/report`);
+}
 /** 같은 출처 `/m/{code}/get?p=…` — 코드는 인장 코드 형식(Crockford 8자)만 */
 export function storeHop(code: string, p: 'ios' | 'android'): Safe {
   if (!/^[0-9A-HJKMNP-TV-Z]{8}$/.test(code)) throw new Error('storeHop: 코드 형식이 아니다');
@@ -106,7 +111,8 @@ export interface LivePageValues {
   posterUrl: string;
   ogUrl: string;
   loopUrl: string | null;
-  snapUrl: string;
+  /** null = data-snap을 싣지 않는다(운영자 이름 가리기 직후 — 이름 없는 판이 생기기 전, B5 리뷰 M3) */
+  snapUrl: string | null;
 }
 export const LIVE_VALUE_KEYS = ['code', 'lang', 'title', 'auxKo', 'auxEn', 'posterUrl', 'ogUrl', 'loopUrl', 'snapUrl'] as const;
 
@@ -124,7 +130,8 @@ export function cspFor(cfg: PageConfig, live: boolean): string {
     `script-src '${M_SCRIPT_HASH}' ${site}/w/ 'wasm-unsafe-eval'`,
     `connect-src 'self' ${site}/config/v1.json ${site}/w/ ${pub}`,
     "base-uri 'none'",
-    "form-action 'none'",
+    // 살아 있는 링크에만 신고 폼(같은 출처 /m/{code}/report, B5). 사라진 링크·감사 페이지는 폼이 없다
+    live ? "form-action 'self'" : "form-action 'none'",
     "frame-ancestors 'none'",
   ]
     .filter(Boolean)
@@ -138,7 +145,11 @@ main{width:100%;max-width:420px;text-align:center}.stage{position:relative;width
 .stage canvas{opacity:0;transition:opacity .6s}.stage canvas.on{opacity:1}
 h1{font-size:24px;font-weight:600;margin:0 0 6px}p{margin:0 0 20px;color:var(--soft)}.stores{display:grid;gap:12px}
 .stores a{display:block;padding:14px 16px;border-radius:12px;background:var(--ink);color:var(--paper);text-decoration:none;font-weight:600;min-height:48px}
-.stores a:focus-visible{outline:3px solid #8a6d3b;outline-offset:3px}.gone-msg{display:none}html.gone .stage,html.gone .live-msg{display:none}html.gone .gone-msg{display:block}
+.stores a:focus-visible{outline:3px solid #8a6d3b;outline-offset:3px}.gone-msg{display:none}html.gone .stage,html.gone .live-msg,html.gone .report{display:none}html.gone .gone-msg{display:block}
+.report{margin:28px 0 0;text-align:left;color:var(--soft);font-size:15px}.report summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center}
+.report fieldset{border:0;margin:8px 0 0;padding:0;display:grid;gap:4px}.report label{display:flex;gap:10px;align-items:center;min-height:44px}.report input{width:20px;height:20px;margin:0}
+.report button{margin:12px 0 0;width:100%;min-height:48px;border:1px solid var(--soft);border-radius:12px;background:transparent;color:var(--ink);font:inherit;font-weight:600}
+.report summary:focus-visible,.report button:focus-visible{outline:3px solid #8a6d3b;outline-offset:3px}
 html[lang="ko"] [lang="en"],html[lang="en"] [lang="ko"]{display:none}`;
 
 function shell(o: { lang: 'ko' | 'en'; title: Safe; head: Safe; body: Safe }): string {
@@ -172,31 +183,58 @@ function stores(ios: Safe, android: Safe): Safe {
 const GONE_MSG = html`<section class="gone-msg"><h1><span lang="ko">사라진 링크예요</span><span lang="en">This link is gone</span></h1>
 <p><span lang="ko">주인이 링크를 껐거나 잠시 가려졌어요. 몽망이는 앱 안에서 계속 자라요.</span><span lang="en">Its owner turned the link off, or it is hidden for now. Mongmangi keeps growing inside the app.</span></p></section>`;
 
+/**
+ * 신고 폼(B5, architecture 3-8 '신고 → 자동 숨김'). 사유 코드 넷 중 하나만 — 자유 글 칸이 없다(D-21 P3). JS 없이 동작(접힌 details + POST 폼).
+ * 문구는 초안(작가 검수 대상). 값은 고정 — 코드는 action 경로에만(reportAction 형식 검사)
+ */
+const REPORT_REASON_LABELS: ReadonlyArray<{ v: string; ko: string; en: string }> = [
+  { v: 'sexual', ko: '성적인 모양이에요', en: 'It looks sexual' },
+  { v: 'hate', ko: '혐오·괴롭힘이에요', en: 'It is hateful or bullying' },
+  { v: 'personal', ko: '실명·연락처 같은 개인정보가 보여요', en: 'It shows a real name or contact info' },
+  { v: 'other', ko: '그 밖의 문제가 있어요', en: 'Something else is wrong' },
+];
+function reportForm(code: string): Safe {
+  const options = REPORT_REASON_LABELS.map(
+    (r) => html`<label><input type="radio" name="reason" value="${attr(r.v)}" required><span lang="ko">${text(r.ko)}</span><span lang="en">${text(r.en)}</span></label>`,
+  );
+  return html`<details class="report"><summary><span lang="ko">이 페이지 알리기</span><span lang="en">Report this page</span></summary>
+<form method="post" action="${reportAction(code)}">
+<fieldset><legend><span lang="ko">어떤 문제인가요?</span><span lang="en">What is wrong?</span></legend>
+${options}
+</fieldset>
+<button type="submit"><span lang="ko">알리기</span><span lang="en">Send report</span></button>
+</form></details>`;
+}
+
 /** 살아 있는 링크 */
 export function renderLivePage(v: LivePageValues, cfg: PageConfig): string {
   const pub = [cfg.publicOrigin];
   const poster = url(v.posterUrl, pub);
   const og = url(v.ogUrl, pub);
+  // 운영자 이름 가리기 뒤(B5)에는 og:image가 포스터다(4:5) — 크기를 그에 맞춘다
+  const ogIsPoster = v.ogUrl === v.posterUrl;
   const head = html`<link rel="preload" as="image" href="${poster}" fetchpriority="high">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${attr(APP_NAME[v.lang])}">
 <meta property="og:title" content="${attr(v.title)}">
 <meta property="og:description" content="${attr(v.lang === 'ko' ? v.auxKo : v.auxEn)}">
 <meta property="og:image" content="${og}">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:image:width" content="${mk(ogIsPoster ? '1080' : '1200')}">
+<meta property="og:image:height" content="${mk(ogIsPoster ? '1350' : '630')}">
 <meta property="og:locale" content="${attr(v.lang === 'ko' ? 'ko_KR' : 'en_US')}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="description" content="${attr(v.lang === 'ko' ? v.auxKo : v.auxEn)}">`;
   const video = v.loopUrl
     ? html`<video id="loop" src="${url(v.loopUrl, pub)}" poster="${poster}" autoplay muted playsinline loop preload="auto" aria-hidden="true"></video>`
     : EMPTY;
-  const body = html`<main id="m" data-state="live" data-snap="${url(v.snapUrl, pub)}">
+  const snapAttr = v.snapUrl === null ? EMPTY : html` data-snap="${url(v.snapUrl, pub)}"`;
+  const body = html`<main id="m" data-state="live"${snapAttr}>
 <div class="stage"><img id="poster" src="${poster}" width="1080" height="1350" alt="" fetchpriority="high">${video}</div>
 <section class="live-msg"><h1>${text(v.title)}</h1>
 <p><span lang="ko">${text(v.auxKo)}</span><span lang="en">${text(v.auxEn)}</span></p></section>
 ${GONE_MSG}
 ${stores(storeHop(v.code, 'ios'), storeHop(v.code, 'android'))}
+${reportForm(v.code)}
 </main>`;
   return shell({ lang: v.lang, title: text(v.title), head, body });
 }
@@ -210,4 +248,13 @@ ${GONE_MSG}
 ${stores(url(cfg.storeIosUrl, STORE_ORIGINS), url(cfg.storeAndroidUrl, STORE_ORIGINS))}
 </main>`;
   return shell({ lang: 'ko', title: text(`${APP_NAME.ko} · ${APP_NAME.en}`), head, body }).replace('<html lang="ko">', '<html lang="ko" class="gone">');
+}
+
+/** 신고 뒤 감사 페이지(303 → GET /m/{code}/report). 값이 하나도 없다 — 신고가 세졌는지·대상이 있는지 알리지 않는다 */
+export function renderReportedPage(): string {
+  const body = html`<main id="m" data-state="reported">
+<section><h1><span lang="ko">알려 주셔서 고마워요</span><span lang="en">Thank you for letting us know</span></h1>
+<p><span lang="ko">운영자가 7일 안에 살펴볼게요. 여러 사람이 알리면 확인 전까지 페이지가 바로 가려져요.</span><span lang="en">We will look at it within 7 days. If several people report it, the page is hidden right away until we check.</span></p></section>
+</main>`;
+  return shell({ lang: 'ko', title: text(`${APP_NAME.ko} · ${APP_NAME.en}`), head: EMPTY, body });
 }

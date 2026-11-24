@@ -17,6 +17,9 @@ import {
   REMOTE_FLAG_KEYS,
   remoteConfigSchema,
   remoteConfigStrictSchema,
+  creatureInfoSchema,
+  REPORT_REASONS,
+  reportRequestSchema,
 } from '../src/index';
 
 const okPing = {
@@ -217,5 +220,24 @@ describe('content/v1.json 매니페스트', () => {
     delete (moon as Record<string, unknown>).from;
     expect(contentManifestSchema.safeParse({ v: 1, seq: 3, motifs: [moon], revoked: [] }).success).toBe(false);
     expect(contentManifestSchema.safeParse({ v: 1, seq: 3, motifs: [{ ...moon, month: 3 }], revoked: [] }).success).toBe(true);
+  });
+});
+
+describe('신고 계약(B5) — 사유 코드 하나뿐, 자유 글·신고자 값은 받지 않는다', () => {
+  it('사유 넷 중 하나만 통과', () => {
+    for (const reason of REPORT_REASONS) expect(reportRequestSchema.safeParse({ reason }).success).toBe(true);
+    expect(reportRequestSchema.safeParse({ reason: 'spam' }).success).toBe(false);
+    expect(reportRequestSchema.safeParse({}).success).toBe(false);
+  });
+  it.each([['text', '자유 글'], ['email', 'a@b.c'], ['deviceId', 'x'], ['ip', '1.2.3.4']])('%s 칸이 섞이면 거부(strict)', (k, v) => {
+    expect(reportRequestSchema.safeParse({ reason: 'other', [k]: v }).success).toBe(false);
+  });
+  it('GET /creature에 nameBlocked(운영자 이름 가리기)가 반드시 있다', () => {
+    const base = { code: '7K2M9QXA', linkEnabled: false, nameVisible: false, page: null, deletionPendingUntil: null };
+    expect(creatureInfoSchema.safeParse(base).success).toBe(false);
+    expect(creatureInfoSchema.safeParse({ ...base, nameBlocked: true }).success).toBe(true);
+    // 삭제 대기 알림 칸도 반드시 있다(B5 리뷰 H1)
+    const { deletionPendingUntil: _d, ...noPending } = { ...base, nameBlocked: false };
+    expect(creatureInfoSchema.safeParse(noPending).success).toBe(false);
   });
 });

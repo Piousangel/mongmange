@@ -31,12 +31,4 @@ export function auxLine(ink: InkId, texture: TextureId | undefined): { ko: strin
   };
 }
 
-/**
- * 공개 이름 금칙어(3-5-2 '금칙어 통과'). **목록은 아직 없다**(작가·PM 결정 대기) — 자리와 판정 순서만 둔다.
- * normalizeName이 허용 문자를 한글 완성형·라틴·숫자·공백·가운뎃점으로 좁혀 URL·@·연락처 기호는 이미 떨어진다.
- */
-export const NAME_BLOCKLIST: readonly string[] = [];
-export function nameBlocked(name: string): boolean {
-  const n = name.toLowerCase().replace(/[\s·]/g, '');
-  return NAME_BLOCKLIST.some((w) => n.includes(w));
-}
+// 공개 이름 금칙어는 name-blocklist.ts(B5 — 목록 형식·정규화·로더)

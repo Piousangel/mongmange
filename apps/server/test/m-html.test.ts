@@ -12,6 +12,8 @@ import {
   M_SCRIPT_HASH,
   renderGonePage,
   renderLivePage,
+  renderReportedPage,
+  reportAction,
   storeHop,
   text,
   toString,
@@ -126,5 +128,42 @@ describe('페이지 모양 — 첫 페인트·CSP·외부 주소', () => {
     expect(M_SCRIPT).toContain('saveData');
     expect(M_SCRIPT).toContain('prefers-reduced-motion: reduce');
     expect(M_SCRIPT).not.toMatch(/innerHTML|document\.write|eval\(/);
+  });
+});
+
+describe('신고 폼(B5) — 살아 있는 링크에만, 사유 코드 넷, 자유 글 칸 없음', () => {
+  const live = renderLivePage(values(''), CFG);
+  it('폼은 같은 출처 /m/{code}/report로 POST, 라디오 넷(값 = contract REPORT_REASONS), textarea·text 입력 없음', () => {
+    const form = /<form method="post" action="([^"]+)">([\s\S]*?)<\/form>/.exec(live)!;
+    expect(form[1]).toBe('/m/K7M3QX9P/report');
+    expect([...form[2]!.matchAll(/name="reason" value="([^"]+)"/g)].map((m) => m[1])).toEqual(['sexual', 'hate', 'personal', 'other']);
+    expect(live).not.toMatch(/<textarea|type="text"/);
+    expect(form[2]).not.toMatch(/K7M3QX9P|TITLE/);
+  });
+  it('CSP form-action: 살아 있는 링크만 self, 사라진 링크·감사 페이지는 none(폼 없음)', () => {
+    expect(cspFor(CFG, true)).toContain("form-action 'self'");
+    expect(cspFor(CFG, false)).toContain("form-action 'none'");
+    expect(renderGonePage(CFG)).not.toContain('<form');
+    expect(renderReportedPage()).not.toContain('<form');
+  });
+  it('감사 페이지에는 값이 없다(늘 같은 바이트), 폼 action은 인장 코드 형식만', () => {
+    expect(renderReportedPage()).toBe(renderReportedPage());
+    expect(renderReportedPage()).toContain('data-state="reported"');
+    expect(() => reportAction('../../x')).toThrow();
+    expect(() => reportAction('k7m3qx9p')).toThrow();
+  });
+  it('이름 가리기 뒤 og:image가 포스터면 크기를 1080×1350으로(OG 그림 1200×630이 아님)', () => {
+    const v = values('');
+    const h = renderLivePage({ ...v, ogUrl: v.posterUrl }, CFG);
+    expect(h).toContain('<meta property="og:image:width" content="1080">');
+    expect(h).toContain('<meta property="og:image:height" content="1350">');
+    expect(live).toContain('<meta property="og:image:width" content="1200">');
+  });
+});
+
+describe('data-snap(B5 리뷰 M3)', () => {
+  it('snapUrl이 null이면(이름 가리기 직후) data-snap 속성 자체가 없다', () => {
+    expect(renderLivePage(values(''), CFG)).toContain('data-snap="');
+    expect(renderLivePage({ ...values(''), snapUrl: null }, CFG)).not.toContain('data-snap');
   });
 });

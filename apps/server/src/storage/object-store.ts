@@ -4,6 +4,7 @@
 //  - quarantine(비공개): 신고 격리(B5).
 // 구현: LocalObjectStore(파일 시스템, 개발·시험·compose) / NoStore(설정 안 됨 — 운영 기본, 링크 기능 503). 실제 Supabase Storage는 B6.
 // 키에 링크 코드를 넣지 않는다 — 경로는 pageKey(서버 난수 128비트)뿐이라 파일 주소로 코드를 거꾸로 찾을 수 없다.
+import { randomBytes } from 'node:crypto';
 
 export const BUCKETS = { staging: 'page-staging', public: 'public-pages', quarantine: 'quarantine' } as const;
 export type Bucket = (typeof BUCKETS)[keyof typeof BUCKETS];
@@ -96,6 +97,10 @@ export const PAGE_KEY_RE = /^[A-Za-z0-9_-]{22}$/;
 /** removePrefix·list가 받는 접두: storeKey 하나 또는 storeKey/pageKey */
 export const PREFIX_RE = /^[0-9a-f]{32}(?:\/[A-Za-z0-9_-]{22})?$/;
 export const OBJECT_KEY_RE = /^[0-9a-f]{32}\/[A-Za-z0-9_-]{22}\/(?:poster\.jpg|og\.jpg|loop\.mp4|snap\.json)$/;
+/** 서버 난수 pageKey(128비트). 코드에서 파생하지 않는다 — 파일 주소로 코드를 찾을 수 없게 */
+export function newPageKey(): string {
+  return randomBytes(16).toString('base64url');
+}
 /** 판 폴더 `{storeKey}/{pageKey}` */
 export function pageDir(storeKey: string, pageKey: string): string {
   if (!STORE_KEY_RE.test(storeKey) || !PAGE_KEY_RE.test(pageKey)) throw new Error('저장소 키 모양이 아니다');

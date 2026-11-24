@@ -24,7 +24,9 @@ import { BUCKETS } from '../storage/object-store';
 export type DeletionSource =
   | { channel: 'app'; kind: 'user_request' }
   | { channel: 'web'; kind: 'web_request' }
-  | { channel: 'app'; kind: 'restore_reapply' };
+  | { channel: 'app'; kind: 'restore_reapply' }
+  /** 운영자가 확인한 삭제 요청(B5, docs/ops/deletion-requests.md — app.request_account_deletion → Scheduler moderation) */
+  | { channel: 'email'; kind: 'user_request' };
 
 /** 운영 백업 보관 기간(Supabase Pro 일일 백업 7일, 3-8 '백업') — 지운 사용자 HMAC도 이만큼만 */
 export const BACKUP_RETENTION_DAYS = 7;
@@ -89,6 +91,10 @@ export class DeletionService {
         await tx.storageGc.updateMany({ where: { creatureId: creature.id }, data: { notBefore: now, deletionId: log.id, reason: 'deletion' } });
         // ② 링크 통계: 그 코드의 행을 바로(30일 말기를 기다리지 않는다, 3-1)
         await tx.linkDaily.deleteMany({ where: { code: creature.code } });
+        // 그 코드의 열린·숨김 신고는 닫는다(B5 리뷰 M2 — 격리 중 삭제된 신고가 대기 목록·1년 만료 밖에 남지 않게). 소금은 트리거·CHECK로 함께 사라진다
+        await tx.$executeRaw`
+          UPDATE app.reports SET status = 'account_deleted', salt = NULL, resolved_at = ${now}
+           WHERE target_kind = 'link' AND target_ref = ${creature.code} AND status IN ('open', 'auto_hidden')`;
       }
       if (subs.length) {
         await tx.authGc.createMany({ data: subs.map((s) => ({ sub: s.sub, deletionId: log.id, notBefore: now })), skipDuplicates: true });
