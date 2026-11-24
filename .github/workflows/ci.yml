@@ -17,7 +17,7 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/**'
   push:
     branches: [main]
     paths: *paths
@@ -45,6 +45,9 @@ jobs:
           cache: pnpm
       # 전 패키지 설치(모바일 시험·린트가 Expo·RN 타입을 본다). 설치 스크립트는 pnpm-workspace.yaml allowBuilds만
       - run: pnpm install --frozen-lockfile
+      # 다른 워크플로 파일이 문법 오류로 아예 돌지 않는 사고(11-24 server-ci, 이름 속 ': ')를 막는다 — 모든 워크플로를 검사
+      - name: "워크플로 파일 문법 검사"
+        run: for f in .github/workflows/*.yml; do npx -y @action-validator/cli@0.6.0 "$f" || exit 1; done
       - name: pnpm verify
         run: pnpm verify
         env:

@@ -59,7 +59,7 @@ jobs:
           cache: pnpm
       # 서버와 그 의존(core) + 루트(playwright — B5 신고 폼 실제 브라우저 e2e)만 설치 — 모바일(Expo·RN) 의존성은 받지 않는다
       - run: pnpm install --frozen-lockfile --filter "server..." --filter mongmange
-      - name: Chromium(헤드리스 셸) 설치 — test:db의 b5-browser 시험(B5 리뷰 C1: 손으로 넣은 머리글로는 Origin null을 못 잡는다)
+      - name: "Chromium(헤드리스 셸) 설치 — test:db의 b5-browser 시험(B5 리뷰 C1 — 손으로 넣은 머리글로는 Origin null을 못 잡는다)"
         run: pnpm exec playwright install --with-deps --only-shell chromium
       - name: 롤 준비(슈퍼유저로 한 번)
         run: psql -v ON_ERROR_STOP=1 -h localhost -U mong -d mong -f apps/server/prisma/local/00-roles.sql
