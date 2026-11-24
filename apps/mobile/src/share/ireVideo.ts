@@ -2,6 +2,7 @@
 // 인코더는 네이티브 모듈(iOS AVAssetWriter / Android MediaCodec + MediaMuxer, D-20·DECISIONS 'C7')이 `registerIreEncoder`로
 // 등록한다 — 모듈은 C10 빌드 2 네이티브 묶음에서 만든다. 등록 전·웹에서는 늘 이미지판이다.
 import { IRE_OUTPUTS, ireAudioCues, type IreCueSound, type IreLoopSource, type IreShareSource, type IreStrings, type MongLook, type sim } from '@mong/core';
+import { sharedName } from '../game/naming';
 import { isOn } from '../features';
 import { t } from '../i18n';
 import { prepareIreShare, type IrePrepared } from '../render/ireVideo/prepare';
@@ -124,13 +125,13 @@ export type IreShareResult = ShareResult | 'cancelled';
  * - 영상 플래그가 켜지고 인코더가 있으면 영상. 시트를 **열기 전** 실패(준비·인코딩 실패, 공유 불가)면 이미지판으로 떨어진다.
  * - 시트를 연 뒤의 실패(`shareFile` 'failed')는 이미지판으로 넘기지 않는다 — 시트를 두 번 보이지 않게(C7 리뷰 M-3).
  * - `signal`이 중단되면(화면을 떠남) 어느 단계든 시트를 열지 않고 'cancelled'.
- * - 이름은 `naming` 플래그와 이름 공개(nameVisible)가 모두 켜졌을 때만 영상에 실린다(PM 11-20: OS 공유 영상도 nameVisibility를 따른다).
- *   앱에 이름 공개 설정이 생기기 전(B2 서버·C11 앱 net)에는 호출부가 넘기지 않아 늘 꺼짐이다.
+ * - 이름은 공유 이름(game/naming sharedName — `naming` 켬 + 이름 공개 + 이름 있음)일 때만 영상에 실린다(PM 11-20: OS 공유 영상도
+ *   nameVisibility를 따른다). **공유 경로 입구인 여기서 정한다** — 호출부가 따로 켤 길이 없다(M2 리뷰 M-2). C11 전에는 공개가 늘 꺼짐.
  */
 export async function shareIre(
   state: sim.State,
   look?: MongLook,
-  opts: { nameVisible?: boolean; strokeInks?: readonly (sim.InkId | null)[]; signal?: AbortSignal } = {},
+  opts: { strokeInks?: readonly (sim.InkId | null)[]; signal?: AbortSignal } = {},
 ): Promise<IreShareResult> {
   const signal = opts.signal ?? new AbortController().signal;
   if (signal.aborted) return 'cancelled';
@@ -138,7 +139,7 @@ export async function shareIre(
   if (isOn('ireVideo') && enc) {
     let uri: string | null = null;
     try {
-      const nameVisible = isOn('naming') && opts.nameVisible === true;
+      const nameVisible = sharedName(state) !== null;
       const base = await prepareIreShare({ state, look, strokeInks: opts.strokeInks, nameVisible, strings: { app: '' } });
       const p: IrePrepared = { ...base, strings: ireStrings(base.src, { label: isOn('temperamentLabel'), ink: isOn('inkChoice') }) };
       uri = (await encodeIreVideo(p, enc, signal)).uri;

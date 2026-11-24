@@ -200,6 +200,74 @@ const SOUNDS = {
   mong_sleepy: { peak: -4, presence: { ex: -12, air: -18 }, make(r) { return reverb(mongVoice('sleepy', r), r, { seconds: 0.8, tau: 0.2, mix: 0.15, tone: 1400 }); } },
 };
 
+// ---------- M2 이름 가락 32 + 인장 '탁'(sound-v0 8절, C-integrated 2-2) ----------
+// 가락 id = (음 개수 − 1) × 8 + 윤곽. 윤곽 순서는 core MELODY_CONTOURS와 같아야 한다(rise·fall·arch·valley·flatUp·flatDown·zigzag·steps).
+// 음은 반음 단위 네 점, 음 개수가 적으면 네 점에서 고르게 뽑는다. 한 음 0.19초, 음 사이는 짧은 활음(입을 닫은 채 이어 부름).
+// 음역·빠르기는 앱이 재생 속도 ±8%로만 흔든다(런타임 피치 처리 없음).
+export const MELODY_CONTOURS = {
+  rise: [0, 2, 4, 7],
+  fall: [7, 4, 2, 0],
+  arch: [0, 5, 7, 3],
+  valley: [5, 0, -2, 3],
+  flatUp: [0, 0, 0, 4],
+  flatDown: [4, 4, 4, 0],
+  zigzag: [0, 4, 1, 5],
+  steps: [0, 2, 2, 5],
+};
+const CONTOUR_ORDER = ['rise', 'fall', 'arch', 'valley', 'flatUp', 'flatDown', 'zigzag', 'steps'];
+export function melodyNotes(id) {
+  const n = Math.floor(id / 8) + 1;
+  const pts = MELODY_CONTOURS[CONTOUR_ORDER[id % 8]];
+  if (n === 1) return [pts[0], pts[3]]; // 한 음절: 한 음 안에서 첫 점 → 끝 점으로 미끄러짐
+  return Array.from({ length: n }, (_, i) => pts[Math.round((i * 3) / (n - 1))]);
+}
+function nameMelody(id, r, pitch = 233) {
+  const n = Math.floor(id / 8) + 1;
+  const st = melodyNotes(id).map((v) => pitch * 2 ** (v / 12));
+  const NOTE = 0.19;
+  if (n === 1) return hum(0.42, { f0: glide(st[0], st[1], 0.06, 0.3), amp: segEnv(0.04, 0.16, 0.2), breath: 0.1, r });
+  const dur = n * NOTE + 0.22;
+  // 음 경계 40ms 활음 + 끝 음은 조금 길게 놓는다(대답이 끝났다는 느낌)
+  const f0 = (t) => {
+    const i = Math.min(n - 1, Math.floor(t / NOTE));
+    const u = t - i * NOTE;
+    const prev = i > 0 ? st[i - 1] : st[0];
+    return u < 0.04 && i > 0 ? lerp(prev, st[i], u / 0.04) : st[i];
+  };
+  const amp = (t) => {
+    const env = segEnv(0.04, n * NOTE - 0.08, 0.26)(t);
+    const u = (t % NOTE) / NOTE;
+    const dip = t < (n - 1) * NOTE ? 1 - 0.28 * Math.max(0, 1 - Math.abs(u - 1) * 6) * Math.max(0, 1 - u * 6) : 1; // 음절 사이 아주 얕은 골
+    return env * (u > 0.85 && t < (n - 1) * NOTE ? 0.78 : dip);
+  };
+  return hum(dur, { f0, amp, breath: 0.1, vibrato: 0.004, r });
+}
+for (let id = 0; id < 32; id++) {
+  SOUNDS[`name_melody_${String(id).padStart(2, '0')}`] = {
+    peak: -3,
+    presence: { ex: -12 },
+    make(r) {
+      return reverb(nameMelody(id, r), r, { seconds: 0.6, tau: 0.13, mix: 0.12, tone: 1500 });
+    },
+  };
+}
+// 인장 '탁': 마른 나무·돌 위 짧은 타격(중역 몸통) + 인주가 눌리는 둔한 낮은 눌림. 고역은 깎아 장난감 '딸깍'이 되지 않게
+SOUNDS.seal_tak = {
+  peak: -3,
+  presence: { ex: -10, air: -16 },
+  make(r) {
+    const x = zeros(0.5);
+    // 타격 몸통: 나무 공명 두 개(820·1450Hz) + 짧은 결 노이즈
+    mixAt(x, mulEnv(sine(samples(0.12), () => 820), adExp(0.001, 0.03)), 0.0, 0.55);
+    mixAt(x, mulEnv(sine(samples(0.1), () => 1450), adExp(0.001, 0.02)), 0.0, 0.35);
+    mixAt(x, mulEnv(lp(bp(white(samples(0.1), r), 1300, 1.2), 2600), adExp(0.0008, 0.03)), 0.0, 1.4);
+    // 인주의 둔한 눌림(낮게, 작게)
+    mixAt(x, mulEnv(sine(samples(0.14), (t) => 190 - 50 * Math.min(1, t / 0.06)), adExp(0.002, 0.04)), 0.0, 0.3);
+    mixAt(x, mulEnv(lp(brown(samples(0.2), r), 380), adExp(0.01, 0.06)), 0.012, 0.15);
+    return reverb(x, r, { seconds: 0.35, tau: 0.07, mix: 0.12, tone: 1700, predelayMs: 6 });
+  },
+};
+
 function brushLoop(r, { center, top, q }) {
   const L = 2.0, C = 0.25, n = samples(L + C);
   // 붓털 결: 느린 무작위 진폭(손 떨림) × 중심 주파수 흔들림(2초에 정수 주기)

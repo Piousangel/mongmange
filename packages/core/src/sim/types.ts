@@ -215,7 +215,7 @@ export type Event =
   | { type: 'appBackground'; at: Millis }
   /** 먹 고르기·바꾸기(빌드 2). 첫 잠에 씨앗이 정해 둔 먹을 덮는다 */
   | { type: 'chooseInk'; at: Millis; ink: InkId; seeded?: boolean }
-  /** 이름 짓기(빌드 2). 검사(normalizeName)를 통과한 이름만 받는다 */
+  /** 이름 짓기·바꾸기(빌드 2 M2). 검사(normalizeName)를 통과한 이름만 받는다. 지금 이름과 같으면 아무 일도 없다 */
   | { type: 'setName'; at: Millis; text: string };
 
 export type Effect =
@@ -230,7 +230,9 @@ export type Effect =
   | { type: 'bandEntered'; axis: AxisId; band: -1 | 0 | 1 }
   | { type: 'notSleepy' }
   | { type: 'rehydrated' }
-  | { type: 'clockSuspect'; kind: 'rewind' | 'reset' | 'jump' };
+  | { type: 'clockSuspect'; kind: 'rewind' | 'reset' | 'jump' }
+  /** 이름을 새로 짓거나 바꿈(M2) — 앱이 인장 '탁'을 이 한 곳에서만 낸다. first = 처음 지은 이름 */
+  | { type: 'named'; first: boolean };
 
 export interface Step {
   state: State;

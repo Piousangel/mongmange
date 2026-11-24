@@ -1,8 +1,10 @@
 // 이레 두루마리 영상 한 프레임의 그림(글 없음). 장면 값은 core `ireFrameAt`(결정적)에서만 오고, 여기서는 그리기만 한다.
 // 몸 = 화면과 같은 Mongmangi(BodyFrame을 프레임 값으로 채움), 일곱 날 점 = 꿈 카드와 같은 장치, 카드 = 앨범 썸네일 캐시(thumbImage).
 // 글(결 이름·꼬리표·앱 이름)은 플랫폼별 renderFrame(.web).tsx가 얹는다(웹 CanvasKit에는 한글 시스템 글꼴이 없다).
-import { Circle, Fill, Group, Image as SkiaImage, Rect, RoundedRect, type SkImage } from '@shopify/react-native-skia';
-import { COMB_REST, IRE_OUTPUTS, IRE_SLOTS, PALETTE, grammarOf, ireLayout, type IreFrame, type IreOutputKind, type MongLook, type StrokeRecord, type sim } from '@mong/core';
+import { Circle, Fill, Group, Image as SkiaImage, Path, Rect, RoundedRect, type SkImage } from '@shopify/react-native-skia';
+import { COMB_REST, IRE_OUTPUTS, IRE_SLOTS, PALETTE, grammarOf, ireLayout, sealOutlineOf, type IreFrame, type IreOutputKind, type MongLook, type StrokeRecord, type sim } from '@mong/core';
+import { useMemo } from 'react';
+import { sealPath } from '../sealPath';
 import { useSharedValue } from 'react-native-reanimated';
 import { Mongmangi, REST_FRAME, type BodyFrame } from '../Mongmangi';
 
@@ -16,6 +18,8 @@ export interface IreArtInput {
   strokeInks?: readonly (sim.InkId | null)[];
   /** 슬롯별 꿈 카드 그림(없으면 빈 칸) */
   cardImages: (SkImage | null)[];
+  /** M2 그 아이의 인장 씨앗(naming 켬·공유판). 있으면 큰 인장 = 이 빠짐 무늬, 없으면 둥근 사각(C7 그대로) */
+  sealSeed?: number;
 }
 
 export function ireSize(kind: IreOutputKind, width?: number): { width: number; height: number } {
@@ -62,6 +66,12 @@ export function IreFrameArt({ frame, input }: { frame: IreFrame; input: IreArtIn
   const L = ireLayout(input.kind);
   const d = L.dots;
   const lw = Math.max(1, width * 0.0016);
+  const seal = L.text?.seal;
+  const sealSize = seal ? seal.w * width : 0;
+  const sealP = useMemo(
+    () => (seal && input.sealSeed !== undefined ? sealPath(sealOutlineOf(input.sealSeed, sealSize), sealSize, seal.x * width, seal.y * height) : null),
+    [seal, input.sealSeed, sealSize, width, height],
+  );
   return (
     <Group>
       <Fill color={PALETTE.day.bg} />
@@ -100,7 +110,8 @@ export function IreFrameArt({ frame, input }: { frame: IreFrame; input: IreArtIn
           );
         })}
         {/* 인장(주사, 한 화면 한 곳) — 꼬리표와 함께 나타난다 */}
-        {L.text && frame.tag > 0 && (
+        {L.text && frame.tag > 0 && sealP && <Path path={sealP} color={PALETTE.day.accent} opacity={0.93 * frame.tag} />}
+        {L.text && frame.tag > 0 && !sealP && (
           <RoundedRect
             x={L.text.seal.x * width}
             y={L.text.seal.y * height}

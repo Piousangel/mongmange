@@ -38,6 +38,15 @@ export interface Meta {
   devOffsetMs: number;
   /** 평점 요청(이레 아침 1회)을 이미 했는가. 거절·실패해도 true — 다시 묻지 않는다(D-18 ⑤) */
   reviewAsked: boolean;
+  /**
+   * M2 이름 공개(architecture 3-5-2 `nameVisible`, 기본 끔). 공유물(꿈 카드 PNG·이레 영상·공개 스냅숏)에 이름을 싣는 유일한 스위치.
+   * 켜는 화면은 C11(링크 켜기·이름도 보이기) 몫 — 지금은 늘 끔이라 공유물에 이름이 실리지 않는다
+   */
+  nameVisible: boolean;
+  /** M2 이름 짓기 창을 저절로 연 기록(core namePromptDue) */
+  nameAsk: sim.NameAskLog;
+  /** '이름을 눌러 불러 보세요' 한 번 안내를 보였는가 */
+  callHintShown: boolean;
 }
 
 export const HOUR_MS = 3_600_000;
@@ -54,6 +63,9 @@ export const DEFAULT_META: Meta = {
   lang: 'system',
   devOffsetMs: 0,
   reviewAsked: false,
+  nameVisible: false,
+  nameAsk: sim.EMPTY_NAME_ASK,
+  callHintShown: false,
 };
 
 export interface Snapshot {
@@ -102,7 +114,9 @@ function loadMeta(): Meta {
     if (!raw) return DEFAULT_META;
     const m = JSON.parse(raw) as Partial<Meta>;
     const lang: LanguagePref = m.lang === 'ko' || m.lang === 'en' ? m.lang : 'system';
-    return { ...DEFAULT_META, ...m, lang, sound: { ...DEFAULT_SOUND_SETTINGS, ...(m.sound ?? {}) } };
+    const ask = m.nameAsk;
+    const nameAsk = ask && Number.isInteger(ask.count) && Number.isInteger(ask.lastDay) ? { count: ask.count, lastDay: ask.lastDay } : sim.EMPTY_NAME_ASK;
+    return { ...DEFAULT_META, ...m, lang, nameAsk, nameVisible: m.nameVisible === true, sound: { ...DEFAULT_SOUND_SETTINGS, ...(m.sound ?? {}) } };
   } catch {
     return DEFAULT_META;
   }

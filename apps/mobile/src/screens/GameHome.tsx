@@ -14,6 +14,7 @@ import { KText, track, useFontScale } from '../ui/type';
 import { NightRings, NightWater } from './HomeScreen';
 import { ObjectIcons, Paper, SANS, SERIF, VerticalTitle, inkPool, layout, styles as ui } from './ui';
 import { InkList, InkSticks, KeptStick } from './InkSticks';
+import { NameTitle } from './NameTitle';
 import { inkPickerOpen } from '../game/look';
 
 const RM = PARAMS.rm;
@@ -58,6 +59,7 @@ export function GameHome({
   inkChoice = false,
   inkChanging = false,
   strokeInks,
+  naming = null,
 }: {
   state: sim.State;
   now: number;
@@ -78,6 +80,11 @@ export function GameHome({
   inkChanging?: boolean;
   /** 획마다 먹(useStrokeInks) */
   strokeInks?: readonly (sim.InkId | null)[];
+  /**
+   * M2 이름(플래그 naming). 있으면 세로 제목이 부르기 단추가 된다. name = 지은 이름(null = 아직),
+   * onCall = 대답 종류(core callReply)를 돌려준다 — 고개 돌림은 늘, 가락이면 빗 튕김(+120ms)
+   */
+  naming?: { name: string | null; onCall: () => 'turn' | 'melody' } | null;
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -120,6 +127,8 @@ export function GameHome({
   const mountAt = useSharedValue(animateReveal ? clock.value : -1e9);
   // 첫날 먹을 고른 순간(다시 스밈 번짐). 첫 밤 뒤 바꾸기는 새 획에만이라 번짐 없음
   const soakAt = useSharedValue(-1e9);
+  // M2 부르기 대답의 빗 튕김 시각(가락일 때만)
+  const flickAt = useSharedValue(-1e9);
   const soakKey = state.dayIndex === 0 && state.ink.id !== null && !state.ink.seeded ? `${state.ink.id}|${state.ink.chosenAt}` : '';
   const prevSoak = useRef(soakKey);
   useEffect(() => {
@@ -154,6 +163,9 @@ export function GameHome({
     // 문지르기: 번짐이 1.2초 주기로 숨 쉼, 눈은 기쁨 호
     const rub = rubbing.value;
     const bleed = 1 + rub * (RM ? 0.15 : 0.15 + 0.15 * Math.sin((t / 1200) * Math.PI * 2));
+    // 부르기 대답(가락): 빗 튕김 +120ms(아트 8절). 모션 줄이기도 빗은 움직인다('눈·빗만')
+    const fd = t - flickAt.value - 120;
+    const fl = fd >= 0 && fd < 1400 ? wobble(fd, 3.2, 2.2) : 0;
     return {
       ...REST_FRAME,
       ox,
@@ -161,7 +173,7 @@ export function GameHome({
       wpx: L.wpx,
       s,
       combN: records.length,
-      comb: { ...COMB_REST, angle: COMB_REST.angle - 18 * nk, wobble0: b * 1.2, wobble1: b * 0.9, wobble2: b * 0.6 },
+      comb: { ...COMB_REST, angle: COMB_REST.angle - 18 * nk + 14 * Math.max(fl, 0), wobble0: b * 1.2 + 8 * fl, wobble1: b * 0.9 + 8 * (fd >= 30 ? wobble(fd - 30, 3.2, 2.2) : 0), wobble2: b * 0.6 + 8 * (fd >= 60 ? wobble(fd - 60, 3.2, 2.2) : 0) },
       sx,
       sy,
       tilt: g.tilt + shake,
@@ -214,6 +226,15 @@ export function GameHome({
     gaze.value = { x, y, at: clock.value, holdMs };
   };
   const grindT = useRef(0);
+  // 세로 이름 자리(바라보기 대상). 레이아웃 전에는 제목이 놓이는 대략의 자리
+  const titleAt = useRef({ x: width / 2, y: insets.top + height * 0.16 });
+  // 이름을 지은 순간: 몽망이가 세로 이름 쪽으로 고개를 돌려 바라본다(2-2 '부르기와 발견')
+  const namedKey = naming?.name ? `${naming.name}|${state.name?.at ?? 0}` : '';
+  const prevNamed = useRef(namedKey);
+  useEffect(() => {
+    if (namedKey !== '' && namedKey !== prevNamed.current) gaze.value = { x: titleAt.current.x, y: titleAt.current.y, at: clock.value + 300, holdMs: 1800 };
+    prevNamed.current = namedKey;
+  }, [namedKey, gaze]);
   // 몽망이 누르기: 응답자 이벤트로 누른 시간과 미세 이동을 잰다(Pressable은 이동을 주지 않는다)
   const press = useRef<{ t0: number; x: number; y: number; dist: number; rub: boolean; timer: ReturnType<typeof setTimeout> | null } | null>(null);
   const onBodyGrant = (e: GestureResponderEvent) => {
@@ -407,9 +428,29 @@ export function GameHome({
         </View>
       )}
 
-      {!asleep && title !== '' && (
+      {!asleep && title !== '' && !naming && (
         <Animated.View style={[StyleSheet.absoluteFill, titleSt]} pointerEvents="none">
           <VerticalTitle text={title} color={PALETTE.day.text} seal={false} top={insets.top + height * 0.1} />
+        </Animated.View>
+      )}
+      {/* M2: 세로 이름 = 부르기(탭 대상 추가, 새 제스처 없음 — C 3-1) */}
+      {!asleep && reveal === 'all' && naming && (
+        <Animated.View style={[StyleSheet.absoluteFill, titleSt]} pointerEvents="box-none">
+          <NameTitle
+            name={naming.name}
+            day={dayName(state.dayIndex)}
+            color={PALETTE.day.text}
+            top={insets.top + height * 0.1}
+            onLayoutCenter={(x, y) => {
+              titleAt.current = { x, y };
+            }}
+            onCall={() => {
+              const reply = naming.onCall();
+              const c = titleAt.current;
+              look(c.x, c.y, 1500);
+              if (reply === 'melody') flickAt.value = clock.value;
+            }}
+          />
         </Animated.View>
       )}
       {/* 공방 노트 입구 = 주사 낙관(첫 획 뒤 '탁' 찍힘) */}

@@ -7,6 +7,7 @@ import { strokesForCard } from '../render/dreamCard/DreamCardThumb';
 import { renderDreamCardImage, renderIreScrollImage } from '../render/dreamCard/renderImage';
 import { pickScrollCards, SHARE_WIDTH, shareFileName } from './layout';
 import { sharePng, shareSupported, type ShareResult } from './native';
+import { shareInput } from './shareName';
 
 export type { ShareResult } from './native';
 export { shareSupported };
@@ -14,10 +15,14 @@ export { shareSupported };
 /** 개발 확인(웹 캡처 ?shareFail=1): 실패 처리 화면을 보기 위한 흉내 */
 const simulateFail = () => __DEV__ && PARAMS.shareFail;
 
-export async function shareDreamCard(input: DreamCardInput, aspect: DreamAspect): Promise<ShareResult> {
+/**
+ * 꿈 카드 보내기. **공유 경로 입구에서** 이름 줄을 공유 이름(sharedName — naming 켬 + 이름 공개 + 이름 있음)으로 다시 쓴다(M2 리뷰 M-2).
+ * 호출부가 앱 안 이름이 든 labels를 넘겨도, owner를 주지 않아도 공개가 꺼져 있으면 이름은 PNG에 0이다.
+ */
+export async function shareDreamCard(input: DreamCardInput, aspect: DreamAspect, owner: Pick<sim.State, 'name'> | null): Promise<ShareResult> {
   try {
     if (simulateFail()) throw new Error('simulated share failure');
-    const img = await renderDreamCardImage(input, { aspect, width: SHARE_WIDTH, footer: t('share.footer') });
+    const img = await renderDreamCardImage(shareInput(input, owner), { aspect, width: SHARE_WIDTH, footer: t('share.footer') });
     return await sharePng(img.base64, shareFileName('card', input.card.night, aspect), t('share.dialog'));
   } catch (e) {
     console.warn('[share] 카드 이미지 실패:', e);

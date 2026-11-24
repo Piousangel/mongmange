@@ -117,7 +117,7 @@ export interface OnceSource {
   bedtimeLocalMin: number;
   ire7LineShown: boolean;
   temperamentLabel: { since: number } | null;
-  name: { at: number } | null;
+  name: { at: number; firstAt?: number } | null;
   ink: { id: string | null; seeded: boolean; chosenAt: number | null };
   clock: { tzOffsetMin: number };
 }
@@ -128,7 +128,7 @@ export interface OnceSource {
  *  - first_tap: 첫 탭으로 태어난 개체(birth.source 'tap')의 birth.at. 빌드 1 이관 개체(migrated)는 첫 탭 기록이 없어 내지 않는다
  *  - first_night: 지금 첫 밤이면 sleepAt, 이미 지났으면(dayIndex > 0) 설치 시각 이후 첫 잠 시각(bedtime).
  *    세이브에 '첫 밤 시각' 필드가 없어 sim의 자동 잠 규칙(잠 시각)으로 계산한다 — 잠 시각보다 일찍 재운 밤도 날짜는 대개 같다
- *  - ire7: 결 이름이 정해진 시각(temperamentLabel.since)  - name_set: name.at  - ink_chosen: 유저가 고른 먹의 chosenAt
+ *  - ire7: 결 이름이 정해진 시각(temperamentLabel.since)  - name_set: **처음** 이름을 지은 시각(name.firstAt ?? name.at — 바꿔도 그대로, M2 리뷰 L-3)  - ink_chosen: 유저가 고른 먹의 chosenAt
  */
 export function onceEventsFromState(s: OnceSource): Array<{ e: PingEvent; at: number }> {
   const out: Array<{ e: PingEvent; at: number }> = [];
@@ -136,7 +136,7 @@ export function onceEventsFromState(s: OnceSource): Array<{ e: PingEvent; at: nu
   if (s.dayIndex === 0 && s.phase === 'asleep' && s.sleepAt !== null) out.push({ e: 'first_night', at: s.sleepAt });
   else if (s.dayIndex > 0) out.push({ e: 'first_night', at: firstBedtimeAfter(s.birth.at, s.bedtimeLocalMin, s.clock.tzOffsetMin) });
   if (s.ire7LineShown && s.temperamentLabel) out.push({ e: 'ire7', at: s.temperamentLabel.since });
-  if (s.name) out.push({ e: 'name_set', at: s.name.at });
+  if (s.name) out.push({ e: 'name_set', at: s.name.firstAt ?? s.name.at });
   if (s.ink.id !== null && !s.ink.seeded && s.ink.chosenAt !== null) out.push({ e: 'ink_chosen', at: s.ink.chosenAt });
   return out;
 }

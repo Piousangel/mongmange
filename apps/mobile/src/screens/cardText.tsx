@@ -5,10 +5,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import type { DreamCardInput, DreamCardLabels } from '../render/dreamCard/DreamCard';
 import { useFeature } from '../features';
 import { useStrokeInks } from '../game/look';
+import { cardNameLabel } from '../share/shareName';
+export { cardNameLabel };
 import { shareIre, type IreShareResult } from '../share/ireVideo';
 import { shareDreamCard, shareSupported } from '../share/shareCard';
 import { appendA11y, motifName, motifScene } from '../game/text';
-import { dayName, nightName as nightOf, t } from '../i18n';
+import { nightName as nightOf, t } from '../i18n';
 import { KText } from '../ui/type';
 import { SANS } from './ui';
 
@@ -17,9 +19,13 @@ export function nightName(card: sim.DreamCard): string {
   return nightOf(Math.max(0, card.night - 1));
 }
 
-export function cardLabels(card: sim.DreamCard, line: string): DreamCardLabels {
+/**
+ * 카드 글. name = **앱 안** 이름(displayName — naming 꺼짐이면 null). 공유 이미지는 이 값을 쓰지 않고 shareInput이
+ * 이름 줄을 공유 이름(sharedName)으로 다시 쓴다.
+ */
+export function cardLabels(card: sim.DreamCard, line: string, name: string | null = null): DreamCardLabels {
   const motif = motifName(card.motifId) ?? t('motif.fallback');
-  return { name: t('card.name', { day: dayName(Math.max(0, card.night - 1)) }), line, sub: t('card.sub', { motif, night: nightName(card) }) };
+  return { name: cardNameLabel(card, name), line, sub: t('card.sub', { motif, night: nightName(card) }) };
 }
 
 /**
@@ -40,7 +46,19 @@ const NOTE_MS = 4000;
  * 공유(빌드 1): 꿈 카드 4:5 / 9:16 PNG, 이레 아침에는 두루마리 이미지도. 그리는 동안 버튼에 '인화하는 중', 실패하면 한 줄 안내.
  * 기능 플래그(share)가 꺼졌거나 네이티브 모듈이 없는 옛 빌드면 아무것도 그리지 않는다(기능만 꺼짐).
  */
-export function ShareBar({ input, ireState, dark = false }: { input: DreamCardInput; /** 있으면 이레 두루마리 버튼 */ ireState?: sim.State | null; dark?: boolean }) {
+export function ShareBar({
+  input,
+  ireState,
+  owner,
+  dark = false,
+}: {
+  input: DreamCardInput;
+  /** 있으면 이레 두루마리 버튼 */
+  ireState?: sim.State | null;
+  /** 이 카드의 몽망이. 공유 이름은 shareDreamCard가 이 값으로 sharedName을 거쳐 정한다(없으면 이름 없음) */
+  owner?: Pick<sim.State, 'name'> | null;
+  dark?: boolean;
+}) {
   const on = useFeature('share');
   const [busy, setBusy] = useState<ShareKind | null>(null);
   const [note, setNote] = useState('');
@@ -69,7 +87,10 @@ export function ShareBar({ input, ireState, dark = false }: { input: DreamCardIn
     const ac = new AbortController();
     abort.current = ac;
     try {
-      r = kind === 'ire' && ireState ? await shareIre(ireState, input.look, { strokeInks, signal: ac.signal }) : await shareDreamCard(input, kind === 'story' ? '9:16' : '4:5');
+      r =
+        kind === 'ire' && ireState
+          ? await shareIre(ireState, input.look, { strokeInks, signal: ac.signal })
+          : await shareDreamCard(input, kind === 'story' ? '9:16' : '4:5', owner ?? null);
     } finally {
       lock.current = false;
       if (abort.current === ac) abort.current = null;

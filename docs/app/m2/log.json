@@ -1,0 +1,26 @@
+{
+  "ko-390": {
+    "composingNote": "한글은 여섯 자, 영문은 열두 자까지 지을 수 있어요",
+    "digitsNote": "숫자는 여섯 개까지만 이어 쓸 수 있어요",
+    "fallbackShown": true,
+    "titleA11y": "이름 부르기, 몽실이"
+  },
+  "en-390": {
+    "composingNote": "Up to 12 letters, or 6 Hangul syllables",
+    "digitsNote": "No more than six digits in a row",
+    "fallbackShown": true,
+    "titleA11y": "Call by name, Momo"
+  },
+  "ko-320": {
+    "titleA11y": "이름 부르기, 가나다라마바"
+  },
+  "ko-430": {
+    "titleA11y": "이름 부르기, 먹보"
+  },
+  "ko-390-fs200": {
+    "titleA11y": "이름 부르기, 몽실이"
+  },
+  "en-320-fs200": {
+    "titleA11y": "Call by name, Juniper Ash"
+  }
+}

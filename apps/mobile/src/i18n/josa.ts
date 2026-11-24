@@ -16,6 +16,7 @@ const PAIRS: Record<string, readonly [string, string]> = {
   '(으)로': ['으로', '로'],
   '아/야': ['아', '야'],
   '이에요/예요': ['이에요', '예요'],
+  '이라고/라고': ['이라고', '라고'],
 };
 
 export function isJosaStyle(style: string): boolean {

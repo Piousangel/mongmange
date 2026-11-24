@@ -21,7 +21,18 @@ export type SoundId =
   | 'night_ambience_loop'
   | 'morning_lift'
   | 'mong_joy'
-  | 'mong_sleepy';
+  | 'mong_sleepy'
+  | 'seal_tak'
+  | NameMelodySound;
+
+/** 이름 가락 32(M2, sound-v0 8절): `name_melody_00`..`name_melody_31`, 번호 = core `nameMelodyOf().id` */
+type D = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+export type NameMelodySound = `name_melody_${'0' | '1' | '2'}${D}` | 'name_melody_30' | 'name_melody_31';
+export const NAME_MELODY_COUNT = 32;
+export function nameMelodySound(id: number): NameMelodySound {
+  const k = Math.min(NAME_MELODY_COUNT - 1, Math.max(0, Math.floor(id)));
+  return `name_melody_${String(k).padStart(2, '0')}` as NameMelodySound;
+}
 
 export const SOUND_FILES: Record<SoundId, SoundAsset> = {
   paper_air_loop: require('../../assets/sounds/paper_air_loop.wav'),
@@ -39,6 +50,39 @@ export const SOUND_FILES: Record<SoundId, SoundAsset> = {
   morning_lift: require('../../assets/sounds/morning_lift.wav'),
   mong_joy: require('../../assets/sounds/mong_joy.wav'),
   mong_sleepy: require('../../assets/sounds/mong_sleepy.wav'),
+  seal_tak: require('../../assets/sounds/seal_tak.wav'),
+  name_melody_00: require('../../assets/sounds/name_melody_00.wav'),
+  name_melody_01: require('../../assets/sounds/name_melody_01.wav'),
+  name_melody_02: require('../../assets/sounds/name_melody_02.wav'),
+  name_melody_03: require('../../assets/sounds/name_melody_03.wav'),
+  name_melody_04: require('../../assets/sounds/name_melody_04.wav'),
+  name_melody_05: require('../../assets/sounds/name_melody_05.wav'),
+  name_melody_06: require('../../assets/sounds/name_melody_06.wav'),
+  name_melody_07: require('../../assets/sounds/name_melody_07.wav'),
+  name_melody_08: require('../../assets/sounds/name_melody_08.wav'),
+  name_melody_09: require('../../assets/sounds/name_melody_09.wav'),
+  name_melody_10: require('../../assets/sounds/name_melody_10.wav'),
+  name_melody_11: require('../../assets/sounds/name_melody_11.wav'),
+  name_melody_12: require('../../assets/sounds/name_melody_12.wav'),
+  name_melody_13: require('../../assets/sounds/name_melody_13.wav'),
+  name_melody_14: require('../../assets/sounds/name_melody_14.wav'),
+  name_melody_15: require('../../assets/sounds/name_melody_15.wav'),
+  name_melody_16: require('../../assets/sounds/name_melody_16.wav'),
+  name_melody_17: require('../../assets/sounds/name_melody_17.wav'),
+  name_melody_18: require('../../assets/sounds/name_melody_18.wav'),
+  name_melody_19: require('../../assets/sounds/name_melody_19.wav'),
+  name_melody_20: require('../../assets/sounds/name_melody_20.wav'),
+  name_melody_21: require('../../assets/sounds/name_melody_21.wav'),
+  name_melody_22: require('../../assets/sounds/name_melody_22.wav'),
+  name_melody_23: require('../../assets/sounds/name_melody_23.wav'),
+  name_melody_24: require('../../assets/sounds/name_melody_24.wav'),
+  name_melody_25: require('../../assets/sounds/name_melody_25.wav'),
+  name_melody_26: require('../../assets/sounds/name_melody_26.wav'),
+  name_melody_27: require('../../assets/sounds/name_melody_27.wav'),
+  name_melody_28: require('../../assets/sounds/name_melody_28.wav'),
+  name_melody_29: require('../../assets/sounds/name_melody_29.wav'),
+  name_melody_30: require('../../assets/sounds/name_melody_30.wav'),
+  name_melody_31: require('../../assets/sounds/name_melody_31.wav'),
 };
 
 // ---------- 햅틱: expo-haptics 이름을 문자열로 그대로 옮김(패키지 미설치) ----------
@@ -149,7 +193,9 @@ export type SoundEvent =
   | 'nightAmbience'
   | 'morningLift'
   | 'mongJoy'
-  | 'mongSleepy';
+  | 'mongSleepy'
+  | 'sealTak'
+  | 'nameMelody';
 
 const impact = (style: ImpactStyle, atMs = 0): HapticBeat => ({ atMs, haptic: { kind: 'impact', style } });
 
@@ -202,4 +248,9 @@ export const SOUND_MAP: Record<SoundEvent, SoundCue> = {
   mongJoy: { type: 'oneShot', bus: 'voice', layers: [{ sound: 'mong_joy', volume: 0.7 }], rateJitter: 0.04, throttleMs: 1200, haptics: [impact('light', 120), impact('light', 360)] },
   // 졸림(밤 무렵 하품). 햅틱 없음.
   mongSleepy: { type: 'oneShot', bus: 'voice', layers: [{ sound: 'mong_sleepy', volume: 0.6 }], rateJitter: 0, throttleMs: 8000, haptics: [] },
+  // M2 인장 '탁': **이름 인장 순간 한 곳만**(이름을 처음 짓거나 바꾼 순간, sim 'named' 효과). 첫 30초 28.5초 낙관은 무음(아트 11절 v1.3).
+  sealTak: { type: 'oneShot', bus: 'sfx', layers: [{ sound: 'seal_tak', volume: 0.8 }], rateJitter: 0, throttleMs: 600, haptics: [impact('rigid')] },
+  // M2 이름 가락: 세로 이름을 불렀을 때 정 2부터의 대답. 파일은 가락 번호로 바꿔 끼우고(playMelody), 속도는 이름에서 정해진 값(무작위 흔들림 없음 — 같은 이름 = 같은 소리).
+  // 기본 파일은 자리 표시(00). 햅틱은 빗 튕김(+120ms)에 light 1회 — 소리를 꺼도 대답이 손에 닿는다.
+  nameMelody: { type: 'oneShot', bus: 'voice', layers: [{ sound: 'name_melody_00', volume: 0.7 }], rateJitter: 0, throttleMs: 900, haptics: [impact('light', 120)] },
 };

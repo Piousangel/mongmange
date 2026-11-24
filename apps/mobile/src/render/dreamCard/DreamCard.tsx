@@ -39,11 +39,13 @@ import {
   type MongLook,
   type StrokeRecord,
   type sim,
+  sealOutlineOf,
 } from '@mong/core';
 import { useMemo } from 'react';
 import { PixelRatio, Platform, StyleSheet, Text, View } from 'react-native';
 import { useFeature } from '../../features';
 import { paperFx } from '../shaders';
+import { sealPath } from '../sealPath';
 import { dayName, getLocale, t } from '../../i18n';
 import { EN_SERIF_SCALE } from '../../ui/type';
 import { getMarbleFx, marbleUniforms } from './marble';
@@ -65,6 +67,11 @@ export interface DreamCardInput {
   labels?: DreamCardLabels;
   /** M1 그 아이(체형·빗 모양 → 카드 속 몸, 몸의 먹 → 마블링 옅은 먹빛). 없으면 기본형(빌드 1 카드 그대로, H3) */
   look?: MongLook;
+  /**
+   * M2 그 아이의 인장 씨앗(플래그 naming이 켜졌을 때만 넘긴다). 있으면 낙관 판의 가장자리 = 그 아이의 이 빠짐 무늬(core sealOutlineOf,
+   * 작으면 LOD로 사각), 없으면 빌드 1 종이 귀 그대로. 인장은 이름이 아니라 공개 설정과 무관하다
+   */
+  sealSeed?: number;
 }
 
 export function defaultLabels(card: sim.DreamCard): DreamCardLabels {
@@ -348,7 +355,10 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
     : null;
   // 낙관: 주사 인면에 몽망이(빗 포함)를 양각으로 새김 — 글꼴 없이 그리는 이 앱만의 인장
   const sl = layout.seal;
-  const plate = deckleRect(u(sl.x), u(sl.y), u(sl.size), u(sl.size), u(0.0016), u(0.003), scene.seed & 0xff);
+  const plate =
+    input.sealSeed !== undefined
+      ? sealPath(sealOutlineOf(input.sealSeed, u(sl.size) * (opts.ptPerUnit ?? 1)), u(sl.size), u(sl.x), u(sl.y))
+      : deckleRect(u(sl.x), u(sl.y), u(sl.size), u(sl.size), u(0.0016), u(0.003), scene.seed & 0xff);
   const fig = bodyGeometry(0, 1.0, true, shape);
   const night = Math.max(1, input.card.night);
   const idx = (night - 1) % 7;
@@ -614,9 +624,10 @@ export function DreamCard({
   aspect = '4:5',
   a11yLabel,
   look,
+  sealSeed,
 }: DreamCardInput & { width: number; aspect?: DreamAspect; /** 스크린리더 설명(모티프·아침 문장). 없으면 이름·문장 */ a11yLabel?: string }) {
   const lod = useFeature('thumbLod');
-  const art = useMemo(() => makeDreamArt({ card, strokes, look }, aspect, width, 2, { lod, devicePerUnit: PixelRatio.get() }), [card, strokes, aspect, width, look, lod]);
+  const art = useMemo(() => makeDreamArt({ card, strokes, look, sealSeed }, aspect, width, 2, { lod, devicePerUnit: PixelRatio.get() }), [card, strokes, aspect, width, look, lod, sealSeed]);
   const lb = labels ?? defaultLabels(card);
   const H = art.H;
   return (

@@ -9,3 +9,4 @@ export * from './dreamMotifs';
 export * from './reduce';
 export * from './save';
 export * from './pillars';
+export * from './naming';

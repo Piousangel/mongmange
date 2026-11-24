@@ -1,5 +1,7 @@
 import { PALETTE, sim, type MongLook } from '@mong/core';
-import { inkChangeAvailable, useMongLook } from '../game/look';
+import { inkChangeAvailable, useMongLook, useStrokeInks } from '../game/look';
+import { displayName } from '../game/naming';
+import { NameTag } from './NameTag';
 import { useFeature } from '../features';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
@@ -31,6 +33,7 @@ export function NoteSheet({
   onNotif,
   onTimes,
   onInkChange,
+  onName,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -44,14 +47,23 @@ export function NoteSheet({
   onTimes: (bedtimeLocalMin: number, morningLocalMin: number) => void;
   /** M1 '먹 바꾸기'(첫 밤 뒤, 새 획에만): 노트를 닫고 벼루 옆에 네 자루를 놓는다 */
   onInkChange?: () => void;
+  /** M2 이름 짓기·바꾸기(플래그 naming): 노트를 닫고 이름 짓기 창을 연다. 없으면 이름 줄·이름표 줄을 그리지 않는다 */
+  onName?: () => void;
 }) {
   const look = useMongLook(state);
   const inkFlag = useFeature('inkChoice');
+  const namingFlag = useFeature('naming');
   const { width, height } = useWindowDimensions();
   const [viewing, setViewing] = useState<number | null>(null);
+  const [tagOpen, setTagOpen] = useState(false);
+  const strokeInks = useStrokeInks(state);
   useEffect(() => {
-    if (!visible) setViewing(null);
+    if (!visible) {
+      setViewing(null);
+      setTagOpen(false);
+    }
   }, [visible]);
+  const myName = displayName(state);
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
   const k = useSharedValue(0);
@@ -96,6 +108,16 @@ export function NoteSheet({
           <KText style={styles.section} serif="title">{t('note.today')}</KText>
           <KText style={styles.status}>{status}</KText>
           {saveError !== null && <KText style={[styles.status, { color: PALETTE.day.accent, marginTop: 6 }]}>{t('note.saveError')}</KText>}
+          {onName && (
+            <>
+              <Pressable style={styles.row} onPress={() => setTagOpen(true)} accessibilityRole="button" accessibilityLabel={t('note.tag.a11y')} testID="note-tag">
+                <KText style={styles.rowText}>{t('note.tag')}</KText>
+              </Pressable>
+              <Pressable style={styles.row} onPress={onName} accessibilityRole="button" accessibilityLabel={myName ? t('note.rename', { name: myName }) : t('note.name')} testID="note-name">
+                <KText style={styles.rowText}>{myName ? t('note.rename', { name: myName }) : t('note.name')}</KText>
+              </Pressable>
+            </>
+          )}
           {onInkChange && state.phase === 'awake' && inkChangeAvailable(state, inkFlag) && (
             <Pressable style={styles.row} onPress={onInkChange} accessibilityRole="button" accessibilityLabel={t('note.inkChange.a11y')} testID="note-ink-change">
               <KText style={styles.rowText}>{t('note.inkChange')}</KText>
@@ -122,10 +144,11 @@ export function NoteSheet({
 
           <KText style={styles.section} serif="title">{t('note.cards', { n: state.cards.length })}</KText>
           {state.cards.length === 0 && <KText style={styles.status}>{t('note.cardsEmpty')}</KText>}
-          <Album cards={state.cards} strokes={state.strokes} width={width} onOpen={setViewing} look={look} />
+          <Album cards={state.cards} strokes={state.strokes} width={width} onOpen={setViewing} look={look} sealSeed={namingFlag ? state.birth.sealSeed : undefined} />
         </ScrollView>
       </Animated.View>
-      {viewing !== null && state.cards[viewing] && <CardViewer card={state.cards[viewing]!} strokes={state.strokes} look={look} onClose={() => setViewing(null)} />}
+      {viewing !== null && state.cards[viewing] && <CardViewer card={state.cards[viewing]!} strokes={state.strokes} look={look} owner={state} onClose={() => setViewing(null)} />}
+      {tagOpen && <NameTag state={state} name={myName} look={look} strokeInks={strokeInks} onClose={() => setTagOpen(false)} />}
     </Modal>
   );
 }
@@ -136,7 +159,7 @@ function pastLine(c: sim.DreamCard): string {
 }
 
 /** 인화 카드 앨범(도감 역할, 아트 7-2): 3열 썸네일. 썸네일은 저해상도 오프스크린 캐시(DreamCardThumb) */
-function Album({ cards, strokes, width, onOpen, look }: { cards: sim.DreamCard[]; strokes: sim.Stroke[]; width: number; onOpen: (i: number) => void; look: MongLook }) {
+function Album({ cards, strokes, width, onOpen, look, sealSeed }: { cards: sim.DreamCard[]; strokes: sim.Stroke[]; width: number; onOpen: (i: number) => void; look: MongLook; /** M2 그 아이의 인장(naming 켬) */ sealSeed?: number }) {
   const cols = width < 360 ? 2 : 3;
   const gap = 12;
   const tw = Math.floor((Math.min(width, 560) - 40 - gap * (cols - 1)) / cols);
@@ -146,7 +169,7 @@ function Album({ cards, strokes, width, onOpen, look }: { cards: sim.DreamCard[]
     <View style={[styles.album, { gap }]}>
       {items.map(({ c, i, strokes: st }) => (
         <Pressable key={i} onPress={() => onOpen(i)} style={{ width: tw }} accessibilityRole="button" accessibilityLabel={t('note.thumb.a11y', { card: cardA11y(c, pastLine(c)) })} testID={`album-${i}`}>
-          <DreamCardThumb card={c} strokes={st} width={tw} look={look} />
+          <DreamCardThumb card={c} strokes={st} width={tw} look={look} sealSeed={sealSeed} />
           <KText style={styles.thumbText} numberOfLines={2} importantForAccessibility="no">
             {t(c.nightsMerged > 1 ? 'note.thumb.long' : 'note.thumb', { night: nightName(c), motif: motifName(c.motifId) ?? t('motif.fallback') })}
           </KText>
@@ -157,7 +180,7 @@ function Album({ cards, strokes, width, onOpen, look }: { cards: sim.DreamCard[]
 }
 
 /** 지난 카드 크게 다시 보기(앨범 위에 겹침). 카드 그림은 아침 화면과 같은 DreamCard */
-function CardViewer({ card, strokes, onClose, look }: { card: sim.DreamCard; strokes: sim.Stroke[]; onClose: () => void; look: MongLook }) {
+function CardViewer({ card, strokes, onClose, look, owner }: { card: sim.DreamCard; strokes: sim.Stroke[]; onClose: () => void; look: MongLook; owner: sim.State }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const w = Math.max(160, Math.min(width - 40, 380, (height - insets.top - insets.bottom - 150) / 1.25));
@@ -167,16 +190,20 @@ function CardViewer({ card, strokes, onClose, look }: { card: sim.DreamCard; str
   const dreamOn = useFeature('dreamContent');
   const moonOn = useFeature('moonNight');
   const caption = visibleCaption(card, { dream: dreamOn, moon: moonOn });
+  // M2: 앱 안 카드는 이름(공개 설정과 무관), 낙관은 그 아이의 인장. 공유는 ShareBar가 공유 이름으로 다시 쓴다
+  const namingOn = useFeature('naming');
+  const labels = cardLabels(card, line, displayName(owner));
+  const sealSeed = namingOn ? owner.birth.sealSeed : undefined;
   return (
     <View style={[StyleSheet.absoluteFill, styles.viewer, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 12 }]} accessibilityViewIsModal testID="card-viewer">
-      <DreamCard card={card} strokes={st} labels={cardLabels(card, line)} width={w} a11yLabel={cardA11y(card, line, [caption])} look={look} />
+      <DreamCard card={card} strokes={st} labels={labels} width={w} a11yLabel={cardA11y(card, line, [caption])} look={look} sealSeed={sealSeed} />
       {caption && (
         <KText style={[styles.viewerCaption, { maxWidth: w }]} maxFontSizeMultiplier={1.5} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden testID="viewer-caption">
           {caption}
         </KText>
       )}
       <View style={styles.viewerActions}>
-        <ShareBar dark input={{ card, strokes: st, labels: cardLabels(card, line), look }} />
+        <ShareBar dark input={{ card, strokes: st, labels, look, sealSeed }} owner={owner} />
         <Pressable onPress={onClose} style={styles.viewerClose} accessibilityRole="button" accessibilityLabel={t('note.viewer.back.a11y')} testID="viewer-close">
           <KText style={[styles.closeText, { color: PALETTE.night.text, textDecorationLine: 'underline' }]}>{t('note.viewer.back')}</KText>
         </Pressable>

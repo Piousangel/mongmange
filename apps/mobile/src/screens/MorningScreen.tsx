@@ -11,6 +11,7 @@ import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useDerivedValue, useSharedValue } from 'react-native-reanimated';
 import { firstDreamText, morningLine, visibleCaption } from '../game/text';
 import { useFeature } from '../features';
+import { displayName } from '../game/naming';
 import { dayName, t } from '../i18n';
 import { PARAMS, clamp01, clock, easeOut } from '../render/clock';
 import { NightWater } from './HomeScreen';
@@ -112,7 +113,11 @@ export function MorningScreen({
   const firstDream = developed && dreamOn ? firstDreamText(state.cards, developed.card) : null;
   const a11y = developed ? cardA11y(developed.card, text, [caption, firstDream]) : '';
   const cardStrokes = useMemo(() => (developed ? strokesForCard(state.strokes, developed.card) : []), [developed, state.strokes]);
-  const labels = useMemo(() => (developed ? cardLabels(developed.card, text) : undefined), [developed, text]);
+  // M2: 앱 안 카드의 이름 줄은 이름(공개 설정과 무관), 낙관은 그 아이의 인장. 공유는 ShareBar(owner)가 공유 이름으로 다시 쓴다
+  const namingOn = useFeature('naming');
+  const myName = displayName(state);
+  const sealSeed = namingOn ? state.birth.sealSeed : undefined;
+  const labels = useMemo(() => (developed ? cardLabels(developed.card, text, myName) : undefined), [developed, text, myName]);
   // 건져 올린 한지가 그대로 인화 카드가 된다: 물 빠짐 끝의 한지 자리·크기에서 카드 자리로 커지며 옮겨 간다(크로스페이드)
   const sheetEndCy = sheetTop + sheetH / 2 - height * 0.08;
   const cardCy = cardTop + cardH / 2;
@@ -215,7 +220,7 @@ export function MorningScreen({
 
       {developed && (
         <Animated.View style={[styles.card, { top: cardTop, left: (width - cardW) / 2, width: cardW, height: cardH }, cardSt]} testID="dream-card">
-          {cardLive && <DreamCard card={developed.card} strokes={cardStrokes} labels={labels} width={cardW} a11yLabel={a11y} look={look} />}
+          {cardLive && <DreamCard card={developed.card} strokes={cardStrokes} labels={labels} width={cardW} a11yLabel={a11y} look={look} sealSeed={sealSeed} />}
         </Animated.View>
       )}
       {developed && (
@@ -235,7 +240,7 @@ export function MorningScreen({
             {text}
           </KText>
           {developed.card.nightsMerged > 1 && <KText style={styles.sub}>{t('morning.merged', { n: developed.card.nightsMerged })}</KText>}
-          {labels && <ShareBar input={{ card: developed.card, strokes: cardStrokes, labels, look }} ireState={developed.line.kind === 'seven-day' ? state : null} />}
+          {labels && <ShareBar input={{ card: developed.card, strokes: cardStrokes, labels, look, sealSeed }} owner={state} ireState={developed.line.kind === 'seven-day' ? state : null} />}
         </Animated.View>
       )}
       {developed && (

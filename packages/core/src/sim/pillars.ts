@@ -157,7 +157,13 @@ export function seededInk(birthSeed: number): InkId {
 
 export interface NameRecord {
   text: string;
+  /** 지금 이름을 지은 시각(바꾸면 바뀐다 — 부르기 대답의 '하룻밤' 기준) */
   at: Millis;
+  /**
+   * 처음 이름을 지은 시각. **이름을 바꾼 적이 있을 때만** 있다(없으면 at이 처음 시각). 집계 핑 name_set은 이 값으로 한 번만(M2 리뷰 L-3).
+   * 처음 지을 때는 쓰지 않아 빌드 1 세이브와 글자까지 같다.
+   */
+  firstAt?: Millis;
 }
 
 export const NAME_LIMITS = { hangul: 6, latin: 12 } as const;
@@ -335,7 +341,7 @@ export function invalidPillarField(s: Record<string, unknown>): string | null {
   )
     return 'ink';
   const nm = s.name as Record<string, unknown> | null | undefined;
-  if (nm === undefined || (nm !== null && (typeof nm.text !== 'string' || !isNum(nm.at) || !nameIsClean(nm.text)))) return 'name';
+  if (nm === undefined || (nm !== null && (typeof nm.text !== 'string' || !isNum(nm.at) || !nameIsClean(nm.text) || (nm.firstAt !== undefined && !isNum(nm.firstAt))))) return 'name';
   const tl = s.temperamentLabel as Record<string, unknown> | null | undefined;
   if (tl === undefined || (tl !== null && (!(AXES as readonly unknown[]).includes(tl.axis) || (tl.sign !== 1 && tl.sign !== -1) || !isNum(tl.since)))) return 'temperamentLabel';
   const r = s.relation as Record<string, unknown> | undefined;

@@ -99,9 +99,19 @@ export class SoundEngine {
     return this.duck[bus];
   }
 
+  /**
+   * 이름 가락(M2): nameMelody 큐의 첫 층 파일을 가락 번호의 파일로 바꾸고, 속도를 이름에서 정해진 값으로 고정해 낸다.
+   * 버스·스로틀·설정·햅틱 규칙은 다른 원샷과 같다.
+   */
+  playMelody(sound: SoundId, rate: number): boolean {
+    const cue = SOUND_MAP.nameMelody;
+    if (cue.type !== 'oneShot') return false;
+    return this.play('nameMelody', { ...cue, layers: cue.layers.map((l, i) => (i === 0 ? { ...l, sound } : l)), rateJitter: 0 }, rate);
+  }
+
   /** 원샷 또는 루프 시작. 반환: 소리를 냈는가(스로틀·설정·상한으로 건너뛰면 false) */
-  play(event: SoundEvent): boolean {
-    const cue = SOUND_MAP[event];
+  play(event: SoundEvent, cueIn?: SoundCue, fixedRate?: number): boolean {
+    const cue = cueIn ?? SOUND_MAP[event];
     const t = this.timers.now();
     const last = this.lastEventAt.get(event);
     if (cue.bus === 'ambience' && cue.type !== 'oneShot') this.wantAmbience = event;
@@ -113,7 +123,7 @@ export class SoundEngine {
       // 같은 루프가 이미 돌면 그대로 둔다
       if (this.playing.some((p) => p.event === event && p.fadeTarget > 0)) return true;
     }
-    return this.start(event, cue);
+    return this.start(event, cue, fixedRate);
   }
 
   /** 루프 멈춤(cue.fadeOutMs) */
@@ -177,7 +187,7 @@ export class SoundEngine {
     }
   }
 
-  private start(event: SoundEvent, cue: SoundCue): boolean {
+  private start(event: SoundEvent, cue: SoundCue, fixedRate?: number): boolean {
     const rule = MIX_RULES[cue.bus];
     const live = this.playing.filter((p) => p.fadeTarget > 0);
     const onBus = live.filter((p) => p.bus === cue.bus).sort((a, b) => a.startedAt - b.startedAt);
@@ -192,7 +202,7 @@ export class SoundEngine {
     const voices: Playing['voices'] = [];
     const loop = cue.type !== 'oneShot';
     if (cue.type === 'oneShot') {
-      const rate = cue.rateJitter > 0 ? 1 + (this.rand() * 2 - 1) * cue.rateJitter : 1;
+      const rate = fixedRate ?? (cue.rateJitter > 0 ? 1 + (this.rand() * 2 - 1) * cue.rateJitter : 1);
       for (const layer of cue.layers) {
         const v = this.backend.create(layer.sound, false);
         if (!v) continue;

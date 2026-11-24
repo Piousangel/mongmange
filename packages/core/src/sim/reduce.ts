@@ -449,7 +449,11 @@ export function reduce(state: State, e: Event): Step {
       break;
     case 'setName': {
       const n = normalizeName(e.text);
-      if (n.ok) s = { ...s, name: { text: n.text, at } };
+      if (n.ok && n.text !== s.name?.text) {
+        effects.push({ type: 'named', first: s.name === null });
+        const prev = s.name;
+        s = { ...s, name: prev ? { text: n.text, at, firstAt: prev.firstAt ?? prev.at } : { text: n.text, at } };
+      }
       break;
     }
     case 'appBackground':

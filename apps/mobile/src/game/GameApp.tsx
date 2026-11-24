@@ -9,6 +9,9 @@ import { GameHome, type RevealStage } from '../screens/GameHome';
 import { IntroScreen, type IntroBeat } from '../screens/IntroScreen';
 import { MorningScreen } from '../screens/MorningScreen';
 import { NoteSheet } from '../screens/NoteSheet';
+import { NameSheet, type NameSheetMode } from '../screens/NameSheet';
+import { displayName, namePromptNow } from './naming';
+import { nameMelodySound } from '../audio/soundMap';
 import { StrokeScreen } from '../screens/StrokeScreen';
 import { SANS, SERIF, layout, styles as ui } from '../screens/ui';
 import { KText, track } from '../ui/type';
@@ -74,6 +77,9 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const strokeInks = useStrokeInks(state);
   const [inkChanging, setInkChanging] = useState(false);
   const inkChoiceOn = useFeature('inkChoice');
+  const namingOn = useFeature('naming');
+  // M2 이름 짓기 창. then = 닫힌 뒤 이어서 할 일(A 시점: 이름 → 인장 '탁' → 잠, D-20 개정 줄)
+  const [nameSheet, setNameSheet] = useState<{ mode: NameSheetMode; then: 'sleep' | null } | null>(null);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const L = layout(width, height);
@@ -182,6 +188,10 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               setNotifPrompt(false);
               if (AppState.currentState === 'active') void cancelMorning();
               break;
+            case 'named':
+              // 인장 '탁'은 이름 인장 순간 한 곳에서만(D-14 개정, sound-v0 8절)
+              sound.play('sealTak');
+              break;
             case 'cardDeveloped':
               sound.play('morningLift');
               setDeveloped({ card: e.card, line: e.line });
@@ -242,6 +252,34 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     });
   };
 
+  /** 이름 짓기 창을 저절로 연다(묻기 기록을 먼저 남긴다 — 건너뛰어도 한 번으로 센다) */
+  const openNameAsk = (st: sim.State, then: 'sleep' | null) => {
+    setMeta({ nameAsk: sim.recordNameAsk(getSnapshot().meta.nameAsk, st.dayIndex) });
+    setNameSheet({ mode: 'ask', then });
+  };
+  const closeName = (named: boolean) => {
+    const then = nameSheet?.then ?? null;
+    setNameSheet(null);
+    // 이름을 지었으면 인장 '탁' → 몽망이가 이름 쪽을 바라본 뒤 잠든다. 건너뛰면 그대로 잔다
+    if (then === 'sleep') later(() => dispatch({ type: 'putToSleep' }), named ? 1400 : 0);
+  };
+  /** 세로 이름 탭 = 부르기(C 3-1). 대답은 core callReply: 정 0~1·이름 지은 날 = '응?', 정 2부터 = 가락 */
+  const callName = (): 'turn' | 'melody' => {
+    const st = getSnapshot().state;
+    if (!st) return 'turn';
+    const reply = sim.callReply(st, { melody: isOn('nameMelody') });
+    const who = displayName(st) ?? t('name.default');
+    if (reply === 'melody') {
+      const m = sim.melodyOfState(st);
+      sound.playMelody(nameMelodySound(m.id), m.rate);
+      AccessibilityInfo.announceForAccessibility(t('name.reply.melody.a11y', { name: who }));
+    } else {
+      sound.play('mongWait');
+      AccessibilityInfo.announceForAccessibility(t('name.reply.turn.a11y', { name: who }));
+    }
+    return reply;
+  };
+
   const kind: Kind = !state || introPlaying
     ? 'intro'
     : developed || (state.phase === 'awake' && state.pendingCard)
@@ -283,6 +321,17 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       return () => clearTimeout(t);
     }
   }, [soothe]);
+
+  // '이름을 눌러 불러 보세요' — 이름을 지은 뒤 처음 보는 낮 홈에서 한 번(밤에 지었으면 다음 낮에)
+  const hintNow = kind === 'day' && namingOn && !!state?.name && !meta.callHintShown && nameSheet === null;
+  useEffect(() => {
+    if (!hintNow) return;
+    const tm = setTimeout(() => {
+      flash(t('name.callHint'), 4000);
+      setMeta({ callHintShown: true });
+    }, 2200);
+    return () => clearTimeout(tm);
+  }, [hintNow, flash]);
 
   // 사물 등장 순서: 단계가 바뀐 뒤 처음 그리는 낮 홈에서만 차례로 나타난다
   const reveal: RevealStage = state && state.strokesTotal === 0 && state.dayIndex === 0 ? 'first' : 'all';
@@ -343,6 +392,9 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         onDone={() => {
           setDeveloped(null);
           setMode('home');
+          // 이름 묻는 때: A 두 번째(첫 재우기에 건너뛴 다음 아침)·B(둘째 날 아침) — 규칙은 core namePromptDue
+          const st = getSnapshot().state;
+          if (st && namePromptNow(st, 'morning')) openNameAsk(st, null);
         }}
       />
     );
@@ -394,6 +446,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         inkChoice={inkChoiceOn}
         inkChanging={inkChanging}
         strokeInks={strokeInks}
+        naming={namingOn ? { name: displayName(state), onCall: callName } : null}
         actions={{
           onBrush: () => setMode('stroke'),
           onBrushBlocked: () => flash(t('line.brushBlocked'), 4000),
@@ -402,7 +455,14 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             sound.stop('inkGrind');
             dispatch({ type: 'grind', durationMs: ms });
           },
-          onSleep: () => dispatch({ type: 'putToSleep' }),
+          onSleep: () => {
+            // A 시점: 연적을 탭하면 물이 오기 전에 이름 자리가 열린다(잘 수 있을 때만 — 졸리지 않으면 지금처럼 '아직 안 졸려요')
+            if (state.phase === 'awake' && sim.canPutToSleep(state, now()) && namePromptNow(state, 'sleep')) {
+              openNameAsk(state, 'sleep');
+              return;
+            }
+            dispatch({ type: 'putToSleep' });
+          },
           onPet: (x, y, holdMs, moveSpeed) => {
             sound.stop('rub');
             if (holdMs < HOLD_MIN_MS) {
@@ -471,6 +531,23 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             setMode('home');
             setInkChanging(true);
           }}
+          onName={
+            namingOn
+              ? () => {
+                  setNoteOpen(false);
+                  setNameSheet({ mode: state.name ? 'rename' : 'ask', then: null });
+                }
+              : undefined
+          }
+        />
+      )}
+      {nameSheet && state && (
+        <NameSheet
+          mode={nameSheet.mode}
+          sealSeed={state.birth.sealSeed}
+          initial={nameSheet.mode === 'rename' ? (state.name?.text ?? undefined) : undefined}
+          onConfirm={(text) => dispatch({ type: 'setName', text })}
+          onClose={closeName}
         />
       )}
       {__DEV__ && (

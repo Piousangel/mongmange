@@ -1,6 +1,7 @@
 // C7 이레 영상 공유 경로(앱): 인코더 계약(규격·파일명·메타·원시 프레임·차례·역압), 공유 분기(플래그·폴백·이름·취소·시트 중복).
 // 렌더·네이티브는 부르지 않는다 — 가짜 렌더·가짜 인코더를 실제로 등록해 분기를 돈다(C7 리뷰 H-2).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setMeta } from '../src/game/store';
 
 vi.mock('../src/render/ireVideo/prepare', () => ({ prepareIreShare: vi.fn() }));
 vi.mock('../src/render/ireVideo/renderFrame', () => ({ renderIreFramePixels: vi.fn() }));
@@ -239,13 +240,18 @@ describe('공유 분기(가짜 인코더 등록)', () => {
     expect(shareIreScroll).not.toHaveBeenCalled();
   });
 
-  it('이름: naming 꺼짐이거나 nameVisible을 안 넘기면 prepare에 nameVisible=false, 둘 다 켜졌을 때만 true', async () => {
+  it('이름: 입구(shareIre)가 sharedName으로만 정한다 — naming 꺼짐이거나 이름 공개 끔이면 false, 둘 다 켜졌을 때만 true(M2 리뷰 M-2)', async () => {
     setFeature('ireVideo', true);
     registerIreEncoder(fakeEncoder().enc);
-    await shareIre(STATE, undefined, { nameVisible: true });
+    const named = { name: { text: '몽실', at: 1 } } as never;
+    setMeta({ nameVisible: true });
+    await shareIre(named); // naming 꺼짐
     setFeature('naming', true);
-    await shareIre(STATE);
-    await shareIre(STATE, undefined, { nameVisible: true });
+    setMeta({ nameVisible: false });
+    await shareIre(named); // 공개 끔
+    setMeta({ nameVisible: true });
+    await shareIre(named);
+    setMeta({ nameVisible: false });
     expect(vi.mocked(prepareIreShare).mock.calls.map((c) => c[0].nameVisible)).toEqual([false, false, true]);
   });
 });

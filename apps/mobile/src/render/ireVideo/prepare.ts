@@ -3,6 +3,7 @@
 import { ireLoopSourceOf, ireShareSourceOf, type IreLoopSource, type IreShareSource, type IreStrings, type MongLook, type sim } from '@mong/core';
 import { strokesForCard, thumbImage } from '../dreamCard/DreamCardThumb';
 import { ireSize, type IreArtInput } from './IreFrameArt';
+import { isOn } from '../../features';
 
 /**
  * 판별 유니온: 웹 루프(kind 'webLoop')의 재료는 `IreLoopSource`뿐이라 이름 칸이 타입에 없다(architecture 3-5-2, C7 리뷰 L-1).
@@ -45,5 +46,7 @@ async function artInput(kind: IrePrepared['kind'], src: IreShareSource | IreLoop
       return thumbImage(card, strokesForCard(strokes, card), Math.round(width * 0.22), o.look, 1, false, false);
     }),
   );
-  return { kind, width, records, look: o.look, strokeInks, cardImages };
+  // M2: 꼬리표의 큰 인장 = 그 아이의 이 빠짐 무늬(naming 켬, 공유판만 — 웹 루프에는 인장 칸이 없다). 꺼짐 = 빌드 그대로 둥근 사각
+  const sealSeed = kind === 'share' && isOn('naming') ? o.state.birth.sealSeed : undefined;
+  return { kind, width, records, look: o.look, strokeInks, cardImages, sealSeed };
 }

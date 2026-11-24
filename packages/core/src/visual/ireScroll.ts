@@ -3,6 +3,7 @@
 // C-integrated 2-5(공유 꼬리표 = 영상 끝 1.5초), D-20(8초·240프레임), server-v1 3-5-3(웹 루프 540×676·무음·7.5~8.5초 — PM 11-20: 675는 H.264 4:2:0 불가라 676).
 // 그리기는 앱(render/ireVideo), 인코딩은 네이티브 모듈(C10 묶음, 미구현). 이 파일은 '어느 프레임에 무엇이 얼마나 보이나'만 정한다.
 import { currentInk, type InkId } from '../sim/pillars';
+import { sharedNameOf } from '../sim/naming';
 import type { AxisId, DreamCard, State } from '../sim/types';
 import { isMoonMotifId } from '../moon/motifs';
 import { coreScale } from './bodySpec';
@@ -108,7 +109,8 @@ function baseOf(s: State): IreSourceBase {
 /** OS 공유 영상 재료. 이름은 `nameVisible`이 켜져 있을 때만 싣는다(꺼짐 = 키 자체가 없음) */
 export function ireShareSourceOf(s: State, opts: { nameVisible: boolean }): IreShareSource {
   const base = baseOf(s);
-  return opts.nameVisible && s.name ? { ...base, name: s.name.text } : base;
+  const name = sharedNameOf(s, opts.nameVisible);
+  return name !== null ? { ...base, name } : base;
 }
 
 /** 웹 루프 재료(이름 없음) */
