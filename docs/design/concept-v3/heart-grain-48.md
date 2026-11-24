@@ -143,8 +143,8 @@
 
 | # | id | 결 (ko / en) | 한 줄 정의 | 3초 대답: 따라 하기(0~1.5초) → 돌아오기(1.5~3초) | 빗 | 먹빛(농담·번짐) | 꿈 모티프 가중 | 첫 3번 자막 |
 |---|---|---|---|---|---|---|---|---|
-| 31 | `home.in.meal` | 밥 / Meal | 밥·배고픔·음식 | 몸 아래쪽이 볼처럼 살짝 부풀고 오물오물 두 번 → 눈이 기쁨 호로 | 까딱 | 농담 그대로 | `near-alone.teacup`, `near-with.teacup-two` | 밥 한 방울이 스며 오물오물했어요 |
-| 32 | `home.in.sweet` | 단것 / Treat | 과일·간식·단것 | 통 한 번 작게 튄다 → 볼이 살짝 부푼 채 눈이 ^ ^ | 한 번 튕김 | 고리 한 번 퍼짐 | `near-alone.teacup`, `near-alone.sprout` | 단 한 방울이 스며 통 튀었어요 |
+| 31 | `home.in.meal` | 밥 / Meal | 밥·음식·배고픔(기쁨 없음) | 오물오물 두 번 → 눈이 기쁨 호로(배고픔 낱말은 기쁨 호 없이 제자리에서 유저를 본다 — QA-3 R4-3) | 까딱 | 농담 그대로 | `near-alone.teacup`, `near-with.teacup-two` | 밥 한 방울이 스며 오물오물했어요 |
+| 32 | `home.in.sweet` | 단것 / Treat | 과일·간식·단것 | 통 한 번 작게 튄다 → 제자리에서 눈이 ^ ^(몸·볼 부풂 없음 — QA-3 R4-3) | 한 번 튕김 | 고리 한 번 퍼짐 | `near-alone.teacup`, `near-alone.sprout` | 단 한 방울이 스며 통 튀었어요 |
 | 33 | `home.in.drink` | 마실 것 / Drink | 차·커피·우유·물 마시기 | 몸 표면에 동심원 잔물결이 한 번 돈다 → 따뜻한 숨처럼 번짐이 퍼진다 | 수평 | 번짐 넓게(김처럼) | `near-alone.teacup`, `near-with.teacup-two` | 따뜻한 한 방울이 스며 몸에 잔물결이 돌았어요 |
 | 34 | `home.out.house` | 집 / Home | 집·방·이불·침대 | 제자리에서 빙그르 한 바퀴 돌며 자리를 잡는다 → 납작하게 앉는다 | 가지런히 눕힘 | 받침 띠 넓게 | `near-alone.quilt`, `near-alone.inkstone` | 집 한 방울이 스며 제자리를 잡았어요 |
 | 35 | `home.out.thing` | 물건 / Thing | 책·폰·선물·편지·붓 | 앞으로 기울여 고개를 갸웃 살핀다(집중 눈) → 제자리로 돌아와 빗을 한 번 흔든다 | 앞으로 곧게 | 번짐 또렷 | `near-alone.inkstone`, `near-with.letter` | 물건 한 방울이 스며 갸웃 살펴보았어요 |

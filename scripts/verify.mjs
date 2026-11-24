@@ -43,7 +43,7 @@ function steps(heavy) {
     { name: 'typecheck', label: '타입 검사(전 패키지)', cmd: ['pnpm', '-r', '--parallel', 'run', 'typecheck'] },
     { name: 'lint', label: 'ESLint(경고 0)', cmd: ['pnpm', 'exec', 'eslint', '.', '--max-warnings', '0'] },
     { name: 'directives', label: 'eslint 주석 규율(ESLint 밖에서)', cmd: ['node', 'tools/eslint/check-directives.mjs'] },
-    { name: 'tools', label: '도구 시험(린트 규칙·주석 검사·verify)', cmd: ['node', '--test', 'tools/eslint/*.test.mjs', 'scripts/verify.test.mjs'] },
+    { name: 'tools', label: '도구 시험(린트 규칙·주석 검사·verify·위기 평가기)', cmd: ['node', '--test', 'tools/eslint/*.test.mjs', 'scripts/verify.test.mjs', 'docs/design/concept-v3/lexicon-v0/eval/*.test.mjs'] },
     { name: 'test', label: heavy ? '시험(전 패키지, RENDER_HEAVY 포함)' : '시험(전 패키지, RENDER_HEAVY 제외)', cmd: ['pnpm', '-r', '--no-bail', 'run', 'test'], env: heavy ? { RENDER_HEAVY: '1' } : {} },
     { name: 'server-bundle', label: '서버 번들 검사(build + check:bundle)', cmd: ['pnpm', '--filter', 'server', 'run', 'build'], then: ['pnpm', '--filter', 'server', 'run', 'check:bundle'] },
     { name: 'static-empty', label: '정적 빌드: 빈 주입 값이면 실패', fn: staticEmpty },

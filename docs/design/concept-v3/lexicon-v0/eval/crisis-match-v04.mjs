@@ -5,6 +5,7 @@
 //   ⓓ en.pairs (pairGap [a-z]{0,7}) — strong은 ⑦(⑧en), soft는 ⑧ / typoDeletion(가운데 글자 하나 빠짐 → strong)
 //   ⓔ 예외 목록(데이터 그대로) / ⓕ normalizationOrder(가림 → leet '!' → 낮춤·예외 → 문장부호 제거)
 // 앱 코드가 아니다. 규칙 파일은 고치지 않았다. 애매한 해석은 [해석]으로 적었다. 원칙은 문서대로 '놓치지 않는 쪽'.
+// 고침 11-25(PL-1, QA-3 R4-0): 빈 문자열·공백만 남은 입력은 무매치, 이모티콘은 입력 전체 일치(경계). 시험 crisis-match-v04.test.mjs
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -178,6 +179,7 @@ function meansHit(vars) {
 
 // ---------- 위기 대조 ①~⑩ ----------
 function crisisCore(norm, raw) {
+  if (!norm) return ['none', null]; // 빈 입력은 어떤 위기 규칙에도 맞지 않는다(R4-0)
   const ko = koVariants(norm), en = enVariants(norm);
   const anyIn = (vars, stems) => stems.find((s) => vars.some((v) => contains(v, s)));
   const sylVars = ko.all.filter((v) => [...v].some(isSyl));
@@ -264,8 +266,17 @@ export function crisisMatch(raw) {
 }
 
 // ---------- order 5~13: 사전 경로(기존 평가기와 같은 해석) ----------
+// [고침 11-25 QA-3 R4-0] 문장부호만으로 된 꼴(':('·':-('·');')은 정규화하면 빈 문자열이 된다. 예전에는 이것을 표면 키 ''로 넣어,
+// 예외 낱말을 지운 뒤의 빈 문자열·공백만 있는 입력·'...'까지 '슬픔'으로 갔다. 이제 빈 키는 표면 사전에 넣지 않고,
+// 이모티콘 표로 따로 두어 입력 전체(공백만 뺀 원문)가 그 이모티콘일 때만 맞춘다(경계).
 const surface = { ko: new Map(), en: new Map() };
-for (const lang of ['ko', 'en']) for (const e of LEX[lang].entries) for (const f of [e.lemma, ...e.forms]) surface[lang].set(normalize(f), e);
+const emoticon = new Map();
+const tight = (s) => s.normalize('NFC').replace(/\s/gu, '');
+for (const lang of ['ko', 'en']) for (const e of LEX[lang].entries) for (const f of [e.lemma, ...e.forms]) {
+  const k = normalize(f);
+  if (k) surface[lang].set(k, e);
+  else if (tight(f)) emoticon.set(tight(f), e);
+}
 const crisisOf = (e) => (e?.flags.includes('crisis_strong') ? 'strong' : e?.flags.includes('crisis_soft') ? 'soft' : null);
 function lexLookup(lang, w) {
   const R = RULES[lang];
@@ -292,6 +303,11 @@ export function fullPipeline(raw, lang) {
   const c = crisisMatch(raw);
   if (c.level !== 'none') return { ...c, stage: 'crisis' };
   const w = c.norm;
+  if (!w) {
+    // 빈 입력(예외 제거 뒤 포함)은 이모티콘 경계 대조만 한다. 그 밖에는 무매치(모르는 말)
+    const em = c.hadException ? null : emoticon.get(tight(raw));
+    return em ? { level: 'none', by: `emoticon:${em.lemma}`, stage: 'lexicon-sense', sense: em.sense } : { level: 'none', by: null, stage: 'none' };
+  }
   const e = lexLookup(lang, w);
   if (e) { const lv = crisisOf(e); return { level: lv ?? 'none', by: `lex:${e.lemma}`, stage: lv ? 'lexicon' : 'lexicon-sense', sense: e.sense }; }
   if (lang === 'ko') {
