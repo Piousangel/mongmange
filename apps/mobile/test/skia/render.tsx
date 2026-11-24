@@ -24,6 +24,14 @@ export interface MongShot {
   night?: number;
   /** 캔버스 크기(몸 폭 배수, 기본 3W 정사각) */
   span?: number;
+  /** V12a 몸 빛(Mongmangi light: 수·낮밤 쌍). 없으면 0(꺼짐). 'flag' = prop을 넘기지 않음(기능 플래그 bodyLight를 따름) */
+  light?: number | { day: number; night: number } | 'flag';
+  /** 몸 먹 농도(나타남·페이드, 기본 1) */
+  ink?: number;
+  /** 몸 기울기(rad, 기본 0) */
+  tilt?: number;
+  /** 바탕색(기본 = night > 0.5면 밤 바탕, 아니면 낮 바탕) — 밤 전환 연속성 시험이 바탕을 고정할 때 */
+  bg?: string;
 }
 
 export interface Shot {
@@ -61,16 +69,18 @@ export async function shootMong(o: MongShot): Promise<Shot> {
       ringAlpha: 1 - night,
       attachK: o.records.map(() => 1),
       fresh: o.records.map(() => 0),
+      ink: o.ink ?? 1,
+      tilt: o.tilt ?? 0,
     } as BodyFrame,
     _isReanimatedSharedValue: true,
   };
   const px = Math.round(Wpt * o.dpr);
   const surf = makeOffscreenSurface(px, px);
-  surf.getCanvas().clear(Skia.Color(night > 0.5 ? PALETTE.night.bg : PALETTE.day.bg));
+  surf.getCanvas().clear(Skia.Color(o.bg ?? (night > 0.5 ? PALETTE.night.bg : PALETTE.day.bg)));
   const el = createElement(
     Group,
     { transform: [{ scale: o.dpr }] },
-    createElement(Mongmangi, { frame: frame as never, records: o.records, mode: 'A', grammar: GRAMMARS.C, look, lod: o.lod ?? false, pixelRatio: o.dpr }),
+    createElement(Mongmangi, { frame: frame as never, records: o.records, mode: 'A', grammar: GRAMMARS.C, look, lod: o.lod ?? false, pixelRatio: o.dpr, ...(o.light === 'flag' ? {} : { light: o.light ?? 0 }) }),
   );
   const img = await drawOffscreen(surf, el);
   const rgba = img.readPixels(0, 0, { width: px, height: px, colorType: 4, alphaType: 3 }) as Uint8Array;

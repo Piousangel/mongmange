@@ -33,6 +33,15 @@ import {
   bodyLod,
   lodInkLook,
   maskSigmaW,
+  blurFloorPt,
+  BODY_LIGHT,
+  BODY_LIGHT_DEFAULT,
+  bodyLightLevelAt,
+  bodyLightPair,
+  type BodyLightPair,
+  bodyLightDir,
+  bodyLightT,
+  type BodyLightLevel,
   sim,
   strokeInkOf,
   strokeSpine,
@@ -48,7 +57,7 @@ import { useMemo, useState } from 'react';
 import { PixelRatio } from 'react-native';
 import { useFeature } from '../features';
 import { runOnJS, useAnimatedReaction, useDerivedValue, useSharedValue, type SharedValue } from 'react-native-reanimated';
-import { MAX_SEGS, bodySdfFx, hexToRgb, inkFillFx, strokeInkFx } from './shaders';
+import { MAX_SEGS, bodyLightFx, bodySdfFx, hexToRgb, inkFillFx, strokeInkFx } from './shaders';
 import { strokeInkUniforms, strokeTexId } from './strokeInkSrc';
 
 /** 한 프레임의 몸 상태(화면이 시계에서 계산해 넘긴다) */
@@ -128,6 +137,26 @@ interface Props {
   lod?: boolean;
   /** pt → 장치 px(블러 하한용). 기본 = 화면 밀도. 오프스크린(px 단위로 그림)은 1 */
   pixelRatio?: number;
+  /**
+   * V12a 2.5D 몸 빛 세기(후보 이름·0..1·낮밤 쌍, 각각 1에서 자름). 없으면 플래그 bodyLight(켜면 core BODY_LIGHT_DEFAULT = 낮 1·밤 0.75,
+   * night로 연속 보간). 낮밤 모두 0·꺼짐 = 빛 노드를 넣지 않음(픽셀 동일). 켜져 있어도 몸 폭 48pt 이하는 끔(core bodyLightT)
+   */
+  light?: BodyLightLevel | number | BodyLightPair;
+}
+
+const LIGHT_DIR = bodyLightDir();
+const LIGHT_DAY = hexToRgb(BODY_LIGHT.lightDay);
+const LIGHT_NIGHT = hexToRgb(BODY_LIGHT.lightNight);
+const CAST_SKEW = (BODY_LIGHT.cast.skewDeg * Math.PI) / 180;
+const CAST_DAY = hexToRgb(BODY_LIGHT.cast.colorDay);
+const CAST_NIGHT = hexToRgb(BODY_LIGHT.cast.colorNight);
+
+/** 바닥 그림자 변환(화면 pt): 바닥 중심 + (dx, dy)·W·s, skewX. 모듈 최상위 worklet — 렌더마다 새 클로저를 만들지 않는다(매퍼 재시작 방지) */
+function shadowXform(f: BodyFrame, coreH: number, dx: number, dy: number, skew: number) {
+  'worklet';
+  const w = f.wpx * f.s;
+  const gy = f.oy + (coreH / 2) * f.s * f.wpx;
+  return [{ translateX: f.ox + dx * w }, { translateY: gy + dy * w }, { skewX: skew }];
 }
 
 /** 획 칠 덧칠 리본을 몸 마스크보다 이만큼(pt) 넓힌다 — 0이면 닫힘·블러로 넓어진 몸 마스크의 검은 띠가 겹친 획 사이에 등고선처럼 남는다 */
@@ -245,12 +274,17 @@ function makeBodyPaint(night: number, bleed: number, ink: number, blurPt: number
 }
 
 /** 몽망이 = 핵 + 빗 + 획을 하나의 coverage 마스크로 합친 뒤 한 번 칠하고, 눈을 뺀다(D-13·아트 12절) */
-export function Mongmangi({ frame, records, live, mode, grammar: grammarIn, look: lookIn, strokeInks, lod: lodProp, pixelRatio }: Props) {
+export function Mongmangi({ frame, records, live, mode, grammar: grammarIn, look: lookIn, strokeInks, lod: lodProp, pixelRatio, light: lightProp }: Props) {
   const look = lookIn ?? BASE_LOOK;
   const dpr = pixelRatio ?? PixelRatio.get();
   // 기본 = 기능 플래그(모든 화면이 같은 규칙). 캡처 보드·테스트는 직접 넘긴다
   const lodFlag = useFeature('thumbLod');
   const lodOn = lodProp ?? lodFlag;
+  // V12a 몸 빛: 0이면 노드를 아예 넣지 않는다(꺼짐 = 지금과 픽셀 동일)
+  const lightFlag = useFeature('bodyLight');
+  const lightPair = bodyLightPair(lightProp ?? (lightFlag ? BODY_LIGHT_DEFAULT : 0));
+  const lightDayLv = lightPair.day;
+  const lightNightLv = lightPair.night;
   const shape = look.shape;
   const coreH = shape.core.h;
   // 체형 uniform은 BodyShape에 미리 만든 배열(렌더마다 새 배열 → worklet 재직렬화 방지, 리뷰 M3)
@@ -572,8 +606,121 @@ export function Mongmangi({ frame, records, live, mode, grammar: grammarIn, look
     return { x: f.ox - R, y: f.oy - R, width: R * 2, height: R * 2 };
   });
 
+  // ── V12a 몸 빛(core bodyLight): 확산광 uniform·바닥 그림자 둘·눈 구멍 두께. 빛은 화면 고정 왼쪽 위 ──
+  // 확산광 사각은 몸 변환(anim) 안에 그린다 — 돔(법선)은 몸과 함께 기울고, 빛 벡터는 −tilt만큼 되돌려 화면에 고정한다(리뷰 L4)
+  const coreGeo = shape.core;
+  const lightU = useDerivedValue(() => {
+    const f = frame.value;
+    const n = f.night;
+    // 세기는 낮밤 쌍을 night로 연속 보간(전환 중 튀지 않게, PM 11-25: 낮 1·밤 0.75)
+    const t = bodyLightT(f.wpx) * bodyLightLevelAt(lightDayLv, lightNightLv, n);
+    const B = BODY_LIGHT;
+    const c = Math.cos(f.tilt);
+    const sn = Math.sin(f.tilt);
+    return {
+      ctr: [0, coreGeo.c * f.s],
+      ab: [coreGeo.a * f.s, coreGeo.b * f.s],
+      // 화면 빛 → 몸 좌표: 회전 −tilt
+      L: [c * LIGHT_DIR[0] + sn * LIGHT_DIR[1], -sn * LIGHT_DIR[0] + c * LIGHT_DIR[1], LIGHT_DIR[2]],
+      flatK: B.flat,
+      lift: t * (B.lift.day + (B.lift.night - B.lift.day) * n),
+      sink: t * (B.sink.day + (B.sink.night - B.sink.day) * n),
+      lightCol: [LIGHT_DAY[0] + (LIGHT_NIGHT[0] - LIGHT_DAY[0]) * n, LIGHT_DAY[1] + (LIGHT_NIGHT[1] - LIGHT_DAY[1]) * n, LIGHT_DAY[2] + (LIGHT_NIGHT[2] - LIGHT_DAY[2]) * n],
+    };
+  });
+  // 셰이더 사각 = 몸 경계 상자(채움 비용, 리뷰 L2, 몸 좌표): 핵 + 몸 마스크 리본(획·빗) + 그리는 중 획(몸 좌표로 되돌림),
+  // 가장자리 번짐만큼 넓힌다. 상자 밖에 몸이 남으면 빛이 끊기므로 몸 마스크와 같은 리본을 쓴다(램버트 잔차 시험이 끊김을 잡는다)
+  const lightRect = useDerivedValue(() => {
+    const f = frame.value;
+    let x0 = (-coreGeo.a - Math.abs(coreGeo.lean)) * f.s;
+    let x1 = (coreGeo.a + Math.abs(coreGeo.lean)) * f.s;
+    let y0 = (coreGeo.c - coreGeo.b) * f.s;
+    let y1 = (coreGeo.h / 2) * f.s;
+    const rs = ribbons.value;
+    for (let r = 0; r < rs.length; r++) {
+      const p = rs[r]!.positions;
+      for (let j = 0; j < p.length; j += 2) {
+        x0 = Math.min(x0, p[j]!);
+        x1 = Math.max(x1, p[j]!);
+        y0 = Math.min(y0, p[j + 1]!);
+        y1 = Math.max(y1, p[j + 1]!);
+      }
+    }
+    // 그리는 중 획(몸 변환 밖, base 좌표)을 몸 좌표로 되돌려 넣는다: 역변환 = − (pivot − hop) → 회전 −tilt → ÷ (sx, sy) → + pivot
+    const lv = liveV.value;
+    if (lv.length > 3) {
+      const pivot = (coreH / 2) * f.s;
+      const c = Math.cos(f.tilt);
+      const sn = Math.sin(f.tilt);
+      for (let i = 0; i < lv.length; i++) {
+        const px = lv[i]!.x;
+        const py = lv[i]!.y - pivot + f.hop;
+        const ax = (c * px + sn * py) / f.sx;
+        const ay = (-sn * px + c * py) / f.sy + pivot;
+        x0 = Math.min(x0, ax);
+        x1 = Math.max(x1, ax);
+        y0 = Math.min(y0, ay);
+        y1 = Math.max(y1, ay);
+      }
+    }
+    const pad = Math.max(0.06, 4 / f.wpx);
+    return { x: x0 - pad, y: y0 - pad, width: x1 - x0 + 2 * pad, height: y1 - y0 + 2 * pad };
+  });
+  // 그림자는 바닥에 남는다(hop에 따라 뜨지 않음). 몸 먹(ink)과 함께 나타나고, 세기 후보와 무관(빛 램프만)
+  const castT = useDerivedValue(() => shadowXform(frame.value, coreH, BODY_LIGHT.cast.dx, BODY_LIGHT.cast.dy, CAST_SKEW));
+  const contactT = useDerivedValue(() => shadowXform(frame.value, coreH, BODY_LIGHT.contact.dx, BODY_LIGHT.contact.dy, 0));
+  const castRect = useDerivedValue(() => {
+    const w = frame.value.wpx * frame.value.s;
+    const c = BODY_LIGHT.cast;
+    return { x: -c.rx * w, y: -c.ry * w, width: 2 * c.rx * w, height: 2 * c.ry * w };
+  });
+  const contactRect = useDerivedValue(() => {
+    const w = frame.value.wpx * frame.value.s;
+    const c = BODY_LIGHT.contact;
+    return { x: -c.rx * w, y: -c.ry * w, width: 2 * c.rx * w, height: 2 * c.ry * w };
+  });
+  const castBlur = useDerivedValue(() => blurFloorPt(BODY_LIGHT.cast.sigmaW * frame.value.wpx * frame.value.s, dpr));
+  const contactBlur = useDerivedValue(() => blurFloorPt(BODY_LIGHT.contact.sigmaW * frame.value.wpx * frame.value.s, dpr));
+  const castOpacity = useDerivedValue(() => {
+    const f = frame.value;
+    const c = BODY_LIGHT.cast;
+    return bodyLightT(f.wpx) * f.ink * (c.day + (c.night - c.day) * f.night);
+  });
+  // 색도 night로 연속 보간(리뷰 M2: 0.5에서 갈색 → 검정으로 튀던 것)
+  const castColor = useDerivedValue(() => {
+    const n = Math.min(1, Math.max(0, frame.value.night));
+    return Float32Array.of(CAST_DAY[0] + (CAST_NIGHT[0] - CAST_DAY[0]) * n, CAST_DAY[1] + (CAST_NIGHT[1] - CAST_DAY[1]) * n, CAST_DAY[2] + (CAST_NIGHT[2] - CAST_DAY[2]) * n, 1);
+  });
+  const contactOpacity = useDerivedValue(() => {
+    const f = frame.value;
+    const c = BODY_LIGHT.contact;
+    return bodyLightT(f.wpx) * f.ink * (c.day + (c.night - c.day) * f.night);
+  });
+  // 눈 구멍 두께: 구멍을 위로 민 사본의 아래 끝(구멍 위쪽 안)만 남긴 담묵. 밤(감은 호)에는 없음
+  const eyeShadowT = useDerivedValue(() => [{ translateX: BODY_LIGHT.eye.dx }, { translateY: -BODY_LIGHT.eye.shift * 0.16 * eyeScale * frame.value.s }]);
+  const eyeShadowOpacity = useDerivedValue(() => {
+    const f = frame.value;
+    return bodyLightT(f.wpx) * (1 - f.night) * f.ink * BODY_LIGHT.eye.opacity;
+  });
+  const eyeShadowBlur = useDerivedValue(() => maskSigmaW(BODY_LIGHT.eye.sigmaW, frame.value.wpx, dpr));
+  const lightOn = lightDayLv > 0 || lightNightLv > 0;
+
   return (
     <Group>
+      {lightOn && (
+        <>
+          <Group transform={castT}>
+            <Oval rect={castRect} color={castColor} opacity={castOpacity}>
+              <BlurMask blur={castBlur} style="normal" />
+            </Oval>
+          </Group>
+          <Group transform={contactT}>
+            <Oval rect={contactRect} color={BODY_LIGHT.contact.color} opacity={contactOpacity}>
+              <BlurMask blur={contactBlur} style="normal" />
+            </Oval>
+          </Group>
+        </>
+      )}
       <Oval rect={hintRect} color={inkL.wash} opacity={hintOpacity}>
         <BlurMask blur={8} style="normal" />
       </Oval>
@@ -632,11 +779,31 @@ export function Mongmangi({ frame, records, live, mode, grammar: grammarIn, look
             </Group>
           </Group>
         )}
+        {lightOn && (
+          <Group transform={base}>
+            <Group transform={anim}>
+              <Rect rect={lightRect} blendMode="srcATop">
+                <Shader source={bodyLightFx} uniforms={lightU} />
+              </Rect>
+            </Group>
+          </Group>
+        )}
         <Group transform={base}>
           <Group transform={anim}>
             <Path path={eyes} color="black" blendMode="dstOut" opacity={eyeHoleOpacity}>
               <BlurMask blur={eyeBlur} style="normal" />
             </Path>
+            {lightOn && (
+              // dstOver: 몸이 칠해진 곳에는 안 보이고 방금 뺀 구멍(투명)에만 깔린다 — 위로 민 사본이 구멍과 겹친 위쪽 띠만 남는다.
+              // 눈 구멍 경로로 클립(리뷰 M3): 먹이 덜 찬 동안(ink < 1) 몸 전체가 반투명이라 dstOver가 구멍 밖 몸에도 비치던 것을 막는다
+              <Group clip={eyes}>
+                <Group transform={eyeShadowT}>
+                  <Path path={eyes} color={BODY_LIGHT.eye.color} opacity={eyeShadowOpacity} blendMode="dstOver">
+                    <BlurMask blur={eyeShadowBlur} style="normal" />
+                  </Path>
+                </Group>
+              </Group>
+            )}
             <Path path={eyes} color={PALETTE.night.eye} opacity={eyeNightOpacity} />
           </Group>
         </Group>

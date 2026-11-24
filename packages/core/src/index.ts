@@ -22,6 +22,7 @@ export * from './visual/traits';
 export * from './visual/ink';
 export * from './visual/look';
 export * from './visual/lod';
+export * from './visual/bodyLight';
 export * from './visual/ireScroll';
 export * from './visual/seal';
 export * from './geometry/types';

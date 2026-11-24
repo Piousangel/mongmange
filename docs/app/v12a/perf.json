@@ -1,0 +1,102 @@
+{
+ "note": "웹 Chromium(headless, ANGLE) rAF 간격 — 기기 GPU 시간이 아니다. 끔·켬을 번갈아 3번",
+ "viewport": "1280x800@2x",
+ "perf": [
+  {
+   "light": 0,
+   "cells": 12,
+   "frames": 39,
+   "meanMs": 154.79,
+   "p50": 150,
+   "p95": 166.8
+  },
+  {
+   "light": 1,
+   "cells": 12,
+   "frames": 39,
+   "meanMs": 154.72,
+   "p50": 166.6,
+   "p95": 166.7
+  },
+  {
+   "light": 0,
+   "cells": 12,
+   "frames": 42,
+   "meanMs": 146.8,
+   "p50": 150,
+   "p95": 166.7
+  },
+  {
+   "light": 1,
+   "cells": 12,
+   "frames": 38,
+   "meanMs": 162.17,
+   "p50": 150,
+   "p95": 166.8
+  },
+  {
+   "light": 0,
+   "cells": 12,
+   "frames": 40,
+   "meanMs": 150.13,
+   "p50": 150,
+   "p95": 166.7
+  },
+  {
+   "light": 1,
+   "cells": 12,
+   "frames": 38,
+   "meanMs": 163.92,
+   "p50": 150,
+   "p95": 166.8
+  },
+  {
+   "light": 0,
+   "cells": 36,
+   "frames": 14,
+   "meanMs": 446.79,
+   "p50": 466.6,
+   "p95": 466.7
+  },
+  {
+   "light": 1,
+   "cells": 36,
+   "frames": 15,
+   "meanMs": 429.94,
+   "p50": 466.6,
+   "p95": 483.3
+  },
+  {
+   "light": 0,
+   "cells": 36,
+   "frames": 15,
+   "meanMs": 413.51,
+   "p50": 433.3,
+   "p95": 466.6
+  },
+  {
+   "light": 1,
+   "cells": 36,
+   "frames": 15,
+   "meanMs": 416.48,
+   "p50": 450,
+   "p95": 466.7
+  },
+  {
+   "light": 0,
+   "cells": 36,
+   "frames": 15,
+   "meanMs": 420.62,
+   "p50": 433.4,
+   "p95": 466.6
+  },
+  {
+   "light": 1,
+   "cells": 36,
+   "frames": 15,
+   "meanMs": 413.33,
+   "p50": 433.4,
+   "p95": 466.7
+  }
+ ]
+}

@@ -1,4 +1,5 @@
 import { Skia, type SkRuntimeEffect } from '@shopify/react-native-skia';
+import { BODY_LIGHT_SKSL } from './bodyLightSrc';
 import { strokeInkSksl } from './strokeInkSrc';
 
 // 스파이크 02 셰이더. 스파이크 01의 방울(dropFx: 방사형 가시·외눈)과 획별 농도 셰이더는 폐기했다(BRIEF 0절).
@@ -118,6 +119,9 @@ half4 main(float2 xy) {
 /** 획 칠(render-03 획 문법, D-11 비백 셰이더 복원 + M1 먹 슬롯). 소스·uniform은 strokeInkSrc.ts(빌드 1 식 고정 테스트) */
 const STROKE_INK = strokeInkSksl(NOISE);
 
+/** V12a 몸 확산광 — 소스는 bodyLightSrc.ts(Skia 없는 순수 모듈, 정반사 금지 정적 시험이 직접 읽는다) */
+const BODY_LIGHT = BODY_LIGHT_SKSL;
+
 /** 밤 수면(#141A2C). 1/4 해상도 별도 캔버스(D-11). octaves는 uniform(실기기에서 줄임). 대비 낮은 결로 무섭지 않게 */
 const NIGHT = /* sksl */ `
 uniform float2 res;
@@ -174,6 +178,7 @@ export const paperFx = make(PAPER, 'paper');
 export const inkFillFx = make(INK_FILL, 'inkFill');
 export const bodySdfFx = make(BODY_SDF, 'bodySdf');
 export const strokeInkFx = make(STROKE_INK, 'strokeInk');
+export const bodyLightFx = make(BODY_LIGHT, 'bodyLight');
 export const nightFx = make(NIGHT, 'night');
 export const tideFx = make(TIDE, 'tide');
 

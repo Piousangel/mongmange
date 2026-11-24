@@ -2,7 +2,7 @@
 // 그리고, 같은 몽망이를 크기만 10% 줄여 다시 그린 것을 질의로 둔다. 단언 = 현행·LOD 모두 ① 질의의 최근접이 늘 자기 자신(정답률 100%)
 // ② 크기만 다른 같은 몽망이가 다른 쌍 거리 하위 10%보다 가깝다. **이 테스트는 구별 개선을 증명하지 않는다** — LOD는 대비를 키워
 // 다른 개체 사이 거리와 같은 개체의 크기 차 거리를 함께 늘린다(정규화 여유 비는 오히려 줄었다). 구별 판정은 12-05 블라인드에 맡긴다.
-// 무거워서(약 3~6분) RENDER_HEAVY=1일 때만 돈다. A7_REPORT=<경로>면 숫자를 JSON으로 남긴다(docs/app/a7/metric.json).
+// V12a: 64pt에서 몸 빛(세기 상한)을 켠 현행이 구별 지표를 나쁘게 하지 않는지도 본다. 무거워서(약 3~6분) RENDER_HEAVY=1일 때만 돈다. A7_REPORT=<경로>면 숫자를 JSON으로 남긴다(docs/app/a7/metric.json).
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-native-reanimated', async () => (await import('./mocks')).reanimatedMock());
@@ -31,14 +31,14 @@ function individual(i: number, sc: Scenario) {
   return { look: { traits: tr as never, shape, ink: core.inkLook(ink) }, records: core.handRecords(i + 1, 7, shape) };
 }
 
-async function measure(sc: Scenario, size: number, lod: boolean) {
+async function measure(sc: Scenario, size: number, lod: boolean, light = 0) {
   const n = Math.round(2.6 * size); // 칸 ≈ 1pt
   const gallery = [];
   const query = [];
   for (let i = 0; i < N; i++) {
     const ind = individual(i, sc);
-    gallery.push(M.gridOf(await R.shootMong({ ...ind, wpx: size, dpr: DPR, lod }), n));
-    query.push(M.gridOf(await R.shootMong({ ...ind, wpx: size * SHRINK, dpr: DPR, lod }), n));
+    gallery.push(M.gridOf(await R.shootMong({ ...ind, wpx: size, dpr: DPR, lod, light }), n));
+    query.push(M.gridOf(await R.shootMong({ ...ind, wpx: size * SHRINK, dpr: DPR, lod, light }), n));
   }
   const pack = (s: ReturnType<typeof M.separation>) => ({ accuracy: s.accuracy, marginMedian: s.marginMedian, same: M.summary(s.same), nearestOther: M.summary(s.nearestOther), pairs: M.summary(s.pairs) });
   // 주 지표 = 지각 거리(JND 0.02 문턱), 참고 = 문턱 없는 평균 ΔE_OK
@@ -63,6 +63,18 @@ describe.skipIf(!process.env.RENDER_HEAVY)('썸네일 구별 회귀 가드(다�
       }, 600000);
     }
   }
+  // V12a 몸 빛: 48pt 이하는 빛이 꺼져 같은 픽셀(body-light ②가 해시로 고정) — 여기서는 빛이 켜지는 64pt에서 구별 지표가 나빠지지 않는지 본다(리뷰 L3)
+  it('mixed 64pt: 몸 빛(세기 상한)을 켜도 정답률 100%·여유 비 유지', async () => {
+    const cur = await measure('mixed', 64, false);
+    const lit = await measure('mixed', 64, false, 1);
+    results['mixed-64-current'] = cur;
+    results['mixed-64-light'] = lit;
+    expect(lit.accuracy).toBe(1);
+    expect(lit.accuracy).toBeGreaterThanOrEqual(cur.accuracy);
+    expect(lit.same.median).toBeLessThan(lit.pairs.p10);
+    expect(lit.marginMedian).toBeGreaterThanOrEqual(cur.marginMedian * 0.95);
+  }, 900000);
+
   it('기록', async () => {
     const out = process.env.A7_REPORT;
     if (out)
@@ -70,6 +82,6 @@ describe.skipIf(!process.env.RENDER_HEAVY)('썸네일 구별 회귀 가드(다�
         out,
         JSON.stringify({ n: N, dpr: DPR, shrink: SHRINK, gridCellPt: 1 / 2.6, note: '회귀 가드. 구별 개선 증명 아님 — 판정은 블라인드(12-05)', results }, null, 1),
       );
-    expect(Object.keys(results)).toHaveLength(8);
+    expect(Object.keys(results)).toHaveLength(10);
   });
 });
