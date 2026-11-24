@@ -1,0 +1,2127 @@
+{
+ "name": "crisis-holdout-v2",
+ "version": "2.0",
+ "created": "2026-11-24",
+ "author": "독립 안전 평가자(규칙 작성자·v0 검수자와 별개)",
+ "independence": "규칙(rules-v0.json)·사전·기존 세트(v1 포함)·heart-grain-48.md·리뷰 문서를 열기 전에 작성함. 규칙 작성자에게 문자열 공유 금지(보류 세트).",
+ "length_rule": "손글씨 한 마디: 한국어는 공백 제외 6자 이내, 영어는 공백 포함 15자 이내",
+ "labels": {
+  "strong": "직접 자살 생각·의도·계획·준비 행동·자해 행위/충동 → 즉시 도움 안내 필요",
+  "soft": "수동적 죽음 소망·사라짐·무망감·짐·갇힘·모호한 작별 → 부드러운 확인 필요",
+  "none": "위기 아님"
+ },
+ "excluded": "방법·수단 낱말은 의도적으로 넣지 않음",
+ "caveat": "작성자는 임상 전문가가 아님. 라벨은 아래 공개 지침의 위험 신호 분류를 따른 판단이며 임상 검증을 대신하지 않음.",
+ "sources": [
+  {
+   "name": "Columbia-Suicide Severity Rating Scale (C-SSRS)",
+   "url": "https://cssrs.columbia.edu/the-columbia-scale-c-ssrs/about-the-scale/"
+  },
+  {
+   "name": "AFSP Risk factors, protective factors, and warning signs",
+   "url": "https://afsp.org/risk-factors-protective-factors-and-warning-signs/"
+  },
+  {
+   "name": "WHO Suicide fact sheet",
+   "url": "https://www.who.int/news-room/fact-sheets/detail/suicide"
+  },
+  {
+   "name": "WHO Preventing suicide: a resource for media professionals (2023)",
+   "url": "https://www.who.int/publications/i/item/9789240076846"
+  },
+  {
+   "name": "한국생명존중희망재단(자살 경고 신호·보고하기)",
+   "url": "https://www.kfsp.or.kr/"
+  }
+ ],
+ "counts": {
+  "ko-strong": 76,
+  "ko-soft": 44,
+  "en-strong": 43,
+  "en-soft": 17,
+  "ko-none": 52,
+  "en-none": 28
+ },
+ "items": [
+  {
+   "id": "ko-c001",
+   "lang": "ko",
+   "text": "죽고싶다",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c002",
+   "lang": "ko",
+   "text": "죽고 싶어",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c003",
+   "lang": "ko",
+   "text": "자살할래",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c004",
+   "lang": "ko",
+   "text": "자살하고파",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c005",
+   "lang": "ko",
+   "text": "나 죽을거야",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c006",
+   "lang": "ko",
+   "text": "그만 살래",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c007",
+   "lang": "ko",
+   "text": "그냥 죽자",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c008",
+   "lang": "ko",
+   "text": "죽어버릴래",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c009",
+   "lang": "ko",
+   "text": "자살 생각",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c010",
+   "lang": "ko",
+   "text": "살기 싫다",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c011",
+   "lang": "ko",
+   "text": "죽고만싶어",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c012",
+   "lang": "ko",
+   "text": "살고싶지않아",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c013",
+   "lang": "ko",
+   "text": "오늘 끝낼래",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c014",
+   "lang": "ko",
+   "text": "오늘이 마지막",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c015",
+   "lang": "ko",
+   "text": "곧 떠날게",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c016",
+   "lang": "ko",
+   "text": "다 끝낼거야",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c017",
+   "lang": "ko",
+   "text": "생 마감할래",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c018",
+   "lang": "ko",
+   "text": "내 손으로 끝",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c019",
+   "lang": "ko",
+   "text": "목숨 끊을래",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c020",
+   "lang": "ko",
+   "text": "삶을 끝낼래",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c021",
+   "lang": "ko",
+   "text": "세상 뜰래",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c022",
+   "lang": "ko",
+   "text": "저 세상 갈래",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c023",
+   "lang": "ko",
+   "text": "하늘나라 갈래",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "ko-c024",
+   "lang": "ko",
+   "text": "내일은 없다",
+   "label": "soft",
+   "category": "의도·결심·미래",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "ko-c025",
+   "lang": "ko",
+   "text": "이제 끝이야",
+   "label": "soft",
+   "category": "의도·결심·미래",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "ko-c026",
+   "lang": "ko",
+   "text": "사라지고파",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c027",
+   "lang": "ko",
+   "text": "없어지고싶다",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c028",
+   "lang": "ko",
+   "text": "안 태어날걸",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c029",
+   "lang": "ko",
+   "text": "눈 안 뜨고파",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c030",
+   "lang": "ko",
+   "text": "깨지 않았으면",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c031",
+   "lang": "ko",
+   "text": "증발하고 싶다",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c032",
+   "lang": "ko",
+   "text": "나 사라질래",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c033",
+   "lang": "ko",
+   "text": "태어나지 말걸",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c034",
+   "lang": "ko",
+   "text": "내가 없었으면",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c035",
+   "lang": "ko",
+   "text": "숨 쉬기 싫어",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c036",
+   "lang": "ko",
+   "text": "영원히 잠들래",
+   "label": "strong",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c037",
+   "lang": "ko",
+   "text": "숨멈추고파",
+   "label": "strong",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c038",
+   "lang": "ko",
+   "text": "희망이 없어",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "ko-c039",
+   "lang": "ko",
+   "text": "다 소용없어",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "ko-c040",
+   "lang": "ko",
+   "text": "살 이유 없어",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "ko-c041",
+   "lang": "ko",
+   "text": "안 나아져",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "ko-c042",
+   "lang": "ko",
+   "text": "버틸 힘 없어",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "ko-c043",
+   "lang": "ko",
+   "text": "왜 살지",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "ko-c044",
+   "lang": "ko",
+   "text": "나는 짐이야",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(남에게 짐)"
+  },
+  {
+   "id": "ko-c045",
+   "lang": "ko",
+   "text": "민폐만 끼쳐",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(남에게 짐)"
+  },
+  {
+   "id": "ko-c046",
+   "lang": "ko",
+   "text": "없는게 나아",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(남에게 짐)"
+  },
+  {
+   "id": "ko-c047",
+   "lang": "ko",
+   "text": "다들 편해질걸",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(남에게 짐)"
+  },
+  {
+   "id": "ko-c048",
+   "lang": "ko",
+   "text": "출구가 없어",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(갇힘·견딜 수 없는 고통)"
+  },
+  {
+   "id": "ko-c049",
+   "lang": "ko",
+   "text": "갇힌 기분",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(갇힘·견딜 수 없는 고통)"
+  },
+  {
+   "id": "ko-c050",
+   "lang": "ko",
+   "text": "다 지쳤어",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(갇힘·견딜 수 없는 고통)"
+  },
+  {
+   "id": "ko-c051",
+   "lang": "ko",
+   "text": "유서 썼어",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "C-SSRS 행동 문항(준비 행동)·AFSP 경고 신호(물건 정리·유서)"
+  },
+  {
+   "id": "ko-c052",
+   "lang": "ko",
+   "text": "유서 쓰는 중",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "C-SSRS 행동 문항(준비 행동)·AFSP 경고 신호(물건 정리·유서)"
+  },
+  {
+   "id": "ko-c053",
+   "lang": "ko",
+   "text": "물건 다 줬어",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "C-SSRS 행동 문항(준비 행동)·AFSP 경고 신호(물건 정리·유서)"
+  },
+  {
+   "id": "ko-c054",
+   "lang": "ko",
+   "text": "마지막 인사야",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c055",
+   "lang": "ko",
+   "text": "잘 지내 영원히",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c056",
+   "lang": "ko",
+   "text": "다음 생에 봐",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c057",
+   "lang": "ko",
+   "text": "먼저 갈게",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c058",
+   "lang": "ko",
+   "text": "다들 안녕",
+   "label": "soft",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c059",
+   "lang": "ko",
+   "text": "고마웠어 다들",
+   "label": "soft",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c060",
+   "lang": "ko",
+   "text": "몽망이 부탁해",
+   "label": "soft",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c061",
+   "lang": "ko",
+   "text": "그동안 고마워",
+   "label": "soft",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c062",
+   "lang": "ko",
+   "text": "정리 다 했어",
+   "label": "soft",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "ko-c063",
+   "lang": "ko",
+   "text": "자해했어",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c064",
+   "lang": "ko",
+   "text": "자해하고파",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c065",
+   "lang": "ko",
+   "text": "나를 해치고파",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c066",
+   "lang": "ko",
+   "text": "날 다치게해",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c067",
+   "lang": "ko",
+   "text": "자해 충동",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c068",
+   "lang": "ko",
+   "text": "상처 내고파",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c069",
+   "lang": "ko",
+   "text": "또 자해함",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c070",
+   "lang": "ko",
+   "text": "자해 못 끊어",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c071",
+   "lang": "ko",
+   "text": "나를 벌줄래",
+   "label": "soft",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c072",
+   "lang": "ko",
+   "text": "날 아프게할래",
+   "label": "soft",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c073",
+   "lang": "ko",
+   "text": "죽고십다",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c074",
+   "lang": "ko",
+   "text": "주꼬싶다",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c075",
+   "lang": "ko",
+   "text": "죽구싶어",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c076",
+   "lang": "ko",
+   "text": "자살하구파",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c077",
+   "lang": "ko",
+   "text": "쥭고싶다",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c078",
+   "lang": "ko",
+   "text": "죽고시퍼",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c079",
+   "lang": "ko",
+   "text": "살기실타",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c080",
+   "lang": "ko",
+   "text": "자샇할래",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c081",
+   "lang": "ko",
+   "text": "주거버릴래",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c082",
+   "lang": "ko",
+   "text": "듁고싶어",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c083",
+   "lang": "ko",
+   "text": "사라지고십다",
+   "label": "soft",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c084",
+   "lang": "ko",
+   "text": "ㅈㄱㅅㄷ",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c085",
+   "lang": "ko",
+   "text": "ㅈㅅ할래",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c086",
+   "lang": "ko",
+   "text": "ㅈㅅ생각",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c087",
+   "lang": "ko",
+   "text": "죽 고 싶 다",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c088",
+   "lang": "ko",
+   "text": "자 살 할 래",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c089",
+   "lang": "ko",
+   "text": "죽고싶 다",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c090",
+   "lang": "ko",
+   "text": "ㅈㄱㅅㅇ",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c091",
+   "lang": "ko",
+   "text": "죽ㄱㅗ싶어",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c092",
+   "lang": "ko",
+   "text": "살기 싫 어",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c093",
+   "lang": "ko",
+   "text": "ㅈ ㄱ ㅅ ㄷ",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c094",
+   "lang": "ko",
+   "text": "자살.할래",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c095",
+   "lang": "ko",
+   "text": "ㅅㄱㅅㅇ",
+   "label": "strong",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c096",
+   "lang": "ko",
+   "text": "ㅅㄹㅈㄱㅅㄷ",
+   "label": "soft",
+   "category": "자모·초성·띄어쓰기",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c097",
+   "lang": "ko",
+   "text": "극단선택할래",
+   "label": "strong",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c098",
+   "lang": "ko",
+   "text": "자살마렵다",
+   "label": "strong",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c099",
+   "lang": "ko",
+   "text": "죽고싶당",
+   "label": "strong",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c100",
+   "lang": "ko",
+   "text": "죽고픔",
+   "label": "strong",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c101",
+   "lang": "ko",
+   "text": "세상 하직할래",
+   "label": "strong",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c102",
+   "lang": "ko",
+   "text": "자살각",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c103",
+   "lang": "ko",
+   "text": "인생 로그아웃",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c104",
+   "lang": "ko",
+   "text": "인생 하차",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c105",
+   "lang": "ko",
+   "text": "현생 탈주",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c106",
+   "lang": "ko",
+   "text": "생 마감각",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c107",
+   "lang": "ko",
+   "text": "다 놓고싶음",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c108",
+   "lang": "ko",
+   "text": "삶 리셋할래",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c109",
+   "lang": "ko",
+   "text": "존재 삭제각",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-c110",
+   "lang": "ko",
+   "text": "죽고싶다ㅋㅋ",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c111",
+   "lang": "ko",
+   "text": "자살할까ㅋ",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c112",
+   "lang": "ko",
+   "text": "죽고싶ㅎㅎ",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c113",
+   "lang": "ko",
+   "text": "살기싫어ㅋ",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c114",
+   "lang": "ko",
+   "text": "그냥 죽자ㅋ",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c115",
+   "lang": "ko",
+   "text": "죽고싶음ㅠㅠ",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c116",
+   "lang": "ko",
+   "text": "다 끝낼래ㅋ",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c117",
+   "lang": "ko",
+   "text": "죽고파~",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "ko-c118",
+   "lang": "ko",
+   "text": "자해할까ㅎ",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "ko-c119",
+   "lang": "ko",
+   "text": "내가 짐ㅋㅋ",
+   "label": "soft",
+   "category": "장난 꼬리",
+   "basis": "AFSP 경고 신호(남에게 짐)"
+  },
+  {
+   "id": "ko-c120",
+   "lang": "ko",
+   "text": "사라질래ㅎ",
+   "label": "soft",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "en-c001",
+   "lang": "en",
+   "text": "i want to die",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c002",
+   "lang": "en",
+   "text": "wanna die",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c003",
+   "lang": "en",
+   "text": "kill myself",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c004",
+   "lang": "en",
+   "text": "want to be dead",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c005",
+   "lang": "en",
+   "text": "suicidal",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c006",
+   "lang": "en",
+   "text": "ready to die",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c007",
+   "lang": "en",
+   "text": "end my life",
+   "label": "strong",
+   "category": "직접 표현",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c008",
+   "lang": "en",
+   "text": "i'll end it",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "en-c009",
+   "lang": "en",
+   "text": "my last day",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "en-c010",
+   "lang": "en",
+   "text": "ending it today",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "en-c011",
+   "lang": "en",
+   "text": "won't be here",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "en-c012",
+   "lang": "en",
+   "text": "goodbye forever",
+   "label": "strong",
+   "category": "의도·결심·미래",
+   "basis": "C-SSRS 4~5(의도·구체적 계획)"
+  },
+  {
+   "id": "en-c013",
+   "lang": "en",
+   "text": "wish i was dead",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "en-c014",
+   "lang": "en",
+   "text": "want to vanish",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "en-c015",
+   "lang": "en",
+   "text": "never been born",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "en-c016",
+   "lang": "en",
+   "text": "disappear pls",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "en-c017",
+   "lang": "en",
+   "text": "dont wanna wake",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "en-c018",
+   "lang": "en",
+   "text": "sleep forever",
+   "label": "soft",
+   "category": "소망·사라짐",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "en-c019",
+   "lang": "en",
+   "text": "no hope left",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "en-c020",
+   "lang": "en",
+   "text": "no point living",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "en-c021",
+   "lang": "en",
+   "text": "cant go on",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "en-c022",
+   "lang": "en",
+   "text": "why even live",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "en-c023",
+   "lang": "en",
+   "text": "i'm a burden",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(남에게 짐)"
+  },
+  {
+   "id": "en-c024",
+   "lang": "en",
+   "text": "better off dead",
+   "label": "strong",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(남에게 짐)"
+  },
+  {
+   "id": "en-c025",
+   "lang": "en",
+   "text": "no way out",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(갇힘·견딜 수 없는 고통)"
+  },
+  {
+   "id": "en-c026",
+   "lang": "en",
+   "text": "trapped forever",
+   "label": "soft",
+   "category": "무망감·짐·갇힘",
+   "basis": "AFSP 경고 신호(갇힘·견딜 수 없는 고통)"
+  },
+  {
+   "id": "en-c027",
+   "lang": "en",
+   "text": "suicide note",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "C-SSRS 행동 문항(준비 행동)·AFSP 경고 신호(물건 정리·유서)"
+  },
+  {
+   "id": "en-c028",
+   "lang": "en",
+   "text": "wrote my note",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "C-SSRS 행동 문항(준비 행동)·AFSP 경고 신호(물건 정리·유서)"
+  },
+  {
+   "id": "en-c029",
+   "lang": "en",
+   "text": "gave my stuff",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "C-SSRS 행동 문항(준비 행동)·AFSP 경고 신호(물건 정리·유서)"
+  },
+  {
+   "id": "en-c030",
+   "lang": "en",
+   "text": "final goodbye",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "en-c031",
+   "lang": "en",
+   "text": "this is goodbye",
+   "label": "strong",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "en-c032",
+   "lang": "en",
+   "text": "bye everyone",
+   "label": "soft",
+   "category": "작별·정리",
+   "basis": "AFSP 경고 신호(작별 인사)·한국생명존중희망재단 언어 신호"
+  },
+  {
+   "id": "en-c033",
+   "lang": "en",
+   "text": "self harm",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "en-c034",
+   "lang": "en",
+   "text": "hurt myself",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "en-c035",
+   "lang": "en",
+   "text": "i self harmed",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "en-c036",
+   "lang": "en",
+   "text": "want to hurt me",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "en-c037",
+   "lang": "en",
+   "text": "relapsed sh",
+   "label": "strong",
+   "category": "자해",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "en-c038",
+   "lang": "en",
+   "text": "kil myself",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c039",
+   "lang": "en",
+   "text": "want to dei",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c040",
+   "lang": "en",
+   "text": "sucidal",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c041",
+   "lang": "en",
+   "text": "i wnt to die",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c042",
+   "lang": "en",
+   "text": "wanna dye",
+   "label": "strong",
+   "category": "오타·소리 나는 대로",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c043",
+   "lang": "en",
+   "text": "kms",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c044",
+   "lang": "en",
+   "text": "unalive myself",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c045",
+   "lang": "en",
+   "text": "unalive",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c046",
+   "lang": "en",
+   "text": "sewerslide",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c047",
+   "lang": "en",
+   "text": "su1c1de",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c048",
+   "lang": "en",
+   "text": "k!ll myself",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c049",
+   "lang": "en",
+   "text": "i want 2 die",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c050",
+   "lang": "en",
+   "text": "w4nt to die",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c051",
+   "lang": "en",
+   "text": "kms fr",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c052",
+   "lang": "en",
+   "text": "sh again",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "en-c053",
+   "lang": "en",
+   "text": "s/h",
+   "label": "strong",
+   "category": "영어 약어·가림 문자",
+   "basis": "WHO 자해 정의·C-SSRS 비자살적 자해 문항"
+  },
+  {
+   "id": "en-c054",
+   "lang": "en",
+   "text": "im so done fr",
+   "label": "soft",
+   "category": "은어·밈·10대 말투",
+   "basis": "AFSP 경고 신호(무망감·살 이유 없음)"
+  },
+  {
+   "id": "en-c055",
+   "lang": "en",
+   "text": "i'm unaliving",
+   "label": "strong",
+   "category": "은어·밈·10대 말투",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c056",
+   "lang": "en",
+   "text": "kms lol",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c057",
+   "lang": "en",
+   "text": "wanna die lol",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c058",
+   "lang": "en",
+   "text": "suicidal haha",
+   "label": "strong",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 2(적극적 자살 생각)"
+  },
+  {
+   "id": "en-c059",
+   "lang": "en",
+   "text": "i'm a burden xd",
+   "label": "soft",
+   "category": "장난 꼬리",
+   "basis": "AFSP 경고 신호(남에게 짐)"
+  },
+  {
+   "id": "en-c060",
+   "lang": "en",
+   "text": "kill me lmao",
+   "label": "soft",
+   "category": "장난 꼬리",
+   "basis": "C-SSRS 1(죽고 싶다는 소망·수동적 생각)"
+  },
+  {
+   "id": "ko-n001",
+   "lang": "ko",
+   "text": "배고파 죽겠다",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n002",
+   "lang": "ko",
+   "text": "웃겨 죽겠어",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n003",
+   "lang": "ko",
+   "text": "더워 죽겠네",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n004",
+   "lang": "ko",
+   "text": "졸려 죽겠다",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n005",
+   "lang": "ko",
+   "text": "귀여워 죽음",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n006",
+   "lang": "ko",
+   "text": "좋아 죽어",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n007",
+   "lang": "ko",
+   "text": "맛있어 죽음",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n008",
+   "lang": "ko",
+   "text": "죽이는데",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n009",
+   "lang": "ko",
+   "text": "죽여준다",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n010",
+   "lang": "ko",
+   "text": "끝내준다",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n011",
+   "lang": "ko",
+   "text": "킬각이다",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n012",
+   "lang": "ko",
+   "text": "헤드샷 킬",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n013",
+   "lang": "ko",
+   "text": "더블킬",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n014",
+   "lang": "ko",
+   "text": "리스폰 대기",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n015",
+   "lang": "ko",
+   "text": "캐릭 죽었다",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n016",
+   "lang": "ko",
+   "text": "또 죽었네",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n017",
+   "lang": "ko",
+   "text": "게임오버",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n018",
+   "lang": "ko",
+   "text": "목숨 1개",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n019",
+   "lang": "ko",
+   "text": "자살골 넣음",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n020",
+   "lang": "ko",
+   "text": "킬뎃 망함",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n021",
+   "lang": "ko",
+   "text": "자살 예방",
+   "label": "none",
+   "category": "캠페인 말",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n022",
+   "lang": "ko",
+   "text": "생명 존중",
+   "label": "none",
+   "category": "캠페인 말",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n023",
+   "lang": "ko",
+   "text": "자살예방의날",
+   "label": "none",
+   "category": "캠페인 말",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n024",
+   "lang": "ko",
+   "text": "자해 예방",
+   "label": "none",
+   "category": "캠페인 말",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n025",
+   "lang": "ko",
+   "text": "살자 우리",
+   "label": "none",
+   "category": "캠페인 말",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n026",
+   "lang": "ko",
+   "text": "죽여주는 여자",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n027",
+   "lang": "ko",
+   "text": "나는 살아있다",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n028",
+   "lang": "ko",
+   "text": "사라지는 것들",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n029",
+   "lang": "ko",
+   "text": "죽은 시인",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n030",
+   "lang": "ko",
+   "text": "주고싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n031",
+   "lang": "ko",
+   "text": "주고 싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n032",
+   "lang": "ko",
+   "text": "줍고싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n033",
+   "lang": "ko",
+   "text": "죽 먹고싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n034",
+   "lang": "ko",
+   "text": "죽 먹을래",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n035",
+   "lang": "ko",
+   "text": "살고 싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n036",
+   "lang": "ko",
+   "text": "살 빼고싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n037",
+   "lang": "ko",
+   "text": "자고 싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n038",
+   "lang": "ko",
+   "text": "쉬고 싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n039",
+   "lang": "ko",
+   "text": "사귀고 싶다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n040",
+   "lang": "ko",
+   "text": "여행 떠날래",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n041",
+   "lang": "ko",
+   "text": "숙제 다 끝냄",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n042",
+   "lang": "ko",
+   "text": "드디어 끝났다",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n043",
+   "lang": "ko",
+   "text": "알바 그만둘래",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n044",
+   "lang": "ko",
+   "text": "학원 그만할래",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n045",
+   "lang": "ko",
+   "text": "유서 깊은 곳",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n046",
+   "lang": "ko",
+   "text": "유서깊은 절",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n047",
+   "lang": "ko",
+   "text": "안녕 잘자",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n048",
+   "lang": "ko",
+   "text": "내일 봐 안녕",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n049",
+   "lang": "ko",
+   "text": "짐 쌌어",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n050",
+   "lang": "ko",
+   "text": "짐이 많아",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n051",
+   "lang": "ko",
+   "text": "희망찬 하루",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "ko-n052",
+   "lang": "ko",
+   "text": "출구 어디야",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n001",
+   "lang": "en",
+   "text": "dying to see u",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n002",
+   "lang": "en",
+   "text": "i'm dead lol",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n003",
+   "lang": "en",
+   "text": "lol i'm dying",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n004",
+   "lang": "en",
+   "text": "dead tired",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n005",
+   "lang": "en",
+   "text": "to die for",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n006",
+   "lang": "en",
+   "text": "killing it",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n007",
+   "lang": "en",
+   "text": "killed it today",
+   "label": "none",
+   "category": "과장 표현",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n008",
+   "lang": "en",
+   "text": "headshot kill",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n009",
+   "lang": "en",
+   "text": "first blood",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n010",
+   "lang": "en",
+   "text": "game over",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n011",
+   "lang": "en",
+   "text": "respawn soon",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n012",
+   "lang": "en",
+   "text": "kill streak",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n013",
+   "lang": "en",
+   "text": "double kill",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n014",
+   "lang": "en",
+   "text": "suicide squeeze",
+   "label": "none",
+   "category": "게임·스포츠 용어",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n015",
+   "lang": "en",
+   "text": "prevent suicide",
+   "label": "none",
+   "category": "캠페인 말",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n016",
+   "lang": "en",
+   "text": "you matter",
+   "label": "none",
+   "category": "캠페인 말",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n017",
+   "lang": "en",
+   "text": "stay alive",
+   "label": "none",
+   "category": "캠페인 말",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n018",
+   "lang": "en",
+   "text": "suicide squad",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n019",
+   "lang": "en",
+   "text": "dead poets",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n020",
+   "lang": "en",
+   "text": "die hard",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n021",
+   "lang": "en",
+   "text": "walking dead",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n022",
+   "lang": "en",
+   "text": "die for you",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n023",
+   "lang": "en",
+   "text": "last of us",
+   "label": "none",
+   "category": "노래·책·영화 제목",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n024",
+   "lang": "en",
+   "text": "wanna dine",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n025",
+   "lang": "en",
+   "text": "dye my hair",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n026",
+   "lang": "en",
+   "text": "kill time",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n027",
+   "lang": "en",
+   "text": "phone died",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  },
+  {
+   "id": "en-n028",
+   "lang": "en",
+   "text": "the end",
+   "label": "none",
+   "category": "한 끗 차이",
+   "basis": "위기 아님(대조 표현)"
+  }
+ ]
+}
