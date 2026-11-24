@@ -94,7 +94,7 @@
 - [x] B1 apps/server 골격: NestJS + Prisma + Supabase(로컬 CLI) + Docker(compose) + 헬스체크 + CI — a817d30
 - [x] B2 필요할 때 익명 계정 + 14세 확인 + 세이브 맡겨 두기(리비전·이력 최대 4주·충돌본 30일)·되찾기 글귀·`DELETE /me`·`/delete` — c96fba1 — [D-26: 그대로. 세이브 v3 본문 상한·화첩 '한 세이브 안 여러 아이' 확인은 V11]
 - [x] B3 `/m` 정적 HTML(첫 페인트 1초) + 앱이 올린 OG·8초 루프 + CanvasKit 지연 로드(플래그 `webLive`) + AASA·assetlinks. 서버 렌더 없음. 공개 값은 링크 켤 때 고정 — '서버 렌더 없음' = React SSR·서버 그림 그리기 없음. `/m/{code}`는 Nest가 고정 틀에 이스케이프한 값만 채운 HTML(링크별 OG 때문, DECISIONS 'B3 구현 결정') — fb0d89e — [D-26: 링크 = 지금 아이, '쓴 말 보이기'는 V15]
-- [ ] B4 원격 플래그(`config/v1.json`) + 원격 모티프 팩 + 식별자 없는 집계 핑(화이트리스트 10 + 차원 3) — [D-26: 원격 사전 팩(`lexVer`)을 같은 매니페스트로 — V5d와 계약 맞춤]
+- [x] B4 원격 플래그(`config/v1.json`) + 원격 모티프 팩 + 식별자 없는 집계 핑(화이트리스트 10 + 차원 3) — [D-26: 원격 사전 팩(`lexVer`)을 같은 매니페스트로 — V5d와 계약 맞춤] — 서버 몫 3cd00f8(web-static·앱 로더 C11 남음)
 - [x] B5 안전 장치(신고·숨기기·지우기)·레이트 리밋·삭제 요청 절차. 운영 SLA = 자동 숨김 약 1분 안 + 운영자 확인 7일, 소프트런칭은 Studio + SQL 함수 + CLI → 정식 출시 전 `mong-admin`(기획 v2.3·서버 아키텍처 v2.1) — 코드 완료·리뷰 반영, 커밋 대기(M2와 따로 커밋) — 0ea3f43
 - [ ] B6 배포: Cloud Run 서울 + Artifact Registry + Firebase Hosting(오너: 도메인·GCP·Supabase 계정) — [D-26: 소프트런칭 01-12 전, Supabase Pro 01-08 전]
   - [ ] 로그 보존 7일: 서울 로그 버킷 `mong-logs` 보존 7일 + `_Default` 싱크 전환·수집 끄기 + `/m/` 요청 로그 제외 필터 — 처리방침 3-1·6절 '클라우드 접속 기록 7일'이 이 설정 뒤에야 참(B0 리뷰·v2.2-applied 4절 #5)
