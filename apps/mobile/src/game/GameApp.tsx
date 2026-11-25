@@ -228,10 +228,10 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               }
               flash(e.reason === 'noInk' ? t('v3.line.noInk') : e.reason === 'done' ? t('v3.line.done') : e.reason === 'tooShort' ? rejectText('tooShort') : t('v3.line.used'));
               break;
-            case 'fed': {
+            case 'received': {
               const w = layout(width, height);
-              setCue({ kind: e.kind === 'treat' ? CUE.treat : e.full ? CUE.mealFull : CUE.meal, intensity: 2, net: false, fromX: width * 0.2, fromY: w.objectsY, key: ++cueSeq.current }); // v3 벼루 = 왼쪽 칸
-              AccessibilityInfo.announceForAccessibility(t('v3.fed.a11y', { item: t(e.item === 'pattern' ? 'v3.item.pattern' : 'v3.item.clear') }));
+              setCue({ kind: e.kind === 'treat' ? CUE.treat : e.bow ? CUE.mealBow : CUE.meal, intensity: 2, net: false, fromX: width * 0.2, fromY: w.objectsY, key: ++cueSeq.current }); // v3 벼루 = 왼쪽 칸
+              AccessibilityInfo.announceForAccessibility(t('v3.fed.a11y', { item: t(`v3.item.${e.item}`) }));
               break;
             }
             case 'ireReached':
@@ -685,13 +685,13 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               // 보는 사용자: 눌러 시작·눌러 멈춤, 길게 누르기와 같은 속도로 칸이 차오른다(리뷰 2차 L-d). 시트는 열린 채라 이어서 한 숟갈을 뜰 수 있다
               sheetGrind({ type: 'press', at: Date.now() });
             }}
-            onSpoon={() => {
+            onSpoon={(item) => {
               setInkSheetOpen(false);
-              dispatch({ type: 'feed', kind: 'meal', item: 'clear' });
+              dispatch({ type: 'offer', kind: 'meal', item });
             }}
-            onTreat={() => {
+            onTreat={(item) => {
               setInkSheetOpen(false);
-              dispatch({ type: 'feed', kind: 'treat', item: 'pattern' });
+              dispatch({ type: 'offer', kind: 'treat', item });
             }}
           />
         </>

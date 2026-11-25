@@ -228,53 +228,53 @@ describe('연적 = 재우기 → 밤 세기, 28밤 → 곁에 남음', () => {
     expect(after.effects).toContainEqual({ type: 'writeRejected', reason: 'done' });
     expect(after.state.v3.life.slept).toBe(28);
     expect(after.state.sim.phase).toBe('awake');
-    const fed = v3.reduceV3(after.state, { type: 'feed', at: kst(12, 23, 9), kind: 'treat', item: 'pattern' });
-    expect(fed.effects.some((e) => e.type === 'fed')).toBe(true);
+    const fed = v3.reduceV3(after.state, { type: 'offer', at: kst(12, 23, 9), kind: 'treat', item: 'pattern' });
+    expect(fed.effects.some((e) => e.type === 'received')).toBe(true);
     // 마음 벡터는 저장된 말결로만(R5)
     expect(v3.heartOf(s)).toMatchObject({ bright: 7, low: 7, nature: 7, warm: 7 });
   });
 });
 
 describe('밥 한 숟갈·작은 것(D-27 최소판)', () => {
-  it('한 숟갈은 먹을 한 칸 이상 갈았을 때, 깸마다 2숟갈 — 두 번째에 만족(full)', () => {
+  it('한 숟갈은 먹을 한 칸 이상 갈았을 때, 깸마다 2숟갈 — 두 번째에 만족(bow)', () => {
     const at = kst(11, 25, 10);
-    let r = play(fresh(), [{ type: 'feed', at, kind: 'meal', item: 'clear' }]);
-    expect(r.effects).toContainEqual({ type: 'feedRejected', reason: 'noInk' });
+    let r = play(fresh(), [{ type: 'offer', at, kind: 'meal', item: 'clear' }]);
+    expect(r.effects).toContainEqual({ type: 'offerRejected', reason: 'noInk' });
     r = play(r.state, [
       { type: 'grind', at: at + 1000, durationMs: 800 },
-      { type: 'feed', at: at + 2000, kind: 'meal', item: 'clear' },
-      { type: 'feed', at: at + 3000, kind: 'meal', item: 'clear' },
-      { type: 'feed', at: at + 4000, kind: 'meal', item: 'clear' },
+      { type: 'offer', at: at + 2000, kind: 'meal', item: 'clear' },
+      { type: 'offer', at: at + 3000, kind: 'meal', item: 'clear' },
+      { type: 'offer', at: at + 4000, kind: 'meal', item: 'clear' },
     ]);
-    expect(r.effects.filter((e) => e.type === 'fed')).toEqual([
-      { type: 'fed', kind: 'meal', item: 'clear', full: false },
-      { type: 'fed', kind: 'meal', item: 'clear', full: true },
+    expect(r.effects.filter((e) => e.type === 'received')).toEqual([
+      { type: 'received', kind: 'meal', item: 'clear', bow: false, liked: false },
+      { type: 'received', kind: 'meal', item: 'clear', bow: true, liked: false },
     ]);
-    expect(r.effects).toContainEqual({ type: 'feedRejected', reason: 'cap' });
+    expect(r.effects).toContainEqual({ type: 'offerRejected', reason: 'cap' });
     // 밥은 글자 수를 줄이지 않는다
     expect(v3.inkCells(r.state)).toBe(1);
   });
   it('작은 것은 먹 없이도, 깸마다 3', () => {
     const at = kst(11, 25, 10);
-    const ev: E[] = [0, 1, 2, 3].map((i) => ({ type: 'feed', at: at + i * 1000, kind: 'treat', item: 'pattern' }));
+    const ev: E[] = [0, 1, 2, 3].map((i) => ({ type: 'offer', at: at + i * 1000, kind: 'treat', item: 'pattern' }));
     const r = play(fresh(), ev);
-    expect(r.effects.filter((e) => e.type === 'fed')).toHaveLength(3);
-    expect(r.effects).toContainEqual({ type: 'feedRejected', reason: 'cap' });
+    expect(r.effects.filter((e) => e.type === 'received')).toHaveLength(3);
+    expect(r.effects).toContainEqual({ type: 'offerRejected', reason: 'cap' });
   });
   it('열리지 않은 종류는 받지 않는다(1.0 최소판 = 맑은 먹·무늬 먹 조각)', () => {
     const at = kst(11, 25, 10);
     const r = play(fresh(), [
       { type: 'grind', at, durationMs: 800 },
-      { type: 'feed', at: at + 1000, kind: 'meal', item: 'pine' },
+      { type: 'offer', at: at + 1000, kind: 'meal', item: 'pine' },
     ]);
-    expect(r.effects).toContainEqual({ type: 'feedRejected', reason: 'locked' });
+    expect(r.effects).toContainEqual({ type: 'offerRejected', reason: 'locked' });
   });
   it('깸이 바뀌면 0으로, 밥을 안 줘도 몸·밤·말은 같다', () => {
     const at = kst(11, 25, 10);
     let s = play(fresh(), [
       { type: 'grind', at, durationMs: 800 },
-      { type: 'feed', at: at + 1000, kind: 'meal', item: 'clear' },
-      { type: 'feed', at: at + 2000, kind: 'treat', item: 'pattern' },
+      { type: 'offer', at: at + 1000, kind: 'meal', item: 'clear' },
+      { type: 'offer', at: at + 2000, kind: 'treat', item: 'pattern' },
     ]).state;
     expect(s.v3.meal).toMatchObject({ spoons: 1, treats: 1 });
     const fedDay = day(s, 0);

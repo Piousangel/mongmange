@@ -28,7 +28,8 @@ export const CUE = {
    */
   look: 11,
   meal: 12,
-  mealFull: 13,
+  /** 그 깸의 마지막 숟갈 뒤 꾸벅(만족, 배와 무관) */
+  mealBow: 13,
   treat: 14,
 } as const;
 export type CueKind = (typeof CUE)[keyof typeof CUE];
@@ -96,7 +97,7 @@ export function answerPose(c: CueValue, dt: number, rm: boolean): AnswerPose {
   const back: Partial<AnswerPose> = c.net ? { settle: rm ? 0 : 0.05 * backEnv, gy: 0.2 * backEnv } : { gy: 0.12 * backEnv };
   if (rm) {
     const k = clamp01(t / 400) * clamp01((ECHO_MS + BACK_MS - t) / 400);
-    const eyes = c.kind === CUE.bright || c.kind === CUE.kin || c.kind === CUE.treat || c.kind === CUE.mealFull || c.kind === CUE.home ? 'joy' : c.kind === CUE.warm || c.kind === CUE.low ? 'sleepy' : c.kind === CUE.unknown ? 'surprised' : 'open';
+    const eyes = c.kind === CUE.bright || c.kind === CUE.kin || c.kind === CUE.treat || c.kind === CUE.mealBow || c.kind === CUE.home ? 'joy' : c.kind === CUE.warm || c.kind === CUE.low ? 'sleepy' : c.kind === CUE.unknown ? 'surprised' : 'open';
     const ang = c.kind === CUE.bright ? 14 : c.kind === CUE.low ? -8 : c.kind === CUE.unknown ? 10 : 0;
     return { ...REST, eyeB: eyes, eyeMix: 0.8 * k, combAngle: ang * k };
   }
@@ -148,10 +149,10 @@ export function answerPose(c: CueValue, dt: number, rm: boolean): AnswerPose {
       break;
     case CUE.meal:
       // 맑은 먹: 오물오물 두 번 → 유저를 봄(몸 부풂 없음)
-      // 1숟갈·2숟갈 반응 크기는 같다(QA-3 R7) — 눈 진폭을 mealFull과 맞춘다
+      // 1숟갈·2숟갈 반응 크기는 같다(QA-3 R7) — 눈 진폭을 mealBow와 맞춘다
       p = { ...p, gy: (p.gy ?? 0) + (echo ? 0.3 * Math.abs(Math.sin(2 * Math.PI * e)) : 0), eyeB: 'joy', eyeMix: echo ? 1 : 1 - b };
       break;
-    case CUE.mealFull:
+    case CUE.mealBow:
       // 만족: 눈 기쁨 호 + 꾸벅(배와 무관). 크기는 meal과 같다
       p = { ...p, gy: (p.gy ?? 0) + (echo ? 0.3 * Math.abs(Math.sin(2 * Math.PI * e)) : 0), tilt: echo ? 0.05 * Math.max(0, Math.sin(Math.PI * clamp01((e - 0.5) * 2))) : 0, eyeB: 'joy', eyeMix: echo ? 1 : 1 - b };
       break;

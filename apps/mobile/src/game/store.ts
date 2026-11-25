@@ -261,7 +261,7 @@ export function dispatch(input: EventInput): Effect[] {
     applyV3(step, ev, true);
     return step.effects;
   }
-  if (ev.type === 'write' || ev.type === 'feed') return [];
+  if (ev.type === 'write' || ev.type === 'offer' || ev.type === 'mealNudge') return [];
   const step = sim.reduce(s, ev);
   apply(step, ev, true);
   return step.effects;

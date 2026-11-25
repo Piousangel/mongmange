@@ -2,11 +2,13 @@
 // 배고픔 낱말 기쁨 호 없음, 곁 대답이 따로 드러나지 않음, 맡겨 두기와 함께 켜지지 않음.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { PING_EVENTS } from '@mong/contract';
 import { SAVE_KEYS, sim, v3, writeSave, type KV, type RawPoint } from '@mong/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isOn, setFeature } from '../src/features';
 import { __configureForTest, adoptState, boot, devReset, devRestartV3, dispatch, getSnapshot, getV3, install } from '../src/game/store';
 import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, inkstoneA11yActions, sheetGrindMode, sheetGrindOn, sheetGrindStep, wordSheetClose, wordSheetOnAppState } from '../src/game/v3Flow';
+import { messages } from '../src/i18n';
 import { CUE, answerPose, cueLength } from '../src/render/answer';
 
 const KST_NOON = Date.UTC(2026, 10, 25, 3, 0);
@@ -248,5 +250,37 @@ describe('벼루 시트 먹 갈기(리뷰 2차 L-d)', () => {
     // 6칸 자동 멈춤은 tick이 멈춤 규칙을 부른다
     expect(app).toMatch(/setInterval\(\(\) => \{\s*setGrindNow\(Date\.now\(\)\);\s*sheetGrind\(\{ type: 'tick', at: Date\.now\(\) \}\);/);
     expect(app).toContain('visible={inkSheetShown}');
+  });
+});
+
+describe('V27 밥·간식 앱 쪽(시트가 공방 데이터를 읽음 — 정식 시트는 V28)', () => {
+  it('store v3 경로로 건네고 저장된다. 밥 알림 켜기도 v3 세이브에만 남는다', () => {
+    boot();
+    install({ x: 0, y: 0 });
+    t += 1000;
+    dispatch({ type: 'grind', durationMs: 800 });
+    t += 1000;
+    const eff = dispatch({ type: 'offer', kind: 'meal', item: 'clear' });
+    expect(eff).toContainEqual({ type: 'received', kind: 'meal', item: 'clear', bow: false, liked: false });
+    t += 1000;
+    dispatch({ type: 'mealNudge', on: true });
+    const saved = JSON.parse(kv.m.get(v3.V3_KEYS.main)!) as { v3: v3.V3Block };
+    expect(saved.v3.meal).toEqual({ spoons: 1, treats: 0, nudgeOptIn: true });
+    expect(kv.m.has(SAVE_KEYS.main)).toBe(false);
+  });
+  it('공방에 열릴 수 있는 여섯 종류 모두 ko·en 이름이 있다(시트 줄 라벨)', () => {
+    for (const loc of ['ko', 'en'] as const) {
+      const m = messages(loc) as Record<string, string>;
+      for (const item of v3.LIKED_ITEMS) expect(m[`v3.item.${item}`], `${loc} ${item}`).toBeTruthy();
+    }
+  });
+  it('시트는 mealSheet의 열린 종류로 줄을 만든다(종류를 화면에 박아 두지 않음)', () => {
+    const src = readFileSync(path.join(__dirname, '../src/screens/V3Sheets.tsx'), 'utf8');
+    expect(src).toMatch(/sheet\.meals\.map\(/);
+    expect(src).toMatch(/sheet\.treats\.map\(/);
+    expect(src).not.toMatch(/t\('v3\.item\.(clear|pattern)'\)/);
+  });
+  it('집계 핑 사건에 밥·간식·공방·마실 신호가 없다(care 2-3 위젯·집계, M6)', () => {
+    expect(PING_EVENTS.filter((e) => /meal|treat|pantry|spoon|offer|feed|walk|nudge/i.test(e))).toEqual([]);
   });
 });

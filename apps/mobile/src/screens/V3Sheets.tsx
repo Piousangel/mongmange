@@ -101,7 +101,7 @@ export function WordSheet({
   );
 }
 
-/** 벼루 하위 시트(밥 1·간식 1 최소판). 시트 갈기 상태·멈춤 규칙은 앱이 쥔다(앱 상태로도 멈춰야 해서, v3Flow `sheetGrindOn`) */
+/** 벼루 하위 시트(V27: 공방에 열린 종류마다 한 줄 — 정식 시트 UI는 V28). 시트 갈기 상태·멈춤 규칙은 앱이 쥔다(앱 상태로도 멈춰야 해서, v3Flow `sheetGrindOn`) */
 export function InkstoneSheet({
   visible,
   sheet,
@@ -114,7 +114,7 @@ export function InkstoneSheet({
   onClose,
 }: {
   visible: boolean;
-  sheet: { spoon: 'ok' | 'noInk' | 'cap'; treat: 'ok' | 'cap' };
+  sheet: v3.MealSheet;
   /** 'all' = 한 번에 6칸(스크린리더), 'flow' = 눌러 시작·눌러 멈춤 */
   grindMode: 'all' | 'flow';
   /** 시트 갈기 중인가('flow'에서만) */
@@ -122,8 +122,8 @@ export function InkstoneSheet({
   /** 갈기 중 보이는 칸 수(이미 간 양 + 지금까지) */
   grindCells: number;
   onGrindRow: () => void;
-  onSpoon: () => void;
-  onTreat: () => void;
+  onSpoon: (item: v3.MealItem) => void;
+  onTreat: (item: v3.TreatItem) => void;
   onClose: () => void;
 }) {
   const spoonNote = sheet.spoon === 'noInk' ? t('v3.inkstone.spoonNoInk') : sheet.spoon === 'cap' ? t('v3.inkstone.again') : '';
@@ -139,15 +139,19 @@ export function InkstoneSheet({
           ))}
         </View>
       )}
-      <Row label={`${t('v3.inkstone.spoon')} · ${t('v3.item.clear')}`} note={spoonNote} disabled={grinding || sheet.spoon !== 'ok'} onPress={onSpoon} testID="v3-sheet-spoon" dot="clear" />
-      <Row label={`${t('v3.inkstone.treat')} · ${t('v3.item.pattern')}`} note={treatNote} disabled={grinding || sheet.treat !== 'ok'} onPress={onTreat} testID="v3-sheet-treat" dot="pattern" />
+      {sheet.meals.map((item) => (
+        <Row key={item} label={`${t('v3.inkstone.spoon')} · ${t(`v3.item.${item}`)}`} note={spoonNote} disabled={grinding || sheet.spoon !== 'ok'} onPress={() => onSpoon(item)} testID={item === 'clear' ? 'v3-sheet-spoon' : `v3-sheet-spoon-${item}`} dot={item} />
+      ))}
+      {sheet.treats.map((item) => (
+        <Row key={item} label={`${t('v3.inkstone.treat')} · ${t(`v3.item.${item}`)}`} note={treatNote} disabled={grinding || sheet.treat !== 'ok'} onPress={() => onTreat(item)} testID={item === 'pattern' ? 'v3-sheet-treat' : `v3-sheet-treat-${item}`} dot={item} />
+      ))}
     </BottomSheet>
   );
 }
 
 const noop = () => {};
 
-function Row({ label, note, disabled, onPress, testID, dot }: { label: string; note: string; disabled?: boolean; onPress: () => void; testID: string; dot?: 'clear' | 'pattern' }) {
+function Row({ label, note, disabled, onPress, testID, dot }: { label: string; note: string; disabled?: boolean; onPress: () => void; testID: string; dot?: v3.PantryItem }) {
   return (
     <Pressable
       onPress={() => !disabled && onPress()}

@@ -6,7 +6,8 @@
 //   ③ 연적 = 재우기·내려놓기. 연적으로 재운 밤만 '함께 잔 밤'으로 센다(D-07, concept-review 3-3: 하루 걸러도 생애가 줄지 않음).
 //      획 씻기 없음(V8) — washStroke는 받지 않는다
 //   ④ 28밤: 이레(7·14·21·28)마다 스냅숏 자리, 28번째 아침에 완성 → 곁에 남음(성장 = 새 말·새 획만 멈춤)
-//   ⑤ 밥 한 숟갈(깸마다 최대 2, 먹을 한 칸 이상 갈았을 때)·작은 것(깸마다 최대 3). 시각·횟수 기록 0(D-27)
+//   ⑤ 밥 한 숟갈(깸마다 최대 2, 먹을 한 칸 이상 갈았을 때)·작은 것(깸마다 최대 3). 시각·횟수 기록 0(D-27).
+//      V27 정식판: 공방 pantry 열림(이레 아침·정, 깸 경계)·좋아하는 것(씨앗)·밥 알림 데이터(nudgeOptIn)·업로드 허용 목록 — 규칙은 meal.ts·nudge.ts
 // 세이브 = 기존 봉투(schemaVersion 2 + sim 2) + `v3` 블록. 저장 키는 따로라 옛 세이브(v2)는 손대지 않고 보관된다.
 import { parseState, serializeState } from '../sim/save';
 import { reduce as simReduce, tick as simTick, strokeBlock, SIM_SCHEMA_VERSION } from '../sim/reduce';
@@ -16,20 +17,26 @@ import { FutureSaveError, isFutureSaveError, SCHEMA_VERSION } from '../save/enve
 import { SAVE_KEYS, type KV, type WriteOptions, type WriteResult } from '../save/slots';
 import type { AttachLevel, RawPoint, StrokeRecord } from '../geometry/types';
 import { FAMILIES, STORED_SENSES, WORD_MAX_CHARS, familyOf, type FamilyId, type Intensity } from './lexicon';
+import {
+  LIKED_FROM_SLEPT,
+  MEAL_SPOONS_MAX,
+  TREATS_MAX,
+  isPantryItem,
+  likedItemOf,
+  openPantry,
+  startPantry,
+  type MealItem,
+  type Pantry,
+  type PantryItem,
+  type TreatItem,
+} from './meal';
+import type { MealNudgeInput } from './nudge';
 
 export const V3_VERSION = 3;
 export const LIFE_NIGHTS = 28;
 export const IRE_NIGHTS = 7;
 /** 먹 한 칸 = 이만큼 간 시간(첫 칸은 갈기 시작과 함께). 6칸에서 멈춘다 */
 export const INK_CELL_MS = 1500;
-export const MEAL_SPOONS_MAX = 2;
-export const TREATS_MAX = 3;
-
-/** 밥 3·간식 3 중 1.0 최소판(D-27 자르는 순서 최소선): 밥 1 + 간식 1. 나머지는 이름만 자리 */
-export const MEAL_ITEMS = ['clear'] as const;
-export const TREAT_ITEMS = ['pattern'] as const;
-export type MealItem = 'clear' | 'pine' | 'dew';
-export type TreatItem = 'pattern' | 'ribbon' | 'dewdrop';
 
 /** 한 마디 기록. 모든 날 같은 필드 집합(heart-grain 9-2 R2) — 위기를 나타내는 플래그·빈칸이 없다 */
 export interface Word {
@@ -56,22 +63,24 @@ export interface Life {
   final: IreMark | null;
 }
 
+/** 밥 칸 = 정확히 이 세 칸(시각·횟수·연속 저장 0 — 모르는 칸이 있으면 손상으로 본다) */
 export interface Meal {
   /** 이번 깸에 준 숟갈(깸이 바뀌면 0) */
   spoons: number;
   /** 이번 깸에 준 작은 것(깸이 바뀌면 0) */
   treats: number;
-  /** 밥 알림 받기(기본 꺼짐 — 알림은 이번 범위 밖) */
+  /** 밥 알림 받기(기본 꺼짐 — 알림은 V29, 여기는 값만) */
   nudgeOptIn: boolean;
 }
+const MEAL_FIELDS = ['spoons', 'treats', 'nudgeOptIn'] as const;
 
 export interface V3Block {
   version: number;
   words: Word[];
   life: Life;
   meal: Meal;
-  /** 공방 단위로 열린 종류(새 먹 방울에도 이어짐) */
-  pantry: { meal: MealItem[]; treat: TreatItem[] };
+  /** 공방 단위로 열린 종류(새 먹 방울에도 이어짐, 줄지 않음). 정해진 순서·중복 없음 */
+  pantry: Pantry;
   /** 지금 자는 잠이 연적으로 재워 센 밤인가(깨면 false). 시각은 저장하지 않는다 */
   tonightCounted: boolean;
 }
@@ -92,8 +101,11 @@ export type V3Event =
   | SimEvent
   /** 한 마디 + 붓 한 획. 판정(사전·위기 대조)은 앱이 끝낸 뒤 말결만 싣는다 — 쓴 글자는 이벤트에도 없다(R1·R8) */
   | { type: 'write'; at: Millis; word: WordInput; chars: number; raw: RawPoint[]; level?: AttachLevel; birthShape?: boolean }
-  | { type: 'feed'; at: Millis; kind: 'meal'; item: MealItem }
-  | { type: 'feed'; at: Millis; kind: 'treat'; item: TreatItem };
+  /** 벼루 시트에서 밥(한 숟갈)·간식(작은 것) 건네기 */
+  | { type: 'offer'; at: Millis; kind: 'meal'; item: MealItem }
+  | { type: 'offer'; at: Millis; kind: 'treat'; item: TreatItem }
+  /** 밥 알림 받기 켜고 끄기(D-15 첫 재우기 밤 화면·공방 노트, V29). 자는 동안도 받는다 */
+  | { type: 'mealNudge'; at: Millis; on: boolean };
 
 export type WriteBlock = 'asleep' | 'done' | 'used' | 'noInk';
 
@@ -107,8 +119,14 @@ export type V3Effect =
   | { type: 'ireReached'; ire: number }
   /** 28번째 아침: 완성(곁에 남음) */
   | { type: 'lifeComplete' }
-  | { type: 'fed'; kind: 'meal' | 'treat'; item: string; full: boolean }
-  | { type: 'feedRejected'; reason: 'asleep' | 'noInk' | 'cap' | 'locked' };
+  /**
+   * 받았다. bow = 그 깸의 마지막 숟갈 뒤 꾸벅(만족 몸짓, 배와 무관 — 반응 크기는 숟갈 수와 무관, QA-3 R7). 간식은 늘 false.
+   * liked = 좋아하는 것(씨앗)이고 첫 이레 아침이 지났다 — 반응만 조금 커진다(care 3-3)
+   */
+  | { type: 'received'; kind: 'meal' | 'treat'; item: PantryItem; bow: boolean; liked: boolean }
+  | { type: 'offerRejected'; reason: 'asleep' | 'noInk' | 'cap' | 'locked' }
+  /** 깸 경계에서 공방에 새 종류가 열렸다(이레 아침·정) */
+  | { type: 'pantryOpened'; kind: 'meal' | 'treat'; item: PantryItem };
 
 export interface V3Step {
   state: V3State;
@@ -121,7 +139,7 @@ export function emptyV3Block(): V3Block {
     words: [],
     life: { slept: 0, snapshots: [null, null, null, null], final: null },
     meal: { spoons: 0, treats: 0, nudgeOptIn: false },
-    pantry: { meal: [...MEAL_ITEMS], treat: [...TREAT_ITEMS] },
+    pantry: startPantry(),
     tonightCounted: false,
   };
 }
@@ -176,10 +194,33 @@ export function todaysWord(s: V3State): Word | null {
   return s.v3.words.find((w) => today.has(w.strokeId)) ?? null;
 }
 
-/** 벼루 하위 시트 상태 */
-export function mealSheet(s: V3State): { spoon: 'ok' | 'noInk' | 'cap'; treat: 'ok' | 'cap' } {
+export interface MealSheet {
+  spoon: 'ok' | 'noInk' | 'cap';
+  treat: 'ok' | 'cap';
+  /** 공방에 열린 종류(시트 줄 순서 그대로) */
+  meals: MealItem[];
+  treats: TreatItem[];
+}
+
+/** 벼루 하위 시트 상태. 숟갈 수·상한 숫자는 내보내지 않는다(R7 — 화면에 1/2·게이지 없음) */
+export function mealSheet(s: V3State): MealSheet {
   const spoon = s.v3.meal.spoons >= MEAL_SPOONS_MAX ? 'cap' : inkCells(s) === 0 ? 'noInk' : 'ok';
-  return { spoon, treat: s.v3.meal.treats >= TREATS_MAX ? 'cap' : 'ok' };
+  return { spoon, treat: s.v3.meal.treats >= TREATS_MAX ? 'cap' : 'ok', meals: [...s.v3.pantry.meal], treats: [...s.v3.pantry.treat] };
+}
+
+/** 좋아하는 것(씨앗만, 저장 0). 이름표 '좋아하는 것' 칸(정 4)도 이 값을 쓴다 */
+export function likedItem(s: V3State): PantryItem {
+  return likedItemOf(s.sim.birth.seed);
+}
+
+/** 좋아하는 것에 반응이 커지는가: 첫 이레 아침부터 */
+export function likedShown(s: V3State): boolean {
+  return s.v3.life.slept >= LIKED_FROM_SLEPT;
+}
+
+/** 밥 알림 후보 입력(V29 예약 모듈로 넘기는 값). 말결·위기 판정은 싣지 않는다 — 쓴 말이 있는가 하나뿐(QA-3 R2 ①-a) */
+export function mealNudgeInput(s: V3State): MealNudgeInput {
+  return { hasWord: todaysWord(s) !== null, nudgeOptIn: s.v3.meal.nudgeOptIn };
 }
 
 /** 마음 벡터 heart[8](저장된 말결로만 계산, R5). 화면에 숫자로 보이지 않는다 */
@@ -216,7 +257,10 @@ function follow(s: V3State, simEffects: SimEffect[], ev: V3Event, out: V3Effect[
   const lastSlept = simEffects.map((e) => e.type).lastIndexOf('slept');
   simEffects.forEach((e, i) => {
     if (e.type === 'woke') {
-      v3 = { ...v3, meal: { ...v3.meal, spoons: 0, treats: 0 }, tonightCounted: false };
+      // 깸 경계: 이번 깸 칸만 비운다(nudgeOptIn·pantry는 그대로). 공방 열림은 이 순간에만 본다(진행 = 밤·정, 밥과 무관)
+      const o = openPantry(v3.pantry, { slept: v3.life.slept, jeong: s.sim.relation.jeongDays });
+      v3 = { ...v3, meal: { ...v3.meal, spoons: 0, treats: 0 }, pantry: o.opened.length ? o.pantry : v3.pantry, tonightCounted: false };
+      for (const x of o.opened) out.push({ type: 'pantryOpened', kind: x.kind, item: x.item });
       if (v3.life.slept >= LIFE_NIGHTS && v3.life.final === null) {
         v3 = { ...v3, life: { ...v3.life, final: { night: LIFE_NIGHTS, at: e.at } } };
         out.push({ type: 'lifeComplete' });
@@ -288,29 +332,37 @@ export function reduceV3(s: V3State, e: V3Event): V3Step {
       out.push({ type: 'wordAccepted', night, sense: word.sense, strokeId: word.strokeId });
       return { state: st, effects: out };
     }
-    case 'feed': {
+    case 'mealNudge': {
+      const t = tickV3(s, e.at);
+      const st = t.state;
+      if (st.v3.meal.nudgeOptIn === e.on) return t;
+      return { state: { ...st, v3: { ...st.v3, meal: { ...st.v3.meal, nudgeOptIn: e.on } } }, effects: t.effects };
+    }
+    case 'offer': {
+      // 밥·간식은 v3.meal 칸만 바꾼다 — sim(몸·획·정·꿈·성향)에는 아무것도 넘기지 않는다(QA-3 R7·R8, 시험 v3-meal)
       const t = tickV3(s, e.at);
       let st = t.state;
       out.push(...t.effects);
       if (st.sim.phase === 'asleep') {
-        out.push({ type: 'feedRejected', reason: 'asleep' });
+        out.push({ type: 'offerRejected', reason: 'asleep' });
         return { state: st, effects: out };
       }
       const m = mealSheet(st);
-      if (e.kind === 'meal') {
-        if (!(st.v3.pantry.meal as string[]).includes(e.item)) out.push({ type: 'feedRejected', reason: 'locked' });
-        else if (m.spoon !== 'ok') out.push({ type: 'feedRejected', reason: m.spoon });
+      const open = isPantryItem(e.kind, e.item) && (st.v3.pantry[e.kind] as string[]).includes(e.item);
+      const liked = likedShown(st) && likedItem(st) === e.item;
+      if (!open) out.push({ type: 'offerRejected', reason: 'locked' });
+      else if (e.kind === 'meal') {
+        if (m.spoon !== 'ok') out.push({ type: 'offerRejected', reason: m.spoon });
         else {
           const spoons = st.v3.meal.spoons + 1;
           st = { ...st, v3: { ...st.v3, meal: { ...st.v3.meal, spoons } } };
-          out.push({ type: 'fed', kind: 'meal', item: e.item, full: spoons >= MEAL_SPOONS_MAX });
+          out.push({ type: 'received', kind: 'meal', item: e.item, bow: spoons >= MEAL_SPOONS_MAX, liked });
         }
-      } else if (!(st.v3.pantry.treat as string[]).includes(e.item)) out.push({ type: 'feedRejected', reason: 'locked' });
-      else if (m.treat !== 'ok') out.push({ type: 'feedRejected', reason: 'cap' });
+      } else if (m.treat !== 'ok') out.push({ type: 'offerRejected', reason: 'cap' });
       else {
         const treats = st.v3.meal.treats + 1;
         st = { ...st, v3: { ...st.v3, meal: { ...st.v3.meal, treats } } };
-        out.push({ type: 'fed', kind: 'treat', item: e.item, full: treats >= TREATS_MAX });
+        out.push({ type: 'received', kind: 'treat', item: e.item, bow: false, liked });
       }
       return { state: st, effects: out };
     }
@@ -345,6 +397,36 @@ export function uploadWords(s: V3State): UploadWord[] {
   return out;
 }
 
+/**
+ * 맡겨 두기 업로드 허용 목록(V27, care 2-2·4-1·M6, heart-grain 9-2 R7). 업로드는 **이 목록으로만** 만든다(블록을 펼쳐 넣지 않는다).
+ * - meal·pantry는 올린다: 시각·횟수·연속이 없는 세이브 칸이고(처리방침 3-5 '생활 리듬' 늘지 않음, 법률 F-3 질문),
+ *   공방 열림은 되찾은 기기에서도 이어져야 한다(care 2-4 '공방 단위').
+ * - walk(마실 날, V31)는 기기 전용 — 다음 아침 연출 뒤 지우고 올리지 않는다(M6).
+ * - 집계 핑에는 밥·간식·공방·마실 신호를 싣지 않는다(care 2-3 '위젯·집계') — 핑 사건 목록(@mong/contract PING_EVENTS)은 앱 시험이 고정한다.
+ */
+export const V3_UPLOAD_FIELDS = ['words', 'life', 'meal', 'pantry', 'tonightCounted'] as const;
+/** 기기에만 두는 v3 칸(블록에 생겨도 업로드에 들어가지 않는다) */
+export const V3_DEVICE_ONLY_FIELDS = ['walk'] as const;
+
+export interface V3Upload {
+  words: UploadWord[];
+  life: Life;
+  meal: Meal;
+  pantry: Pantry;
+  tonightCounted: boolean;
+}
+
+export function uploadV3(s: V3State): V3Upload {
+  const b = s.v3;
+  return {
+    words: uploadWords(s),
+    life: { slept: b.life.slept, snapshots: b.life.snapshots.map((x) => (x ? { night: x.night, at: x.at } : null)), final: b.life.final ? { night: b.life.final.night, at: b.life.final.at } : null },
+    meal: { spoons: b.meal.spoons, treats: b.meal.treats, nudgeOptIn: b.meal.nudgeOptIn },
+    pantry: { meal: [...b.pantry.meal], treat: [...b.pantry.treat] },
+    tonightCounted: b.tonightCounted,
+  };
+}
+
 // ── 세이브 ──
 
 export function serializeV3(s: V3State, savedAt: Millis): string {
@@ -354,7 +436,12 @@ export function serializeV3(s: V3State, savedAt: Millis): string {
 
 const isInt = (x: unknown, lo: number, hi: number) => typeof x === 'number' && Number.isInteger(x) && x >= lo && x <= hi;
 
-/** v3 블록 검증(손상 원문이 그대로 들어오지 않게). 미래 버전은 FutureSaveError */
+/**
+ * v3 블록 검증(손상 원문이 그대로 들어오지 않게) + **v3 이행**(V27). 미래 버전은 FutureSaveError.
+ * 이행: 세로 조각(main 4ada3ca까지)이 쓴 블록은 모양이 같고 열린 종류가 늘 ['clear']/['pattern']이었다. 읽을 때
+ * 이미 지난 이레·정만큼 공방을 채우고 순서·중복을 정리한다(openPantry — 같은 입력 = 같은 결과, 다시 적용해도 그대로라 멱등).
+ * 판(3)·저장 키는 그대로라 세로 조각 빌드도 이 세이브를 읽는다. 말·밤·밥 칸은 건드리지 않는다.
+ */
 function validateV3(b: unknown, sim: SimState): V3Block {
   const bad = (k: string): never => {
     throw new Error(`v3 세이브 손상: ${k}`);
@@ -368,8 +455,10 @@ function validateV3(b: unknown, sim: SimState): V3Block {
   if (!life || !isInt(life.slept, 0, LIFE_NIGHTS) || !Array.isArray(life.snapshots) || life.snapshots.length !== 4) bad('life');
   const meal = v.meal as Record<string, unknown> | undefined;
   if (!meal || !isInt(meal.spoons, 0, MEAL_SPOONS_MAX) || !isInt(meal.treats, 0, TREATS_MAX) || typeof meal.nudgeOptIn !== 'boolean') bad('meal');
+  if (Object.keys(meal!).some((k) => !(MEAL_FIELDS as readonly string[]).includes(k))) bad('meal');
   const pantry = v.pantry as Record<string, unknown> | undefined;
   if (!pantry || !Array.isArray(pantry.meal) || !Array.isArray(pantry.treat)) bad('pantry');
+  if (!(pantry!.meal as unknown[]).every((x) => isPantryItem('meal', x)) || !(pantry!.treat as unknown[]).every((x) => isPantryItem('treat', x))) bad('pantry');
   if (!Array.isArray(v.words)) bad('words');
   if (typeof v.tonightCounted !== 'boolean') bad('tonightCounted');
   const ids = new Set(sim.strokes.map((x) => x.id));
@@ -377,7 +466,9 @@ function validateV3(b: unknown, sim: SimState): V3Block {
     if (!w || !isInt(w.night, 1, LIFE_NIGHTS) || !STORED_SENSES.includes(w.sense as string) || !isInt(w.intensity, 1, 3)) bad('word');
     if (typeof w.lexVer !== 'string' || (w.source !== 'keyboard' && w.source !== 'ink') || !ids.has(w.strokeId as string)) bad('word');
   }
-  return v as unknown as V3Block;
+  const block = v as unknown as V3Block;
+  const { pantry: opened } = openPantry(block.pantry, { slept: block.life.slept, jeong: sim.relation.jeongDays });
+  return { ...block, pantry: opened };
 }
 
 export function parseV3(json: string): V3State {
