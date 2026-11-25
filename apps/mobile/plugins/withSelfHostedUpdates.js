@@ -10,9 +10,12 @@
 //     Expo-Recent-Failed-Update-IDs를 끌 설정이 없다. 대신 config.requestHeaders를 그 뒤에 덮어쓴다(Android OkHttp `header()`·iOS
 //     `setValue` 모두 같은 이름을 바꿔 씀 — FileDownloader.kt·FileDownloader.swift 순서는 test/ota-config.test.ts가 설치본 소스로 고정).
 //     그래서 상수로 덮는다 — 모든 설치가 같은 값을 보낸다
+//  ⑥ 내부 시험 모드(plugins/buildMode.js, eas.json internal-test): OTA를 **늘 끈다**(enabled false, 채널 헤더·서명 없음) — 시험 APK가
+//     운영·preview OTA를 받지 않게. buildMode가 이 모드에 채널을 함께 두면 멈추고, 다른 프로필에서는 이 모드를 켤 수 없다(출시 가드 그대로)
 // 이 플러그인이 넣는 값(requestHeaders·서명 설정·enabled)은 fingerprint.config.js가 런타임 계산에서 뺀다(리뷰 H1)
 const fs = require('node:fs');
 const path = require('node:path');
+const { internalTestMode } = require('./buildMode');
 
 const OUR_DOMAIN = 'mongmang.ink';
 const CHANNEL_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
@@ -43,6 +46,15 @@ function withSelfHostedUpdates(config, props = {}) {
     fail(`updates.url은 https://*.${OUR_DOMAIN}만 — 지금 ${url.href}`);
   }
   if (!config.runtimeVersion) fail('runtimeVersion이 없다');
+
+  if (internalTestMode(env, 'withSelfHostedUpdates')) {
+    updates.requestHeaders = { ...(updates.requestHeaders ?? {}), ...PRIVACY_HEADERS };
+    delete updates.requestHeaders['expo-channel-name'];
+    delete updates.codeSigningCertificate;
+    delete updates.codeSigningMetadata;
+    updates.enabled = false;
+    return { ...config, updates };
+  }
 
   const channel = env.MONG_OTA_CHANNEL && CHANNEL_RE.test(env.MONG_OTA_CHANNEL) ? env.MONG_OTA_CHANNEL : null;
   const certRel = channel ? `./certs/ota-${channel}.pem` : null;

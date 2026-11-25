@@ -20,6 +20,17 @@
         "MONG_OTA_CHANNEL": "preview"
       }
     },
+    "internal-test": {
+      "distribution": "internal",
+      "developmentClient": false,
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "MONG_INTERNAL_TEST": "1",
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "env": {

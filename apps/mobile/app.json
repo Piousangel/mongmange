@@ -82,6 +82,7 @@
         }
       ],
       "expo-font",
+      "./plugins/withInternalTest",
       [
         "expo-notifications",
         {

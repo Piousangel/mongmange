@@ -7,11 +7,15 @@
 //     EAS 출시 빌드(development 밖)에서 그 플랫폼 값이 비었거나 형식이 틀리면 멈춘다 — 개발 빌드·로컬은 통과(앱 링크만 검증 안 됨).
 //     production Android는 지문 2개 이상(업로드 키 + Play 앱 서명 키 — Play가 다시 서명하므로 업로드 키만으로는 설치본이 검증에 실패).
 //  ③ appleTeamId가 있으면 config.ios.appleTeamId로 넣는다(@bacons/apple-targets가 위젯 타깃 DEVELOPMENT_TEAM에 씀 → 이 플러그인이 그보다 앞).
+//  ④ 내부 시험 모드(plugins/buildMode.js, eas.json internal-test 프로필): 앱 링크를 **아예 넣지 않는** 명시 모드. withInternalTest가 먼저
+//     associatedDomains·autoVerify 필터를 뺐는지(하나라도 남으면 멈춤)만 보고 키 검사는 하지 않는다 — 이 바이너리는 패키지 `.internaltest`라
+//     스토어에 낼 수 없다. 다른 프로필에서는 이 모드를 켤 수 없으므로(buildMode 일치 검사) production·preview 가드는 그대로다.
 // env로 받지 않는 까닭: config에 들어가는 값이 env마다 다르면 fingerprint 런타임이 빌드 환경마다 갈린다(V21 리뷰 H1과 같은 함정).
 // props에 두면 값은 한 번 채울 때만 런타임이 바뀐다(빌드 2 동결 12-19 전에 채움).
 const DOMAIN = 'mongmang.ink';
 const PATH_PREFIX = '/m/';
 const TEAM_RE = /^[A-Z0-9]{10}$/;
+const { internalTestMode } = require('./buildMode');
 const FP_RE = /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/;
 
 function fail(msg) {
@@ -66,8 +70,20 @@ function keyProblems(props, { platform, profile }) {
   return problems;
 }
 
+/** 내부 시험 모드: 앱 링크가 하나도 없어야 한다(withInternalTest가 뺐는지) */
+function checkNoLinks(config) {
+  const domains = config.ios?.associatedDomains ?? [];
+  if (domains.length) fail(`내부 시험 모드인데 ios.associatedDomains가 남아 있다 — ${JSON.stringify(domains)}(withInternalTest가 withAppLinks보다 앞에 있어야 한다)`);
+  const left = (config.android?.intentFilters ?? []).filter((f) => f.autoVerify === true || (f.data ?? []).some((d) => d.host === DOMAIN));
+  if (left.length) fail(`내부 시험 모드인데 android 앱 링크 필터가 ${left.length}개 남아 있다(withInternalTest가 withAppLinks보다 앞에 있어야 한다)`);
+}
+
 function withAppLinks(config, props = {}) {
   const env = props.env ?? process.env;
+  if (internalTestMode(env, 'withAppLinks')) {
+    checkNoLinks(config);
+    return config;
+  }
   checkLinkConfig(config);
   const team = (props.appleTeamId ?? '').trim();
   if (props.androidCertSha256 !== undefined && !Array.isArray(props.androidCertSha256)) fail('androidCertSha256은 배열이어야 한다');
