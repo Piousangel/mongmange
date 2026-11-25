@@ -1,6 +1,6 @@
 // 새 컨셉 v3 앱 층(리뷰 2026-11-25-v3-slice H1·H2·M1·M2·M4·M5): store v3 경로, 스크린리더로 한 마디까지, 쓴 글자 남기지 않기,
 // 배고픔 낱말 기쁨 호 없음, 곁 대답이 따로 드러나지 않음, 맡겨 두기와 함께 켜지지 않음.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { PING_EVENTS } from '@mong/contract';
 import { SAVE_KEYS, sim, v3, writeSave, type KV, type RawPoint } from '@mong/core';
@@ -282,5 +282,53 @@ describe('V27 밥·간식 앱 쪽(시트가 공방 데이터를 읽음 — 정�
   });
   it('집계 핑 사건에 밥·간식·공방·마실 신호가 없다(care 2-3 위젯·집계, M6)', () => {
     expect(PING_EVENTS.filter((e) => /meal|treat|pantry|spoon|offer|feed|walk|nudge/i.test(e))).toEqual([]);
+  });
+});
+
+describe('밥 반응 크기는 숟갈 수와 무관(QA-3 R7, V27 리뷰 M1)', () => {
+  const over = (kind: number, rm: boolean) => {
+    const eyes = new Set<string>();
+    let gy = 0;
+    let hop = 0;
+    let mix = 0;
+    const cv = { kind, intensity: 2, net: false, fromX: 0, fromY: 0, at: 0 };
+    for (let ms = 0; ms <= cueLength(kind); ms += 10) {
+      const p = answerPose(cv, ms, rm);
+      if (p.eyeMix > 0) eyes.add(p.eyeB);
+      gy = Math.max(gy, Math.abs(p.gy ?? 0));
+      hop = Math.max(hop, Math.abs(p.hop ?? 0));
+      mix = Math.max(mix, p.eyeMix);
+    }
+    return { eyes: [...eyes].sort(), gy: +gy.toFixed(4), hop: +hop.toFixed(4), mix: +mix.toFixed(4) };
+  };
+  for (const rm of [false, true])
+    it(`${rm ? '모션 줄이기' : '보통'}: 1숟갈(meal)과 마지막 숟갈(mealBow)의 눈·끄덕 진폭·눈 세기가 같다(꾸벅 기울기만 다름)`, () => {
+      expect(over(CUE.mealBow, rm)).toEqual(over(CUE.meal, rm));
+      expect(over(CUE.meal, rm).eyes).toContain('joy');
+    });
+});
+
+describe('공방 열림 문턱을 재촉 표시로 쓰지 않는다(V27 리뷰 L3, care 2-3 금지 묶음 4)', () => {
+  it('앱 코드는 열림 문턱·경계 진행(PANTRY_OPENS·boundaryProgress)을 읽지 않는다', () => {
+    const files: string[] = [];
+    const walk = (d: string) => {
+      for (const f of readdirSync(d)) {
+        const p = path.join(d, f);
+        if (statSync(p).isDirectory()) walk(p);
+        else if (/\.(ts|tsx)$/.test(f)) files.push(p);
+      }
+    };
+    walk(path.join(__dirname, '../src'));
+    const hits = files.filter((p) => /PANTRY_OPENS|boundaryProgress|LIKED_FROM_SLEPT/.test(readFileSync(p, 'utf8')));
+    expect(files.length).toBeGreaterThan(20);
+    expect(hits).toEqual([]);
+  });
+  it('v3 문구에 남은 밤·정 카운트다운이 없다(ko·en)', () => {
+    const BAN = /밤\s*더|정\s*더|남은\s*(밤|날)|며칠\s*더|조금만\s*더|곧\s*열|열리기까지|more nights?|nights? (to go|left)|days? left|until (it )?unlocks?|almost there/i;
+    for (const loc of ['ko', 'en'] as const) {
+      const m = messages(loc) as Record<string, string>;
+      const bad = Object.entries(m).filter(([k, v]) => k.startsWith('v3.') && BAN.test(v));
+      expect(bad, loc).toEqual([]);
+    }
   });
 });

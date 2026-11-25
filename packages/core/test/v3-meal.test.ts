@@ -154,7 +154,7 @@ describe('밥을 안 줘도 나빠지지 않는다 · 몸 크기·비율 변화 
     expect(files.length).toBeGreaterThan(10);
     const hits = files.filter((p) => {
       const src = CORE[p]!;
-      return /from\s+['"][^'"]*\/v3(\/|['"])/.test(src) || /\b(pantry|spoons|nudgeOptIn)\b/.test(src);
+      return /from\s+['"][^'"]*\/v3(\/|['"])/.test(src) || /\b(pantry|spoons|treats|nudgeOptIn|liked\w*|boundaryProgress)\b/.test(src);
     });
     expect(hits).toEqual([]);
   });
@@ -395,5 +395,113 @@ describe('섭식 안전 — 데이터·이벤트 이름에도 금지 표현 0(QA
     Object.keys(v3).filter((k) => /meal|treat|pantry|nudge|liked|offer|upload/i.test(k)).forEach((k) => names.add(k));
     collect([...v3.MEAL_KINDS, ...v3.TREAT_KINDS]);
     expect([...names].filter((n) => BAN.test(n))).toEqual([]);
+  });
+});
+
+describe('재시작해도 같은 결과 — 공방은 깸 경계에서만 열린다(V27 리뷰 H1, D-13)', () => {
+  const reload = (s: S, at: number): S => v3.parseV3(v3.serializeV3(s, at));
+  const MEAL_FX = (fx: v3.V3Effect[]) => fx.filter((e) => MEAL_EFFECTS.has(e.type));
+
+  it('사례 A: 7번째 밤 재운 뒤 자는 중에 다시 켜도 공방은 그대로, 아침에 pantryOpened가 난다', () => {
+    let s = days(fresh(), 6).state;
+    const base = kst(12, 1, 20);
+    s = play(s, [
+      { type: 'appForeground', at: base, tzOffsetMin: KST },
+      { type: 'grind', at: base + 60_000, durationMs: 9000 },
+      { type: 'write', at: base + 120_000, word: word('비'), chars: 1, raw: handStroke(7) },
+      { type: 'putToSleep', at: base + 2 * H },
+      { type: 'appBackground', at: base + 2 * H + 60_000 },
+    ]).state;
+    expect(s.v3.life.slept).toBe(7);
+    expect(s.sim.phase).toBe('asleep');
+    const back = reload(s, base + 3 * H);
+    expect(back.v3.pantry.meal).toEqual(['clear']);
+    const r = play(back, [{ type: 'appForeground', at: base + 12 * H, tzOffsetMin: KST }]);
+    expect(r.effects).toContainEqual({ type: 'pantryOpened', kind: 'meal', item: 'pine' });
+  });
+  it('사례 B: 정 2가 된 깸에 다시 켜도 늘인 먹은 그 깸에 열리지 않는다(다음 아침)', () => {
+    let s = day(fresh(), 0, { touch: true }).state;
+    const at = kst(11, 26, 9);
+    s = play(s, [{ type: 'tap', at, target: 'body', holdMs: 100, x: 0, y: 0 }]).state;
+    expect(s.sim.relation.jeongDays).toBe(2);
+    const back = reload(s, at + 1000);
+    expect(back.v3.pantry.treat).toEqual(['pattern']);
+    expect(play(back, [{ type: 'offer', at: at + 2000, kind: 'treat', item: 'ribbon' }]).effects).toContainEqual({ type: 'offerRejected', reason: 'locked' });
+  });
+  it('같은 깸에서 깨자마자 만진 정도 다음 아침 몫이다(깸 경계 입력 = 이벤트 하나 안의 순서와 무관)', () => {
+    let s = day(fresh(), 0, { touch: true }).state; // 정 1
+    // 비운 채로 다음 날 아침 9시에 곧장 몸을 만진다: tap 하나가 깸 정산 + 정 2를 함께 일으킨다
+    s = play(s, [{ type: 'appBackground', at: kst(11, 26, 8) + 1000 }]).state;
+    const r = play(s, [{ type: 'tap', at: kst(11, 27, 9), target: 'body', holdMs: 100, x: 0, y: 0 }]);
+    expect(r.state.sim.relation.jeongDays).toBe(2);
+    expect(r.state.v3.pantry.treat).toEqual(['pattern']);
+    expect(v3.parseV3(v3.serializeV3(r.state, kst(11, 27, 10))).v3.pantry).toEqual(r.state.v3.pantry);
+  });
+
+  /** 결정적 난수(mulberry32) */
+  const rng = (seed: number) => () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const ITEMS: { kind: 'meal' | 'treat'; item: string }[] = [
+    ...v3.MEAL_KINDS.map((item) => ({ kind: 'meal' as const, item })),
+    ...v3.TREAT_KINDS.map((item) => ({ kind: 'treat' as const, item })),
+  ];
+  function scenario(seed: number): E[] {
+    const r = rng(seed);
+    const ev: E[] = [];
+    for (let d = 0; d < 18; d++) {
+      const morning = kst(11, 26 + d, 8) + Math.floor(r() * 3) * H;
+      const evening = kst(11, 25 + d, 20);
+      ev.push({ type: 'appForeground', at: evening, tzOffsetMin: KST });
+      if (r() < 0.8) ev.push({ type: 'grind', at: evening + 30_000, durationMs: 800 + Math.floor(r() * 9000) });
+      if (r() < 0.6) ev.push({ type: 'tap', at: evening + 60_000, target: 'body', holdMs: 100, x: 0, y: 0 });
+      if (r() < 0.6) ev.push({ type: 'write', at: evening + 90_000, word: word(['행복해', '비', '고마워'][d % 3]!), chars: 1, raw: handStroke(d + 1) });
+      for (let i = 0, n = Math.floor(r() * 5); i < n; i++) ev.push({ type: 'offer', at: evening + 120_000 + i * 1000, ...ITEMS[Math.floor(r() * ITEMS.length)]! } as E);
+      if (r() < 0.7) ev.push({ type: 'putToSleep', at: evening + 2 * H });
+      ev.push({ type: 'appBackground', at: evening + 2 * H + 60_000 });
+      ev.push({ type: 'appForeground', at: morning, tzOffsetMin: KST });
+      if (r() < 0.5) ev.push({ type: 'tap', at: morning + 1000, target: 'body', holdMs: 100, x: 0, y: 0 });
+      for (let i = 0, n = Math.floor(r() * 3); i < n; i++) ev.push({ type: 'offer', at: morning + 2000 + i * 1000, ...ITEMS[Math.floor(r() * ITEMS.length)]! } as E);
+      ev.push({ type: 'appBackground', at: morning + 60_000 });
+    }
+    return ev;
+  }
+  it('속성: 임의 사건 경계에서 세이브를 갈아 끼워도 공방·밥 칸·밥 효과가 끊지 않은 경우와 같다(시드 40개)', () => {
+    let reloads = 0;
+    let opens = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const ev = scenario(seed);
+      const r = rng(seed * 7919);
+      let a = fresh(seed);
+      let b = fresh(seed);
+      for (const e of ev) {
+        if (r() < 0.35) {
+          b = reload(b, e.at);
+          reloads++;
+        }
+        const ra = v3.reduceV3(a, e);
+        const rb = v3.reduceV3(b, e);
+        a = ra.state;
+        b = rb.state;
+        expect(MEAL_FX(rb.effects), `seed ${seed} ${e.type}@${e.at}`).toEqual(MEAL_FX(ra.effects));
+        expect({ pantry: b.v3.pantry, meal: b.v3.meal }).toEqual({ pantry: a.v3.pantry, meal: a.v3.meal });
+        opens += ra.effects.filter((x) => x.type === 'pantryOpened').length;
+      }
+    }
+    expect(reloads).toBeGreaterThan(500);
+    expect(opens).toBeGreaterThan(40);
+  });
+});
+
+describe('공방 손상 정책 하나(V27 리뷰 L2)', () => {
+  it('밥 목록에 간식 종류·간식 목록에 밥 종류가 섞이면 모르는 종류와 같게 손상', () => {
+    const o = JSON.parse(v3.serializeV3(fresh(), kst(11, 25, 9))) as { v3: { pantry: Record<string, string[]> } };
+    o.v3.pantry = { meal: ['clear', 'pattern'], treat: ['pattern'] };
+    expect(() => v3.parseV3(JSON.stringify(o))).toThrow(/pantry/);
+    o.v3.pantry = { meal: ['clear'], treat: ['pattern', 'pine'] };
+    expect(() => v3.parseV3(JSON.stringify(o))).toThrow(/pantry/);
   });
 });

@@ -6,7 +6,7 @@
 //    '먹 갈기'는 스크린리더면 한 번에 6칸(H1), 그 밖에는 눌러 시작·눌러 멈춤으로 길게 누르기와 같은 속도로 칸이 차오른다(리뷰 2차 L-d).
 import { PALETTE, v3 } from '@mong/core';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
 import { t, getLocale } from '../i18n';
 import { BottomSheet } from '../ui/BottomSheet';
 import { KText, SANS, SERIF, track } from '../ui/type';
@@ -161,7 +161,7 @@ function Row({ label, note, disabled, onPress, testID, dot }: { label: string; n
       accessibilityLabel={note ? `${label}. ${note}` : label}
       testID={testID}
     >
-      <View style={styles.rowIcon}>{dot === 'clear' ? <View style={styles.dotClear} /> : dot === 'pattern' ? <View style={styles.dotPattern} /> : <View style={styles.dotStone} />}</View>
+      <View style={styles.rowIcon}>{dot ? <View style={ITEM_DOT[dot]} /> : <View style={styles.dotStone} />}</View>
       <View style={styles.rowText}>
         <KText style={styles.rowLabel}>{label}</KText>
         {note !== '' && <KText style={styles.sub}>{note}</KText>}
@@ -194,4 +194,19 @@ const styles = StyleSheet.create({
   dotStone: { width: 28, height: 18, borderRadius: 9, backgroundColor: 'rgba(43,42,40,0.75)' },
   dotClear: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(43,42,40,0.35)' },
   dotPattern: { width: 18, height: 18, borderRadius: 3, backgroundColor: 'rgba(43,42,40,0.7)', transform: [{ rotate: '45deg' }] },
+  // 임시 점(V30 아트 전). 갈기 줄(dotStone)과 겹치지 않게 종류마다 모양을 다르게 둔다(V27 리뷰 L1)
+  dotPine: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(43,42,40,0.35)', borderWidth: 3, borderColor: 'rgba(214,170,60,0.85)' },
+  dotDew: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(43,42,40,0.15)', borderWidth: 1, borderColor: 'rgba(43,42,40,0.45)' },
+  dotRibbon: { width: 26, height: 6, borderRadius: 3, backgroundColor: 'rgba(43,42,40,0.7)' },
+  dotDewdrop: { width: 12, height: 16, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, backgroundColor: 'rgba(120,150,170,0.55)' },
 });
+
+/** 종류별 임시 점 — 공방에 열릴 수 있는 여섯 가지 전부(빠지면 타입 오류) */
+const ITEM_DOT: Record<v3.PantryItem, ViewStyle> = {
+  clear: styles.dotClear,
+  pattern: styles.dotPattern,
+  pine: styles.dotPine,
+  dew: styles.dotDew,
+  ribbon: styles.dotRibbon,
+  dewdrop: styles.dotDewdrop,
+};

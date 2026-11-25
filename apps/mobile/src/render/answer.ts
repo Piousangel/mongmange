@@ -97,7 +97,7 @@ export function answerPose(c: CueValue, dt: number, rm: boolean): AnswerPose {
   const back: Partial<AnswerPose> = c.net ? { settle: rm ? 0 : 0.05 * backEnv, gy: 0.2 * backEnv } : { gy: 0.12 * backEnv };
   if (rm) {
     const k = clamp01(t / 400) * clamp01((ECHO_MS + BACK_MS - t) / 400);
-    const eyes = c.kind === CUE.bright || c.kind === CUE.kin || c.kind === CUE.treat || c.kind === CUE.mealBow || c.kind === CUE.home ? 'joy' : c.kind === CUE.warm || c.kind === CUE.low ? 'sleepy' : c.kind === CUE.unknown ? 'surprised' : 'open';
+    const eyes = c.kind === CUE.bright || c.kind === CUE.kin || c.kind === CUE.treat || c.kind === CUE.meal || c.kind === CUE.mealBow || c.kind === CUE.home ? 'joy' : c.kind === CUE.warm || c.kind === CUE.low ? 'sleepy' : c.kind === CUE.unknown ? 'surprised' : 'open';
     const ang = c.kind === CUE.bright ? 14 : c.kind === CUE.low ? -8 : c.kind === CUE.unknown ? 10 : 0;
     return { ...REST, eyeB: eyes, eyeMix: 0.8 * k, combAngle: ang * k };
   }

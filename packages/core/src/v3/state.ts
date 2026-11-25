@@ -247,6 +247,20 @@ function validWord(w: WordInput): boolean {
 }
 
 /**
+ * 공방 열림의 진행 입력 = **마지막 깸 경계 시점** 값(V27 리뷰 H1). 지금 깸 안에서 오른 몫은 빼고 다음 깸 경계로 미룬다:
+ * - 밤: 지금 잠을 이미 셌으면(tonightCounted) 그 밤은 다음 아침 몫
+ * - 정: 이번 깸(dayIndex)에 만져서 오른 정은 다음 아침 몫(같은 이벤트에서 깸 뒤 바로 만진 경우도 같다)
+ * 깸 경계(follow의 woke)와 세이브 이행(validateV3)이 같은 함수를 써서, 앱을 다시 켜도 공방이 깸 가운데에 열리지 않는다.
+ */
+export function boundaryProgress(b: Pick<V3Block, 'life' | 'tonightCounted'>, sim: SimState): { slept: number; jeong: number } {
+  const r = sim.relation;
+  return {
+    slept: Math.max(0, b.life.slept - (b.tonightCounted ? 1 : 0)),
+    jeong: Math.max(0, r.jeongDays - (r.jeongDay === sim.dayIndex ? 1 : 0)),
+  };
+}
+
+/**
  * sim 효과를 보고 v3 블록을 고친다: 깸 = 밥 칸 비움·28번째 아침 완성, 잠 = 밤 세기.
  * 밤 세기(PM 11-25 M6 판정): ① 연적으로 재운 잠은 바로 센다 ② 연적을 잊고 앱을 떠나 저절로 잔 잠도 **그 깸에 한 마디를 썼으면** 센다
  * ③ 말도 연적도 없던 깸의 잠은 세지 않는다(하루 걸러도 생애가 줄지 않음) ④ 깸 하나에 밤은 최대 1.
@@ -258,7 +272,7 @@ function follow(s: V3State, simEffects: SimEffect[], ev: V3Event, out: V3Effect[
   simEffects.forEach((e, i) => {
     if (e.type === 'woke') {
       // 깸 경계: 이번 깸 칸만 비운다(nudgeOptIn·pantry는 그대로). 공방 열림은 이 순간에만 본다(진행 = 밤·정, 밥과 무관)
-      const o = openPantry(v3.pantry, { slept: v3.life.slept, jeong: s.sim.relation.jeongDays });
+      const o = openPantry(v3.pantry, boundaryProgress({ life: v3.life, tonightCounted: false }, s.sim)); // 깸 = 경계: 셌던 밤은 이제 지난 몫
       v3 = { ...v3, meal: { ...v3.meal, spoons: 0, treats: 0 }, pantry: o.opened.length ? o.pantry : v3.pantry, tonightCounted: false };
       for (const x of o.opened) out.push({ type: 'pantryOpened', kind: x.kind, item: x.item });
       if (v3.life.slept >= LIFE_NIGHTS && v3.life.final === null) {
@@ -439,7 +453,9 @@ const isInt = (x: unknown, lo: number, hi: number) => typeof x === 'number' && N
 /**
  * v3 블록 검증(손상 원문이 그대로 들어오지 않게) + **v3 이행**(V27). 미래 버전은 FutureSaveError.
  * 이행: 세로 조각(main 4ada3ca까지)이 쓴 블록은 모양이 같고 열린 종류가 늘 ['clear']/['pattern']이었다. 읽을 때
- * 이미 지난 이레·정만큼 공방을 채우고 순서·중복을 정리한다(openPantry — 같은 입력 = 같은 결과, 다시 적용해도 그대로라 멱등).
+ * **마지막 깸 경계 시점 진행(boundaryProgress)**만큼 공방을 채우고 순서·중복을 정리한다. 정식 세이브는 그 경계에서 이미 열었으므로
+ * 아무것도 바뀌지 않는다(리뷰 H1 — 재시작 여부·시점과 무관하게 같은 사건열 = 같은 상태·효과, 속성 시험). 다시 적용해도 그대로(멱등).
+ * 밥 목록에 간식 종류(또는 그 반대)가 섞이면 모르는 종류와 같게 손상으로 본다(리뷰 L2).
  * 판(3)·저장 키는 그대로라 세로 조각 빌드도 이 세이브를 읽는다. 말·밤·밥 칸은 건드리지 않는다.
  */
 function validateV3(b: unknown, sim: SimState): V3Block {
@@ -467,7 +483,7 @@ function validateV3(b: unknown, sim: SimState): V3Block {
     if (typeof w.lexVer !== 'string' || (w.source !== 'keyboard' && w.source !== 'ink') || !ids.has(w.strokeId as string)) bad('word');
   }
   const block = v as unknown as V3Block;
-  const { pantry: opened } = openPantry(block.pantry, { slept: block.life.slept, jeong: sim.relation.jeongDays });
+  const { pantry: opened } = openPantry(block.pantry, boundaryProgress(block, sim));
   return { ...block, pantry: opened };
 }
 
