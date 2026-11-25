@@ -1,6 +1,6 @@
 import { Fill, Group, Path, Shader, Skia, type SkPath } from '@shopify/react-native-skia';
 import { CORE, PALETTE } from '@mong/core';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { paperFx } from '../render/shaders';
 
@@ -50,7 +50,8 @@ const jar = Skia.Path.MakeFromSVGString('M15 9 L21 9 M15.5 9 Q15 12 11 14 Q6 17 
 const jarFill = Skia.Path.MakeFromSVGString('M9 22 Q10 28 18 28 Q26 28 27 22 Z')!;
 
 /** 사물 선 아이콘 3개. alpha = 아이콘별 불투명도(등장 순서·잠김), 없으면 모두 1 */
-export function ObjectIcons({ width, y, color, dim, alpha }: { width: number; y: number; color: string; dim?: SharedValue<number>; alpha?: SharedValue<number[]> }) {
+/** order[i] = 사물 i(0 붓·1 벼루·2 연적)가 놓이는 칸(0 왼쪽·1 가운데·2 오른쪽). 없으면 붓·벼루·연적 순 */
+export function ObjectIcons({ width, y, color, dim, alpha, order = [0, 1, 2] }: { width: number; y: number; color: string; dim?: SharedValue<number>; alpha?: SharedValue<number[]>; order?: readonly number[] }) {
   const xs = [width * 0.2, width * 0.5, width * 0.8];
   const icons = [
     [brush, brushFill],
@@ -61,7 +62,7 @@ export function ObjectIcons({ width, y, color, dim, alpha }: { width: number; y:
   return (
     <Group opacity={op}>
       {icons.map(([line, fill], i) => (
-        <ObjectIcon key={i} i={i} x={xs[i]!} y={y} line={line} fill={fill} color={color} alpha={alpha} />
+        <ObjectIcon key={i} i={i} x={xs[order[i] ?? i]!} y={y} line={line} fill={fill} color={color} alpha={alpha} />
       ))}
     </Group>
   );
@@ -91,19 +92,21 @@ export function ObjectLabels({ width, y, color, labels }: { width: number; y: nu
 }
 
 /** 세로 명조 제목(8자 이하, 글자 단위 줄바꿈) + 주사 낙관(오른쪽 위, 화면에서 유일한 강조색). 영어는 늘 가로(아트 6절) */
-export function VerticalTitle({ text, color, opacity = 1, seal = true, top }: { text: string; color: string; opacity?: number; seal?: boolean; top?: number }) {
+/** onBottom = 제목 아래 끝(화면 y). 안내 문장을 제목과 겹치지 않게 놓는 데 쓴다 */
+export function VerticalTitle({ text, color, opacity = 1, seal = true, top, onBottom }: { text: string; color: string; opacity?: number; seal?: boolean; top?: number; onBottom?: (y: number) => void }) {
   const fs = useFontScale();
+  const onLayout = (e: LayoutChangeEvent) => onBottom?.(e.nativeEvent.layout.y + e.nativeEvent.layout.height);
   // 글자 150% 이상이면 가로쓰기(아트 6절, D-08). 세로쓰기는 한글 전용 — 라틴 글자를 세우면 읽히지 않는다
   if (fs >= 1.5 || getLocale() !== 'ko') {
     return (
-      <KText style={[styles.line, { top: top ?? '16%', color, opacity, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header" serif="title">
+      <KText style={[styles.line, { top: top ?? '16%', color, opacity, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header" serif="title" onLayout={onLayout} testID="v-title">
         {text}
       </KText>
     );
   }
   return (
     <>
-      <View style={[styles.vtitle, { opacity }, top !== undefined && { top }]} pointerEvents="none" accessible accessibilityRole="header" accessibilityLabel={text}>
+      <View style={[styles.vtitle, { opacity }, top !== undefined && { top }]} pointerEvents="none" accessible accessibilityRole="header" accessibilityLabel={text} onLayout={onLayout} testID="v-title">
         {Array.from(text).map((ch, i) => (
           <Text key={i} style={[styles.vchar, { color }]} maxFontSizeMultiplier={1.4}>
             {ch}

@@ -235,13 +235,15 @@ export function GameHome({
   const DELAYS = reveal === 'first' ? [300, Infinity, Infinity] : [0, 1200, 2000];
   const shown = [0, 1, 2].map((i) => DELAYS[i]! !== Infinity);
   const blocked = sim.strokeBlock(state) !== null;
+  // v3: 먹을 갈기 전 붓은 흐리게(막지 않음 — 누르면 안내만, D-03)
+  const noInk = !!v3 && v3.ink === 0 && !v3.complete;
   const alpha = useDerivedValue(() => {
     const t = clock.value - mountAt.value;
     return DELAYS.map((d, i) => {
       if (d === Infinity) return 0;
       const k = RM ? (t >= d ? 1 : 0) : easeOut((t - d) / 600);
       // 오늘 획을 그었으면 붓은 옅게(라벨 글자 대신 상태를 그림으로)
-      return k * (i === 0 && blocked ? 0.45 : 1);
+      return k * (i === 0 && (blocked || noInk) ? 0.45 : 1);
     });
   });
   const sealSt = useAnimatedStyle(() => {
@@ -254,12 +256,15 @@ export function GameHome({
   const tideU = useDerivedValue(() => ({ res: [width, height], level: level.value, time: clock.value / 1000 }));
   const dim = useDerivedValue(() => nightK.value);
   const grindK = v3 ? v3.ink / 6 : sim.grindLevel(state);
-  const xs = [width * 0.2, width * 0.5, width * 0.8];
+  // 사물 자리: v3는 하루 흐름대로 왼쪽부터 벼루(먹 갈기) → 붓(한 마디) → 연적(재우기). 그 밖은 붓·벼루·연적(D-08 지금 배치)
+  const order: readonly number[] = v3 ? [1, 0, 2] : [0, 1, 2];
+  const xs = [0, 1, 2].map((i) => width * (0.2 + 0.3 * order[i]!));
   // 사물 중심 간격 = 폭 30% → 터치 영역이 겹치지 않게(폭 320에서 92)
   const objW = Math.min(116, width * 0.3 - 4);
   const sleepy = !asleep && sim.canPutToSleep(state, now);
-  const v3Label = v3 ? (v3.complete ? t('v3.complete') : v3.ire ? `${t('v3.night', { n: v3.night })} · ${t('v3.ire', { n: v3.ire })}` : t('v3.night', { n: v3.night })) : null;
-  const title = v3 ? (v3.complete ? v3Label! : t('day.title', { day: v3Label! })) : (reveal === 'all' ? t('day.title', { day: dayName(state.dayIndex) }) : '');
+  // v3 제목은 짧게('n번째 밤', 이레 밤이면 '· 이레') — 세로 제목이 길어 안내 문장·몸에 닿지 않게
+  const v3Label = v3 ? (v3.complete ? t('v3.complete') : v3.ire ? t('v3.nightIre', { n: v3.night }) : t('v3.night', { n: v3.night })) : null;
+  const title = v3 ? v3Label! : (reveal === 'all' ? t('day.title', { day: dayName(state.dayIndex) }) : '');
   const bodyR = 0.75 * s * L.wpx;
 
   const look = (x: number, y: number, holdMs = 1500) => {
@@ -268,6 +273,9 @@ export function GameHome({
   const grindT = useRef(0);
   // 세로 이름 자리(바라보기 대상). 레이아웃 전에는 제목이 놓이는 대략의 자리
   const titleAt = useRef({ x: width / 2, y: insets.top + height * 0.16 });
+  // 제목 아래 끝: 안내 한 줄은 늘 그 아래에 놓는다(세로 제목 길이·글자 크기와 상관없이 겹침 0)
+  const [titleBottom, setTitleBottom] = useState(0);
+  const lineTop = Math.max(height * 0.3, titleBottom + 16);
   // 이름을 지은 순간: 몽망이가 세로 이름 쪽으로 고개를 돌려 바라본다(2-2 '부르기와 발견')
   const namedKey = naming?.name ? `${naming.name}|${state.name?.at ?? 0}` : '';
   const prevNamed = useRef(namedKey);
@@ -396,7 +404,7 @@ export function GameHome({
         {asleep && <NightRings frameOx={ox} frameOy={oy} wpx={L.wpx} s={s} nightK={nightK} ripple={ripple} strokes={records.length} />}
         <Mongmangi frame={frame} records={records} mode={PARAMS.body} grammar={grammar} look={mong} strokeInks={strokeInks} />
         {v3 && <Circle cx={dropX} cy={dropY} r={dropR} color={PALETTE.day.body} opacity={dropO} />}
-        {!listView && <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={dim} alpha={alpha} />}
+        {!listView && <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={dim} alpha={alpha} order={order} />}
         {!listView && !asleep && grindK > 0 && shown[1] && (
           <Group transform={[{ translateX: xs[1]! - 18 }, { translateY: L.objectsY - 18 }]}>
             <Path path={inkPool} color={PALETTE.day.body} opacity={0.15 + 0.7 * grindK} />
@@ -496,7 +504,7 @@ export function GameHome({
 
       {!asleep && title !== '' && !naming && (
         <Animated.View style={[StyleSheet.absoluteFill, titleSt]} pointerEvents="none">
-          <VerticalTitle text={title} color={PALETTE.day.text} seal={false} top={insets.top + height * 0.1} />
+          <VerticalTitle text={title} color={PALETTE.day.text} seal={false} top={insets.top + height * 0.1} onBottom={setTitleBottom} />
         </Animated.View>
       )}
       {/* M2: 세로 이름 = 부르기(탭 대상 추가, 새 제스처 없음 — C 3-1) */}
@@ -510,6 +518,7 @@ export function GameHome({
             onLayoutCenter={(x, y) => {
               titleAt.current = { x, y };
             }}
+            onBottom={setTitleBottom}
             onCall={() => {
               const reply = naming.onCall();
               const c = titleAt.current;
@@ -544,7 +553,7 @@ export function GameHome({
         </>
       )}
       {line !== '' && (
-        <KText style={[ui.line, styles.line, { color: asleep ? PALETTE.night.textSub : PALETTE.day.textSub }]} accessibilityLiveRegion="polite" testID="home-line">
+        <KText style={[ui.line, { top: asleep ? height * 0.3 : lineTop, color: asleep ? PALETTE.night.textSub : PALETTE.day.textSub }]} accessibilityLiveRegion="polite" testID="home-line">
           {line}
         </KText>
       )}
@@ -586,7 +595,6 @@ const styles = StyleSheet.create({
   listText: { fontFamily: SANS, fontSize: 15, color: PALETTE.day.text },
   seal: { position: 'absolute', right: 22, width: 30, height: 30, backgroundColor: PALETTE.day.accent, borderRadius: 3 },
   sealHit: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  line: { top: '30%' },
   nightLine: { position: 'absolute', left: 0, right: 0, top: '21%' },
   nightText: { position: 'relative', color: PALETTE.night.textSub, fontFamily: SERIF },
 });

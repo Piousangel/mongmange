@@ -195,7 +195,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               pendingWord.current = null;
               if (pick) {
                 const w = layout(width, height);
-                setCue(cueOf(pick.interpretation, width * 0.2, w.objectsY, ++cueSeq.current));
+                setCue(cueOf(pick.interpretation, width * 0.5, w.objectsY, ++cueSeq.current)); // v3 붓 = 가운데 칸
                 if (pick.interpretation.kind === 'stay') AccessibilityInfo.announceForAccessibility(t('v3.stay.a11y'));
               }
               if (st.strokesTotal === 1) later(() => flash(t('v3.line.firstWord'), 4000), 4400);
@@ -210,7 +210,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               break;
             case 'fed': {
               const w = layout(width, height);
-              setCue({ kind: e.kind === 'treat' ? CUE.treat : e.full ? CUE.mealFull : CUE.meal, intensity: 2, net: false, fromX: width * 0.5, fromY: w.objectsY, key: ++cueSeq.current });
+              setCue({ kind: e.kind === 'treat' ? CUE.treat : e.full ? CUE.mealFull : CUE.meal, intensity: 2, net: false, fromX: width * 0.2, fromY: w.objectsY, key: ++cueSeq.current }); // v3 벼루 = 왼쪽 칸
               AccessibilityInfo.announceForAccessibility(t('v3.fed.a11y', { item: t(e.item === 'pattern' ? 'v3.item.pattern' : 'v3.item.clear') }));
               break;
             }

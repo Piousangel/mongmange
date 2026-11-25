@@ -19,6 +19,7 @@ export function NameTitle({
   top,
   onCall,
   onLayoutCenter,
+  onBottom,
 }: {
   /** 지은 이름. null = 아직(몽망이·날) */
   name: string | null;
@@ -29,6 +30,8 @@ export function NameTitle({
   onCall: () => void;
   /** 몽망이가 바라볼 자리(화면 좌표, 이름 글자 가운데) */
   onLayoutCenter?: (x: number, y: number) => void;
+  /** 제목 아래 끝(화면 y) — 안내 문장을 겹치지 않게 놓는다 */
+  onBottom?: (y: number) => void;
 }) {
   const fs = useFontScale();
   const main = name ?? t('day.title', { day });
@@ -37,6 +40,7 @@ export function NameTitle({
   const onLayout = (e: LayoutChangeEvent) => {
     const { x, y, width, height } = e.nativeEvent.layout;
     onLayoutCenter?.(x + width / 2, y + height / 2);
+    onBottom?.(y + height);
   };
   const a11y = { accessibilityRole: 'button' as const, accessibilityLabel: t('name.call.a11y', { name: callName }), accessibilityHint: t('name.call.hint') };
   if (!vertical) {
