@@ -8,11 +8,11 @@ The operator of Mongmangi ("we") handles the personal information of people who 
 
 **In plain words first**
 
-- This App is made for people aged 14 and over, and only people aged 14 or older can ask to join the test. The game runs on your phone, and what you write with the brush is read only on your phone.
+- Only people aged 14 or older can ask to join the test. The game runs on your phone, and what you write with the brush is read only on your phone.
 - We do not take your name, phone number, location or photos. This test build has no account, no usage statistics, no ads and no purchases.
 - Two things leave your phone: the App asking whether there is a new version, and Google's handwriting feature downloading its reading tool and telling Google how well it is working. Your handwriting is not part of it.
 - The email you sent to join the test is deleted 30 days after the official launch.
-- If you have a question or want something deleted, email hello@mongmang.ink.
+- If you have a question or want something deleted, email hello@mongmang.ink. If you are under 14, please ask a parent or guardian to help.
 
 ## 1. What the test build sends off your phone
 
@@ -28,12 +28,14 @@ The only information this test build sends to our server or to other companies i
 - The cloud provider (Google Cloud Run) creates an access log for each request with the IP address, User-Agent, request path, time and similar details, but we have set things up so that we do not receive or keep these logs. We may receive them briefly only while investigating an outage, and anything received then is deleted after at most 7 days. Our own server records (app logs and error logs) are kept for 7 days and do not include IP addresses or User-Agents.
 - We have not turned on the feature that sends Firebase Hosting's request logs for update requests to our logs, so we do not receive them. Any records Google keeps itself to run the service follow Google's policy.
 - A downloaded update is applied the next time the App starts fresh; it never changes while you are using the App.
+- **Purpose and legal basis**: to provide the test build and deliver bug fixes (performance of contract, Korea's Personal Information Protection Act, Article 15(1)(4); to the extent that does not apply, our legitimate interest in security and bug fixes, Article 15(1)(6)). Because this does not rely on consent, it works the same way regardless of age.
 
 ### 1-2. Handwriting recognition (every tester)
 
 - Your word of the day is read **on your device** by Google's ML Kit Digital Ink Recognition. The first time you write, the App downloads a recognition model for your language (about 20 MB) from Google's servers, which uses your IP address.
 - **Your handwriting (strokes) and the recognition result are not sent to Google or to us.** If the model cannot be downloaded, you can type instead.
 - While it works, the handwriting recognition feature sends Google diagnostic data: device information (manufacturer, model, operating system version and build, available ML hardware accelerators), app information (package name and app version), per-installation identifiers, performance metrics (such as latency), feature configuration, the configured recognition language, input and output size, feature version, event type, and error codes. Google uses this data for ML Kit diagnostics and usage analytics. We do not receive or see it. Details are in Google's ML Kit data disclosure (https://developers.google.com/ml-kit/android-data-disclosure).
+- **Purpose and legal basis**: downloading the recognition model is needed to provide handwriting (performance of contract, Article 15(1)(4) of the same Act; to the extent that does not apply, legitimate interest, Article 15(1)(6)). Whether Google's direct receipt of the ML Kit diagnostics counts as processing on our behalf or as a disclosure to a third party is still being confirmed; we will update this policy accordingly.
 
 ## 2. Information stored only on your device
 
@@ -90,7 +92,7 @@ We use the following providers. Because they are foreign companies or use facili
 
 ## 7. Children under 14
 
-- Mongmangi is made for people aged 14 and over. Only people aged 14 or older can ask to join the test, and features that create an account and usage statistics are not turned on in the test build.
+- Only people aged 14 or older can ask to join the test, and features that create an account and usage statistics are not turned on in the test build.
 - The update checks and handwriting recognition in section 1 are needed for the App to work and are sent regardless of age.
 - If we learn that we received a test request email from a child under 14, we delete it without delay.
 

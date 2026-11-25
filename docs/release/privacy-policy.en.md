@@ -1,6 +1,6 @@
 # Privacy Policy — [English app name — set after the name test]
 
-- Version: v3.3 draft (2026-11-25 — the legal review of v3.2 applied; v3.2 = v3.1 (2026-11-24: legal first-pass review edits P1–P19, owner and PM decisions, concept v3 (D-26) and the independent review) aligned on 2026-11-25: app update checks, the 2-year inactivity clean-up, care routines (meals, treats, stroll); **written as of launch**; the same day, roadmap D9: the 14-and-over target stated in the plain-words summary and section 4, the summary no longer reads as addressed to children, and the operator field is now a business-name field)
+- Version: v3.3 draft (2026-11-25 — the legal review of v3.2 applied; v3.2 = v3.1 (2026-11-24: legal first-pass review edits P1–P19, owner and PM decisions, concept v3 (D-26) and the independent review) aligned on 2026-11-25: app update checks, the 2-year inactivity clean-up, care routines (meals, treats, stroll); **written as of launch**; the same day, roadmap D9: the plain-words summary and section 4 now say "anyone can play; account features and usage statistics are for people aged 14 and older" (legal first-pass P8 kept, D9 review 4-1), the summary no longer reads as addressed to children, the birthday-month line, the legal basis in 3-2 and 3-3 (D9 review 4-2), and the operator field is now a business-name field)
 - Effective date: [Effective date — owner to fill]
 - Operator (business name): [Business name — owner to fill]
 - Contact: hello@mongmang.ink
@@ -11,10 +11,10 @@ This policy explains how [Business name — owner to fill] ("we") handles person
 
 **In plain words first**
 
-- This App is made for people aged 14 and over. The game runs on your phone, and what you write with the brush is read only on your phone.
+- Anyone can play the Mongmangi game. It runs on your phone, and what you write with the brush is read only on your phone.
 - We do not take your name, email, phone number, location or photos.
 - A few things leave every phone: the App checking for a new version, downloads of game files and the handwriting tool, and reports Google's handwriting tool sends Google about how well it works. Your handwriting is not in any of them.
-- Usage statistics, Share by link and Keep it safe can be turned on only after you pass the age check (14 or older). Usage statistics stay off until you turn them on yourself.
+- Usage statistics, Share by link and Keep it safe can be turned on only by people aged 14 and older. Before you turn one on, we ask once for your birth year and month. Usage statistics stay off until you turn them on yourself.
 - If you have a question or want something deleted, email hello@mongmang.ink. If you are under 14, please ask a parent or guardian to help.
 
 ## 1. At a glance
@@ -84,11 +84,13 @@ The following is stored on your device. It is not sent to us unless you turn on 
 - Update files are downloaded the same way (through Firebase Hosting to our server). A downloaded update is applied the next time the App starts fresh; it never changes while you are using the App.
 - On your device, the App notes only when it was first launched and when it last tried to check for updates, whether it was closed normally, and how many times in a row it ended abnormally — no identifiers, and none of this is sent to a server.
 - To block excessive requests, the server uses your IP address (for IPv6, the first 64 bits) in memory for about one minute only to count requests, and does not store it. As in 3-1, we do not receive the cloud provider's access logs (except briefly while investigating an outage, kept at most 7 days). We have not turned on the feature that sends Firebase Hosting's request logs for update requests to our logs, so we do not receive them either; any records Google keeps itself to run the service follow Google's policy. [To verify: what Firebase Hosting records on its own and for how long — this line and sections 6 and 8 will be updated after the B6 measurement and Google's documentation]
+- **Purpose and legal basis**: to provide the App you installed and deliver bug fixes (performance of the contract to provide the App, Korea's Personal Information Protection Act, Article 15(1)(4); to the extent that basis does not apply, our legitimate interest in security and bug fixes, Article 15(1)(6)). Because this does not rely on consent, it works the same way before the age check and for users under 14. [Legal review: legal basis — I-3]
 
 ### 3-3. Settings and content files, and the handwriting recognition model (everyone)
 - The App downloads feature on/off settings and new dream picture files from a web host (Google Firebase Hosting). Your IP address is used to serve these requests. We do not log them. [Check against the B4 commit — align the list of downloaded files, such as dictionary packs (`/content/lex/*`), with the B4 implementation, then remove this mark]
 - **Handwriting recognition**: your word of the day is read **on your device** by Google's ML Kit Digital Ink Recognition. The first time you write, the App downloads a recognition model for your language (about 20 MB) from Google's servers, which uses your IP address. **Your handwriting (strokes) and the recognition result are not sent to Google or to us.** If the model cannot be downloaded, you can type instead.
 - **ML Kit diagnostic data**: while it works, the handwriting recognition feature sends Google the following — device information (manufacturer, model, operating system version and build, available ML hardware accelerators), app information (package name and app version), per-installation identifiers, performance metrics (such as latency), feature configuration, the configured recognition language, input and output size, feature version, event type, and error codes. Google uses this data for ML Kit diagnostics and usage analytics. We do not receive or see it. Details are in Google's ML Kit data disclosure (https://developers.google.com/ml-kit/android-data-disclosure).
+- **Purpose and legal basis**: downloading settings and content files and the recognition model is needed to provide the App's features (performance of contract, Article 15(1)(4); to the extent that does not apply, legitimate interest, Article 15(1)(6)). Because this does not rely on consent, it works the same way before the age check. Whether Google's direct receipt of the ML Kit diagnostics counts as processing on our behalf or as a disclosure to a third party is under legal review; we will update this line and section 9 accordingly. [Legal review: H-1, H-2, I-3]
 
 ### 3-4. If you turn on "Share by link"
 - **What**:
@@ -125,7 +127,7 @@ The following is stored on your device. It is not sent to us unless you turn on 
 
 ## 4. Age check and children under 14
 
-- The App is made **for people aged 14 and over**. It is not directed at children and does not take part in app stores' children's categories. **Features that create an account, and usage statistics, can be turned on only by people aged 14 and older.** Anyone can play the on-device game without an age check.
+- **Features that create an account, and usage statistics, can be turned on only by people aged 14 and older.** Anyone can play the on-device game without an age check. The App is not directed at children and does not take part in app stores' children's categories.
 - Before you first turn on "Send usage statistics" or a feature that creates an account ("Share by link", "Keep it safe", or the later "Night Water"), we ask once for your **birth year and month**. The check runs on your device, and **your birth year and month are not stored on your device or our server**. Because we do not ask for the day, if your birthday is in the current month we treat it as not yet reached.
 - If you are under 14, no account is created, and the feature and usage statistics stay off. Your device keeps only "under age" and the date so we do not ask again the same day. You can keep playing on your device and saving or sharing cards.
 - We do not offer a parental consent process and do not create accounts for children under 14. The information in sections 3-2 and 3-3 (update checks, file and model downloads, handwriting recognition diagnostics) is needed for the App to work and is sent from every user without an age check. Only people who have passed the age check can turn on the usage statistics in 3-1. [To be revised after legal review]
