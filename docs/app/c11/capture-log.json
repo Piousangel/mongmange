@@ -1,0 +1,291 @@
+{
+  "log": [
+    {
+      "shot": "ko-fs100-metrics-age",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-metrics-under",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-metrics-off",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-metrics-on",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-link-loading",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-link-live",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-link-live-anon",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-link-gone",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-link-failed",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-link-report",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-link-report-failed",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs100-link-reported",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-metrics-age",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-metrics-under",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-metrics-off",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-metrics-on",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-link-loading",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-link-live",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-link-live-anon",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-link-gone",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-link-failed",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-link-report",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-link-report-failed",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-fs200-link-reported",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-metrics-age",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-metrics-under",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-metrics-off",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-metrics-on",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-link-loading",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-link-live",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-link-live-anon",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-link-gone",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-link-failed",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-link-report",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-link-report-failed",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs100-link-reported",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-metrics-age",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-metrics-under",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-metrics-off",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-metrics-on",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-link-loading",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-link-live",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-link-live-anon",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-link-gone",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-link-failed",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-link-report",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-link-report-failed",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-fs200-link-reported",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-w320-fs200-metrics-age",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-w320-fs200-link-live",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-w320-fs200-link-report",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-w320-fs200-metrics-age",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-w320-fs200-link-live",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-w320-fs200-link-report",
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "flow": "metrics",
+      "toggleHiddenBeforeAge": true,
+      "defaultOff": true,
+      "turnedOn": true,
+      "turnedOff": true
+    },
+    {
+      "flow": "metrics-under",
+      "toggleHidden": true
+    },
+    {
+      "flow": "link-report",
+      "sendDisabledBeforePick": true,
+      "thanked": true
+    }
+  ],
+  "errors": []
+}

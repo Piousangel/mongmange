@@ -31,7 +31,8 @@ const cleanDocs = (o) => cleanDocsIn(tmp(), o);
 const launchReady = (o) => ({ env: { ...ENV, SITE_MODE: 'launch' }, docsDir: cleanDocs(o), srcDir: signedSrc(tmp()), remoteKeysPath: keysFile(tmp()) });
 function built({ env = ENV, docsDir = filled(), srcDir, remoteKeysPath } = {}) {
   const o = join(tmp(), 'out');
-  const r = build({ env, outDir: o, docsDir, ...(srcDir && { srcDir }), ...(remoteKeysPath && { remoteKeysPath }) });
+  // 임시 공개키 목록을 쓰면 앱 번들 목록(C11)도 같은 파일로 — 두 목록 대조는 remote.test.mjs가 본다
+  const r = build({ env, outDir: o, docsDir, ...(srcDir && { srcDir }), ...(remoteKeysPath && { remoteKeysPath, appKeysPath: remoteKeysPath }) });
   const app = JSON.parse(readFileSync(join(ROOT, '../mobile/app.json'), 'utf8')).expo;
   const v = { team: 'A1B2C3D4E5', origin: ORIGIN, apiOrigin: API, iosBundle: app.ios.bundleIdentifier, androidPackage: app.android.package, firebaseJson: readFirebaseJson(join(ROOT, 'firebase.json')), mode: env.SITE_MODE ?? 'prelaunch' };
   return { o, v, r, read: (p) => readFileSync(join(o, p), 'utf8') };
@@ -39,7 +40,7 @@ function built({ env = ENV, docsDir = filled(), srcDir, remoteKeysPath } = {}) {
 function fails(env, docsDir = filled(), extra = {}) {
   const o = join(tmp(), 'out');
   try {
-    build({ env, outDir: o, docsDir, ...extra });
+    build({ env, outDir: o, docsDir, ...(extra.remoteKeysPath && { appKeysPath: extra.remoteKeysPath }), ...extra });
   } catch (e) {
     expect(e).toBeInstanceOf(BuildError);
     return e.problems.join('\n');

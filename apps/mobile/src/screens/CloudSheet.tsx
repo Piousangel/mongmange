@@ -384,7 +384,7 @@ function DeleteConfirm({ token, mismatch, onConfirm, onBack }: { token: string; 
 
 // ── 연령 확인 ──
 
-function AgeForm({ onSubmit, onBack }: { onSubmit: (i: { year: number | null; month: number | null }) => AgeInputError | null; onBack: () => void }) {
+export function AgeForm({ onSubmit, onBack }: { onSubmit: (i: { year: number | null; month: number | null }) => AgeInputError | null; onBack: () => void }) {
   const [year, setYear] = useState('');
   const [month, setMonth] = useState<number | null>(null);
   const [err, setErr] = useState<AgeInputError | null>(null);

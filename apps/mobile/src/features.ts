@@ -1,6 +1,7 @@
 // 기능 플래그(C-integrated 4-1 빌드 계획). 세 기둥 기능은 빌드 2(12-10)에서 켠다 — 미완 기능은 플래그를 끈 채 그대로 낸다.
 // 값(세이브 v2 필드)은 플래그와 상관없이 빌드 1부터 core sim이 쌓는다. 플래그는 **화면·몸짓을 보일지**만 정한다.
 // 네이티브 모듈이 필요한 기능(공유·평점)은 플래그가 켜져 있어도 모듈이 없는 옛 빌드에서는 각 모듈이 스스로 꺼진다.
+import { REMOTE_FLAG_KEYS, type RemoteFlagKey } from '@mong/contract';
 import { useSyncExternalStore } from 'react';
 
 export const FEATURE_DEFAULTS = {
@@ -92,8 +93,29 @@ export function fromQuery(search: string): Partial<Record<FeatureId, boolean>> {
 }
 const subs = new Set<() => void>();
 
+// ── 원격 층(3-7 우선순위: FEATURE_DEFAULTS < 원격 < 개발 메뉴, C11) ──
+// 원격 키(REMOTE_FLAG_KEYS)와 이름이 같은 기능만 덮는다(3-7-1 — 번역 표 없음). 값은 net/remoteConfig.ts(서명 검사·탈출 반영)가 낸다.
+type RemoteFeature = FeatureId & RemoteFlagKey;
+const isRemoteFeature = (id: FeatureId): id is RemoteFeature => (REMOTE_FLAG_KEYS as readonly string[]).includes(id);
+let remoteLayer: ((key: RemoteFeature) => boolean | undefined) | null = null;
+
+/** net 모듈이 원격 층을 건다(null = 뗌). 원격 값이 바뀌면 notifyFeatures로 화면을 다시 그린다 */
+export function setRemoteLayer(f: ((key: RemoteFeature) => boolean | undefined) | null): void {
+  remoteLayer = f;
+  notifyFeatures();
+}
+export function notifyFeatures(): void {
+  subs.forEach((f) => f());
+}
+/** 크래시 루프 탈출 계산(escapeFlags)에 넘길 번들 값: 원격 키와 이름이 같은 기능의 FEATURE_DEFAULTS */
+export function remoteBundled(): Partial<Record<RemoteFlagKey, boolean>> {
+  const out: Partial<Record<RemoteFlagKey, boolean>> = {};
+  for (const id of Object.keys(FEATURE_DEFAULTS) as FeatureId[]) if (isRemoteFeature(id)) out[id] = FEATURE_DEFAULTS[id];
+  return out;
+}
+
 export function isOn(id: FeatureId): boolean {
-  return overrides[id] ?? FEATURE_DEFAULTS[id];
+  return overrides[id] ?? (isRemoteFeature(id) ? remoteLayer?.(id) : undefined) ?? FEATURE_DEFAULTS[id];
 }
 
 /** 개발 메뉴·테스트에서만 켜고 끈다(저장하지 않음 — 재시작하면 기본값) */
@@ -102,7 +124,7 @@ export function setFeature(id: FeatureId, on: boolean | null) {
   if (on === null) delete next[id];
   else next[id] = on;
   overrides = next;
-  subs.forEach((f) => f());
+  notifyFeatures();
 }
 
 function subscribe(f: () => void) {

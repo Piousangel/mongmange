@@ -15,6 +15,7 @@ import { M1Board } from './src/screens/M1Board';
 import { IreFramesBoard } from './src/screens/IreFramesBoard';
 import { SheetBoard } from './src/screens/SheetBoard';
 import { NetBridge } from './src/net/NetBridge';
+import { LinkReceiver } from './src/net/LinkReceiver';
 import { registerIreEncoder } from './src/share/ireVideo';
 import { nativeIreEncoder } from './src/share/ireNativeEncoder';
 
@@ -25,6 +26,11 @@ registerIreEncoder(nativeIreEncoder());
 function DevCloudBoard() {
   const { CloudBoard } = require('./src/screens/CloudBoard') as typeof import('./src/screens/CloudBoard');
   return <CloudBoard />;
+}
+/** 통계·링크 시트 확인판(C11)도 개발 번들에만 */
+function DevNetBoard() {
+  const { NetBoard } = require('./src/screens/NetBoard') as typeof import('./src/screens/NetBoard');
+  return <NetBoard />;
 }
 
 // 기본 = 앱 흐름(GameApp). 스파이크 캡처용 URL은 그대로: ?screen=day|night|intro|stroke &day=0|7 &attach=1|2|3 &body=A|B &rm=1 &vclock=1 &clean=1
@@ -50,12 +56,14 @@ function Root() {
     <GestureHandlerRootView style={styles.root}>
       {screen === 'app' && <NetBridge />}
       {screen === 'app' && <GameApp onSpike={setSpike} />}
+      {screen === 'app' && <LinkReceiver />}
       {screen === 'intro' && <IntroScreen />}
       {screen === 'card' && <DreamCardPreview />}
       {screen === 'm1' && <M1Board />}
       {screen === 'ire' && <IreFramesBoard />}
       {screen === 'sheet' && <SheetBoard />}
       {screen === 'cloud' && __DEV__ && <DevCloudBoard />}
+      {screen === 'net' && __DEV__ && <DevNetBoard />}
       {screen === 'stroke' && <StrokeScreen initial={p.day} />}
       {(screen === 'day' || screen === 'night') && <HomeScreen day={p.day} startNight={screen === 'night'} />}
       {spike !== null && (

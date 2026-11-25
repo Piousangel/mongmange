@@ -11,3 +11,6 @@ export const SEAL_GLYPH = '몽';
 
 /** 언어 고르기에 쓰는 자기 이름(어느 언어 화면에서도 그 언어 글자로 보인다) */
 export const LANGUAGE_NAMES = { ko: '한국어', en: 'English' } as const;
+
+/** 서버 `/m/{code}` 페이지가 이름이 실리지 않은 판의 제목으로 쓰는 앱 이름(apps/server/src/pages/m-html.ts APP_NAME과 같아야 한다 — C11 net/link.ts) */
+export const LINK_PAGE_APP_TITLES: readonly string[] = ['몽망이 키우기', 'Mongmangi'];

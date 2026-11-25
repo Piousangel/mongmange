@@ -13,6 +13,8 @@ import { CloudSheetHost, cloudRowState } from '../screens/CloudSheet';
 import { useCloudDeps } from '../cloud';
 import { PARKED_DAYS, PRE_RESTORE_DAYS, readParkedList, readPreRestore, readRecord, readUnconfirmedDelete } from '../cloud/record';
 import type { CloudEntry } from '../cloud/useCloud';
+import { METRICS_SETTING_CONNECTED, metricsSetting } from '../net/gate';
+import { MetricsSheet } from '../screens/MetricsSheet';
 import { bornDate } from '../screens/NameTag';
 import { kv } from './storage';
 import { NameSheet, type NameSheetMode } from '../screens/NameSheet';
@@ -97,6 +99,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const [cloudOpen, setCloudOpen] = useState<false | 'default' | CloudEntry>(false);
   const cloudFlag = useFeature('cloud');
   const cloudDeps = useCloudDeps();
+  const [metricsOpen, setMetricsOpen] = useState(false);
   const [nowT, setNowT] = useState(() => now());
   const [washOpen, setWashOpen] = useState(false);
   const washOpenRef = useRef(false);
@@ -576,6 +579,17 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
                 }
               : undefined
           }
+          metrics={
+            METRICS_SETTING_CONNECTED
+              ? {
+                  on: metricsSetting(kv, now(), tzOffsetNow()).kind === 'on',
+                  open: () => {
+                    setNoteOpen(false);
+                    setMetricsOpen(true);
+                  },
+                }
+              : undefined
+          }
           onName={
             namingOn
               ? () => {
@@ -586,6 +600,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           }
         />
       )}
+      {METRICS_SETTING_CONNECTED && <MetricsSheet visible={metricsOpen} onClose={() => setMetricsOpen(false)} kv={kv} now={now} tzOffsetMin={tzOffsetNow} />}
       {cloudFlag && cloudDeps && <CloudSheetHost visible={cloudOpen !== false} entry={cloudOpen === false || cloudOpen === 'default' ? undefined : cloudOpen} onClose={() => setCloudOpen(false)} deps={cloudDeps} tzOffsetMin={tzOffsetNow} />}
       {nameSheet && state && (
         <NameSheet

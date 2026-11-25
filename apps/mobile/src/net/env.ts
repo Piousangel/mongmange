@@ -1,6 +1,7 @@
 // 서버·정적 주소와 앱 판 정보(architecture.md v2.1 3-2·3-7·4-1). 모든 서버 호출은 이 값이 비면 아무것도 하지 않는다(no-op).
 // - EXPO_PUBLIC_API_BASE: Cloud Run 서울(앱 API 직접). **아직 배포 전 — 기본은 빈 값 = 핑 꺼짐**. 로컬: http://<맥 IP>:8080
 // - EXPO_PUBLIC_STATIC_BASE: Firebase Hosting(`https://mongmang.ink`) — config/v1.json·content/v1.json. 기본 빈 값 = 번들 기본값만
+// - EXPO_PUBLIC_SUPABASE_URL·EXPO_PUBLIC_SUPABASE_KEY: 맡겨 두기 익명 로그인(C11 supabaseAuth.ts). 키는 공개(publishable) 키만. 비면 로그인 포트 없음
 // EXPO_PUBLIC_* 는 빌드(번들) 때 박히고 OTA로 바뀔 수 있다.
 import { optionalModule } from '../lib/optionalModule';
 import { releaseVersion } from './ping';
@@ -12,6 +13,10 @@ const httpsOnly = (u: string) => (u === '' || u.startsWith('https://') || (typeo
 
 export const API_BASE = httpsOnly(trimSlash(process.env.EXPO_PUBLIC_API_BASE));
 export const STATIC_BASE = httpsOnly(trimSlash(process.env.EXPO_PUBLIC_STATIC_BASE));
+export const SUPABASE_URL = httpsOnly(trimSlash(process.env.EXPO_PUBLIC_SUPABASE_URL));
+export const SUPABASE_KEY = (process.env.EXPO_PUBLIC_SUPABASE_KEY ?? '').trim();
+/** 공유 링크 사이트(앱 링크 범위 — C10 app.json `applinks:mongmang.ink`·intentFilters와 같은 값). 딥링크 주소 대조용 */
+export const SITE_ORIGIN = 'https://mongmang.ink';
 
 /**
  * 앱 JS 판 번호(3-7 minBundle). **OTA를 낼 때마다 1씩 올린다.** 바이너리 내장 값과 OTA를 통틀어 하나의 증가 값이다 —

@@ -25,10 +25,12 @@ const tmp = () => {
   return d;
 };
 const emptyKeys = () => keysFile(tmp(), []);
-function run({ env = ENV, srcDir = join(ROOT, 'src'), remoteKeysPath = emptyKeys(), appKeysPath, docsDir, now } = {}) {
+// 앱 번들 공개키 목록(apps/mobile/src/net/remote-public-keys.json, C11)이 생긴 뒤로 빌드는 늘 두 목록을 대조한다 —
+// 시험이 임시 공개키 목록을 쓸 때는 앱 목록도 같은 파일로 둔다(저장소가 두 곳을 맞춰 둔 상태). 대조 실패는 아래 시험이 따로 본다.
+function run({ env = ENV, srcDir = join(ROOT, 'src'), remoteKeysPath = emptyKeys(), appKeysPath = remoteKeysPath, docsDir, now } = {}) {
   const outDir = join(tmp(), 'out');
   const docs = docsDir ?? (env.SITE_MODE === 'launch' ? cleanDocs(tmp()) : filledDocs(tmp()));
-  return { outDir, ...build({ env, srcDir, outDir, docsDir: docs, remoteKeysPath, ...(appKeysPath && { appKeysPath }), ...(now && { now }) }) };
+  return { outDir, ...build({ env, srcDir, outDir, docsDir: docs, remoteKeysPath, appKeysPath, ...(now && { now }) }) };
 }
 function fails(o) {
   try {

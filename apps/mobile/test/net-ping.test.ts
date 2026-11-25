@@ -12,6 +12,9 @@ import {
   onceEventsFromState,
   OUTBOX_MAX,
   PING_TIMEOUT_MS,
+  PING_USER_AGENT,
+  RETRY_BASE_MS,
+  RETRY_MAX_MS,
   releaseVersion,
   type PingContext,
 } from '../src/net/ping';
@@ -22,13 +25,13 @@ function memKV() {
 }
 
 type Reply = number | 'network' | 'hang';
-type Sent = { url: string; body: unknown };
+type Sent = { url: string; body: unknown; method?: string; headers?: Record<string, string> };
 function fakeFetch(replies: Reply[] = []) {
   const sent: Sent[] = [];
   const f: FetchLike = async (url, init) => {
     const r = replies.length ? replies.shift()! : 204;
     if (r === 'network') throw new TypeError('Network request failed'); // 안 닿음 — 서버는 못 봤다
-    sent.push({ url, body: JSON.parse(init!.body!) }); // 서버에 닿음
+    sent.push({ url, body: JSON.parse(init!.body!), method: init!.method, headers: init!.headers }); // 서버에 닿음
     if (r === 'hang') {
       // 서버가 받았지만 응답이 늦음 → 클라이언트 제한 시간이 끊는다
       return new Promise((_, reject) => init!.signal!.addEventListener('abort', () => reject(new Error('aborted'))));
@@ -42,12 +45,14 @@ const base = { platform: 'android', appVer: '1.0', lang: 'ko' } as const;
 const ctx = (dayN: number): PingContext => ({ cohortDay: '2026-12-22', dayN, tzOffsetMin: 540, ...base });
 
 let kv: ReturnType<typeof memKV>;
+let clock = Date.UTC(2026, 11, 24, 3);
 beforeEach(() => {
   kv = memKV();
+  clock = Date.UTC(2026, 11, 24, 3);
 });
 
 function client(fetchFn: FetchLike, extra: Partial<Parameters<typeof createPingClient>[0]> = {}) {
-  return createPingClient({ kv, fetch: fetchFn, apiBase: 'http://api.test', consent: () => true, nameTiming: () => 'A', ...extra });
+  return createPingClient({ kv, fetch: fetchFn, apiBase: 'http://api.test', consent: () => true, nameTiming: () => 'A', now: () => clock, ...extra });
 }
 
 describe('핑 켜짐 조건', () => {
@@ -107,6 +112,7 @@ describe('핑 클라이언트', () => {
     c.track('share_link', ctx(2));
     await c.flush(ctx(2));
     expect(sent).toHaveLength(0);
+    clock += 86_400_000; // 다음 날(재시도 대기는 이미 지났다)
     c.recordOpen(ctx(3));
     await c.flush(ctx(3));
     expect(sent).toHaveLength(1);
@@ -150,17 +156,10 @@ describe('핑 클라이언트', () => {
     c.track('share_link', ctx(1));
     await c.flush(ctx(1));
     expect(JSON.parse(kv.getString(NET_KEYS.outbox)!)).toHaveLength(1);
+    clock += 8 * 86_400_000;
     await c.flush(ctx(9)); // 1 + 7 < 9
     expect(JSON.parse(kv.getString(NET_KEYS.outbox)!)).toHaveLength(0);
     expect(sent).toHaveLength(0);
-  });
-
-  it('끄기(설정 토글용 setEnabled): 쌓인 것도 지운다', () => {
-    const { f } = fakeFetch();
-    const c = client(f);
-    c.recordOpen(ctx(0));
-    c.setEnabled(false);
-    expect(kv.getString(NET_KEYS.outbox)).toBeUndefined();
   });
 
   it('아웃박스 상한·배치: 차원이 다르면 다른 핑, 핑 하나에 이벤트 32개까지', () => {
@@ -192,6 +191,124 @@ describe('핑 클라이언트', () => {
       { nt: 'B', wg: '-', moon: '0' },
       { nt: 'B', wg: '1', moon: '1' },
       { nt: 'B', wg: '1', moon: '0' },
+    ]);
+  });
+});
+
+describe('오프라인 재시도 백오프(C11)', () => {
+  it('연결 실패 뒤에는 대기 시간 안에 다시 보내지 않고, 대기는 두 배씩 늘어 1시간에서 멈춘다. 닿으면 대기를 지운다', async () => {
+    expect(RETRY_BASE_MS).toBe(30_000);
+    expect(RETRY_MAX_MS).toBe(3_600_000);
+    let tries = 0;
+    let down = true;
+    const f: FetchLike = async (_u, init) => {
+      tries++;
+      if (down) throw new TypeError('Network request failed');
+      void init;
+      return { ok: true, status: 204, text: async () => '' };
+    };
+    const c = client(f);
+    c.recordOpen(ctx(2));
+    const waits: number[] = [];
+    for (let i = 0; i < 10; i++) {
+      const before = tries;
+      await c.flush(ctx(2));
+      expect(tries, `시도 ${i}`).toBe(before + 1);
+      const { at } = JSON.parse(kv.getString(NET_KEYS.retry)!) as { at: number };
+      waits.push(at - clock);
+      clock = at - 1; // 대기 끝 1ms 전: 보내지 않는다
+      await c.flush(ctx(2));
+      expect(tries).toBe(before + 1);
+      clock = at;
+    }
+    expect(waits.slice(0, 4)).toEqual([30_000, 60_000, 120_000, 240_000]);
+    expect(Math.max(...waits)).toBe(RETRY_MAX_MS);
+    down = false;
+    await c.flush(ctx(2));
+    expect(kv.getString(NET_KEYS.retry)).toBeUndefined();
+    expect(kv.getString(NET_KEYS.outbox)).toBe('[]');
+  });
+  it('시계가 되돌아가 대기 시각이 1시간보다 먼 미래면 대기를 버리고 보낸다(영원히 멈추지 않게)', async () => {
+    const { f, sent } = fakeFetch();
+    const c = client(f);
+    c.recordOpen(ctx(2));
+    kv.set(NET_KEYS.retry, JSON.stringify({ at: clock + RETRY_MAX_MS + 60_000, n: 3 }));
+    await c.flush(ctx(2));
+    expect(sent).toHaveLength(1);
+  });
+  it('응답을 받으면(오류여도) 대기가 생기지 않는다', async () => {
+    const { f } = fakeFetch([503]);
+    const c = client(f);
+    c.recordOpen(ctx(2));
+    await c.flush(ctx(2));
+    expect(kv.getString(NET_KEYS.retry)).toBeUndefined();
+  });
+});
+
+// C11 리뷰 M1: 처리방침 3-1 '끄면 그때부터 보내지 않고, 모아 둔 통계도 지웁니다' — 보내는 도중 꺼도 남은 덩어리·재시도는 0
+describe('보내는 도중 끄기', () => {
+  async function midway(firstReply: 'ok' | 'network') {
+    let on = true;
+    const sent: string[] = [];
+    let release!: () => void;
+    const f: FetchLike = async (url) => {
+      sent.push(url);
+      if (sent.length === 1) await new Promise<void>((r) => (release = r));
+      if (firstReply === 'network' && sent.length === 1) throw new TypeError('Network request failed');
+      return { ok: true, status: 204, text: async () => '' };
+    };
+    const c = client(f, { consent: () => on });
+    for (let i = 0; i < 40; i++) c.track('share_link', ctx(8)); // 핑 2건(32 + 8)
+    const p = c.flush(ctx(8));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sent).toHaveLength(1); // 첫 요청이 나가는 중
+    on = false; // 사용자가 끔 = setMetricsOn(false)가 아웃박스·대기를 지움
+    kv.remove(NET_KEYS.outbox);
+    kv.remove(NET_KEYS.retry);
+    release();
+    await p;
+    return sent;
+  }
+  it('첫 요청 중 끔 → 두 번째 덩어리는 나가지 않고, 아웃박스는 빈 채로 남는다', async () => {
+    expect(await midway('ok')).toHaveLength(1);
+    expect(kv.getString(NET_KEYS.outbox)).toBeUndefined();
+    expect(kv.getString(NET_KEYS.retry)).toBeUndefined();
+  });
+  it('첫 요청이 끈 뒤 연결 실패로 끝나도 재시도 대기를 다시 쓰지 않는다', async () => {
+    expect(await midway('network')).toHaveLength(1);
+    expect(kv.getString(NET_KEYS.retry)).toBeUndefined();
+    expect(kv.getString(NET_KEYS.outbox)).toBeUndefined();
+  });
+});
+
+// 요청 본문 스냅숏(C11 원칙): 핑 요청에는 IP(통신 자체) 말고 사람·기기를 가리키는 값이 0이다.
+// 주소·방법·머리글·본문 전체를 그대로 고정한다 — 무엇이 하나라도 더해지면(기기 id·빌드 번호·시각·User-Agent 기본값) 이 시험이 실패한다.
+describe('요청 스냅숏 — 식별자 0', () => {
+  it('핑 요청 한 건의 전부', async () => {
+    const { f, sent } = fakeFetch();
+    const c = client(f, { nameTiming: () => 'B', widgetCount: () => 1 });
+    c.recordOpen(ctx(8));
+    c.track('share_image', ctx(8));
+    await c.flush(ctx(8));
+    expect(PING_USER_AGENT).toBe('Mongmangi');
+    expect(sent).toEqual([
+      {
+        url: 'http://api.test/api/v1/ping',
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'user-agent': 'Mongmangi' },
+        body: {
+          cohortDay: '2026-12-22',
+          dayN: 8,
+          platform: 'android',
+          appVer: '1.0',
+          lang: 'ko',
+          dims: { nt: 'B', wg: '1', moon: '0' },
+          events: [
+            { e: 'open', dayN: 8 },
+            { e: 'share_image', dayN: 8 },
+          ],
+        },
+      },
     ]);
   });
 });

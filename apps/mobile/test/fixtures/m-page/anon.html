@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Mongmangi</title>
+<link rel="preload" as="image" href="https://pub.example.co/p/poster.jpg" fetchpriority="high">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Mongmangi">
+<meta property="og:title" content="Mongmangi">
+<meta property="og:description" content="You met a Mongmangi">
+<meta property="og:image" content="https://pub.example.co/p/poster.jpg">
+<meta property="og:image:width" content="1080">
+<meta property="og:image:height" content="1350">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="You met a Mongmangi">
+<style>:root{color-scheme:light;--paper:#EFE8DA;--ink:#1B1A18;--soft:#6B655B}*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink)}body{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px 16px;font:17px/1.6 "Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
+main{width:100%;max-width:420px;text-align:center}.stage{position:relative;width:100%;aspect-ratio:4/5;margin:0 0 20px;border-radius:12px;overflow:hidden;background:var(--paper)}
+.stage img,.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.stage canvas{opacity:0;transition:opacity .6s}.stage canvas.on{opacity:1}
+h1{font-size:24px;font-weight:600;margin:0 0 6px}p{margin:0 0 20px;color:var(--soft)}.stores{display:grid;gap:12px}
+.stores a{display:block;padding:14px 16px;border-radius:12px;background:var(--ink);color:var(--paper);text-decoration:none;font-weight:600;min-height:48px}
+.stores a:focus-visible{outline:3px solid #8a6d3b;outline-offset:3px}.gone-msg{display:none}html.gone .stage,html.gone .live-msg,html.gone .report{display:none}html.gone .gone-msg{display:block}
+.report{margin:28px 0 0;text-align:left;color:var(--soft);font-size:15px}.report summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center}
+.report fieldset{border:0;margin:8px 0 0;padding:0;display:grid;gap:4px}.report label{display:flex;gap:10px;align-items:center;min-height:44px}.report input{width:20px;height:20px;margin:0}
+.report button{margin:12px 0 0;width:100%;min-height:48px;border:1px solid var(--soft);border-radius:12px;background:transparent;color:var(--ink);font:inherit;font-weight:600}
+.report summary:focus-visible,.report button:focus-visible{outline:3px solid #8a6d3b;outline-offset:3px}
+html[lang="ko"] [lang="en"],html[lang="en"] [lang="ko"]{display:none}</style>
+</head>
+<body>
+<main id="m" data-state="live" data-snap="https://pub.example.co/p/snap.json">
+<div class="stage"><img id="poster" src="https://pub.example.co/p/poster.jpg" width="1080" height="1350" alt="" fetchpriority="high"><video id="loop" src="https://pub.example.co/p/loop.mp4" poster="https://pub.example.co/p/poster.jpg" autoplay muted playsinline loop preload="auto" aria-hidden="true"></video></div>
+<section class="live-msg"><h1>Mongmangi</h1>
+<p><span lang="ko">먹 · 결</span><span lang="en">You met a Mongmangi</span></p></section>
+<section class="gone-msg"><h1><span lang="ko">사라진 링크예요</span><span lang="en">This link is gone</span></h1>
+<p><span lang="ko">주인이 링크를 껐거나 잠시 가려졌어요. 몽망이는 앱 안에서 계속 자라요.</span><span lang="en">Its owner turned the link off, or it is hidden for now. Mongmangi keeps growing inside the app.</span></p></section>
+<nav class="stores">
+<a href="/m/K7M3QX9P/get?p=ios" rel="noreferrer noopener"><span lang="ko">App Store에서 받기</span><span lang="en">Get it on the App Store</span></a>
+<a href="/m/K7M3QX9P/get?p=android" rel="noreferrer noopener"><span lang="ko">Google Play에서 받기</span><span lang="en">Get it on Google Play</span></a>
+</nav>
+<details class="report"><summary><span lang="ko">이 페이지 알리기</span><span lang="en">Report this page</span></summary>
+<form method="post" action="/m/K7M3QX9P/report">
+<fieldset><legend><span lang="ko">어떤 문제인가요?</span><span lang="en">What is wrong?</span></legend>
+<label><input type="radio" name="reason" value="sexual" required><span lang="ko">성적인 모양이에요</span><span lang="en">It looks sexual</span></label><label><input type="radio" name="reason" value="hate" required><span lang="ko">혐오·괴롭힘이에요</span><span lang="en">It is hateful or bullying</span></label><label><input type="radio" name="reason" value="personal" required><span lang="ko">실명·연락처 같은 개인정보가 보여요</span><span lang="en">It shows a real name or contact info</span></label><label><input type="radio" name="reason" value="other" required><span lang="ko">그 밖의 문제가 있어요</span><span lang="en">Something else is wrong</span></label>
+</fieldset>
+<button type="submit"><span lang="ko">알리기</span><span lang="en">Send report</span></button>
+</form></details>
+</main>
+<script>(function(){var d=document,h=d.documentElement,m=d.getElementById('m');
+h.lang=/^ko\b/i.test(navigator.language||'')?'ko':'en';
+var p=d.getElementById('poster');function gone(){h.className+=' gone';}
+if(p){p.addEventListener('error',gone);if(p.complete&&!p.naturalWidth)gone();}
+if(!m||m.getAttribute('data-state')!=='live')return;
+try{navigator.sendBeacon&&navigator.sendBeacon(location.pathname.replace(/\/$/,'')+'/seen');}catch(e){}
+function live(){try{var c=d.createElement('canvas');if(!c.getContext('webgl2'))return;
+var cn=navigator.connection;if(cn&&cn.saveData)return;if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+fetch('/config/v1.json',{credentials:'omit'}).then(function(r){return r.json();}).then(function(cfg){
+if(!cfg||!cfg.flags||cfg.flags.webLive!==true)return;return fetch('/w/manifest.json',{credentials:'omit'}).then(function(r){return r.json();}).then(function(mf){
+if(!mf||typeof mf.live!=='string'||!/^\/w\/live\.[0-9a-f]{8,}\.js$/.test(mf.live))return;var s=d.createElement('script');s.src=mf.live;s.async=true;
+s.setAttribute('data-ck',String(mf.ck||''));d.body.appendChild(s);});}).catch(function(){});}catch(e){}}
+function idle(){(window.requestIdleCallback||function(f){setTimeout(f,200);})(live);}
+if(d.readyState==='complete')idle();else addEventListener('load',idle);})();</script>
+</body>
+</html>

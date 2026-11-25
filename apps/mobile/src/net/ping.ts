@@ -4,7 +4,9 @@
 //  - 정밀 시각 없음: 이벤트에는 '일어난 날의 dayN'만 붙는다. 평생 한 번 사건의 날은 **세이브에 기록된 사건 시각**에서 계산한다(B0 리뷰 I3).
 //  - 오프라인 아웃박스(`mong.net.outbox`, 최대 128개)에 쌓았다가 다음 핑에 몰아 보낸다. 7일 지난 항목은 버린다.
 //  - 중복보다 유실(리뷰 I4): 다시 보내는 것은 **연결 실패**일 때뿐이다. 응답을 받았거나(성공·오류 무관) 10초 제한을 넘기면 '보냄'으로 보고 지운다.
-//  - 켜짐 = 서버 주소 있음 AND 사용자 동의(gate.ts — 설정 토글 연결 전에는 늘 거짓). 꺼지면 쌓지도 보내지도 않는다.
+//  - 재시도 백오프(C11): 연결 실패 뒤에는 30초 → 1분 → 2분 … 1시간에서 멈추는 대기 동안 보내지 않는다(`mong.net.retry`). 닿으면 지운다.
+//  - 켜짐 = 서버 주소 있음 AND 사용자 동의(gate.ts — 직접 켠 14세 확인 통과자만, 설정 토글 연결 전에는 늘 거짓). 꺼지면 쌓지도 보내지도 않는다.
+//  - 요청 머리글은 content-type과 고정 User-Agent(`Mongmangi`)뿐 — 기본 UA의 빌드 번호·OS 판이 플랫폼 접속 기록에 남지 않게(B4 보고 3절 9).
 //  - 실패는 던지지 않는다. 게임 경로는 이 모듈을 기다리지 않는다.
 // 페이로드 모양은 @mong/contract의 pingSchema가 정본이고, 보내기 전에 같은 스키마로 한 번 더 거른다(서버와 같은 판정).
 import type { KV } from '@mong/core';
@@ -22,7 +24,6 @@ import {
   type PingDims,
   type PingEvent,
 } from '@mong/contract';
-import { METRICS_OFF_KEY } from './gate';
 import { request, type FetchLike } from './http';
 
 export const NET_KEYS = {
@@ -32,12 +33,19 @@ export const NET_KEYS = {
   /** 이미 기록한(보낸) 평생 한 번 사건 — 영구 저장 */
   once: 'mong.net.once',
   wg: 'mong.net.wg',
+  /** 연결 실패 뒤 다음 시도 시각과 연속 실패 수 `{at, n}` */
+  retry: 'mong.net.retry',
 } as const;
 
 /** 아웃박스 상한(넘으면 오래된 것부터 버림) */
 export const OUTBOX_MAX = 128;
 /** 핑 제한 시간. 게임 경로 밖이라 넉넉히 — 서버는 2초 안에 답한다(요청 안 flush 상한) */
 export const PING_TIMEOUT_MS = 10_000;
+/** 연결 실패 뒤 첫 대기, 상한(두 배씩) */
+export const RETRY_BASE_MS = 30_000;
+export const RETRY_MAX_MS = 3_600_000;
+/** 핑 요청의 User-Agent(고정). 기본 UA에는 앱 빌드 번호·OS 판이 실린다 */
+export const PING_USER_AGENT = 'Mongmangi';
 
 /** 보내는 날의 맥락 — 세이브에서 계산(contextFromState) */
 export interface PingContext {
@@ -71,6 +79,8 @@ export interface PingClientDeps {
   widgetCount?: () => number | null;
   /** 시험용(기본 PING_TIMEOUT_MS) */
   timeoutMs?: number;
+  /** 재시도 대기 계산용 시계(기본 Date.now) */
+  now?: () => number;
 }
 
 /** 세이브 상태 → 맥락. 설치일 = birth.at의 현지 날짜, n일째 = 오늘 − 설치일(같은 현지 오프셋) */
@@ -154,6 +164,20 @@ export function createPingClient(deps: PingClientDeps) {
   let inflight: Promise<void> | null = null;
 
   const enabled = () => deps.apiBase !== '' && deps.consent() && deps.nameTiming() !== null;
+  const now = deps.now ?? Date.now;
+
+  /** 재시도 대기 중인가. 대기 시각이 상한보다 먼 미래(시계가 되돌아감)면 대기를 버린다 */
+  function waiting(): boolean {
+    const r = readJson<{ at?: unknown }>(kv, NET_KEYS.retry, {});
+    if (typeof r.at !== 'number') return false;
+    const left = r.at - now();
+    return left > 0 && left <= RETRY_MAX_MS;
+  }
+  function failedOnce() {
+    const r = readJson<{ n?: unknown }>(kv, NET_KEYS.retry, {});
+    const n = typeof r.n === 'number' && r.n >= 0 ? r.n : 0;
+    writeJson(kv, NET_KEYS.retry, { at: now() + Math.min(RETRY_BASE_MS * 2 ** Math.min(n, 20), RETRY_MAX_MS), n: n + 1 });
+  }
 
   /** dayN 7 이후 첫 기록 때 한 번 재서 고정. 7일째 전 칸은 '-'. 잴 수 없는 기기는 '-'로 고정 */
   function wg(dayN: number): PingDims['wg'] {
@@ -178,15 +202,6 @@ export function createPingClient(deps: PingClientDeps) {
 
   return {
     enabled,
-
-    /** 설정 '이용 통계 보내기'(토글 연결은 C 항목). 끄면 쌓인 것도 버린다(끈 뒤에 나가는 핑이 없게) */
-    setEnabled(on: boolean) {
-      if (on) kv.remove(METRICS_OFF_KEY);
-      else {
-        kv.set(METRICS_OFF_KEY, '1');
-        kv.remove(NET_KEYS.outbox);
-      }
-    },
 
     /** 하루 첫 실행: 같은 dayN은 기기에서 한 번만 */
     recordOpen(ctx: PingContext): boolean {
@@ -225,9 +240,9 @@ export function createPingClient(deps: PingClientDeps) {
       enqueue({ e, dayN: ctx.dayN, dims: dimsFor(ctx, ctx.dayN) });
     },
 
-    /** 아웃박스를 보낸다. 동시에 두 번 돌지 않는다 */
+    /** 아웃박스를 보낸다. 동시에 두 번 돌지 않는다. 연결 실패 뒤 대기 중이면 보내지 않는다(쌓인 것은 그대로) */
     flush(ctx: PingContext): Promise<void> {
-      if (!enabled()) return Promise.resolve();
+      if (!enabled() || waiting()) return Promise.resolve();
       inflight ??= sendAll(ctx).finally(() => {
         inflight = null;
       });
@@ -249,13 +264,24 @@ export function createPingClient(deps: PingClientDeps) {
       const r = await request(
         deps.fetch,
         `${deps.apiBase}/api/v1/ping`,
-        { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(parsed.data) },
+        { method: 'POST', headers: { 'content-type': 'application/json', 'user-agent': PING_USER_AGENT }, body: JSON.stringify(parsed.data) },
         deps.timeoutMs ?? PING_TIMEOUT_MS,
       );
-      if (r.kind === 'network') break; // 안 닿았다 → 남은 것은 다음 기회에
+      // 보내는 도중 통계를 끄면(리뷰 M1) 이미 나간 요청 말고는 더 보내지 않고, 대기·아웃박스를 다시 쓰지 않는다
+      // (아웃박스·재시도 대기는 끄는 쪽 gate.setMetricsOn이 그 순간 비웠다). 첫 요청 전 확인은 flush가 한다
+      if (!enabled()) return;
+      if (r.kind === 'network') {
+        failedOnce(); // 안 닿았다 → 남은 것은 대기 뒤 다음 기회에
+        break;
+      }
+      try {
+        kv.remove(NET_KEYS.retry);
+      } catch {
+        /* 대기 기록을 못 지우면 한 번 더 기다릴 뿐 */
+      }
       done.push(...ping.items); // 응답을 받았거나 시간 초과 → 서버가 셌을 수 있으므로 다시 보내지 않는다
     }
-    if (!done.length) return;
+    if (!done.length || !enabled()) return;
     // 보내는 사이 새로 쌓인 항목은 남기고, 처리한 항목만 하나씩 지운다(같은 모양이 여럿이어도 개수만큼만)
     const rest = readJson<OutboxItem[]>(kv, NET_KEYS.outbox, []);
     for (const d of done) {

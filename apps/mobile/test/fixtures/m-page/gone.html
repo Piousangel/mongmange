@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko" class="gone">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>몽망이 키우기 · Mongmangi</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="몽망이 키우기 · Mongmangi">
+<style>:root{color-scheme:light;--paper:#EFE8DA;--ink:#1B1A18;--soft:#6B655B}*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink)}body{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px 16px;font:17px/1.6 "Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
+main{width:100%;max-width:420px;text-align:center}.stage{position:relative;width:100%;aspect-ratio:4/5;margin:0 0 20px;border-radius:12px;overflow:hidden;background:var(--paper)}
+.stage img,.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.stage canvas{opacity:0;transition:opacity .6s}.stage canvas.on{opacity:1}
+h1{font-size:24px;font-weight:600;margin:0 0 6px}p{margin:0 0 20px;color:var(--soft)}.stores{display:grid;gap:12px}
+.stores a{display:block;padding:14px 16px;border-radius:12px;background:var(--ink);color:var(--paper);text-decoration:none;font-weight:600;min-height:48px}
+.stores a:focus-visible{outline:3px solid #8a6d3b;outline-offset:3px}.gone-msg{display:none}html.gone .stage,html.gone .live-msg,html.gone .report{display:none}html.gone .gone-msg{display:block}
+.report{margin:28px 0 0;text-align:left;color:var(--soft);font-size:15px}.report summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center}
+.report fieldset{border:0;margin:8px 0 0;padding:0;display:grid;gap:4px}.report label{display:flex;gap:10px;align-items:center;min-height:44px}.report input{width:20px;height:20px;margin:0}
+.report button{margin:12px 0 0;width:100%;min-height:48px;border:1px solid var(--soft);border-radius:12px;background:transparent;color:var(--ink);font:inherit;font-weight:600}
+.report summary:focus-visible,.report button:focus-visible{outline:3px solid #8a6d3b;outline-offset:3px}
+html[lang="ko"] [lang="en"],html[lang="en"] [lang="ko"]{display:none}</style>
+</head>
+<body>
+<main id="m" data-state="gone">
+<section class="gone-msg"><h1><span lang="ko">사라진 링크예요</span><span lang="en">This link is gone</span></h1>
+<p><span lang="ko">주인이 링크를 껐거나 잠시 가려졌어요. 몽망이는 앱 안에서 계속 자라요.</span><span lang="en">Its owner turned the link off, or it is hidden for now. Mongmangi keeps growing inside the app.</span></p></section>
+<nav class="stores">
+<a href="https://apps.apple.com/" rel="noreferrer noopener"><span lang="ko">App Store에서 받기</span><span lang="en">Get it on the App Store</span></a>
+<a href="https://play.google.com/store/apps/details?id=x" rel="noreferrer noopener"><span lang="ko">Google Play에서 받기</span><span lang="en">Get it on Google Play</span></a>
+</nav>
+</main>
+<script>(function(){var d=document,h=d.documentElement,m=d.getElementById('m');
+h.lang=/^ko\b/i.test(navigator.language||'')?'ko':'en';
+var p=d.getElementById('poster');function gone(){h.className+=' gone';}
+if(p){p.addEventListener('error',gone);if(p.complete&&!p.naturalWidth)gone();}
+if(!m||m.getAttribute('data-state')!=='live')return;
+try{navigator.sendBeacon&&navigator.sendBeacon(location.pathname.replace(/\/$/,'')+'/seen');}catch(e){}
+function live(){try{var c=d.createElement('canvas');if(!c.getContext('webgl2'))return;
+var cn=navigator.connection;if(cn&&cn.saveData)return;if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+fetch('/config/v1.json',{credentials:'omit'}).then(function(r){return r.json();}).then(function(cfg){
+if(!cfg||!cfg.flags||cfg.flags.webLive!==true)return;return fetch('/w/manifest.json',{credentials:'omit'}).then(function(r){return r.json();}).then(function(mf){
+if(!mf||typeof mf.live!=='string'||!/^\/w\/live\.[0-9a-f]{8,}\.js$/.test(mf.live))return;var s=d.createElement('script');s.src=mf.live;s.async=true;
+s.setAttribute('data-ck',String(mf.ck||''));d.body.appendChild(s);});}).catch(function(){});}catch(e){}}
+function idle(){(window.requestIdleCallback||function(f){setTimeout(f,200);})(live);}
+if(d.readyState==='complete')idle();else addEventListener('load',idle);})();</script>
+</body>
+</html>

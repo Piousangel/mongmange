@@ -36,6 +36,7 @@ export function NoteSheet({
   onInkChange,
   onName,
   cloud,
+  metrics,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -53,6 +54,8 @@ export function NoteSheet({
   onName?: () => void;
   /** C12 맡겨 두기(플래그 cloud + 서버·로그인 포트): 노트를 닫고 맡겨 두기 시트를 연다. 없으면 절을 그리지 않는다 */
   cloud?: { state: 'on' | 'off' | 'paused' | 'attention'; open: () => void; /** 바꾸기 전 몽망이로 되돌리기(30일, 리뷰 H1). 기한 날짜 표기·열기 */ revert: { until: string; expired: boolean; open: () => void } | null; /** '이 기기'를 골라 기기 칸(30일)에 따로 둔 몽망이들 다시 고르기 */ parked: { id: string; until: string; expired: boolean; open: () => void }[]; /** 확인하지 못한 지우기가 남았을 때 웹 삭제 안내(인장 코드) — 지워졌다는 확인 전까지 늘 남긴다 */ oldNote: string | null };
+  /** C11 '이용 통계 보내기'(METRICS_SETTING_CONNECTED일 때만 GameApp이 넘긴다): 노트를 닫고 통계 시트를 연다. 없으면 절을 그리지 않는다 */
+  metrics?: { on: boolean; open: () => void };
 }) {
   const look = useMongLook(state);
   const inkFlag = useFeature('inkChoice');
@@ -154,6 +157,16 @@ export function NoteSheet({
               <KText style={[styles.rowText, styles.rowValue]}>{cloud.revert.expired ? t('note.cloud.expired') : t('note.cloud.revert.until', { date: cloud.revert.until })}</KText>
             </Pressable>
           )}
+        </>
+      )}
+
+      {metrics && (
+        <>
+          <KText style={styles.section} serif="title">{t('note.metricsSection')}</KText>
+          <Pressable style={styles.row} onPress={metrics.open} accessibilityRole="button" accessibilityLabel={t('note.metrics.a11y', { state: t(metrics.on ? 'note.metrics.on' : 'note.metrics.off') })} testID="note-metrics">
+            <KText style={styles.rowText}>{t('note.metrics')}</KText>
+            <KText style={[styles.rowText, styles.rowValue]}>{t(metrics.on ? 'note.metrics.on' : 'note.metrics.off')}</KText>
+          </Pressable>
         </>
       )}
 
