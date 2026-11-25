@@ -52,3 +52,13 @@ try {
 } catch {
   /* OTA만 꺼진다 */
 }
+
+// Android 위젯 작업 핸들러(C10 자리 — 화면은 C3). 위젯이 헤드리스로 JS를 깨울 때 찾도록 번들 평가 때 등록한다.
+// 실패해도 위젯만 빈 칸이 되고 앱은 그대로다
+if (Platform.OS === 'android') {
+  try {
+    (require('./src/widget/androidTask') as typeof import('./src/widget/androidTask')).registerMongWidget();
+  } catch {
+    /* 위젯만 꺼진다 */
+  }
+}

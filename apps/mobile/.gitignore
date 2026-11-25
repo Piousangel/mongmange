@@ -42,3 +42,6 @@ yarn-error.*
 
 # Skia 웹 CanvasKit (pnpm web 때 setup-skia-web이 복사)
 public/canvaskit.wasm
+
+# @bacons/apple-targets가 prebuild 때 expo-target.config.js colors로 만드는 색 자산(파생물)
+targets/*/Assets.xcassets/

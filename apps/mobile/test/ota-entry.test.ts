@@ -13,7 +13,7 @@ vi.mock('react-native', () => ({
   },
 }));
 
-const { startOta, startOtaWith } = await import('../src/ota/index');
+const { startOta, startOtaWith, whenForeground } = await import('../src/ota/index');
 const { rethrowLater } = await import('../src/lib/rethrowLater');
 type Env = Parameters<typeof startOtaWith>[0];
 
@@ -98,5 +98,40 @@ describe('진입점(index.ts) 정적 고정(L3)', () => {
   });
   it('App 로드 실패를 rethrowLater로 크래시로 보낸다', () => {
     expect(src).toMatch(/ready\.catch\(\(e: unknown\) => \{\s*rethrowLater\(e\);/);
+  });
+});
+
+describe('Android 위젯 헤드리스 기동에서는 OTA를 시작하지 않는다(C10 리뷰 L2)', () => {
+  const harness = (platform: string, current: string | null) => {
+    const fns: Array<(s: string) => void> = [];
+    let removed = 0;
+    let starts = 0;
+    whenForeground(platform, current, (fn) => (fns.push(fn), { remove: () => void removed++ }), () => void starts++);
+    return { emit: (st: string) => fns.forEach((f) => f(st)), get starts() { return starts; }, get removed() { return removed; }, subs: fns.length };
+  };
+  it('Android가 이미 active면 곧바로, iOS는 상태와 무관하게 곧바로(V24 그대로)', () => {
+    expect(harness('android', 'active').starts).toBe(1);
+    expect(harness('ios', 'background').starts).toBe(1);
+    expect(harness('ios', null).starts).toBe(1);
+  });
+  it('Android가 background(헤드리스)면 시작하지 않고, 첫 active에서 한 번만 시작하고 구독을 푼다', () => {
+    const h = harness('android', 'background');
+    expect(h.starts).toBe(0);
+    h.emit('background');
+    h.emit('inactive');
+    expect(h.starts).toBe(0);
+    h.emit('active');
+    expect(h.starts).toBe(1);
+    expect(h.removed).toBe(1);
+    expect(harness('android', null).starts).toBe(0);
+  });
+});
+
+describe('startOta는 반드시 whenForeground를 거친다(C10 재리뷰 경미 — 헤드리스 기동 때 OTA 금지)', () => {
+  it('startOta 본문이 startNow를 직접 부르지 않고 whenForeground에 넘긴다', () => {
+    const src = readFileSync(join(__dirname, '..', 'src', 'ota', 'index.ts'), 'utf8').replace(/\/\/.*$/gm, '');
+    const body = src.slice(src.indexOf('export function startOta('), src.indexOf('function startNow('));
+    expect(body).toMatch(/whenForeground\([\s\S]*?,\s*startNow\);/);
+    expect(body.replace(/whenForeground\([\s\S]*?,\s*startNow\);/, '')).not.toMatch(/startNow\s*\(/);
   });
 });

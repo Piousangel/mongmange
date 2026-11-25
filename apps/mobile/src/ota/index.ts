@@ -36,11 +36,43 @@ export function startOtaWith(env: OtaEnv): boolean {
   }
 }
 
+/**
+ * Android 위젯 헤드리스 기동(C10 리뷰 경미 L2): 위젯 추가·갱신이 프로세스를 차갑게 깨우면 화면 없이 번들 전체가 돈다.
+ * 그때 OTA를 시작하면 ① 그 기동이 '첫 실행'을 차지해 사용자의 진짜 첫 실행에 확인이 나가고 ② 앞으로 오지 않을 background 때문에
+ * 다음 실행이 크래시로 세어져(두 번이면 크래시 루프) 하루 제한을 건너뛰고 ③ 화면 없는 위젯 갱신이 OTA 서버에 요청을 보낸다.
+ * 그래서 Android는 앱이 앞(active)에 있을 때만 시작한다 — 아직 아니면 첫 active까지 미룬다(평소 실행은 곧 active가 온다).
+ * iOS 위젯은 JS를 돌리지 않으므로 iOS는 V24 그대로 곧바로 시작.
+ */
+export function whenForeground(
+  platform: string,
+  currentState: string | null | undefined,
+  subscribe: (fn: (state: string) => void) => { remove: () => void },
+  start: () => void,
+): void {
+  if (platform !== 'android' || currentState === 'active') {
+    start();
+    return;
+  }
+  const sub = subscribe((state) => {
+    if (state !== 'active') return;
+    sub.remove();
+    start();
+  });
+}
+
 let started = false;
 
 export function startOta(): void {
   if (started) return;
   started = true;
+  try {
+    whenForeground(Platform.OS, AppState.currentState, (fn) => AppState.addEventListener('change', fn), startNow);
+  } catch {
+    /* OTA만 꺼진다 — 앱은 뜬다 */
+  }
+}
+
+function startNow(): void {
   try {
     startOtaWith({
       dev: typeof __DEV__ !== 'undefined' && __DEV__ === true,

@@ -15,8 +15,16 @@ function stripBuildSpecific(json) {
   return JSON.stringify(config);
 }
 
+// C10 리뷰 M2: 위젯 타깃(Swift·Info.plist)은 @bacons/apple-targets가 prebuild 때 ios/ 밖(`targets/`)에서 링크해서 기본 해시에 안 들어간다
+// (expo-target.config.js만 config 플러그인으로 들어감) → `targets/`를 통째로 넣는다. 생성 색 자산 Assets.xcassets는 config의 colors에서
+// 나오는 파생물이라 뺀다(config는 이미 해시됨). 시험: test/c10-native.test.ts '위젯 Swift가 바뀌면 런타임이 바뀐다'.
+const EXTRA_SOURCES = [{ type: 'dir', filePath: 'targets', reasons: ['appleTargets'] }];
+const IGNORE_PATHS = ['targets/*/Assets.xcassets/**'];
+
 /** @type {import('expo/fingerprint').Config & { _test: unknown }} */
 module.exports = {
+  extraSources: EXTRA_SOURCES,
+  ignorePaths: IGNORE_PATHS,
   fileHookTransform: (source, chunk) => (source.type === 'contents' && source.id === 'expoConfig' && typeof chunk === 'string' ? stripBuildSpecific(chunk) : chunk),
-  _test: { stripBuildSpecific, BUILD_SPECIFIC_UPDATES_KEYS },
+  _test: { stripBuildSpecific, BUILD_SPECIFIC_UPDATES_KEYS, EXTRA_SOURCES, IGNORE_PATHS },
 };
