@@ -8,42 +8,38 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
     "near-alone.inkstone": {
       "paths": [
         {
-          "d": "M8 70 Q24.1 67.7 40 64 Q62.1 63.6 84 66 Q89 71 94 76 Q90.7 82.6 90 90 Q71.1 92.7 52 94 Q32 92.3 12 92 Q6.9 87.9 4 82 Q6 76 8 70",
+          "d": "M6 68 Q48 65.2 90 62 Q93.4 65.7 96 70 Q95 77 94 84 Q51 86.5 8 90 Q5.3 85.1 3 80 Q4.7 74.1 6 68",
+          "w": 3,
+          "layer": "wash"
+        },
+        {
+          "d": "M9 92 Q51.5 89.2 94 86 Q94.4 88.3 94 90.5 Q52 94 10 97.5 Q9.9 94.7 9 92",
           "w": 4,
           "layer": "wash"
         },
         {
-          "d": "M48 78 Q62 74 76 76",
-          "w": 6.5,
+          "d": "M15 72 Q14 79 16 86",
+          "w": 7,
+          "layer": "ink"
+        },
+        {
+          "d": "M44 74 Q62 69 82 71",
+          "w": 5,
           "layer": "ink"
         }
       ],
       "field": [
         {
-          "k": "drop",
-          "x": 24,
-          "y": 80,
-          "r": 10,
-          "ink": 0.6
-        },
-        {
-          "k": "drop",
-          "x": 24,
-          "y": 80,
-          "r": 7,
-          "ink": 0.38
-        },
-        {
           "k": "curl",
-          "x": 30,
-          "y": 76,
-          "angle": -2.2,
-          "radius": 18
+          "x": 20,
+          "y": 78,
+          "angle": -1.6,
+          "radius": 16
         },
         {
           "k": "tine",
           "x": 50,
-          "y": 62,
+          "y": 60,
           "dx": 0,
           "dy": -6,
           "lambda": 24,
@@ -53,22 +49,38 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       "seat": [
         70,
         46
-      ]
+      ],
+      "raster": {
+        "box": [
+          4,
+          50,
+          92,
+          48
+        ],
+        "keep": [],
+        "cover": 0.85
+      },
+      "zoom": 1.3
     },
     "near-with.letter": {
       "paths": [
         {
-          "d": "M2 20 Q50 24 98 19",
-          "w": 2.4,
+          "d": "M2 58 Q50 61 98 57",
+          "w": 2.6,
           "layer": "ink"
         },
         {
-          "d": "M38 34 Q58.8 39.8 80 44 Q78.6 58.3 74 72 Q57 69 40 66 Q37.2 60 32 56 Q34.2 44.8 38 34",
+          "d": "M14 4 Q50 4.4 86 4 Q87.3 29.5 87 55 Q50 55.5 13 56 Q14.3 30 14 4",
+          "w": 1,
+          "layer": "wash"
+        },
+        {
+          "d": "M40 66 Q62 67.5 84 68 Q87 75.8 88 84 Q61 83 34 82 Q37.9 74.4 40 66",
           "w": 1.5,
           "layer": "wash"
         },
         {
-          "d": "M36.5 33.6 Q33.1 44.5 30.5 55.6 Q27.2 48.9 25.5 41.6 Q31 37.6 36.5 33.6",
+          "d": "M38.6 66.2 Q35.6 73.5 33 81 Q31.3 76.6 30.6 72 Q34.6 69.1 38.6 66.2",
           "w": 3.5,
           "layer": "wash"
         }
@@ -77,38 +89,41 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
         {
           "k": "tine",
           "x": 56,
-          "y": 22,
+          "y": 60,
           "dx": 0,
-          "dy": 10,
-          "lambda": 20,
+          "dy": 6,
+          "lambda": 16,
           "gauss": true
         },
         {
           "k": "tine",
-          "x": 56,
-          "y": 70,
+          "x": 60,
+          "y": 92,
           "dx": 0,
-          "dy": 7,
-          "lambda": 16,
+          "dy": 5,
+          "lambda": 14,
           "gauss": true
         }
       ],
       "seat": [
-        20,
-        84
+        18,
+        80
       ],
       "raster": {
         "box": [
-          28,
-          22,
-          46,
-          50
+          30,
+          63,
+          60,
+          24
         ],
         "keep": [
-          0
+          0,
+          1
         ],
-        "cover": 0.85
-      }
+        "cover": 0.85,
+        "stretch": true
+      },
+      "zoom": 1.3
     },
     "near-alone.washing-line": {
       "paths": [
@@ -146,7 +161,18 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       "seat": [
         50,
         84
-      ]
+      ],
+      "raster": {
+        "box": [
+          10,
+          6,
+          80,
+          66
+        ],
+        "keep": [],
+        "cover": 0.85
+      },
+      "zoom": 1.35
     },
     "near-alone.sprout": {
       "paths": [
@@ -201,7 +227,8 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       "seat": [
         78,
         52
-      ]
+      ],
+      "zoom": 1.4
     },
     "far-alone.paper-boat": {
       "paths": [
@@ -331,78 +358,103 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
     "far-with.stepping-stones": {
       "paths": [
         {
-          "d": "M32 84.5 C38.6 84.5 44 82.5 44 80 C44 77.5 38.6 75.5 32 75.5 C25.4 75.5 20 77.5 20 80 C20 82.5 25.4 84.5 32 84.5",
+          "d": "M50 89.5 Q51.8 87.1 53.2 84.4 Q62.1 83.7 71 84 Q74.5 86.6 78 89.2 Q75.9 91.1 74.5 93.6 Q65 93.7 55.6 93.2 Q52.9 91.1 50 89.5",
           "w": 4,
           "layer": "wash"
         },
         {
-          "d": "M52 69.6 C57.2 69.6 61.5 68 61.5 66 C61.5 64 57.2 62.4 52 62.4 C46.8 62.4 42.5 64 42.5 66 C42.5 68 46.8 69.6 52 69.6",
+          "d": "M25.5 76 Q27.4 74.3 29 72.2 Q34.6 71.6 40.2 72 Q43.4 73.6 46.5 75.2 Q44.3 77.2 42.8 79.8 Q34.9 79.9 27.1 79.5 Q26.5 77.6 25.5 76",
           "w": 3.6,
           "layer": "wash"
         },
         {
-          "d": "M68 54.9 C72.1 54.9 75.5 53.6 75.5 52 C75.5 50.4 72.1 49.1 68 49.1 C63.9 49.1 60.5 50.4 60.5 52 C60.5 53.6 63.9 54.9 68 54.9",
+          "d": "M49.6 62.8 Q51.6 61 53.2 58.9 Q58.3 58.4 63.5 58.9 Q64.9 60.3 66.4 61.7 Q64.2 63 62.6 65.1 Q57.2 65.2 51.7 64.9 Q50.8 63.6 49.6 62.8",
           "w": 3.2,
           "layer": "wash"
         },
         {
-          "d": "M80 42.3 C83.2 42.3 85.8 41.3 85.8 40 C85.8 38.7 83.2 37.7 80 37.7 C76.8 37.7 74.2 38.7 74.2 40 C74.2 41.3 76.8 42.3 80 42.3",
+          "d": "M29.4 49.4 Q31.3 48.1 32.9 46.4 Q36.2 45.8 39.6 46.1 Q41.1 47.6 42.6 49 Q41.5 50.1 41.3 51.6 Q36.5 51.7 31.7 51.4 Q30.7 50.2 29.4 49.4",
           "w": 2.8,
+          "layer": "wash"
+        },
+        {
+          "d": "M24.8 36.1 Q25.7 35.1 26.3 33.9 Q29.3 33.3 32.3 33.8 Q33.8 35 35.2 36.2 Q34 36.8 33.6 38.1 Q29.5 38.3 25.3 37.9 Q25.3 37 24.8 36.1",
+          "w": 2.4,
           "layer": "wash"
         }
       ],
       "field": [
         {
-          "k": "drop",
-          "x": 32,
-          "y": 80,
-          "r": 10.2,
-          "ink": 0
+          "k": "tine",
+          "x": 50,
+          "y": 72,
+          "dx": 18,
+          "dy": 0,
+          "lambda": 4,
+          "len": 70
         },
         {
-          "k": "drop",
-          "x": 52,
-          "y": 66,
-          "r": 8.075,
-          "ink": 0
+          "k": "tine",
+          "x": 50,
+          "y": 58,
+          "dx": -14,
+          "dy": 0,
+          "lambda": 3,
+          "len": 56
         },
         {
-          "k": "drop",
-          "x": 68,
-          "y": 52,
-          "r": 6.375,
-          "ink": 0
-        },
-        {
-          "k": "drop",
-          "x": 80,
-          "y": 40,
-          "r": 4.93,
-          "ink": 0
+          "k": "tine",
+          "x": 50,
+          "y": 86,
+          "dx": -10,
+          "dy": 0,
+          "lambda": 3,
+          "len": 60
         }
       ],
       "seat": [
-        14,
-        88
+        64,
+        78
       ],
       "friend": [
-        86,
-        26,
+        32,
+        31,
         0.5
-      ]
+      ],
+      "raster": {
+        "box": [
+          14,
+          30,
+          80,
+          66
+        ],
+        "keep": [],
+        "cover": 0.85
+      },
+      "zoom": 1.3
     },
     "center.leaf": {
       "paths": [
         {
-          "d": "M12 34 Q28 18 50 20",
-          "w": 8,
+          "d": "M12 36 Q17.3 30.3 22 24 Q29.7 19.8 38 17 Q48 18 58 19 Q51.4 24.4 46 31 Q37.1 34.4 28 37 Q20 36.1 12 36",
+          "w": 2.5,
+          "layer": "wash"
+        },
+        {
+          "d": "M14 35 Q32 27 55 20",
+          "w": 1.4,
+          "layer": "ink"
+        },
+        {
+          "d": "M13 36 Q9 39 5 43",
+          "w": 1.8,
           "layer": "ink"
         }
       ],
       "field": [
         {
           "k": "tine",
-          "x": 60,
+          "x": 68,
           "y": 26,
           "dx": 16,
           "dy": 1,
@@ -411,7 +463,7 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
         },
         {
           "k": "tine",
-          "x": 66,
+          "x": 72,
           "y": 36,
           "dx": 14,
           "dy": 1,
@@ -422,7 +474,8 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       "seat": [
         24,
         72
-      ]
+      ],
+      "zoom": 1.4
     },
     "far-alone.path": {
       "paths": [
@@ -481,12 +534,13 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       "seat": [
         42,
         96
-      ]
+      ],
+      "zoom": 1.3
     },
     "near-with.palm": {
       "paths": [
         {
-          "d": "M20 82 Q50 98 80 82",
+          "d": "M34 66 Q64 86 94 64",
           "w": 2.4,
           "layer": "wash"
         }
@@ -494,47 +548,39 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       "field": [
         {
           "k": "tine",
-          "x": 50,
+          "x": 70,
           "y": 98,
-          "dx": 0,
-          "dy": -12,
-          "lambda": 18,
+          "dx": 5,
+          "dy": -10,
+          "lambda": 14,
           "gauss": true
         },
         {
           "k": "tine",
-          "x": 14,
-          "y": 78,
-          "dx": 0,
-          "dy": -18,
-          "lambda": 8,
-          "gauss": true
-        },
-        {
-          "k": "tine",
-          "x": 86,
-          "y": 78,
-          "dx": 0,
-          "dy": -18,
-          "lambda": 8,
-          "gauss": true
+          "x": 50,
+          "y": 30,
+          "dx": 16,
+          "dy": 0,
+          "lambda": 4,
+          "len": 70
         }
       ],
       "seat": [
-        48,
-        46
+        32,
+        54
       ],
       "raster": {
         "box": [
-          6,
-          55,
-          88,
-          18
+          38,
+          50,
+          58,
+          30
         ],
         "keep": [],
         "cover": 0.3,
         "stretch": true
-      }
+      },
+      "zoom": 1.3
     },
     "near-with.umbrella": {
       "paths": [
@@ -713,7 +759,8 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
         14,
         80,
         0.55
-      ]
+      ],
+      "zoom": 1.3
     },
     "center.wind": {
       "paths": [
@@ -781,7 +828,8 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       "seat": [
         24,
         64
-      ]
+      ],
+      "zoom": 1.4
     },
     "center.snow": {
       "paths": [
@@ -977,7 +1025,8 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
         50,
         86
       ],
-      "water": "clear"
+      "water": "clear",
+      "zoom": 1.3
     }
   },
 };

@@ -27,6 +27,12 @@ const sources = (): Readonly<Record<number, Readonly<Record<string, readonly [nu
     'far-alone.paper-boat': [require('../../../assets/motifs/r1/far-alone.paper-boat.webp'), require('../../../assets/motifs/r1/far-alone.paper-boat.mask.webp')],
     'near-with.palm': [require('../../../assets/motifs/r1/near-with.palm.webp'), require('../../../assets/motifs/r1/near-with.palm.mask.webp')],
     'near-with.window-hand': [require('../../../assets/motifs/r1/near-with.window-hand.webp'), require('../../../assets/motifs/r1/near-with.window-hand.mask.webp')],
+    'near-alone.quilt': [require('../../../assets/motifs/r1/near-alone.quilt.webp'), require('../../../assets/motifs/r1/near-alone.quilt.mask.webp')],
+    'near-alone.teacup': [require('../../../assets/motifs/r1/near-alone.teacup.webp'), require('../../../assets/motifs/r1/near-alone.teacup.mask.webp')],
+    'near-with.teacup-two': [require('../../../assets/motifs/r1/near-with.teacup-two.webp'), require('../../../assets/motifs/r1/near-with.teacup-two.mask.webp')],
+    'near-alone.inkstone': [require('../../../assets/motifs/r1/near-alone.inkstone.webp'), require('../../../assets/motifs/r1/near-alone.inkstone.mask.webp')],
+    'far-with.stepping-stones': [require('../../../assets/motifs/r1/far-with.stepping-stones.webp'), require('../../../assets/motifs/r1/far-with.stepping-stones.mask.webp')],
+    'near-alone.washing-line': [require('../../../assets/motifs/r1/near-alone.washing-line.webp'), require('../../../assets/motifs/r1/near-alone.washing-line.mask.webp')],
   },
 });
 

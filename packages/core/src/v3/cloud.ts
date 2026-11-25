@@ -14,7 +14,7 @@ import { parseState, serializeState } from '../sim/save';
 import { SIM_SCHEMA_VERSION } from '../sim/reduce';
 import type { Millis, State as SimState } from '../sim/types';
 import { STORED_SENSES } from './lexicon';
-import { MEAL_KINDS, TREAT_KINDS, isPantryItem, openPantry, type Pantry } from './meal';
+import { MEAL_KINDS, TREAT_KINDS, isPantryItem, likedItemOf, openPantry, type Pantry } from './meal';
 import { boundaryProgress, parseV3, uploadV3, LIFE_NIGHTS, V3_UPLOAD_FIELDS, V3_VERSION, type V3Block, type V3State, type Word } from './state';
 
 /** 올리는 v3 블록의 키 = 판 + 허용 목록. 이 밖의 키가 있으면 서버·앱 모두 받지 않는다 */
@@ -224,7 +224,7 @@ export function stackV3(target: V3State, other: V3State | null): V3State {
   const jeongDays = same ? Math.max(r.jeongDays, Math.min(other.sim.relation.jeongDays, jeongCapOf(target.sim))) : r.jeongDays;
   const sim = jeongDays === r.jeongDays ? target.sim : { ...target.sim, relation: { ...r, jeongDays } };
   const united = unionPantry(target.v3.pantry, other.v3.pantry);
-  const pantry = openPantry(united, boundaryProgress(target.v3, sim)).pantry;
+  const pantry = openPantry(united, boundaryProgress(target.v3, sim), likedItemOf(target.sim.birth.seed)).pantry;
   let captionsShown = target.v3.captionsShown;
   if (same && other.v3.captionsShown) {
     const a = target.v3.captionsShown ?? other.v3.captionsShown.map(() => 0);

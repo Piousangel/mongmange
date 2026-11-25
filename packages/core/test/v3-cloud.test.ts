@@ -223,7 +223,7 @@ describe("'쌓이기만' 병합 — 공방 합집합·정 최댓값(V27b)", () =
     expect(huge.sim.relation.jeongDays).toBe(v3.jeongCapOf(server.sim));
     expect(v3.checkUploadBodyV3(v3.uploadBodyV3(huge, SAVED))).toEqual({ kind: 'ok' });
     expect(v3.stackV3(withJeong(server, 3), withJeong(server, 0)).sim.relation.jeongDays).toBe(3);
-    expect(m.v3.pantry).toEqual({ meal: ['clear', 'pine'], treat: ['pattern', 'ribbon', 'dewdrop'] }); // 정 5 경계 → 이슬 한 방울도 열림
+    expect(m.v3.pantry).toEqual({ meal: ['clear', 'pine'], treat: ['pattern', 'ribbon'] }); // 합집합(이슬 한 방울은 V9b부터 18밤 — 정으로는 열리지 않음)
     const other = withJeong(withPantry(days(2, {}, fresh(0x9999)), ['clear'], ['pattern']), 1);
     expect(v3.sameCreatureV3(other, local)).toBe(false);
     const m2 = v3.stackV3(other, local);

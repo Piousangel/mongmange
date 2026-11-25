@@ -20,7 +20,15 @@ export const PICKS = {
   'near-with.umbrella': 'umbrella-o1',
   'far-alone.paper-boat': 'boat-o1',
   'near-with.palm': 'palm-o1', // 6차: o3(넓은 V)가 부메랑으로 읽혀 가는 U로
-  'near-with.window-hand': 'window-o3',
+  // 8차(3차 블라인드 안전 — 손자국 창이 공포): 손 없는 창살 창 + 창턱(windowsill-o1)
+  'near-with.window-hand': 'windowsill-o1',
+  // 8차(오너 충전 → 열린 판 1에 바로): 블라인드 3회 '선화·벡터·뭉개진 덩어리' 6장
+  'near-alone.quilt': 'quilt-o1',
+  'near-alone.teacup': 'teacup-o1',
+  'near-with.teacup-two': 'teacuptwo-o2',
+  'near-alone.inkstone': 'inkstone-o2',
+  'far-with.stepping-stones': 'stones-o3',
+  'near-alone.washing-line': 'washingline-o3',
 };
 const picks = { ...PICKS, ...(process.env.PICKS ? JSON.parse(process.env.PICKS) : {}) };
 /**
@@ -28,13 +36,13 @@ const picks = { ...PICKS, ...(process.env.PICKS ? JSON.parse(process.env.PICKS) 
  * clipBottom = 사물 경계 아래쪽 이 비율을 지움 — 종이배 밑 장식 물결(물살은 코드 장이 맡는다)
  */
 // 7차: 종이배 밑은 직선으로 자르지 않고 아래 22%에서 번지듯 사라지게(fadeBottom), 창가 손은 중간 농담을 더 올려(gamma) 밤 판에서도 손이 서게
-const OPTS = { 'near-with.letter': { rotate: -28 }, 'far-alone.paper-boat': { clipBottom: 0.12, fadeBottom: 0.22 }, 'near-with.window-hand': { gamma: 0.6 } };
+const OPTS = { 'near-with.letter': { rotate: -28 }, 'far-alone.paper-boat': { clipBottom: 0.12, fadeBottom: 0.22 }, 'near-with.window-hand': { gamma: 0.8 } };
 /** 판(artRev, D-13): 그림을 바꾸면 판을 올리고 이전 판 폴더는 지우지 않는다(시험이 고정) */
 const REV = Number(process.env.ART_REV ?? 1);
 const SRC = path.resolve('docs/creative/c14b-ref');
 const OUT = path.resolve(`apps/mobile/assets/motifs/r${process.env.ART_REV ?? 1}`);
 const CAP = 0.72;
-const LONG = 640;
+const LONG = 448; // 8차: 12장으로 늘어 판당 예산(760KB) 안에 — 640 → 448(알파는 무손실이라 품질보다 크기가 듣는다)
 mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch();

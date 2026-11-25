@@ -38,6 +38,8 @@ export interface Motif {
   friend?: readonly [number, number, number];
   /** C14b 4차: 사물 한 겹 래스터 자리(`dreamMotifShapes.ts` MotifShape.raster) */
   raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number; stretch?: true };
+  /** 그림 상자 배율(8차, `MotifShape.zoom`) */
+  zoom?: number;
   /** 'clear' = 경로를 먹으로 그리지 않는다(소리 없는 눈 — 그림은 `field`의 맑은 방울) */
   water?: 'clear';
   /** 정본에 없어 개발이 쓴 초안 문구 슬롯(i18n 키 기준). 검수로 확정되면 지운다 — `motifBlockers`가 제품 출시를 막는다 */
@@ -48,7 +50,7 @@ export interface Motif {
 const m = (id: string, zone: MotifZone, family: string, unlockAtCards: number): Motif => {
   const shape = MOTIF_SHAPES[id];
   if (unlockAtCards === 0 || !shape) return { id, zone, family, unlockAtCards, placeholder: unlockAtCards > 0, paths: [] };
-  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, field: shape.field, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}), ...(shape.raster ? { raster: shape.raster } : {}) };
+  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, field: shape.field, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}), ...(shape.raster ? { raster: shape.raster } : {}), ...(shape.zoom ? { zoom: shape.zoom } : {}) };
 };
 
 /**
@@ -149,6 +151,14 @@ export interface DreamPoolOptions {
   usable?: (id: string) => boolean;
   /** 시험용 모티프 표(기본 `MOTIFS`) */
   motifs?: readonly Motif[];
+  /**
+   * 이미 본 모티프 id(현상한 카드 기록의 `motifId`, V9b). 여기 든 모티프는 해금 값과 상관없이 풀에 남는다 —
+   * '본 꿈은 닫히지 않는다'(daily-loop v1.1 5-1). 원격 `unlock`은 앞당기기만 하므로 해금이 늦춰지는 길은 번들 표를 바꾸는
+   * 업데이트(앱·JS 번들)뿐이고, 이 규칙은 그때 이미 만난 꿈이 빠지지 않게 하는 보험이다. 원격 앞당기기가 거둬질 때(값 삭제·
+   * 크래시 탈출)도 그동안 본 꿈은 남는다. 구역·보름 창·사용 가능 거름은 그대로 적용한다. 고정 번들 값이고 앞당기기 철회가
+   * 없으면 결과가 바뀌지 않는다(본 모티프는 늘 이미 해금됨)
+   */
+  seen?: readonly string[];
 }
 
 /** 해금 값: 원격 값은 번들보다 작을 때만 쓴다(늦추는 값·숫자 아닌 값 무시) */
@@ -162,10 +172,11 @@ export function quadrantOf(v: AxisRecord): MotifQuadrant {
   return `${v.curiosity >= 0 ? 'far' : 'near'}-${v.closeness >= 0 ? 'with' : 'alone'}`;
 }
 
-/** 풀(2-5 순서 1): 내 사분면 + 가운데 중 해금된 것 × 구도 3, **모티프 id 오름차순 → 구도 오름차순** */
+/** 풀(2-5 순서 1): 내 사분면 + 가운데 중 해금됐거나 이미 본 것(V9b) × 구도 3, **모티프 id 오름차순 → 구도 오름차순** */
 export function dreamPool(quadrant: MotifQuadrant, developed: number, opts: DreamPoolOptions = {}): Scene[] {
+  const seen = new Set(opts.seen ?? []);
   const list = (opts.motifs ?? MOTIFS)
-    .filter((x) => (x.zone === quadrant || x.zone === 'center') && unlockAt(x, opts.unlock) <= developed)
+    .filter((x) => (x.zone === quadrant || x.zone === 'center') && (unlockAt(x, opts.unlock) <= developed || seen.has(x.id)))
     .filter((x) => !(opts.moonWindow && x.id === 'center.moon'))
     .filter((x) => !opts.usable || opts.usable(x.id))
     .sort((a, b) => (a.id < b.id ? -1 : 1));
@@ -311,11 +322,25 @@ export function motifForRev(id: string, rev: number): Motif | null {
   if (!base || rev >= DREAM_ART_REV) return base;
   const sh = ART_REV_SHAPES_ARCHIVE[rev]?.[id];
   if (!sh) return base;
-  return { ...base, paths: sh.paths, field: sh.field, seat: sh.seat, friend: sh.friend, water: sh.water, raster: sh.raster };
+  return { ...base, paths: sh.paths, field: sh.field, seat: sh.seat, friend: sh.friend, water: sh.water, raster: sh.raster, zoom: sh.zoom };
 }
 /** 판마다 래스터 사물을 쓰는 모티프(앱 에셋 `r<판>/<id>.webp` + `.mask.webp`) */
 export const ART_REV_RASTERS: Readonly<Record<number, readonly string[]>> = {
-  1: ['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand'],
+  // 8차(오너 충전 → 열린 판 1에 바로): 이불·찻잔·찻잔 둘·벼루·징검다리·빨랫줄 래스터를 더하고 창가 손은 손 없는 창살 창으로 바꿨다
+  1: [
+    'near-with.letter',
+    'far-alone.kite',
+    'near-with.umbrella',
+    'far-alone.paper-boat',
+    'near-with.palm',
+    'near-with.window-hand',
+    'near-alone.quilt',
+    'near-alone.teacup',
+    'near-with.teacup-two',
+    'near-alone.inkstone',
+    'far-with.stepping-stones',
+    'near-alone.washing-line',
+  ],
 };
 /**
  * 카드의 그림 판. 판 0 = 빌드 1 그림(꿈 콘텐츠가 꺼진 밤의 카드 — 판 번호 없음, 코드 리뷰 H1). 새 모티프(C6) 카드는 판 번호가 없어도

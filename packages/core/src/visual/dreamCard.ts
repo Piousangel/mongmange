@@ -79,7 +79,8 @@ export interface DreamScene {
   ink: [number, number, number];
   vessels: DreamVessel[];
   /** 곁의 다른 방울(몽망이 밖, c0 기준). 그림으로 그린다 */
-  friend: { x: number; y: number; r: number } | null;
+  /** hold = 손잡음(8차 바다 손 — 곁이 돌로 읽혀 두 방울을 잇는 손 한 줌을 그린다) */
+  friend: { x: number; y: number; r: number; hold?: true } | null;
   /** 상한 때문에 합치거나 뺀 조작 수(0이어야 정상 — 테스트가 지킨다) */
   trimmed: number;
   /** 그림 판(0 = 빌드 1 그림). 판 0에서는 키 자체가 없다(빌드 1 장면 해시 그대로) */
@@ -278,6 +279,8 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
   // 그림 판(코드 리뷰 H1·M-2): 판 0 = 빌드 1 그림(꿈 콘텐츠가 꺼진 카드 — 판 번호 없음), 판 1 = C14b 그림. 빌드 1 모티프의 바뀐 그림(창가 손·
   // 찻잔 둘·바다 손·곁 방울 규칙)은 판 1 카드(꿈 콘텐츠가 켜진 밤에 받은 카드)에만 쓴다
   const rev = dreamArtRevOf(card);
+  // 판 갈래(코드 확인 3차 낮음): 판 r의 장면 규칙은 `rev >= r` 갈래로만 더하고, 닫힌 판의 갈래는 고치지 않는다(판 2를 만들면 v2 = rev >= 2로
+  // 새 갈래를 둔다). 시험이 판마다 `artRev: r` 카드 25모티프 장면을 다시 계산해 기록 해시와 비교한다(SCENE_SNAPSHOT_BY_REV)
   const v1 = rev >= 1;
   const B = clamp(card.inkTone, 0, 1);
   const T = clamp(card.flow, -1, 1);
@@ -374,7 +377,7 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
   // 형상은 카드의 판으로(지난 판 카드 = 보관 형상, 코드 리뷰 M-2·2차 ①)
   const forRev = motifForRev(motif, rev);
   const inkDef = forRev && forRev.paths.length > 0 && forRev.seat ? forRev : undefined;
-  const inkPlace = inkDef?.seat ? motifInkPlacement(inkDef.seat, card.composition, R) : null;
+  const inkPlace = inkDef?.seat ? motifInkPlacement(inkDef.seat, card.composition, R, inkDef.zoom ?? 1) : null;
   if (inkPlace) {
     anchor.x = inkPlace.anchor.x;
     anchor.y = inkPlace.anchor.y;
@@ -489,20 +492,24 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       // 창가의 손: 짙은 테 맑은 방울 넷을 맞대 창살, 아래에서 들어오는 담묵 손(네 가닥 끌림)
       const hx = side * 0.27;
       const hy = 0.25;
-      const h = P(hx, hy);
-      rings(motifPre, h.x, h.y, [[0.14, 0.1], [0.05, 0.06], [0.24, 0.035]]);
-      const d = Math.hypot(hx, hy);
-      for (let k = 0; k < 4; k++) {
-        const o = (k - 1.5) * 0.028;
-        post.push({ op: { k: 'tine', x: hx * 0.7 + (-hy / d) * o, y: hy * 0.7 + (hx / d) * o, dx: (-hx / d) * 0.04, dy: (-hy / d) * 0.04, lambda: 0.01, len: 0.09 }, p: 2 });
+      if (!v1) {
+        // 판 0(빌드 1): 아래에서 들어오는 담묵 손(맑은 방울 + 네 가닥 끌림). 판 1은 손을 그리지 않는다(8차 — 3차 블라인드 안전: 창의 손자국이 공포)
+        const h = P(hx, hy);
+        rings(motifPre, h.x, h.y, [[0.14, 0.1], [0.05, 0.06], [0.24, 0.035]]);
+        const d = Math.hypot(hx, hy);
+        for (let k = 0; k < 4; k++) {
+          const o = (k - 1.5) * 0.028;
+          post.push({ op: { k: 'tine', x: hx * 0.7 + (-hy / d) * o, y: hy * 0.7 + (hx / d) * o, dx: (-hx / d) * 0.04, dy: (-hy / d) * 0.04, lambda: 0.01, len: 0.09 }, p: 2 });
+        }
       }
       // 창: 짙은 테 맑은 방울 넷(단추·신호등으로 읽힘 — C14b 아트 리뷰 17)을 버리고, 옅은 담묵 방울 하나가 띠를 밀어낸 자리 위에
       // 담묵 면 창 네 칸 + 밝은 바탕 틈(그림 `window`)
       const wx = -side * 0.14;
       const wy = -0.19;
       if (v1) {
-        final.push({ k: 'drop', x: wx, y: wy, r: 0.085, ink: 0.16 });
-        vessels.push({ kind: 'window', x: wx, y: wy - 0.075, w: 0.118, h: 0.15, handle: 1, friend: false });
+        // 8차: 창호지 너머 등불이 비친 창살 창, 몽망이는 창턱 아래에 기대 앉는다 — 창 자리는 띠를 밀어낸 맑은 물(등불 빛)
+        final.push({ k: 'drop', x: -side * 0.1, y: -0.2, r: 0.12, ink: 0 });
+        vessels.push({ kind: 'window', x: -side * 0.1, y: -0.33, w: 0.24, h: 0.27, handle: 1, friend: false });
       } else {
         // 판 0(빌드 1): 짙은 테 맑은 방울 넷을 맞대 창살
         for (let k = 0; k < 4; k++) {
@@ -541,9 +548,15 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       }
       if (motif === 'far-with.sea-hand') {
         // 손잡고 본 바다: 곁에 작은 방울 하나, 두 자리가 맞닿아 한 웅덩이
-        friend = { x: side * 0.135, y: 0.022, r: 0.6 };
-        final.push({ k: 'drop', x: side * 0.135, y: 0.02, r: pool * 0.66, ink: 0 });
-        final.push({ k: 'drop', x: side * 0.07, y: 0.04, r: 0.03, ink: 0 });
+        // 8차(3차 블라인드: 눈 없는 회색 타원이 돌·그림자로 읽힘): 판 1은 곁을 조금 키워 몸과 같은 물가에 세우고 두 방울을 손 한 줌으로 잇는다
+        friend = v1 ? { x: side * 0.185, y: 0.004, r: 0.72, hold: true } : { x: side * 0.135, y: 0.022, r: 0.6 };
+        if (v1) {
+          final.push({ k: 'drop', x: side * 0.185, y: 0.004, r: pool * 0.72, ink: 0 });
+          final.push({ k: 'drop', x: side * 0.095, y: 0.03, r: 0.035, ink: 0 });
+        } else {
+          final.push({ k: 'drop', x: side * 0.135, y: 0.02, r: pool * 0.66, ink: 0 });
+          final.push({ k: 'drop', x: side * 0.07, y: 0.04, r: 0.03, ink: 0 });
+        }
       } else {
         // 혼자 보는 바다: 수평선 끝의 금빛 해 한 점
         final.push({ k: 'drop', x: side * 0.36, y: -0.02, r: 0.0035, ink: 1, gold: true });
@@ -559,7 +572,8 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
         const d = R * (0.45 + 0.6 * rnd());
         const p = P(ringC.x + Math.cos(a) * d, ringC.y + Math.sin(a) * d);
         // 판 1: 먹점은 담묵(몸 이외 덩어리 먹 상한 BLOB_INK_MAX — 검은 둥근 점이 두 번째 몽망이로 읽혔다, 2차 블라인드)
-        late.push({ k: 'drop', x: p.x, y: p.y, r: 0.0032 + 0.005 * rnd() * rnd(), ink: v1 ? 0.55 : 0.85, gold: k % 3 === 0 || undefined });
+        // 8차(64px에서 사라짐): 판 1은 점 지름 1.5배
+        late.push({ k: 'drop', x: p.x, y: p.y, r: (0.0032 + 0.005 * rnd() * rnd()) * (v1 ? 1.5 : 1), ink: v1 ? 0.55 : 0.85, gold: k % 3 === 0 || undefined });
       }
       friend = { x: -side * 0.3, y: -0.26, r: 0.5 };
       final.push({ k: 'drop', x: -side * 0.3, y: -0.262, r: pool * 0.55, ink: 0 });

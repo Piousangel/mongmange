@@ -7,27 +7,27 @@
     "rev": 1,
     "rotate": -28,
     "src": "letter-o2",
-    "w": 640,
-    "h": 637,
-    "aspect": 1.0047,
+    "w": 448,
+    "h": 446,
+    "aspect": 1.0045,
     "paper": 247,
     "ink": 109
   },
   "far-alone.kite": {
     "rev": 1,
     "src": "kite-o3",
-    "w": 494,
-    "h": 640,
-    "aspect": 0.7719,
+    "w": 345,
+    "h": 448,
+    "aspect": 0.7701,
     "paper": 248,
     "ink": 34
   },
   "near-with.umbrella": {
     "rev": 1,
     "src": "umbrella-o1",
-    "w": 586,
-    "h": 640,
-    "aspect": 0.9156,
+    "w": 410,
+    "h": 448,
+    "aspect": 0.9152,
     "paper": 245,
     "ink": 29
   },
@@ -36,29 +36,83 @@
     "clipBottom": 0.12,
     "fadeBottom": 0.22,
     "src": "boat-o1",
-    "w": 640,
-    "h": 402,
-    "aspect": 1.592,
+    "w": 448,
+    "h": 281,
+    "aspect": 1.5943,
     "paper": 240,
     "ink": 86
   },
   "near-with.palm": {
     "rev": 1,
     "src": "palm-o1",
-    "w": 640,
-    "h": 441,
-    "aspect": 1.4512,
+    "w": 448,
+    "h": 309,
+    "aspect": 1.4498,
     "paper": 248,
     "ink": 85
   },
   "near-with.window-hand": {
     "rev": 1,
-    "gamma": 0.6,
-    "src": "window-o3",
-    "w": 631,
-    "h": 640,
-    "aspect": 0.9859,
-    "paper": 246,
-    "ink": 84
+    "gamma": 0.8,
+    "src": "windowsill-o1",
+    "w": 448,
+    "h": 424,
+    "aspect": 1.0566,
+    "paper": 254,
+    "ink": 72
+  },
+  "near-alone.quilt": {
+    "rev": 1,
+    "src": "quilt-o1",
+    "w": 448,
+    "h": 240,
+    "aspect": 1.8667,
+    "paper": 249,
+    "ink": 60
+  },
+  "near-alone.teacup": {
+    "rev": 1,
+    "src": "teacup-o1",
+    "w": 357,
+    "h": 448,
+    "aspect": 0.7969,
+    "paper": 247,
+    "ink": 67
+  },
+  "near-with.teacup-two": {
+    "rev": 1,
+    "src": "teacuptwo-o2",
+    "w": 444,
+    "h": 448,
+    "aspect": 0.9911,
+    "paper": 237,
+    "ink": 38
+  },
+  "near-alone.inkstone": {
+    "rev": 1,
+    "src": "inkstone-o2",
+    "w": 448,
+    "h": 363,
+    "aspect": 1.2342,
+    "paper": 248,
+    "ink": 26
+  },
+  "far-with.stepping-stones": {
+    "rev": 1,
+    "src": "stones-o3",
+    "w": 407,
+    "h": 448,
+    "aspect": 0.9085,
+    "paper": 247,
+    "ink": 58
+  },
+  "near-alone.washing-line": {
+    "rev": 1,
+    "src": "washingline-o3",
+    "w": 448,
+    "h": 279,
+    "aspect": 1.6057,
+    "paper": 242,
+    "ink": 122
   }
 }

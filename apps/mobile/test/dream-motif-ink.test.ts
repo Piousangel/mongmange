@@ -104,3 +104,19 @@ describe('앱 에셋 등록 = 판 목록(코드 리뷰 H2·M-1)', () => {
     }
   });
 });
+
+describe('밤 판 글 대비(8차 — 3차 블라인드: 보조 줄·날 점이 낮은 대비)', () => {
+  it('밤 보조 줄 토큰(NIGHT_SUB_TEXT)은 밤 바탕 대비 4.5:1 이상이고, 낮 보조 줄 색이 밤에 이 토큰으로 바뀐다', async () => {
+    const { NIGHT_SUB_TEXT, cardTextColor } = await import('../src/render/dreamCard/renderImage.types');
+    const { PALETTE } = await import('@mong/core');
+    const lin = (c: number) => (c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+    const L = (hex: string) => {
+      const n = parseInt(hex.slice(1), 16);
+      return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+    };
+    const ratio = (a: string, b: string) => (Math.max(L(a), L(b)) + 0.05) / (Math.min(L(a), L(b)) + 0.05);
+    expect(ratio(NIGHT_SUB_TEXT, PALETTE.night.bg)).toBeGreaterThanOrEqual(4.5);
+    expect(cardTextColor('#6B625A', 'night')).toBe(NIGHT_SUB_TEXT);
+    expect(cardTextColor('#6B625A', 'day')).toBe('#6B625A');
+  });
+});
