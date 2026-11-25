@@ -85,7 +85,11 @@ describe('internal-test config 결과(오너 키 없음)', () => {
     expect(out.android?.package).toBe('com.piousangel.mongmange.internaltest');
     expect(out.ios?.bundleIdentifier).toBe('com.piousangel.mongmange.internaltest');
     expect(out.name).toBe(`${app.name} (시험)`);
-    expect(out.extra?.internalTest).toEqual({ buildId: 'b-1', commit: 'c-1' });
+    expect(out.extra?.internalTest).toBe(true);
+  });
+  it('빌드마다 다른 EAS 값(빌드 id·커밋)은 config에 들어가지 않는다 — 로컬·EAS fingerprint가 같아야 한다(빌드 0b52cf57 런타임 불일치 재발 방지)', () => {
+    expect(JSON.stringify(out)).not.toMatch(/b-1|c-1/);
+    expect(resolve(profileEnv('internal-test'))).toEqual(out);
   });
   it('OTA 꺼짐: enabled false, 채널 헤더·서명 없음, 설치 id 헤더는 상수로 덮음', () => {
     expect(out.updates?.enabled).toBe(false);

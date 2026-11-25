@@ -5,7 +5,9 @@
 //  ③ 앱 링크를 아예 넣지 않는다: ios.associatedDomains, android의 mongmang.ink autoVerify intentFilter 제거
 //     (키 없이 넣으면 검증 실패 링크가 되고, 시험판이 본 앱의 링크를 가로채지도 않게) — withAppLinks는 이 모드에서 '없음'을 검사한다
 //  ④ OTA는 withSelfHostedUpdates가 이 모드에서 끈다(updates.enabled false, 채널 헤더·서명 없음)
-//  ⑤ extra.internalTest = { buildId, commit } — 어느 빌드인지 표시(EAS가 주는 값, 로컬은 'local')
+//  ⑤ extra.internalTest = true — 시험판 표시(상수). 빌드 id·커밋 같은 **빌드마다 다른 값은 config에 넣지 않는다**: config는 fingerprint
+//     런타임 해시에 들어가 로컬(eas-cli)과 EAS 서버 계산이 갈리고, EAS가 'Runtime version mismatch'로 Configure expo-updates 단계에서
+//     빌드를 멈춘다(11-25 빌드 0b52cf57 실측). 어느 빌드인지는 EAS가 매기는 versionCode(설정 → 앱 정보)로 본다
 // app.json의 plugins에서 withSelfHostedUpdates·withAppLinks보다 **앞**에 둔다(config 변환은 배열 순서대로 돈다) — test/internal-test.test.ts가 고정.
 const { internalTestMode, PACKAGE_SUFFIX, NAME_SUFFIX } = require('./buildMode');
 
@@ -24,7 +26,7 @@ function withInternalTest(config, props = {}) {
     name: `${config.name}${NAME_SUFFIX}`,
     ios: { ...ios, bundleIdentifier: `${bundle}${PACKAGE_SUFFIX}` },
     android: { ...config.android, package: `${pkg}${PACKAGE_SUFFIX}`, intentFilters },
-    extra: { ...config.extra, internalTest: { buildId: env.EAS_BUILD_ID || 'local', commit: env.EAS_BUILD_GIT_COMMIT_HASH || 'local' } },
+    extra: { ...config.extra, internalTest: true },
   };
 }
 
