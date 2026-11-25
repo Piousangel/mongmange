@@ -65,6 +65,7 @@ import { dayName, getLocale, t } from '../../i18n';
 import { EN_SERIF_SCALE } from '../../ui/type';
 import { getMarbleFx, marbleUniforms } from './marble';
 import { fitRect, motifRaster, useMotifRasters } from './motifRasters';
+import { NIGHT_SUB_TEXT, cardTextColor } from './renderImage.types';
 
 /** 카드 위 글(문장은 앱이 언어별로 만들어 넘긴다 — 시스템 2.6) */
 export interface DreamCardLabels {
@@ -134,7 +135,8 @@ export interface DreamArt {
   body: BodyGeo;
   /** 곁의 다른 방울. eyes = 눈을 그리나(C14b 붓 형상 카드는 그리지 않는다 — 1-1 '다른 존재의 방울에는 눈을 넣지 않는다') */
   /** blob = 판 1 곁 방울(담묵 붓 방울 — 몽망이와 재질로 가름, 7차). 있으면 몸 기하 대신 이것을 그린다 */
-  friend: { t: object[]; geo: BodyGeo; eyes: boolean; blob: SkPath | null } | null;
+  /** hold = 몸 쪽으로 뻗은 손 한 줌(곁 좌표, 8차 바다 손) */
+  friend: { t: object[]; geo: BodyGeo; eyes: boolean; blob: SkPath | null; hold: SkPath | null } | null;
   ringPx: { x: number; y: number; r: number };
   seal: { plate: SkPath; figure: SkPath; combs: Verts; eyes: SkPath };
   /**
@@ -325,7 +327,24 @@ interface WindowArt {
   /** 4차 혼합안: 창호지 + 손 그림자 래스터(불러왔을 때). 있으면 판·틈 대신 이것을 그린다 */
   raster: { image: SkImage; mask: SkImage | null; rect: { x: number; y: number; width: number; height: number } } | null;
 }
-type VesselArt = QuiltArt | CupArt | WindowArt;
+/**
+ * 8차(오너 충전 뒤 판 1에 바로): 이불·찻잔·찻잔 둘의 손질 래스터 사물(선화·벡터 그릇 대신). 몽망이 **앞**에 얹어 아랫몸을 덮는다 —
+ * 가림 마스크는 clipY(그릇 입술) 아래에만(김 줄기가 몸 위에 종이색 줄을 긋지 않게). 찻잔 둘의 곁 잔은 래스터 없이 곁 방울만
+ */
+interface RasterVesselArt {
+  kind: 'rvessel';
+  raster: { image: SkImage; mask: SkImage | null; rect: { x: number; y: number; width: number; height: number }; clipY: number; flip: boolean; cover: number } | null;
+  friend: CupArt['friend'];
+}
+type VesselArt = QuiltArt | CupArt | WindowArt | RasterVesselArt;
+/** 래스터 그릇 자리(래스터 높이 비율): 입술(rim) = 몽망이 몸이 들어가는 선, 폭 배율 = 그릇 폭 대비 */
+export const VESSEL_RASTER: Readonly<Record<string, { widthK: number; rim: number; cover: number }>> = {
+  'near-alone.quilt': { widthK: 1.55, rim: -0.12, cover: 0.9 },
+  'near-alone.teacup': { widthK: 1.3, rim: 0.42, cover: 0.9 },
+  'near-with.teacup-two': { widthK: 1.15, rim: 0.68, cover: 0.9 },
+};
+/** 찻잔 둘 래스터 안 두 잔 자리(래스터 폭·높이 비율 — teacuptwo-o2 손질본에서 잼) */
+const TEACUP_TWO_RASTER = { frontX: 0.31, frontRim: 0.68, frontW: 0.61, backX: 0.74, backRim: 0.31 } as const;
 
 /** 반 타원(위 = −1, 아래 = +1) 경로 점 */
 function halfEllipse(cx: number, cy: number, rx: number, ry: number, sign: 1 | -1, n = 32): number[] {
@@ -359,8 +378,39 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
     ];
     const r = motifRaster('near-with.window-hand', rev);
     // 래스터는 창 자리보다 크게(5차: 4차의 1.5배 — 64pt에서 회색 네모로 보이지 않게, 창 너머 손 그림자까지) — 창 가운데에 맞춘다
-    const raster = r ? { image: r.ink, mask: r.mask, rect: fitRect(r.ink, [cx - w * 1.42, top - h * 0.9, w * 2.85, h * 2.85]) } : null;
+    // 8차: 판 1 창 래스터는 손 없는 창살 창(windowsill) — 창 자리에 맞춘다
+    const raster = r ? { image: r.ink, mask: r.mask, rect: fitRect(r.ink, [cx - w * 0.7, top - h * 0.25, w * 1.4, h * 1.4]) } : null;
     return { kind: 'window', pane, gaps, raster };
+  }
+  const vr = rev >= 1 ? VESSEL_RASTER[scene.motifId] : undefined;
+  const rr = vr ? motifRaster(scene.motifId, rev) : null;
+  if (vr && rr) {
+    // 찻잔 둘의 곁 잔: 래스터 한 장이 두 잔을 함께 가지므로 이 자리는 그리지 않는다(곁 방울은 몽망이 잔 쪽에서 뒤 잔에 앉힌다)
+    if (v.friend) return { kind: 'rvessel', raster: null, friend: null };
+    const a = rr.ink.width() / rr.ink.height();
+    const other = scene.vessels.find((o) => o.friend);
+    if (other) {
+      // 찻잔 둘(teacuptwo-o2 손질본, 비율은 래스터 기준): 앞·아래 큰 잔(가운데 x 0.31, 입술 y 0.68, 폭 0.61) = 몽망이 잔,
+      // 뒤·위 작은 잔(가운데 x 0.74, 입술 y 0.31) = 곁 방울 잔. 곁 잔이 왼쪽이면 좌우 뒤집는다
+      const T = TEACUP_TWO_RASTER;
+      const flip = other.x < v.x;
+      const wr = (w * vr.widthK) / T.frontW;
+      const hr = wr / a;
+      const x0 = flip ? cx - (1 - T.frontX) * wr : cx - T.frontX * wr;
+      const y0 = top - T.frontRim * hr;
+      const fx = flip ? x0 + (1 - T.backX) * wr : x0 + T.backX * wr;
+      const fs = 0.55 * scene.body.s;
+      return {
+        kind: 'rvessel',
+        raster: { image: rr.ink, mask: rr.mask, rect: { x: x0, y: y0, width: wr, height: hr }, clipY: top + u(0.012), flip, cover: vr.cover },
+        friend: { t: [{ translateX: fx }, { translateY: y0 + T.backRim * hr + u(0.004) }, { scale: wpx }] as object[], geo: bodyGeometry(0, fs, false), blob: blobPath(fs, scene.seed + 7) },
+      };
+    }
+    const wr = w * vr.widthK;
+    const hr = wr / a;
+    // 입술 자리(rim < 0 = 래스터 윗변이 그릇 자리보다 아래 — 이불은 눈 아래로 내려 덮는다)
+    const y0 = top - vr.rim * hr;
+    return { kind: 'rvessel', raster: { image: rr.ink, mask: rr.mask, rect: { x: cx - wr / 2, y: y0, width: wr, height: hr }, clipY: Math.max(top + u(0.012), y0), flip: false, cover: vr.cover }, friend: null };
   }
   if (v.kind === 'quilt') {
     // 누빔 이불: 물결진 윗단 + 둥근 아랫단, 마름모 바늘땀, 윗단 접힌 그늘
@@ -499,7 +549,7 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   const L = bodyLod(wpx * (opts.ptPerUnit ?? 1), GRAMMARS.C, opts.lod ?? false);
   const body = bodyGeometry(input.strokes.length, scene.body.s, true, shape, L.eyeScale, L.combScale);
   const friend = scene.friend
-    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false), eyes: v1 ? !scene.motifInk && Math.hypot(scene.friend.x, scene.friend.y) <= FRIEND_ADJ : !scene.motifInk, blob: v1 ? blobPath(scene.friend.r * scene.body.s, scene.seed) : null }
+    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, v1 && scene.friend.hold === true), eyes: v1 ? !scene.motifInk && Math.hypot(scene.friend.x, scene.friend.y) <= FRIEND_ADJ : !scene.motifInk, blob: v1 ? blobPath(scene.friend.r * scene.body.s, scene.seed, scene.friend.hold ? COMPANION.holdStretch : undefined) : null, hold: v1 && scene.friend.hold ? holdPath(scene.friend, scene.body.w, scene.friend.r * scene.body.s) : null }
     : null;
   // 낙관: 주사 인면에 몽망이(빗 포함)를 양각으로 새김 — 글꼴 없이 그리는 이 앱만의 인장
   const sl = layout.seal;
@@ -565,6 +615,8 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
 export const COVER_PAPER = PALETTE.day.bg;
 /** 창가 손 가림 농도(창호지 — 불투명) */
 export const WINDOW_COVER = 0.85;
+/** 밤 카드 몽망이 달빛 테(8차): 몸은 검은 먹 그대로, 테(몸 폭 단위 선 굵기)·후광은 밝은 은회색 */
+export const NIGHT_MOON_RIM = { color: MOTIF_NIGHT_INK, width: 0.045, halo: 0.16, haloAlpha: 0.35 } as const;
 
 /**
  * 붓 층 색·불투명도(아트 바이블 7-6 ②): 모티프 먹은 몸 먹의 MOTIF_INK_MAX(0.72) 이하 — 순흑은 몽망이 몸만. 담묵은 새 획 먹을 옅게,
@@ -572,7 +624,8 @@ export const WINDOW_COVER = 0.85;
  */
 export const INK_LAYER: Record<MotifInkLayer['layer'], { color: string; alpha: number }> = {
   ink: { color: PALETTE.day.body, alpha: MOTIF_INK_MAX },
-  wash: { color: PALETTE.day.strokeInk, alpha: 0.34 },
+  // 8차: 담묵 획 한 단계 진하게(0.34 → 0.42, 먹 상한 안)
+  wash: { color: PALETTE.day.strokeInk, alpha: 0.42 },
   gold: { color: GOLD_HEX, alpha: 0.95 },
 };
 /** 번짐 한 겹(폭 1.6배 리본) 불투명도 */
@@ -697,18 +750,58 @@ export function MotifInkArtView({ ink, W, paper = COVER_PAPER, night = false }: 
 
 const PAPER_BASE = [0xef / 255, 0xe8 / 255, 0xda / 255];
 
+/** 래스터 그릇 한 쪽(8차): back = 입술 위(김 — 몸 뒤), front = 입술 아래(그릇 — 몸 앞, 가림 마스크 포함) */
+function RasterVessel({ r, part, night, W, H, seed }: { r: NonNullable<RasterVesselArt['raster']>; part: 'back' | 'front'; night: boolean; W: number; H: number; seed: number }) {
+  const clip = part === 'front' ? { x: -W, y: r.clipY, width: W * 3, height: H } : { x: -W, y: -H, width: W * 3, height: H + r.clipY };
+  return (
+    <Group clip={clip}>
+      <Group transform={r.flip ? [{ translateX: r.rect.x * 2 + r.rect.width }, { scaleX: -1 }] : []}>
+        {part === 'front' && r.mask && (
+          <Group opacity={r.cover}>
+            <SkImageNode image={r.mask} rect={r.rect} fit="fill">
+              <BlendColor color={night ? PALETTE.night.bg : COVER_PAPER} mode="srcIn" />
+            </SkImageNode>
+          </Group>
+        )}
+        <Group layer>
+          <SkImageNode image={r.image} rect={r.rect} fit="fill">
+            <BlendColor color={night ? MOTIF_NIGHT_INK : PALETTE.day.body} mode="srcIn" />
+          </SkImageNode>
+          <Fill blendMode="srcATop" opacity={WASH_FACE.grain}>
+            <FractalNoise freqX={0.9} freqY={0.6} octaves={2} seed={seed % 997} />
+          </Fill>
+        </Group>
+      </Group>
+    </Group>
+  );
+}
+
 /** 판 1 곁 방울 꼴(몸 폭 W 단위, 몸 핵 크기 s의 반경). 몸과 같은 자리 변환(t)으로 그린다 */
-function blobPath(s: number, seed: number): SkPath {
+function blobPath(s: number, seed: number, stretch?: number): SkPath {
   const r = 0.46 * s;
-  return polyPath(companionBlob(seed).map((v) => v * r));
+  return polyPath(companionBlob(seed, 48, stretch).map((v) => v * r));
+}
+
+/** 손잡음(8차): 곁 방울 아래쪽에서 몸 쪽으로 뻗어 몸 가장자리에 닿는 짧은 붓 한 줌(곁 좌표 — 몸 폭 단위) */
+function holdPath(f: { x: number; y: number }, bw: number, s: number): SkPath {
+  const bx = -f.x / bw;
+  const by = -f.y / bw;
+  const d = Math.hypot(bx, by) || 1;
+  const b = Skia.PathBuilder.Make();
+  const y0 = 0.12 * s;
+  b.moveTo((bx / d) * 0.3 * s, y0);
+  b.quadTo((bx / d) * 0.55, y0 + 0.08, bx * 0.55, by + 0.16);
+  return b.build();
 }
 
 /** 판 1 곁 방울: 담묵 면 + 젖은 테(합쳐 COMPANION.total 이하), 눈 없음 — 몽망이(순흑·흰 눈)와 재질로 갈린다 */
-function Companion({ t, blob, night = false }: { t: object[]; blob: SkPath; night?: boolean }) {
+function Companion({ t, blob, hold = null, combs = null, night = false }: { t: object[]; blob: SkPath; hold?: SkPath | null; /** 손잡은 곁의 빗(8차 — 돌이 아니라 살아 있는 방울로) */ combs?: BodyGeo['combs'] | null; night?: boolean }) {
   const rim = 1 - (1 - COMPANION.total) / (1 - COMPANION.fill);
   const c = night ? MOTIF_NIGHT_INK : PALETTE.day.body;
   return (
     <Group transform={t as never}>
+      {hold && <Path path={hold} style="stroke" strokeWidth={0.2} strokeCap="round" color={c} opacity={COMPANION.total} />}
+      {combs && <Vertices vertices={combs.vertices} indices={combs.indices} mode="triangles" color={c} opacity={COMPANION.total} />}
       <Path path={blob} color={c} opacity={COMPANION.fill} />
       <Path path={blob} style="stroke" strokeWidth={0.06} color={c} opacity={rim} />
     </Group>
@@ -717,13 +810,18 @@ function Companion({ t, blob, night = false }: { t: object[]; blob: SkPath; nigh
 
 function Drop({ t, geo, color = PALETTE.day.body, eyes = true, night = false }: { t: object[]; geo: BodyGeo; color?: string; eyes?: boolean; night?: boolean }) {
   if (night) {
-    // 밤 몸: 풀린 먹 + 밝은 테(아트 바이블 4절 — 밤 바탕 대비 4:1, 테 13:1), 감은 눈 = 밝은 호
+    // 밤 카드 몸(8차, 3차 블라인드: 베이지로 뒤집힌 몸이 감자·콩으로 읽혀 '검은 먹 방울' 정체성이 깨짐): 몸은 낮과 같은 검은 먹, 둘레에
+    // 가는 은회색 달빛 테 + 옅은 흰 후광으로 남색 바탕·밝은 띠에서 떼어 낸다. 눈은 종이색
     return (
       <Group transform={t as never}>
-        <Path path={geo.core} style="stroke" strokeWidth={0.05} color={PALETTE.night.bodyRim} />
-        <Path path={geo.core} color={PALETTE.night.body} />
-        <Vertices vertices={geo.combs.vertices} indices={geo.combs.indices} mode="triangles" color={PALETTE.night.body} />
-        {eyes && <Path path={geo.eyes} color={PALETTE.night.eye} />}
+        <Path path={geo.core} style="stroke" strokeWidth={NIGHT_MOON_RIM.halo} color={NIGHT_MOON_RIM.color} opacity={NIGHT_MOON_RIM.haloAlpha}>
+          <BlurMask blur={NIGHT_MOON_RIM.halo * 0.6} style="normal" />
+        </Path>
+        <Path path={geo.core} style="stroke" strokeWidth={NIGHT_MOON_RIM.width} color={NIGHT_MOON_RIM.color} />
+        <Vertices vertices={geo.combs.vertices} indices={geo.combs.indices} mode="triangles" color={NIGHT_MOON_RIM.color} opacity={0.9} />
+        <Path path={geo.core} color={color} />
+        <Vertices vertices={geo.combs.vertices} indices={geo.combs.indices} mode="triangles" color={color} />
+        {eyes && <Path path={geo.eyes} color={PALETTE.day.bg} />}
       </Group>
     );
   }
@@ -803,12 +901,15 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
             </Group>
           ) : null,
         )}
+        {art.vessels.map((v, i) => (v.kind === 'rvessel' && v.raster ? <RasterVessel key={`rb${i}`} r={v.raster} part="back" night={nightArt} W={W} H={H} seed={art.scene.seed} /> : null))}
         {art.motifInk && <MotifInkArtView ink={art.motifInk} W={W} night={nightArt} paper={nightArt ? PALETTE.night.bg : COVER_PAPER} />}
-        {art.friend && (art.friend.blob ? <Companion t={art.friend.t} blob={art.friend.blob} night={nightArt} /> : <Drop t={art.friend.t} geo={art.friend.geo} eyes={art.friend.eyes} night={nightArt} />)}
-        {art.vessels.map((v, i) => (v.kind === 'cup' && v.friend ? v.friend.blob ? <Companion key={`f${i}`} t={v.friend.t} blob={v.friend.blob} /> : <Drop key={`f${i}`} t={v.friend.t} geo={v.friend.geo} /> : null))}
+        {art.friend && (art.friend.blob ? <Companion t={art.friend.t} blob={art.friend.blob} hold={art.friend.hold} combs={art.friend.hold ? art.friend.geo.combs : null} night={nightArt} /> : <Drop t={art.friend.t} geo={art.friend.geo} eyes={art.friend.eyes} night={nightArt} />)}
+        {art.vessels.map((v, i) => ((v.kind === 'cup' || v.kind === 'rvessel') && v.friend ? v.friend.blob ? <Companion key={`f${i}`} t={v.friend.t} blob={v.friend.blob} /> : <Drop key={`f${i}`} t={v.friend.t} geo={v.friend.geo} /> : null))}
         {/* 몽망이 */}
         <Drop t={bodyT} geo={art.body} night={nightArt} />
         {/* 그릇 앞쪽(사발·이불) — 몸 아래를 덮는다 */}
+        {/* 래스터 그릇(8차): 입술 아래는 몸 앞 — 입술 아래만 종이 토큰으로 가리고 먹 한 겹을 얹는다(입술 위 김은 몸 뒤에 먼저 그렸다) */}
+        {art.vessels.map((v, i) => (v.kind === 'rvessel' && v.raster ? <RasterVessel key={`r${i}`} r={v.raster} part="front" night={nightArt} W={W} H={H} seed={art.scene.seed} /> : null))}
         {art.vessels.map((v, i) =>
           v.kind === 'cup' ? (
             <Group key={`c${i}`}>
@@ -825,7 +926,7 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
               <Path path={v.frontRim} style="stroke" strokeWidth={lw * 1.3} color={PALETTE.day.body} opacity={0.85} />
               <Path path={v.handle} style="stroke" strokeWidth={W * 0.007} strokeCap="round" color={PALETTE.day.body} opacity={0.8} />
             </Group>
-          ) : v.kind === 'window' && v.raster ? null : v.kind === 'window' ? (
+          ) : v.kind === 'rvessel' || (v.kind === 'window' && v.raster) ? null : v.kind === 'window' ? (
             <Group key={`w${i}`}>
               <Group clip={v.pane}>
                 <Path path={v.pane} color={PALETTE.day.strokeInk} opacity={0.34} />
@@ -874,9 +975,10 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
         {/* 일곱 날 점 줄(05b에서 가져온 장치) */}
         {art.dots.map((d, i) =>
           d.kind === 'future' ? (
-            <Circle key={i} cx={d.x} cy={d.y} r={d.r} style="stroke" strokeWidth={W * 0.0012} color={PALETTE.day.inkFaded} />
+            <Circle key={i} cx={d.x} cy={d.y} r={d.r} style="stroke" strokeWidth={W * 0.0012} color={nightArt ? NIGHT_SUB_TEXT : PALETTE.day.inkFaded} />
           ) : (
-            <Circle key={i} cx={d.x} cy={d.y} r={d.r} color={d.kind === 'now' ? PALETTE.day.body : PALETTE.day.inkFaded} />
+            // 밤 판(8차): 날 점도 보조 줄과 같은 밝은 토큰(지난 날 = 보조 줄 색, 오늘 = 본문 밤 글 색)
+            <Circle key={i} cx={d.x} cy={d.y} r={d.r} color={nightArt ? (d.kind === 'now' ? PALETTE.night.text : NIGHT_SUB_TEXT) : d.kind === 'now' ? PALETTE.day.body : PALETTE.day.inkFaded} />
           ),
         )}
         {/* 낙관(주사, 한 화면 한 곳) */}
@@ -1039,7 +1141,7 @@ export function DreamCard({
           return (
             <Text
               key={it.key}
-              style={[styles.t, { left: it.x * width - size, width: size * 2, top: ys[0]! * width, fontSize: size, lineHeight: size * 1.32, textAlign: 'center', color: it.color, fontFamily: fontFor(it.role) }]}
+              style={[styles.t, { left: it.x * width - size, width: size * 2, top: ys[0]! * width, fontSize: size, lineHeight: size * 1.32, textAlign: 'center', color: cardTextColor(it.color, theme), fontFamily: fontFor(it.role) }]}
               maxFontSizeMultiplier={1}
               importantForAccessibility="no"
             >
@@ -1060,7 +1162,7 @@ export function DreamCard({
                 fontSize: size,
                 lineHeight: size * 1.4,
                 textAlign: it.align,
-                color: it.color,
+                color: cardTextColor(it.color, theme),
                 letterSpacing: spacing * width,
                 fontFamily: fontFor(it.role),
               },

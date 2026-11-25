@@ -102,14 +102,14 @@ export const MOTIF_NIGHT_INK = '#BEC5D1';
  * 몽망이와 **재질로** 가른다: 순흑 대신 담묵(몸 먹의 45~60%) + 젖은 테, 모양은 완전한 원이 아닌 붓 방울(시드 흔들림·가로로 조금 긴 꼴),
  * 눈 없음. fill = 면 알파, total = 테 자리 합성 농도(상한), 판 1에만(판 0 = 빌드 1 그대로)
  */
-export const COMPANION = { fill: 0.45, total: 0.6, stretch: 1.38, wobble: 0.18 } as const;
+export const COMPANION = { fill: 0.45, total: 0.6, stretch: 1.38, wobble: 0.18, holdStretch: 1.1 } as const;
 /** 몸 이외 덩어리(장면의 맑지 않은 방울·곁 방울)의 먹 농도 상한(몸 = 1) */
 export const BLOB_INK_MAX = 0.6;
 /** 곁 방울 원형도(4πA/P²) 상한 — 완전한 원(1)이 아니어야 한다 */
 export const COMPANION_ROUNDNESS_MAX = 0.94;
 
 /** 곁 방울 붓 방울 꼴(반경 1 기준 꺾은선 [x0,y0,x1,y1,…], 아래가 조금 평평 — 물 위에 앉은 방울). 같은 시드 = 같은 꼴 */
-export function companionBlob(seed: number, n = 48): number[] {
+export function companionBlob(seed: number, n = 48, stretch: number = COMPANION.stretch): number[] {
   const out: number[] = [];
   for (let i = 0; i < n; i++) {
     const a = (i / n) * 2 * Math.PI;
@@ -119,7 +119,7 @@ export function companionBlob(seed: number, n = 48): number[] {
     const noise = (hash01(seed, k0 % 7, 3) * (1 - u) + hash01(seed, (k0 + 1) % 7, 3) * u) * 2 - 1;
     const r = 1 + COMPANION.wobble * noise;
     const y = Math.sin(a) * r;
-    out.push(Math.cos(a) * r * COMPANION.stretch, y > 0 ? y * 0.78 : y);
+    out.push(Math.cos(a) * r * stretch, y > 0 ? y * 0.78 : y);
   }
   return out;
 }
@@ -146,7 +146,8 @@ export function roundness(poly: readonly number[]): number {
  * 면 농담 = 닫힌 경로의 굵기 w(1..4 → 알파 `toneBase + toneStep·w`), 붓이 처음 닿은 꼭짓점 쪽이 짙다(`slope`).
  * 같은 경로(한 `P`)의 닫힌 모양들은 하나로 합쳐 한 번에 칠한다 — 겹친 곳에 이음매 없음. 다른 경로끼리는 겹치지 않게 그린다
  */
-export const WASH_FACE = { toneBase: 0.3, toneStep: 0.06, rim: 0.035, rimDark: 1.3, bleedOut: 0.005, wobble: 0.7, slope: 0.7, grain: 0.2 } as const;
+// 8차(블라인드 3회 '사물이 옅어 사라짐'): 면 농담을 한 단계(toneStep) 올리고 젖은 테 배율을 낮춰 최댓값은 MOTIF_INK_MAX 안
+export const WASH_FACE = { toneBase: 0.36, toneStep: 0.06, rim: 0.035, rimDark: 1.19, bleedOut: 0.005, wobble: 0.7, slope: 0.7, grain: 0.2 } as const;
 
 function resample(pts: readonly Pt[]): { pts: Pt[]; len: number } {
   const acc: number[] = [0];
@@ -394,10 +395,12 @@ export function motifInkPlacement(
   seat: readonly [number, number],
   composition: number,
   R: number,
+  /** 그림 상자 배율(8차 `MotifShape.zoom`, 기본 1) */
+  zoom = 1,
 ): { anchor: { x: number; y: number }; box: { x: number; y: number; size: number }; flip: boolean } {
   const c = MOTIF_INK_COMPOSITION[composition] ?? MOTIF_INK_COMPOSITION[0];
   const flip = composition === 1;
-  const size = c.size * R;
+  const size = c.size * R * zoom;
   const sx = (flip ? 100 - seat[0] : seat[0]) / 100;
   const sy = seat[1] / 100;
   // 상자 중심 = 인화 중심일 때 몽망이 자리, c는 그만큼 가운데로 당긴다(상자가 반대쪽으로 밀려 바깥쪽이 잘림)

@@ -38,6 +38,8 @@ export interface Motif {
   friend?: readonly [number, number, number];
   /** C14b 4차: 사물 한 겹 래스터 자리(`dreamMotifShapes.ts` MotifShape.raster) */
   raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number; stretch?: true };
+  /** 그림 상자 배율(8차, `MotifShape.zoom`) */
+  zoom?: number;
   /** 'clear' = 경로를 먹으로 그리지 않는다(소리 없는 눈 — 그림은 `field`의 맑은 방울) */
   water?: 'clear';
   /** 정본에 없어 개발이 쓴 초안 문구 슬롯(i18n 키 기준). 검수로 확정되면 지운다 — `motifBlockers`가 제품 출시를 막는다 */
@@ -48,7 +50,7 @@ export interface Motif {
 const m = (id: string, zone: MotifZone, family: string, unlockAtCards: number): Motif => {
   const shape = MOTIF_SHAPES[id];
   if (unlockAtCards === 0 || !shape) return { id, zone, family, unlockAtCards, placeholder: unlockAtCards > 0, paths: [] };
-  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, field: shape.field, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}), ...(shape.raster ? { raster: shape.raster } : {}) };
+  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, field: shape.field, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}), ...(shape.raster ? { raster: shape.raster } : {}), ...(shape.zoom ? { zoom: shape.zoom } : {}) };
 };
 
 /**
@@ -311,11 +313,25 @@ export function motifForRev(id: string, rev: number): Motif | null {
   if (!base || rev >= DREAM_ART_REV) return base;
   const sh = ART_REV_SHAPES_ARCHIVE[rev]?.[id];
   if (!sh) return base;
-  return { ...base, paths: sh.paths, field: sh.field, seat: sh.seat, friend: sh.friend, water: sh.water, raster: sh.raster };
+  return { ...base, paths: sh.paths, field: sh.field, seat: sh.seat, friend: sh.friend, water: sh.water, raster: sh.raster, zoom: sh.zoom };
 }
 /** 판마다 래스터 사물을 쓰는 모티프(앱 에셋 `r<판>/<id>.webp` + `.mask.webp`) */
 export const ART_REV_RASTERS: Readonly<Record<number, readonly string[]>> = {
-  1: ['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand'],
+  // 8차(오너 충전 → 열린 판 1에 바로): 이불·찻잔·찻잔 둘·벼루·징검다리·빨랫줄 래스터를 더하고 창가 손은 손 없는 창살 창으로 바꿨다
+  1: [
+    'near-with.letter',
+    'far-alone.kite',
+    'near-with.umbrella',
+    'far-alone.paper-boat',
+    'near-with.palm',
+    'near-with.window-hand',
+    'near-alone.quilt',
+    'near-alone.teacup',
+    'near-with.teacup-two',
+    'near-alone.inkstone',
+    'far-with.stepping-stones',
+    'near-alone.washing-line',
+  ],
 };
 /**
  * 카드의 그림 판. 판 0 = 빌드 1 그림(꿈 콘텐츠가 꺼진 밤의 카드 — 판 번호 없음, 코드 리뷰 H1). 새 모티프(C6) 카드는 판 번호가 없어도
