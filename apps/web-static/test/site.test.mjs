@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { build, BuildError, check, IMAGE_BYTES_BUDGET, readFirebaseJson, ROOT, visibleText } from '../scripts/build.mjs';
 import { inline, markdownToHtml, stripInternal } from '../scripts/markdown.mjs';
-import { CONTACT, FACTS, PAGES } from '../scripts/site.mjs';
-import { cleanDocs as cleanDocsIn, DOCS, filledDocs, keysFile, OFFICER, OFFICER_SLOT, signedSrc } from './helpers.mjs';
+import { CONTACT, FACTS, fillOfficer, PAGES } from '../scripts/site.mjs';
+import { CANON_OFFICER_SLOT, cleanDocs as cleanDocsIn, DOCS, filledDocs, keysFile, OFFICER, OFFICER_SLOT, signedSrc } from './helpers.mjs';
 
 const FP = Array.from({ length: 32 }, (_, i) => (i * 7 + 16).toString(16).toUpperCase().padStart(2, '0')).join(':');
 const API = 'https://mong-api-abc123-du.a.run.app';
@@ -240,6 +240,27 @@ describe('/privacy 두 모드(PM 11-25 웹 리뷰 결정)', () => {
     }
     const ext = [...read('privacy/index.html').matchAll(/href="(https:\/\/[^"]+)"/g)].map((m) => m[1]).filter((u) => !u.startsWith(ORIGIN));
     expect([...new Set(ext)].sort()).toEqual(['https://developers.google.com/ml-kit/android-data-disclosure', 'https://support.google.com/policies?p=privpol_privts']);
+  });
+
+  it('R5 출시 모드: 정본 17절 보호책임자 칸이 비면 실패(오너 할 일 안내), PRIVACY_OFFICER를 넣으면 17절 행만 채워 통과', () => {
+    const o = launchReady({ keepOfficer: true });
+    for (const l of ['ko', 'en']) expect(readFileSync(join(o.docsDir, `privacy-policy.${l}.md`), 'utf8')).toContain(CANON_OFFICER_SLOT[l]);
+    const msg = fails(o.env, o.docsDir, { srcDir: o.srcDir, remoteKeysPath: o.remoteKeysPath });
+    expect(msg).toMatch(/(^|\n)privacy\/index\.html: 내부 메모·기입 칸 1곳\(예: \[운영자 기입\]\).*PRIVACY_OFFICER/);
+    expect(msg).toMatch(/en\/privacy\/index\.html: 내부 메모·기입 칸 1곳\(예: \[Operator — owner to fill\]\)/);
+    const { read } = built({ ...o, env: { ...o.env, PRIVACY_OFFICER: '행복가게' } });
+    expect(read('privacy/index.html')).toMatch(/<td>성명<\/td><td>행복가게<\/td>/);
+    expect(read('en/privacy/index.html')).toMatch(/<td>Privacy officer<\/td><td>행복가게<\/td>/);
+  });
+
+  it('R5 fillOfficer: 정본 en의 운영자 실명 칸(머리·10행 [Operator — owner to fill])은 건드리지 않고 17절 행만 채운다', () => {
+    const en = readFileSync(join(DOCS, 'privacy-policy.en.md'), 'utf8');
+    const filledEn = fillOfficer(en, '행복가게');
+    expect(filledEn).toContain('| Privacy officer | 행복가게 |');
+    expect(filledEn.split('[Operator — owner to fill]').length).toBe(en.split('[Operator — owner to fill]').length - 1);
+    const ko = fillOfficer(readFileSync(join(DOCS, 'privacy-policy.ko.md'), 'utf8'), '행복가게');
+    expect(ko).toContain('| 성명 | 행복가게 |');
+    expect(ko).toContain('[운영자 기입 — 안심번호 등'); // 전화 칸은 그대로(오너 결정·법률 검토 몫)
   });
 
   it('변이 M4: 체크리스트 상자 안에 빈 줄이 있어도 K행이 새지 않는다(표식 기반 제외)', () => {

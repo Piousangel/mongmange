@@ -23,10 +23,16 @@ export function filledDocs(dir, officer = OFFICER) {
 }
 
 /** 내부 메모·기입 칸·작업 메모를 걷어 낸 '출시 준비가 끝난' 정본 사본(출시 모드 성공 경로 시험용). 체크리스트 상자는 그대로 둔다 */
-export function cleanDocs(dir, { blankInBox = false } = {}) {
+/** 정본 17절 보호책임자 행의 칸(PM R5 — PRIVACY_OFFICER로 채움) */
+export const CANON_OFFICER_SLOT = { ko: '| 성명 | [운영자 기입] |', en: '| Privacy officer | [Operator — owner to fill] |' };
+
+/** keepOfficer: 17절 보호책임자 칸만 남긴다(출시 모드 '기입 전 실패·주입 뒤 통과' 시험) */
+export function cleanDocs(dir, { blankInBox = false, keepOfficer = false } = {}) {
   filledDocs(dir);
   for (const l of ['ko', 'en']) {
     let md = readFileSync(join(DOCS, `privacy-policy.${l}.md`), 'utf8');
+    if (!md.includes(CANON_OFFICER_SLOT[l])) throw new Error(`시험 준비: 정본 ${l}에 17절 보호책임자 칸이 없다`);
+    if (keepOfficer) md = md.replace(CANON_OFFICER_SLOT[l], CANON_OFFICER_SLOT[l].replace(/\[[^\]]+\]/, '@@OFFICER@@'));
     if (blankInBox) md = md.replace(/^(> \| K1 \|.*)$/m, '\n$1'); // 변이 M4: 상자 안 빈 줄
     const lines = md.split('\n');
     const boxStart = lines.findIndex((x) => /게시 전 삭제|Remove before publishing/.test(x));
@@ -37,7 +43,7 @@ export function cleanDocs(dir, { blankInBox = false } = {}) {
         .replace(/\s*\[[^\]\n]+\]/g, '')
         .replace(/초안|draft|법률 검토|확인 필요|도입 시 추가|독립 리뷰|independent review|legal first-pass review|legal review|P1~P19|P1–P19|To verify/gi, '');
     const out = [...lines.slice(0, boxStart).map(clean), ...lines.slice(boxStart, boxEnd), ...lines.slice(boxEnd).map(clean)].join('\n');
-    writeFileSync(join(dir, `privacy-policy.${l}.md`), out);
+    writeFileSync(join(dir, `privacy-policy.${l}.md`), out.replace('@@OFFICER@@', CANON_OFFICER_SLOT[l].match(/\[[^\]]+\]/)[0]));
   }
   return dir;
 }

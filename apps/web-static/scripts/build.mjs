@@ -45,7 +45,7 @@ import {
 } from '@mong/contract';
 import { buildSync } from 'esbuild';
 import { stripInternal } from './markdown.mjs';
-import { CONTACT, MODES, OFFICER_SLOT_RE, PAGES, readPrivacy, renderSite } from './site.mjs';
+import { CONTACT, hasOfficerSlot, MODES, PAGES, readPrivacy, renderSite } from './site.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = join(HERE, '..');
@@ -299,8 +299,12 @@ export function build({
   }
   // 출시 전 판 페이지·sitemap·llms.txt(scripts/site.mjs). 처리방침은 정본 md에서 그대로 만든다
   const privacyMd = readPrivacy(docsDir, { officer: values.officer });
-  if (values.officer && !['ko', 'en'].some((l) => readPrivacy(docsDir).tester[l].match(OFFICER_SLOT_RE))) {
-    warnings.push('PRIVACY_OFFICER를 넣었지만 테스터판 방침에 채울 보호책임자 칸이 없다(이미 채워졌거나 문구가 바뀜)');
+  if (values.officer) {
+    const raw = readPrivacy(docsDir);
+    const shown = values.mode === 'launch' ? raw : raw.tester;
+    if (!['ko', 'en'].some((l) => hasOfficerSlot(shown[l]))) {
+      warnings.push(`PRIVACY_OFFICER를 넣었지만 ${values.mode === 'launch' ? '처리방침 정본 17절' : '테스터판 방침'}에 채울 보호책임자 칸이 없다(이미 채워졌거나 문구가 바뀜)`);
+    }
   }
   const pages = renderSite({ origin: values.origin, privacyMd, mode: values.mode });
   // 출시 전 모드: 정본은 게시하지 않으니 정본의 내부 메모·기입 칸은 경고만(게시되는 테스터판은 렌더 HTML 검사 ⑦이 실패시킨다, W7).
@@ -685,7 +689,7 @@ function checkPages(out, v, problems) {
     // 내부 메모 0(리뷰 B2·I1, W7): 렌더된 HTML의 보이는 글자에서 [ … ] 꼴 메모·기입 칸 — 두 모드 모두(출시 전 모드의 테스터판 포함)
     const memos = [...text.matchAll(/[[［【〔][^\]］】〕\n]{1,300}[\]］】〕]/gu)].map((m) => m[0]);
     if (memos.length) {
-      const officer = /\/privacy$/.test(pg.path) && memos.some((m) => /오너 기입|owner to fill/.test(m)) ? ' — 보호책임자 등 오너 기입 칸: 배포 환경 변수 PRIVACY_OFFICER(상호)를 넣거나 방침을 채우기 전에는 배포할 수 없다(README W7)' : '';
+      const officer = /\/privacy$/.test(pg.path) && memos.some((m) => /오너 기입|운영자 기입|owner to fill/.test(m)) ? ' — 보호책임자 등 오너 기입 칸: 배포 환경 변수 PRIVACY_OFFICER(상호)를 넣거나 방침을 채우기 전에는 배포할 수 없다(README W7)' : '';
       problems.push(`${rel}: 내부 메모·기입 칸 ${memos.length}곳(예: ${memos[0].slice(0, 40)})${officer}`);
     }
     // 체크리스트 행(법률 리뷰 L4, W4): K\d+(구현 확인)·U\d+(개정 목록)·A\d+(도입 시 개정 목록) — 표 칸이든 글자든

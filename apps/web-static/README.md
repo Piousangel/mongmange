@@ -8,7 +8,7 @@ Firebase Hosting 공개 폴더 원본. `node scripts/build.mjs`가 `src/` → `p
 | 이름 | 필수 | 무엇 |
 |---|---|---|
 | `APPLE_TEAM_ID`·`ANDROID_CERT_SHA256`·`APP_STORE_ID`·`API_ORIGIN` | 예 | 딥링크·스토어·/delete. 비면 실패(`pnpm verify` static-empty가 이 실패를 확인) |
-| `PRIVACY_OFFICER` | 사실상 예(아래) | 테스터판 방침 11절 보호책임자 '성명(또는 상호)' 칸. 오너 11-25 결정 = **상호** |
+| `PRIVACY_OFFICER` | 사실상 예(아래) | 보호책임자 칸: 테스터판 11절 '성명(또는 상호)', 출시 모드는 정본 17절 표의 보호책임자 행만(PM 11-25 R5). 오너 11-25 결정 = **상호**. 정본의 운영자 실명·전화 칸은 채우지 않는다 |
 | `SITE_MODE` | 아니요 | `prelaunch`(기본) / `launch` |
 
 ## `/privacy` 두 모드

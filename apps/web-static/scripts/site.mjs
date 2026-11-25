@@ -356,7 +356,15 @@ export const TESTER_TITLE = { ko: '테스트 빌드 개인정보처리방침', e
  * 배포 환경 변수 PRIVACY_OFFICER가 있으면 이 칸만 그 값으로 바꾼다. 없으면 칸이 그대로 렌더되어 ⑦ 검사가 빌드를 멈춘다.
  */
 export const OFFICER_SLOT_RE = /\[(?:성명 또는 상호 — 오너 기입|Name or business name — owner to fill)\]/g;
-export const fillOfficer = (md, officer) => (officer ? md.replace(OFFICER_SLOT_RE, () => officer) : md);
+/**
+ * 정본 17절 보호책임자 칸(PM 11-25 R5: 출시 모드도 같은 PRIVACY_OFFICER로 채운다). 정본은 칸 글자가 운영자 실명 칸
+ * (`[Operator — owner to fill]` — 머리·10행에도 쓰임)과 같아서 **17절 표의 보호책임자 행만** 골라 바꾼다.
+ * 정본 칸이 테스터판과 같은 문구(OFFICER_SLOT_RE)로 바뀌면 그쪽으로도 채워진다.
+ */
+export const CANON_OFFICER_ROW_RE = /^(\| (?:성명(?:\(또는 상호\))?|Privacy officer) \| )\[(?:운영자 기입|Operator — owner to fill)\]( \|)\s*$/gm;
+/** 보호책임자 칸이 남아 있는가(채울 자리가 있는가) */
+export const hasOfficerSlot = (md) => new RegExp(OFFICER_SLOT_RE.source).test(md) || new RegExp(CANON_OFFICER_ROW_RE.source, 'm').test(md);
+export const fillOfficer = (md, officer) => (officer ? md.replace(OFFICER_SLOT_RE, () => officer).replace(CANON_OFFICER_ROW_RE, (_, a, b) => `${a}${officer}${b}`) : md);
 
 /** 처리방침 렌더(출시 모드 = 정본 전체에서 체크리스트 상자 제외, 출시 전 모드 = 테스터판). 내부 메모 검사는 build.mjs ⑦이 렌더 HTML에서 */
 function privacy(lang, md) {
@@ -477,10 +485,10 @@ ${list(ko.rows)}
 `;
 }
 
-/** 처리방침 정본(출시 모드)과 빌드 2 테스터판(출시 전 모드). officer = PRIVACY_OFFICER(테스터판 보호책임자 칸만 채움) */
+/** 처리방침 정본(출시 모드)과 빌드 2 테스터판(출시 전 모드). officer = PRIVACY_OFFICER(두 방침의 보호책임자 칸만 채움) */
 export const readPrivacy = (docsDir, { officer = '' } = {}) => ({
-  ko: readFileSync(`${docsDir}/privacy-policy.ko.md`, 'utf8'),
-  en: readFileSync(`${docsDir}/privacy-policy.en.md`, 'utf8'),
+  ko: fillOfficer(readFileSync(`${docsDir}/privacy-policy.ko.md`, 'utf8'), officer),
+  en: fillOfficer(readFileSync(`${docsDir}/privacy-policy.en.md`, 'utf8'), officer),
   tester: {
     ko: fillOfficer(readFileSync(`${docsDir}/privacy-policy-tester.ko.md`, 'utf8'), officer),
     en: fillOfficer(readFileSync(`${docsDir}/privacy-policy-tester.en.md`, 'utf8'), officer),
