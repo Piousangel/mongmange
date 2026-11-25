@@ -88,7 +88,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.log.error({ exception: { type: e.name, message: e.message, stack: e.stack }, status }, '처리하지 못한 오류');
     }
     // 429는 캐시 금지(B7a, B7-report B5): /m/{code}에서 전역 throttler 429가 나와도 CDN이 다른 방문자에게 퍼뜨리지 않게(정본 3-9 '429 no-store')
-    if (status === 429) httpAdapter.setHeader(ctx.getResponse(), 'cache-control', 'no-store');
+    // 401·410(인증·계정 갈래 — B2b)도 캐시 금지: 410은 휴리스틱 캐시 가능 상태라 중간 캐시가 남기지 않게
+    if (status === 429 || status === 401 || status === 410) httpAdapter.setHeader(ctx.getResponse(), 'cache-control', 'no-store');
     httpAdapter.reply(ctx.getResponse(), { ...body, requestId: req?.id }, status);
   }
 }

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AGE_GATE_VERSION,
   ageGateSchema,
+  AUTH_ERROR,
   bootstrapRequestSchema,
   conflictUploadSchema,
   DELETION_RECEIPT_RE,
@@ -13,6 +14,7 @@ import {
   RECOVERY_ALPHABET,
   RECOVERY_CODE_RE,
   recoverRequestSchema,
+  recoverResponseSchema,
   saveMetaSchema,
   saveUploadSchema,
   webDeletionRequestSchema,
@@ -106,5 +108,23 @@ describe('삭제', () => {
     expect(webDeletionRequestSchema.safeParse({ code: 'ABCD2345' }).success).toBe(false);
     expect(webDeletionRequestSchema.safeParse({ code: 'ABCD2345', phrase: 'x', email: 'a@b.c' }).success).toBe(false);
     expect(webDeletionRequestSchema.safeParse({ code: 'ABCD2345', phrase: '0123-4567-89AB-CDEF' }).success).toBe(true);
+  });
+});
+
+describe('B2b — 다시 부르기(멱등)와 인증 실패 갈래', () => {
+  const ok = { creature: { code: 'ABCD2345' }, save: null, newCode: '0123-4567-89AB-CDEF' };
+  it('recover 응답: 처음은 replay 없음, 다시 부르기는 replay:true만(false 같은 애매한 값은 거부)', () => {
+    expect(recoverResponseSchema.safeParse(ok).success).toBe(true);
+    expect(recoverResponseSchema.parse({ ...ok, replay: true }).replay).toBe(true);
+    expect(recoverResponseSchema.safeParse({ ...ok, replay: false }).success).toBe(false);
+    expect(recoverResponseSchema.safeParse({ ...ok, creature: { code: 'abcd' } }).success).toBe(false);
+  });
+  it('인증 실패 코드: 토큰 문제·서버에 그 로그인 없음·옮겨 감이 서로 다른 값, 상태 번호도 고정', () => {
+    expect(AUTH_ERROR).toEqual({
+      unauthorized: { status: 401, code: 'unauthorized' },
+      noAccount: { status: 401, code: 'no_account' },
+      alreadyGone: { status: 410, code: 'no_account' },
+      moved: { status: 410, code: 'moved' },
+    });
   });
 });

@@ -235,6 +235,7 @@ gcloud secrets versions add DATABASE_CA_CERT --data-file="$HOME/.config/mong/sup
 - **판 번호 고정(리뷰 H2)**: Cloud Run은 비밀을 `latest`가 아니라 **판 번호**로 읽는다(`deploy`가 그때의 최신 enabled 판 번호를 채운다). `latest`로 두면 인스턴스가 뜰 때마다 해석되어 같은 리비전 안에서 옛 값·새 값이 섞인다.
 - **값을 바꿀 때**: 위 방식으로 새 판 추가 → `apps/server/deploy/deploy.sh --apply --digest current deploy`(같은 이미지, 새 판 번호로 새 리비전) → `smoke` → 하루 뒤 옛 판 `gcloud secrets versions disable <번호> --secret=<이름>`. 배포하기 전에는 운영이 옛 판을 그대로 쓴다.
 - **`RECOVERY_PEPPER`는 이렇게 바꾸지 않는다** — 기존 되찾기 글귀가 모두 무효가 된다. 회전은 `RECOVERY_PEPPER_V`·`RECOVERY_PEPPERS_PREVIOUS` 절차로만(팀이 준비, deploy/README 6절).
+- **pepper가 샜다고 의심되면**: 되찾기로 받은 글귀는 pepper + 기기 로그인 + 옛 종이 글귀로 계산될 수 있다(B2b). 팀에 알려 새 판으로 회전하고 사용자에게 '새 글귀 받기'를 권한다(deploy/README 6절).
 
 **— 중단점: 여기까지 하고 끊어도 된다. `hdiutil detach /Volumes/mong-keys` —**
 

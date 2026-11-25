@@ -1,6 +1,6 @@
 // 계정 API(architecture.md v2.2 3-2 B2 행): bootstrap·recovery-code·recover·DELETE /me. 모두 JWT, 응답 no-store.
 // 글귀가 오가는 요청·응답 본문은 로그에 남지 않는다(logging.ts 규칙 4 — 본문은 어떤 로그에도 직렬화하지 않는다).
-import { Body, Controller, Delete, Header, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Header, HttpCode, NotFoundException, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   bootstrapRequestSchema,
@@ -10,7 +10,7 @@ import {
   type RecoverResponse,
   type RecoveryCodeResponse,
 } from '@mong/contract';
-import { AllowUnlinked, Auth, AuthGuard, linkedUser, type AuthContext } from '../auth/auth.guard';
+import { AllowUnlinked, alreadyGone, Auth, AuthGuard, linkedUser, movedAway, type AuthContext } from '../auth/auth.guard';
 import { ClientIpService, rateLimitKey, type IpRequest } from '../common/client-ip';
 import { openApiSchema } from '../common/openapi-schema';
 import { parseBody } from '../common/parse';
@@ -56,9 +56,10 @@ export class AccountController {
   @AllowUnlinked()
   @Header('cache-control', 'no-store')
   @ApiBody({ schema: openApiSchema(recoverRequestSchema) })
-  @ApiResponse({ status: 200, description: '{creature:{code}, save: SaveMeta|null, newCode} — 새 글귀를 한 번 보여 준다' })
+  @ApiResponse({ status: 200, description: '{creature:{code}, save: SaveMeta|null, newCode} — 새 글귀를 한 번 보여 준다. 멱등(B2b): 같은 기기가 같은 글귀로 다시 부르면 replay:true + 같은 인장 코드·같은 새 글귀' })
   @ApiResponse({ status: 404, description: '글귀 없음·틀림' })
-  @ApiResponse({ status: 409, description: 'has_creature — 이 기기 로그인에 이미 몽망이가 있음' })
+  @ApiResponse({ status: 401, description: 'unauthorized(토큰) · no_account(유효한 토큰이지만 지워진·없는 로그인)' })
+  @ApiResponse({ status: 409, description: 'has_creature — 이 기기 로그인에 이미 다른 몽망이가 있음(재시도가 아님)' })
   @ApiResponse({ status: 429, description: 'IP 접두당 5/시간·글귀당 10/일' })
   recover(@Auth() a: AuthContext, @Req() req: IpRequest, @Body() raw: unknown): Promise<RecoverResponse> {
     const b = parseBody(recoverRequestSchema, raw);
@@ -67,10 +68,22 @@ export class AccountController {
 
   @Delete('me')
   @HttpCode(202)
+  @AllowUnlinked()
   @Header('cache-control', 'no-store')
   @ApiResponse({ status: 202, description: '{receipt} — 삭제 영수증(24시간, GET /deletion/{receipt}로 인증 없이 조회)' })
-  deleteMe(@Auth() a: AuthContext): Promise<DeleteMeResponse> {
-    return this.deletion.deleteUser(linkedUser(a), { channel: 'app', kind: 'user_request' });
+  @ApiResponse({ status: 401, description: 'unauthorized — 토큰 없음·서명·클레임·만료가 틀림' })
+  @ApiResponse({ status: 410, description: 'no_account — 이 로그인에 붙은 사용자가 없음(이미 지움·맡긴 적 없음, 멱등) / moved — 다른 기기로 옮겨 감' })
+  async deleteMe(@Auth() a: AuthContext): Promise<DeleteMeResponse> {
+    if (a.revoked) throw movedAway();
+    // B2b 멱등: 토큰의 sub에 붙은 행이 없다는 사실만 본다(지운 사용자를 알아보는 흔적을 남기지 않는다)
+    if (!a.userId) throw alreadyGone();
+    try {
+      return await this.deletion.deleteUser(a.userId, { channel: 'app', kind: 'user_request' });
+    } catch (e) {
+      // 같은 사용자의 삭제 둘이 겹치면 늦은 쪽은 사용자 행을 못 찾는다(deletion.service no_account 404) — 그것도 '이미 지워짐'
+      if (e instanceof NotFoundException) throw alreadyGone();
+      throw e;
+    }
   }
 
   private ipKey(req: IpRequest): string {

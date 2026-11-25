@@ -81,6 +81,7 @@ gcloud iam service-accounts remove-iam-policy-binding $SA --member=user:$ME --ro
 - `key: latest`는 **인스턴스가 시작될 때마다** 해석된다. 새 판을 넣는 순간 같은 리비전 안에서도 새로 뜬 인스턴스는 새 값, 기존 인스턴스는 옛 값을 쓴다(이전 안내서의 '새 리비전부터 읽는다'는 틀렸다). 그래서 YAML은 판 번호를 고정하고 `deploy`가 enabled 최신 판 번호를 채운다(`VER_<이름>=<번호>`로 직접 고를 수도 있다). `check`가 `latest`를 거부한다.
 - 절차: ① 안내서 8단계 방식으로 새 판 추가(이 시점에는 운영이 옛 판을 그대로 씀) ② `deploy.sh --apply --digest current deploy`(같은 이미지, 새 판 번호, 새 리비전으로 트래픽 100%) ③ `smoke` ④ 되돌릴 일이 없으면 하루 뒤 옛 판 `gcloud secrets versions disable`.
 - **`RECOVERY_PEPPER`는 이 절차로 값을 바꾸지 않는다.** 바꾸면 기존 되찾기 글귀가 모두 무효가 된다. 회전은 env.ts의 판 체계로만: 새 pepper를 새 판으로 넣고 `RECOVERY_PEPPER_V`를 올리며 옛 값은 `RECOVERY_PEPPERS_PREVIOUS`에 남긴다 — 이 env를 비밀로 받는 서버·YAML 변경이 필요하므로 회전 전에 팀이 따로 준비한다(8절 #8).
+- **pepper가 샜을 때의 영향(B2b 리뷰 L2)**: 저장된 글귀 해시만으로는 여전히 80비트를 대입해야 하지만, **되찾기로 받은 글귀**는 pepper + 기기 sub + 옛 종이 글귀로 계산된다(B2b 재시도 멱등의 대가). 유출이 의심되면 새 판으로 회전하고, 앱 안내로 사용자에게 '새 글귀 받기'를 권한다(다시 받은 글귀는 난수라 영향이 사라진다).
 
 ## 7. Cloud Run 요청 로그 — 운영 규칙(확정, 처리방침 K6과 같은 규칙)
 처리방침: "Cloud Run 요청 로그는 제외 필터로 받지 않는다. 장애를 조사할 때만 필터를 잠시 끄고, 그때 받은 로그는 최대 7일 보관한다."

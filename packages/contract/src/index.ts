@@ -907,19 +907,47 @@ export function formatRecoveryCode(code16: string): string {
 }
 export const recoveryCodeResponseSchema = z.object({ code: str(RECOVERY_CODE_RE) });
 export type RecoveryCodeResponse = z.infer<typeof recoveryCodeResponseSchema>;
+
+/**
+ * 인증 실패 갈래(B2b). 응답 본문 `error.code`로 가른다.
+ *  - unauthorized(401): 토큰이 없거나 서명·발급자·대상·만료가 틀림 → 토큰을 새로 받아 다시. **이 경우 서버는 DB를 보지 않는다**
+ *    (sub가 있든 없든 같은 본문 — 서명이 맞지 않는 토큰으로 계정 유무를 떠볼 수 없다).
+ *  - noAccount(401 `no_account`): 토큰은 유효하게 서명됐지만 서버에 그 로그인(sub)에 붙은 사용자가 없다(지움·Auth 삭제 대기·맡긴 적 없음).
+ *    토큰을 새로 받아도 같다 → 세션·기기 기록을 비우고 새로 시작. 알 수 있는 것은 '토큰 주인 자신의 로그인'뿐이다.
+ *  - alreadyGone(410 `no_account`): DELETE /me 전용 — 지울 것이 없다(이미 지워짐으로 본다).
+ *  - moved(410 `moved`): 되찾기로 다른 기기로 옮겨 감.
+ */
+export const AUTH_ERROR = {
+  unauthorized: { status: 401, code: 'unauthorized' },
+  noAccount: { status: 401, code: 'no_account' },
+  alreadyGone: { status: 410, code: 'no_account' },
+  moved: { status: 410, code: 'moved' },
+} as const;
 /** `POST /recover` — 새 기기는 bootstrap 없이 이것만 부른다(3-3 ⑤). 연령 확인은 새 기기에서 다시 한다 */
 export const recoverRequestSchema = z.strictObject({ code: z.string().check(z.maxLength(64)), ageGate: ageGateSchema });
 export type RecoverRequest = z.infer<typeof recoverRequestSchema>;
+/**
+ * 200 응답. **멱등(B2b)**: 커밋 뒤 응답이 끊겨 **같은 기기 로그인**이 **같은 글귀**로 다시 부르면 409가 아니라 200 + `replay: true`.
+ * 그때 creature.code는 그 몽망이의 인장 코드, newCode는 첫 응답과 같은 글귀(글귀를 다시 바꾸지 않는다), save는 지금 메타다.
+ * 재시도는 첫 되찾기 뒤 **24시간 안**에만 받는다(그 뒤·다른 몽망이의 글귀면 지금처럼 409 has_creature).
+ * 앱은 기존 기록을 덮지 않고, 기록의 creature와 creature.code를 확인한 뒤에만 반영한다(DECISIONS B2b '앱이 맞출 것').
+ */
 export const recoverResponseSchema = z.object({
   creature: z.object({ code: str(CREATURE_CODE_RE) }),
   save: z.nullable(saveMetaSchema),
   newCode: str(RECOVERY_CODE_RE),
+  replay: z.optional(z.literal(true)),
 });
 export type RecoverResponse = z.infer<typeof recoverResponseSchema>;
 
 /** 삭제 영수증(3-8): 128비트 난수 base64url 22자. 서버는 해시만, 24시간 */
 export const DELETION_RECEIPT_RE = /^[A-Za-z0-9_-]{22}$/;
 export const DELETION_RECEIPT_TTL_HOURS = 24;
+/**
+ * `DELETE /me` 202 `{receipt}`. **멱등(B2b)**: 유효하게 서명된 토큰인데 그 로그인에 붙은 사용자가 서버에 없으면(이미 지움·Auth 삭제 대기·
+ * 맡긴 적 없음) **410 `no_account`** — 지울 것이 없다. 202가 아닌 까닭: 202는 영수증을 약속하는데, 지운 계정의 영수증을 다시 내려면
+ * 지운 사용자를 알아보는 흔적이 필요하다(삭제 뒤 흔적 0). 서버는 토큰의 sub에 user_auth 행이 없다는 사실만 본다.
+ */
 export const deleteMeResponseSchema = z.object({ receipt: str(DELETION_RECEIPT_RE) });
 export type DeleteMeResponse = z.infer<typeof deleteMeResponseSchema>;
 export const deletionStatusSchema = z.object({ state: z.enum(['pending', 'done']) });

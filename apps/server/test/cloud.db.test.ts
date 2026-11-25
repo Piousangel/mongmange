@@ -4,7 +4,7 @@
 //  - 삭제 뒤 어떤 표에든 그 사용자·기기·몽망이·코드의 흔적이 남으면 실패 / 되찾은 뒤 옛 기기가 계속 쓰면 실패
 // DATABASE_URL은 밖에서(로컬 compose db, CI 서비스 컨테이너). 마이그레이션이 먼저 돌아 있어야 한다.
 import 'reflect-metadata';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { SCHEMA_VERSION, sim } from '@mong/core';
 import { normalizeRecoveryCode, SAVE_DAILY_GZIP_BYTES } from '@mong/contract';
@@ -567,7 +567,8 @@ describe('DELETE /me — 연쇄 삭제·영수증(3-8)', () => {
     await as(u.d, http().get('/api/v1/saves/main')).expect(401);
     // Auth 삭제가 늦어도(아래 시험) bootstrap은 auth_gc를 보고 막는다
     await as(u.d, http().post('/api/v1/me/bootstrap')).send({ ageGate: gate }).expect(401);
-    await as(u.d, http().delete('/api/v1/me')).expect(401);
+    // 다시 지우기는 401이 아니라 '이미 없음'(B2b) — 아래 'B2b' 묶음이 자세히 고정
+    await as(u.d, http().delete('/api/v1/me')).expect(410);
   });
   it('Auth 삭제가 실패하면 pending → 그동안 남은 토큰으로 bootstrap 401 → Scheduler 재시도 뒤 done', async () => {
     const real = clock.now.bind(clock);
@@ -678,5 +679,236 @@ describe('DELETE /me — 연쇄 삭제·영수증(3-8)', () => {
     expect(await prisma.user.count({ where: { id: other.userId } })).toBe(1);
     const log = await prisma.deletionLog.findFirstOrThrow({ orderBy: { id: 'desc' } });
     expect(log).toMatchObject({ channel: 'web', kind: 'web_request' });
+  });
+});
+
+// ───────────── B2b: 반쯤 성공 뒤 다시 부르기(멱등)·401 갈래 ─────────────
+// 그럴듯한 오답: ① 되찾기 재시도를 아무 글귀에나 성공으로(다른 몽망이로 바꿔치기 신호) ② 지운 계정을 알아보려고 sub·사용자 흔적을 남김
+// ③ 서명이 틀린 토큰에도 'no_account'를 줘서 남의 계정 유무를 떠볼 수 있게 함.
+
+describe('B2b recover 멱등 — 커밋 뒤 응답이 끊겨 같은 기기가 같은 글귀로 다시 부르면 성공', () => {
+  async function withCode() {
+    const u = await userWithSave();
+    const phrase = (await as(u.d, http().post('/api/v1/recovery-code')).expect(200)).body.code as string;
+    return { ...u, phrase };
+  }
+  const recover = (d: Device, code: string) => as(d, http().post('/api/v1/recover')).send({ code, ageGate: gate });
+
+  it('같은 기기·같은 글귀 → 200 replay:true, 같은 인장 코드·같은 새 글귀(글귀를 다시 바꾸지 않음), 쓰는 기기는 여전히 하나', async () => {
+    const old = await withCode();
+    const fresh = await device();
+    const first = (await recover(fresh, old.phrase).expect(200)).body;
+    expect(first.replay).toBeUndefined();
+    const hashAfterFirst = (await prisma.creature.findUniqueOrThrow({ where: { userId: old.userId } })).recoveryHash;
+    // 옮겨 적은 꼴이 달라도 같은 글귀
+    const again = await recover(fresh, old.phrase.toLowerCase().replace(/-/g, ' ')).expect(200);
+    expect(again.headers['cache-control']).toBe('no-store');
+    expect(again.body).toEqual({ ...first, replay: true });
+    expect(again.body.creature.code).toBe(old.code);
+    expect((await prisma.creature.findUniqueOrThrow({ where: { userId: old.userId } })).recoveryHash).toEqual(hashAfterFirst);
+    expect(await prisma.userAuth.count({ where: { userId: old.userId, revokedAt: null } })).toBe(1);
+    // 옛 글귀는 다른 기기에는 여전히 무효, 새 글귀(첫 응답과 같은 값)는 산다
+    await recover(await device(), old.phrase).expect(404);
+    await recover(await device(), first.newCode).expect(200);
+  });
+  it('새 글귀는 결정적이어도 예측할 수 없다: 같은 옛 글귀라도 기기(sub)가 다르면 다른 값, 형식은 Crockford 16자', async () => {
+    const a = await withCode();
+    const r = (await recover(await device(), a.phrase).expect(200)).body;
+    expect(r.newCode).toMatch(/^[0-9A-HJKMNP-TV-Z]{4}(-[0-9A-HJKMNP-TV-Z]{4}){3}$/);
+    expect(normalizeRecoveryCode(r.newCode)).not.toBe(normalizeRecoveryCode(a.phrase));
+    const { deriveRecoveryCode } = await import('../src/account/codes');
+    const k = 'pepper-x'.padEnd(40, 'x');
+    const s1 = '00000000-0000-4000-8000-000000000001';
+    const s2 = '00000000-0000-4000-8000-000000000002';
+    const c16 = normalizeRecoveryCode(a.phrase)!;
+    expect(deriveRecoveryCode(k, s1, c16)).toEqual(deriveRecoveryCode(k, s1, c16));
+    expect(deriveRecoveryCode(k, s1, c16).code16).not.toBe(deriveRecoveryCode(k, s2, c16).code16);
+    expect(deriveRecoveryCode(k, s1, c16).code16).not.toBe(deriveRecoveryCode('other'.padEnd(40, 'o'), s1, c16).code16);
+  });
+  it('동시에 둘(같은 기기·같은 글귀) → 둘 다 200, 같은 몽망이·같은 새 글귀', async () => {
+    const old = await withCode();
+    const fresh = await device();
+    const [a, b] = await Promise.all([recover(fresh, old.phrase), recover(fresh, old.phrase)]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(a.body.creature.code).toBe(old.code);
+    expect(b.body.creature.code).toBe(old.code);
+    expect(a.body.newCode).toBe(b.body.newCode);
+    expect(await prisma.userAuth.count({ where: { userId: old.userId, revokedAt: null } })).toBe(1);
+  });
+  it('다른 대상이면 지금처럼 409 has_creature — 그 몽망이의 글귀는 그대로', async () => {
+    const x = await withCode();
+    const y = await withCode();
+    const fresh = await device();
+    await recover(fresh, x.phrase).expect(200);
+    const r = await recover(fresh, y.phrase).expect(409);
+    expect(r.body.error.code).toBe('has_creature');
+    await recover(await device(), y.phrase).expect(200);
+  });
+  it('틀린 글귀·bootstrap으로 만든 기기·그 뒤 글귀를 다시 받은 기기는 멱등이 아니다(409) — 아무 글귀에나 성공하지 않는다', async () => {
+    const x = await withCode();
+    const fresh = await device();
+    await recover(fresh, x.phrase).expect(200);
+    expect((await recover(fresh, 'ZZZZ-ZZZZ-ZZZZ-ZZZZ').expect(409)).body.error.code).toBe('has_creature');
+    // 그 뒤 사용자가 글귀를 새로 받았으면 옛 글귀는 더는 이 몽망이를 가리키지 않는다
+    await as(fresh, http().post('/api/v1/recovery-code')).expect(200);
+    expect((await recover(fresh, x.phrase).expect(409)).body.error.code).toBe('has_creature');
+    // bootstrap 기기가 제 몽망이의 (지금) 글귀를 넣어도 '되찾음'이 아니다
+    const own = await withCode();
+    expect((await recover(own.d, own.phrase).expect(409)).body.error.code).toBe('has_creature');
+  });
+  it('재시도 기한 24시간(리뷰 L1): 첫 되찾기(recovery_rotated_at) 뒤 23시간은 replay, 25시간이면 409 — 글귀는 그대로 산다', async () => {
+    const real = clock.now.bind(clock);
+    try {
+      const old = await withCode();
+      const fresh = await device();
+      const first = (await recover(fresh, old.phrase).expect(200)).body;
+      clock.now = () => real() + 23 * 3_600_000;
+      expect((await recover(fresh, old.phrase).expect(200)).body).toEqual({ ...first, replay: true });
+      clock.now = () => real() + 25 * 3_600_000;
+      expect((await recover(fresh, old.phrase).expect(409)).body.error.code).toBe('has_creature');
+      // 기한이 지나도 아무것도 바꾸지 않는다 — 첫 응답의 새 글귀는 다른 기기에서 그대로 산다
+      await recover(await device(), first.newCode).expect(200);
+    } finally {
+      clock.now = real;
+    }
+  });
+  it('옛 기기(옮겨 감)는 410 moved 그대로', async () => {
+    const old = await withCode();
+    await recover(await device(), old.phrase).expect(200);
+    expect((await recover(old.d, old.phrase).expect(410)).body.error.code).toBe('moved');
+  });
+  it('pepper 회전 사이에 다시 불러도 같은 몽망이 — 해시를 쓴 옛 판으로 다시 계산해 첫 응답과 같은 글귀(옛 판이 목록에 있는 동안)', async () => {
+    const { RecoveryPepper } = await import('../src/account/recovery-pepper');
+    const pep = app.get(RecoveryPepper);
+    const orig = { current: pep.current, previous: pep.previous };
+    const p1 = { v: 11, value: 'pepper-b2b-one-'.padEnd(40, '1') };
+    const p2 = { v: 12, value: 'pepper-b2b-two-'.padEnd(40, '2') };
+    try {
+      pep.configure(p1, []);
+      const old = await withCode();
+      const fresh = await device();
+      const first = (await recover(fresh, old.phrase).expect(200)).body;
+      pep.configure(p2, [p1]);
+      const again = (await recover(fresh, old.phrase).expect(200)).body;
+      expect(again.creature.code).toBe(old.code);
+      expect(again.replay).toBe(true);
+      expect(again.newCode).toBe(first.newCode);
+      // 돌려준 글귀가 실제로 산다
+      await recover(await device(), again.newCode).expect(200);
+    } finally {
+      pep.configure(orig.current, orig.previous);
+    }
+  });
+});
+
+describe('B2b DELETE /me 멱등 + 401 갈래(no_account) — 흔적 0을 지키며', () => {
+  it('지운 뒤 남은 토큰으로 다시 DELETE → 410 no_account, 그래도 어떤 표에도 흔적 0', async () => {
+    const u = await userWithSave();
+    const c = await prisma.creature.findUniqueOrThrow({ where: { userId: u.userId } });
+    await as(u.d, http().delete('/api/v1/me')).expect(202);
+    const again = await as(u.d, http().delete('/api/v1/me')).expect(410);
+    expect(again.headers['cache-control']).toBe('no-store');
+    expect(again.body.error.code).toBe('no_account');
+    expect(again.body.receipt).toBeUndefined();
+    await as(u.d, http().delete('/api/v1/me')).expect(410);
+    expect(await traces([u.userId, u.d.sub, c.id, c.code])).toEqual({});
+  });
+  it('동시 DELETE 둘(리뷰 B10) → 202·410(no_account) 또는 202·202 — 500 없이, 영수증은 하나 이상, 흔적 0', async () => {
+    for (let i = 0; i < 3; i++) {
+      const u = await userWithSave();
+      const c = await prisma.creature.findUniqueOrThrow({ where: { userId: u.userId } });
+      const rs = await Promise.all([as(u.d, http().delete('/api/v1/me')), as(u.d, http().delete('/api/v1/me'))]);
+      const st = statuses(rs);
+      expect([[202, 202], [202, 410]]).toContainEqual(st);
+      for (const r of rs) if (r.status === 410) expect(r.body.error.code).toBe('no_account');
+      expect(rs.filter((r) => r.status === 202).every((r) => /^[A-Za-z0-9_-]{22}$/.test(r.body.receipt))).toBe(true);
+      expect(await traces([u.userId, u.d.sub, c.id, c.code])).toEqual({});
+    }
+  });
+  it('겹친 삭제의 늦은 쪽(사용자 행을 못 찾음)도 410 no_account — 404로 새지 않는다', async () => {
+    const { DeletionService } = await import('../src/deletion/deletion.service');
+    const del = app.get(DeletionService);
+    const u = await userWithSave();
+    const orig = del.deleteUser.bind(del);
+    // 가드가 사용자를 본 뒤, 서비스에 닿기 직전에 다른 요청이 먼저 지운 경우를 결정적으로 만든다
+    del.deleteUser = async (id, src) => {
+      del.deleteUser = orig;
+      await orig(id, src);
+      return orig(id, src);
+    };
+    try {
+      const r = await as(u.d, http().delete('/api/v1/me')).expect(410);
+      expect(r.body.error.code).toBe('no_account');
+    } finally {
+      del.deleteUser = orig;
+    }
+    expect(await traces([u.userId, u.d.sub])).toEqual({});
+  });
+  it('Auth 삭제 대기(auth_gc) 중에도 410 no_account', async () => {
+    try {
+      const u = await userWithSave();
+      sb.failDeletes = true;
+      await as(u.d, http().delete('/api/v1/me')).expect(202);
+      expect(sb.users.has(u.d.sub)).toBe(true);
+      expect((await as(u.d, http().delete('/api/v1/me')).expect(410)).body.error.code).toBe('no_account');
+    } finally {
+      sb.failDeletes = false;
+    }
+  });
+  it('맡긴 적 없는 로그인의 DELETE도 410 no_account(지울 것이 없음) — 계정을 만들지 않는다', async () => {
+    const d = await device();
+    expect((await as(d, http().delete('/api/v1/me')).expect(410)).body.error.code).toBe('no_account');
+    expect(await prisma.userAuth.count({ where: { sub: d.sub } })).toBe(0);
+  });
+  it('옮겨 간 옛 기기의 DELETE는 410 moved(지우지 않는다)', async () => {
+    const u = await userWithSave();
+    const phrase = (await as(u.d, http().post('/api/v1/recovery-code')).expect(200)).body.code as string;
+    await as(await device(), http().post('/api/v1/recover')).send({ code: phrase, ageGate: gate }).expect(200);
+    expect((await as(u.d, http().delete('/api/v1/me')).expect(410)).body.error.code).toBe('moved');
+    expect((await as(u.d, http().get('/api/v1/saves/main/meta')).expect(410)).headers['cache-control']).toBe('no-store');
+    expect(await prisma.user.count({ where: { id: u.userId } })).toBe(1);
+  });
+  it('유효하게 서명된 토큰 + 서버에 그 로그인이 없음 → 401 no_account(지운 뒤·맡기기 전·Auth 대기 중 bootstrap)', async () => {
+    const fresh = await device();
+    expect((await as(fresh, http().get('/api/v1/saves/main/meta')).expect(401)).body.error.code).toBe('no_account');
+    expect((await as(fresh, http().post('/api/v1/recovery-code')).expect(401)).body.error.code).toBe('no_account');
+    const u = await userWithSave();
+    await as(u.d, http().delete('/api/v1/me')).expect(202);
+    const na = await put(u.d, body(1), { ifMatch: 1 }).expect(401);
+    expect(na.body.error.code).toBe('no_account');
+    expect(na.headers['cache-control']).toBe('no-store'); // 가드에서 난 401·410도 캐시 금지(핸들러의 @Header보다 앞)
+    expect((await as(u.d, http().get('/api/v1/saves/main')).expect(401)).body.error.code).toBe('no_account');
+    expect((await as(u.d, http().post('/api/v1/me/bootstrap')).send({ ageGate: gate }).expect(401)).body.error.code).toBe('no_account');
+    const gone = await device();
+    sb.users.delete(gone.sub);
+    expect((await as(gone, http().post('/api/v1/me/bootstrap')).send({ ageGate: gate }).expect(401)).body.error.code).toBe('no_account');
+  });
+  it('서명·클레임이 틀린 토큰은 그 sub가 있든 없든 똑같이 401 unauthorized — 계정 유무를 떠볼 수 없다', async () => {
+    const live = await userWithSave();
+    const deleted = await userWithSave();
+    await as(deleted.d, http().delete('/api/v1/me')).expect(202);
+    const never = randomUUID();
+    const bodies: unknown[] = [];
+    for (const sub of [live.d.sub, deleted.d.sub, never]) {
+      for (const bad of [
+        await sb.token({}, { sub, exp: '-5m' }),
+        await sb.token({}, { sub, aud: 'anon' }),
+        await sb.token({}, { sub, iss: 'https://evil.supabase.co/auth/v1' }),
+        await sb.token({ role: 'anon' }, { sub }),
+        (await sb.token({}, { sub })).replace(/\.[^.]+$/, '.' + randomBytes(64).toString('base64url')),
+      ]) {
+        for (const r of [
+          http().get('/api/v1/saves/main/meta'),
+          http().delete('/api/v1/me'),
+          http().post('/api/v1/me/bootstrap').send({ ageGate: gate }),
+        ]) {
+          const res = await r.set('authorization', `Bearer ${bad}`).set('x-forwarded-for', '10.252.0.1');
+          expect(res.status).toBe(401);
+          bodies.push(res.body.error); // requestId는 요청마다 다르다
+        }
+      }
+    }
+    for (const b of bodies) expect(b).toEqual(bodies[0]);
+    expect((bodies[0] as { code: string }).code).toBe('unauthorized');
   });
 });
