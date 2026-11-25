@@ -9,6 +9,11 @@ import { GameHome, type RevealStage } from '../screens/GameHome';
 import { IntroScreen, type IntroBeat } from '../screens/IntroScreen';
 import { MorningScreen } from '../screens/MorningScreen';
 import { NoteSheet } from '../screens/NoteSheet';
+import { CloudSheetHost, cloudRowState } from '../screens/CloudSheet';
+import { useCloudDeps } from '../cloud';
+import { PARKED_DAYS, PRE_RESTORE_DAYS, parkedLive, readPreRestore, readRecord } from '../cloud/record';
+import { bornDate } from '../screens/NameTag';
+import { kv } from './storage';
 import { NameSheet, type NameSheetMode } from '../screens/NameSheet';
 import { displayName, namePromptNow } from './naming';
 import { nameMelodySound } from '../audio/soundMap';
@@ -19,7 +24,7 @@ import { PARAMS } from '../render/clock';
 import { useLater } from '../lib/useLater';
 import { DevPanel } from './DevPanel';
 import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
-import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, onEffects, setMeta, tickNow, useGame } from './store';
+import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, onEffects, setMeta, tickNow, tzOffsetNow, useGame } from './store';
 import { rejectText } from './text';
 import { requestReview } from './review';
 import { createReviewAsker } from './reviewPolicy';
@@ -88,6 +93,9 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const [developed, setDeveloped] = useState<{ card: sim.DreamCard; line: sim.MorningLine } | null>(null);
   const [line, setLine] = useState('');
   const [noteOpen, setNoteOpen] = useState(false);
+  const [cloudOpen, setCloudOpen] = useState<false | 'default' | 'revert' | 'parked'>(false);
+  const cloudFlag = useFeature('cloud');
+  const cloudDeps = useCloudDeps();
   const [nowT, setNowT] = useState(() => now());
   const [washOpen, setWashOpen] = useState(false);
   const washOpenRef = useRef(false);
@@ -531,6 +539,39 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             setMode('home');
             setInkChanging(true);
           }}
+          cloud={
+            cloudFlag && cloudDeps
+              ? {
+                  state: cloudRowState(readRecord(kv)),
+                  open: () => {
+                    setNoteOpen(false);
+                    setCloudOpen('default');
+                  },
+                  parked: (() => {
+                    const p = parkedLive(readRecord(kv), nowT);
+                    if (!p) return null;
+                    return {
+                      until: bornDate(p.at + PARKED_DAYS * 86_400_000, tzOffsetNow()),
+                      open: () => {
+                        setNoteOpen(false);
+                        setCloudOpen('parked');
+                      },
+                    };
+                  })(),
+                  revert: (() => {
+                    const pre = readPreRestore(kv, nowT);
+                    if (!pre) return null;
+                    return {
+                      until: bornDate(pre.at + PRE_RESTORE_DAYS * 86_400_000, tzOffsetNow()),
+                      open: () => {
+                        setNoteOpen(false);
+                        setCloudOpen('revert');
+                      },
+                    };
+                  })(),
+                }
+              : undefined
+          }
           onName={
             namingOn
               ? () => {
@@ -541,6 +582,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           }
         />
       )}
+      {cloudFlag && cloudDeps && <CloudSheetHost visible={cloudOpen !== false} entry={cloudOpen === 'revert' || cloudOpen === 'parked' ? cloudOpen : undefined} onClose={() => setCloudOpen(false)} deps={cloudDeps} tzOffsetMin={tzOffsetNow} />}
       {nameSheet && state && (
         <NameSheet
           mode={nameSheet.mode}

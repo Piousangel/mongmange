@@ -31,7 +31,7 @@ export function bornDate(at: number, tzOffsetMin: number, loc = getLocale()): st
   }
 }
 
-function Portrait({ state, look, strokeInks, size }: { state: sim.State; look: MongLook; strokeInks?: readonly (sim.InkId | null)[]; size: number }) {
+export function Portrait({ state, look, strokeInks, size }: { state: sim.State; look: MongLook; strokeInks?: readonly (sim.InkId | null)[]; size: number }) {
   const grammar = useMemo(() => grammarOf(PARAMS.grammar), []);
   const records = state.strokes;
   const s = coreScale(records.length);

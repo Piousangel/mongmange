@@ -183,6 +183,22 @@ export function install(firstTap?: { x: number; y: number }) {
 }
 
 /**
+ * 맡겨 두기 복원(C12, architecture 3-4 '복원'): 서버 본으로 이어 간다. 지금 기기 본은 백업으로 민 뒤(rotateBackup) 새 본을 쓰고,
+ * 그 시각까지 정산해 홈을 다시 그린다. 새 버전 세이브가 있는 옛 빌드·쓰기 실패면 false(기기 본 그대로).
+ * 호출 전 기기 본 원문 보존(PRE_RESTORE_KEY)과 서버 conflict 칸 업로드는 cloud/tasks.ts가 먼저 끝낸다.
+ */
+export function adoptState(state: State): boolean {
+  if (snap.futureSave) return false;
+  const r = writeSave(kv, state, now(), { rotateBackup: true });
+  if (!r.ok) return false;
+  // 정산 저장은 백업을 다시 밀지 않는다: 이 정산에서 깸이 나도(밤 사이 맡긴 본) 백업 칸 = 바꾸기 전 기기 본 그대로(리뷰 H1)
+  const step = sim.reduce(state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow(), ...nightFields() });
+  apply(step, null, false);
+  persist(step.state, false);
+  return true;
+}
+
+/**
  * 보름·꿈 콘텐츠 플래그 → sim 이벤트 선택 필드(dreams-30days 4-1 ③). 플래그는 State 밖 값이라 reduce가 직접 읽지 않고
  * 재우기·포그라운드 이벤트에 실려 State `nightCtx`에 기록된다(같은 이벤트 열 = 같은 카드). **꺼진 플래그는 필드를 싣지 않는다** —
  * 둘 다 꺼짐이면 이벤트가 빌드 1과 글자까지 같다.

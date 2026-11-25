@@ -35,6 +35,7 @@ export function NoteSheet({
   onTimes,
   onInkChange,
   onName,
+  cloud,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -50,6 +51,8 @@ export function NoteSheet({
   onInkChange?: () => void;
   /** M2 이름 짓기·바꾸기(플래그 naming): 노트를 닫고 이름 짓기 창을 연다. 없으면 이름 줄·이름표 줄을 그리지 않는다 */
   onName?: () => void;
+  /** C12 맡겨 두기(플래그 cloud + 서버·로그인 포트): 노트를 닫고 맡겨 두기 시트를 연다. 없으면 절을 그리지 않는다 */
+  cloud?: { state: 'on' | 'off' | 'paused' | 'attention'; open: () => void; /** 바꾸기 전 몽망이로 되돌리기(30일, 리뷰 H1). 기한 날짜 표기·열기 */ revert: { until: string; open: () => void } | null; /** 되찾기에서 '이 기기'를 골라 30일 칸에 둔 몽망이 다시 고르기 */ parked: { until: string; open: () => void } | null };
 }) {
   const look = useMongLook(state);
   const inkFlag = useFeature('inkChoice');
@@ -126,6 +129,28 @@ export function NoteSheet({
       <KText style={styles.section} serif="title">{t('note.a11ySection')}</KText>
       <Row label={t('note.listView')} value={meta.listView} onChange={(v) => onMeta({ listView: v })} />
       <Row label={t('note.assistStroke')} value={meta.assistStroke} onChange={(v) => onMeta({ assistStroke: v })} />
+
+      {cloud && (
+        <>
+          <KText style={styles.section} serif="title">{t('note.cloudSection')}</KText>
+          <Pressable style={styles.row} onPress={cloud.open} accessibilityRole="button" accessibilityLabel={t('note.cloud.a11y', { state: t(`note.cloud.${cloud.state}`) })} testID="note-cloud">
+            <KText style={styles.rowText}>{t('note.cloud')}</KText>
+            <KText style={[styles.rowText, styles.rowValue]}>{t(`note.cloud.${cloud.state}`)}</KText>
+          </Pressable>
+          {cloud.parked && (
+            <Pressable style={[styles.row, styles.rowWrap]} onPress={cloud.parked.open} accessibilityRole="button" accessibilityLabel={t('note.cloud.parked.a11y', { date: cloud.parked.until })} testID="note-cloud-parked">
+              <KText style={styles.rowText}>{t('note.cloud.parked')}</KText>
+              <KText style={[styles.rowText, styles.rowValue]}>{t('note.cloud.revert.until', { date: cloud.parked.until })}</KText>
+            </Pressable>
+          )}
+          {cloud.revert && (
+            <Pressable style={[styles.row, styles.rowWrap]} onPress={cloud.revert.open} accessibilityRole="button" accessibilityLabel={t('note.cloud.revert.a11y', { date: cloud.revert.until })} testID="note-cloud-revert">
+              <KText style={styles.rowText}>{t('note.cloud.revert')}</KText>
+              <KText style={[styles.rowText, styles.rowValue]}>{t('note.cloud.revert.until', { date: cloud.revert.until })}</KText>
+            </Pressable>
+          )}
+        </>
+      )}
 
       <KText style={styles.section} serif="title">{t('note.langSection')}</KText>
       <LangPicker value={meta.lang} onChange={(lang) => onMeta({ lang })} />
@@ -276,6 +301,7 @@ const styles = StyleSheet.create({
   row: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: PALETTE.day.wash },
   rowText: { fontFamily: SANS, fontSize: 15, color: PALETTE.day.text, flexShrink: 1 },
   rowWrap: { flexWrap: 'wrap' },
+  rowValue: { color: PALETTE.day.textSub, textAlign: 'right' },
   stepGroup: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
   time: { minWidth: 56, textAlign: 'center', fontVariant: ['tabular-nums'] },
   step: { minWidth: 48, minHeight: 44, alignItems: 'center', justifyContent: 'center' },

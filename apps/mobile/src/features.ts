@@ -51,6 +51,11 @@ export const FEATURE_DEFAULTS = {
    * 없거나 실패하면 같은 버튼이 두루마리 이미지(빌드 1)로 떨어진다. 12-05 관문(중급 Android 8초 + 소리 15초 안) 통과 뒤 켠다
    */
   ireVideo: false,
+  /**
+   * C12 맡겨 두기 화면(공방 노트 행 + 시트). 원격 플래그 `cloud`와 같은 이름(A4 ③). 켜도 서버 주소(API_BASE)와
+   * 로그인 포트(C11 `registerCloudAuth`)가 없으면 행이 보이지 않는다. 소프트런칭 중 OTA·플래그로 켠다(D-23 순서)
+   */
+  cloud: false,
   // ── 빌드 3(12-19) ──
   /** M5 함께 숨 쉬기 */
   breathe: false,

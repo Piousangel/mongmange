@@ -1,0 +1,311 @@
+// 맡겨 두기 화면의 상태 기계(로드맵 C12). 순수 모듈 — React·RN을 부르지 않는다(시험 test/cloud.test.ts).
+// 화면은 지금 '보기(View)' 하나만 그린다. 흩어진 boolean 대신 갈래 하나가 화면 전체를 정한다.
+// 원칙(DECISIONS B2·D-03, architecture 3-3·3-4, C12 리뷰 반영):
+//  - 충돌이면 자동으로 고르지 않는다. 두 판을 나란히 보여 주고, 고른 뒤 한 번 더 확인해야 작업이 돈다.
+//  - 되찾기 글귀는 한 번만 받는다. 보여 주기 → '적어 두었어요' → 마지막 네 자 다시 쓰기로 확인. 확인이 끝나면 보기에서 지운다.
+//  - 서버에서 지우는 길(DELETE /me)은 '지우기' 화면에서 인장 코드 끝 네 자를 직접 쳐서 확인할 때 하나뿐이다(리뷰 C1 — '지우고 되찾기' 없앰).
+//  - 실패는 갈래(오프라인·시간 초과·느림·한도·서버)로 보여 주고, 기기 안 몽망이는 어느 경우에도 그대로다.
+//  - 벌·재촉 없음(D-03): '나중에'는 언제나 있고, 고르지 않아도 잃는 것이 없다.
+import { normalizeCreatureCode, normalizeRecoveryCode } from '@mong/contract';
+import type { sim } from '@mong/core';
+import type { Failure } from './api';
+
+export type Purpose = 'enable' | 'recover';
+
+/** 나란히 고르기의 한 쪽. state = 그릴 수 있는 본(이 앱이 못 읽는 새 판이면 null) */
+export interface SaveSide {
+  state: sim.State | null;
+  dayIndex: number | null;
+  strokes: number | null;
+  /** 그 본을 기기에서 마지막으로 저장한 시각(ms). 모르면 null */
+  savedAt: number | null;
+}
+
+/** 서버 본을 고를 때 '고른 그 본'인지 다시 확인하는 값 */
+export interface ServerPick {
+  rev: number;
+  sha: string;
+  /** 서버 이력 칸(conflict)의 본을 고를 때 그 행 id — 서버 restore로 현재본을 만든 뒤 받는다 */
+  versionId?: string;
+}
+
+/** 나란히 고르기를 연 까닭: restore = 되찾기 직후, conflict = 다른 기기 본, parked = 되찾기에서 '이 기기'를 골라 30일 칸에 둔 본 다시 보기 */
+export type Why = 'restore' | 'conflict' | 'parked';
+/** 고르기 화면 위 안내: already = 되찾기 대상(인장 코드)과 같은 몽망이가 이미 이 로그인에 있음, hasCreature = 이 로그인에 다른 몽망이가 있어 글귀의 몽망이를 되찾지 못했을 수 있음 */
+export type ChooseNote = 'already' | 'hasCreature' | null;
+
+export type Task =
+  | { t: 'enable' }
+  /** target = 사용자가 함께 넣은 인장 코드(모르면 null). has_creature가 났을 때 이 값과 같아야만 '이미 되찾음'(리뷰 R1) */
+  | { t: 'recover'; code: string; target: string | null }
+  /** 나란히 보려고 서버 본을 받는다 */
+  | { t: 'fetch'; why: Why }
+  /** 이 기기 본을 맡긴다(덮이는 서버 본은 서버 conflict 칸 30일 — 되찾기 맥락이면 그 행을 기록해 공방 노트에서 다시 고르게 한다) */
+  | { t: 'keepLocal'; server: ServerPick; why: Why }
+  /** 서버 본으로 이어 간다(이 기기 본은 서버 conflict 칸 30일 + 기기 preRestore 칸) */
+  | { t: 'takeServer'; server: ServerPick }
+  | { t: 'sync' }
+  | { t: 'reissue' }
+  /** 서버에서 지우기(확인 끝 네 자를 친 뒤에만). 끊기면 지웠는지 확인한다 */
+  | { t: 'delete' }
+  /** 지우기 결과를 모를 때 서버에 다시 확인만 한다 */
+  | { t: 'deleteCheck' }
+  /** 바꾸기 전 몽망이로 되돌리기(기기 preRestore 칸, 30일) */
+  | { t: 'revert' };
+
+export type TaskResult =
+  | { r: 'enabled'; code: string }
+  | { r: 'recovered'; code: string; then: 'restore' | 'on' }
+  | { r: 'badCode' }
+  /** 409 has_creature이고 이 로그인의 몽망이 인장 코드 = 되찾기 대상 → 이미 되찾아짐, 고를 것도 없음(새 글귀는 다시 받는다) */
+  | { r: 'already' }
+  | { r: 'compare'; why: Why; local: SaveSide; server: SaveSide; pick: ServerPick; note?: ChooseNote }
+  | { r: 'synced' }
+  | { r: 'conflict' }
+  /** 고른 뒤 서버 본이 바뀌었다 / 이 기기 본이 바뀌었다 → 다시 나란히 */
+  | { r: 'serverChanged'; why: Why }
+  | { r: 'localChanged'; why: Why }
+  | { r: 'reissued'; code: string }
+  | { r: 'deleted' }
+  /** 지우기 결과를 확인하지 못했다(기기 기록은 'deleting'으로 남는다) */
+  | { r: 'deleteUnknown' }
+  | { r: 'reverted' }
+  | { r: 'moved' }
+  | { r: 'failed'; failure: Failure };
+
+export type View =
+  | { v: 'intro' }
+  | { v: 'age'; purpose: Purpose }
+  | { v: 'ageUnder' }
+  | { v: 'recoverInput'; error: 'format' | 'seal' | 'notFound' | null }
+  | { v: 'busy'; task: Task; slow: boolean }
+  | { v: 'failed'; task: Task; failure: Failure }
+  | { v: 'code'; code: string; step: 'show' | 'confirm'; then: 'on' | 'restore'; mismatch: boolean }
+  | { v: 'already' }
+  | { v: 'choose'; why: Why; local: SaveSide; server: SaveSide; pick: ServerPick; picked: 'local' | 'server' | null; confirming: boolean; note: ChooseNote }
+  | { v: 'on' }
+  | { v: 'deleteConfirm'; token: string; mismatch: boolean }
+  | { v: 'deleteCheck' }
+  | { v: 'deleted' }
+  /** 맞바꾸기 확인: 지금 몽망이와 바꾸기 전 몽망이를 나란히 보인다(리뷰 R3) */
+  | { v: 'revertConfirm'; back: 'on' | 'intro'; now: SaveSide | null; before: SaveSide | null }
+  | { v: 'reverted' }
+  | { v: 'moved' };
+
+export type CloudEvent =
+  | { e: 'start'; purpose: Purpose }
+  /** 연령 확인 결과(ok=false면 미달) */
+  | { e: 'age'; ok: boolean }
+  /** seal = 함께 넣은 인장 코드(선택) */
+  | { e: 'submitCode'; input: string; seal?: string }
+  | { e: 'slow' }
+  | { e: 'done'; result: TaskResult }
+  | { e: 'retry' }
+  | { e: 'back' }
+  | { e: 'codeWritten' }
+  | { e: 'codeCheck'; input: string }
+  | { e: 'codeAgain' }
+  | { e: 'pick'; side: 'local' | 'server' }
+  | { e: 'confirmPick' }
+  | { e: 'resolve' }
+  | { e: 'syncNow' }
+  | { e: 'reissue' }
+  /** token = 인장 코드 끝 네 자(훅이 기기 기록에서 꺼낸다) */
+  | { e: 'askDelete'; token: string }
+  | { e: 'confirmDelete'; input: string }
+  | { e: 'askRevert'; now?: SaveSide | null; before?: SaveSide | null }
+  | { e: 'confirmRevert' }
+  | { e: 'continue' }
+  /** 공방 노트 '되찾은 몽망이 다시 고르기'(30일 칸) */
+  | { e: 'openParked' }
+  | { e: 'restart' };
+
+/** 확인에 다시 쓰게 하는 끝 글자 수(한 묶음) */
+export const CONFIRM_TAIL = 4;
+
+const crockford = (s: string) => s.toUpperCase().replace(/[\s-]/g, '').replace(/[IL]/g, '1').replace(/O/g, '0');
+
+/** 글귀 끝 네 자 확인: Crockford 읽기(대소문자·I/L/O)로 비교한다. 길이가 다르면(빈 입력 포함) 늘 거짓 */
+export function tailMatches(code: string, input: string): boolean {
+  const want = normalizeRecoveryCode(code);
+  const raw = crockford(input);
+  return want !== null && raw.length === CONFIRM_TAIL && want.endsWith(raw);
+}
+
+/** 지우기 확인 낱말 비교(같은 Crockford 읽기, 정확히 네 자) */
+export function tokenMatches(token: string, input: string): boolean {
+  const raw = crockford(input);
+  return raw.length === CONFIRM_TAIL && raw === crockford(token);
+}
+
+/** 지우기 확인 낱말: 인장 코드 끝 네 자. 모르면(옛 기록) 서버 sha 앞 네 자, 그것도 없으면 고정 낱말 */
+export function deleteToken(rec: { creature: string | null; sha: string | null } | null): string {
+  if (rec?.creature && rec.creature.length >= CONFIRM_TAIL) return rec.creature.slice(-CONFIRM_TAIL).toUpperCase();
+  if (rec?.sha) return rec.sha.slice(0, CONFIRM_TAIL).toUpperCase();
+  return 'MONG';
+}
+
+/** 실패에서 '나중에'를 누르면 돌아갈 안전한 자리 */
+export function fallbackOf(task: Task): View {
+  switch (task.t) {
+    case 'enable':
+      return { v: 'intro' };
+    case 'recover':
+      return { v: 'recoverInput', error: null };
+    case 'delete':
+    case 'deleteCheck':
+      return { v: 'deleteCheck' };
+    default:
+      return { v: 'on' };
+  }
+}
+
+/** 보기를 열 때 처음 자리: 기기 기록에서 정한다 */
+export function initialView(rec: { state: 'on' | 'moved' | 'deleting' } | null): View {
+  if (!rec) return { v: 'intro' };
+  if (rec.state === 'deleting') return { v: 'deleteCheck' };
+  return rec.state === 'moved' ? { v: 'moved' } : { v: 'on' };
+}
+
+/** 시트를 끌어 닫을 수 있나: 글귀를 보여 주는 동안만 막는다(한 번만 받는 값을 실수로 잃지 않게) */
+export function closable(view: View): boolean {
+  return view.v !== 'code';
+}
+
+const busy = (task: Task): View => ({ v: 'busy', task, slow: false });
+
+function onResult(view: Extract<View, { v: 'busy' }>, res: TaskResult): View {
+  switch (res.r) {
+    case 'enabled':
+    case 'reissued':
+      return { v: 'code', code: res.code, step: 'show', then: 'on', mismatch: false };
+    case 'recovered':
+      return { v: 'code', code: res.code, step: 'show', then: res.then, mismatch: false };
+    case 'badCode':
+      return { v: 'recoverInput', error: 'notFound' };
+    case 'already':
+      return { v: 'already' };
+    case 'compare':
+      return { v: 'choose', why: res.why, local: res.local, server: res.server, pick: res.pick, picked: null, confirming: false, note: res.note ?? null };
+    case 'synced':
+      return { v: 'on' };
+    case 'conflict':
+      return busy({ t: 'fetch', why: 'conflict' });
+    case 'serverChanged':
+    case 'localChanged':
+      return busy({ t: 'fetch', why: res.why });
+    case 'deleted':
+      return { v: 'deleted' };
+    case 'deleteUnknown':
+      return { v: 'deleteCheck' };
+    case 'reverted':
+      return { v: 'reverted' };
+    case 'moved':
+      return { v: 'moved' };
+    case 'failed':
+      return { v: 'failed', task: view.task, failure: res.failure };
+  }
+}
+
+/** 상태 전이. 보기에 맞지 않는 사건은 무시한다(같은 보기를 돌려준다) */
+export function reduce(view: View, ev: CloudEvent): View {
+  switch (ev.e) {
+    case 'start':
+      return view.v === 'intro' ? { v: 'age', purpose: ev.purpose } : view;
+    case 'age':
+      if (view.v !== 'age') return view;
+      if (!ev.ok) return { v: 'ageUnder' };
+      return view.purpose === 'enable' ? busy({ t: 'enable' }) : { v: 'recoverInput', error: null };
+    case 'submitCode': {
+      if (view.v !== 'recoverInput') return view;
+      const code = normalizeRecoveryCode(ev.input);
+      if (code === null) return { v: 'recoverInput', error: 'format' };
+      const seal = ev.seal?.trim() ? normalizeCreatureCode(ev.seal) : null;
+      if (ev.seal?.trim() && seal === null) return { v: 'recoverInput', error: 'seal' };
+      return busy({ t: 'recover', code, target: seal });
+    }
+    case 'slow':
+      return view.v === 'busy' ? { ...view, slow: true } : view;
+    case 'done':
+      return view.v === 'busy' ? onResult(view, ev.result) : view;
+    case 'retry':
+      if (view.v === 'failed') return busy(view.task);
+      if (view.v === 'deleteCheck') return busy({ t: 'deleteCheck' });
+      return view;
+    case 'back':
+      switch (view.v) {
+        case 'failed':
+          return fallbackOf(view.task);
+        case 'age':
+        case 'ageUnder':
+        case 'recoverInput':
+          return { v: 'intro' };
+        case 'code':
+          // 확인 단계에서만 '글귀 다시 보기'로 돌아간다. 보여 주는 단계에는 뒤가 없다(받은 글귀를 버리는 길이 없게)
+          return view.step === 'confirm' ? { ...view, step: 'show', mismatch: false } : view;
+        case 'choose':
+          // 고르지 않고 나가도 잃는 것이 없다: 기기 기록의 '충돌' 표시가 남아 올리기를 멈추고, 켜짐 화면에서 다시 고를 수 있다
+          return view.confirming ? { ...view, confirming: false } : { v: 'on' };
+        case 'deleteConfirm':
+          return { v: 'on' };
+        case 'revertConfirm':
+          return { v: view.back };
+        default:
+          return view;
+      }
+    case 'codeWritten':
+      return view.v === 'code' && view.step === 'show' ? { ...view, step: 'confirm', mismatch: false } : view;
+    case 'codeAgain':
+      return view.v === 'code' && view.step === 'confirm' ? { ...view, step: 'show', mismatch: false } : view;
+    case 'codeCheck':
+      if (view.v !== 'code' || view.step !== 'confirm') return view;
+      if (!tailMatches(view.code, ev.input)) return { ...view, mismatch: true };
+      return view.then === 'restore' ? busy({ t: 'fetch', why: 'restore' }) : { v: 'on' };
+    case 'pick':
+      if (view.v !== 'choose' || view.confirming) return view;
+      // 이 앱이 못 읽는 서버 본(새 판)이면 어느 쪽도 고르지 않는다: 서버 본은 그리지도 검증하지도 못했고,
+      // 이 기기 본을 고르면 그 새 판이 conflict 칸에서 30일 뒤 사라질 수 있다 → 앱을 업데이트한 뒤 고른다
+      if (view.server.state === null) return view;
+      return { ...view, picked: ev.side };
+    case 'confirmPick':
+      if (view.v !== 'choose' || view.picked === null) return view;
+      if (!view.confirming) return { ...view, confirming: true };
+      return busy(view.picked === 'local' ? { t: 'keepLocal', server: view.pick, why: view.why } : { t: 'takeServer', server: view.pick });
+    case 'resolve':
+      return view.v === 'on' ? busy({ t: 'fetch', why: 'conflict' }) : view;
+    case 'syncNow':
+      return view.v === 'on' ? busy({ t: 'sync' }) : view;
+    case 'reissue':
+      return view.v === 'on' ? busy({ t: 'reissue' }) : view;
+    case 'askDelete':
+      return view.v === 'on' ? { v: 'deleteConfirm', token: ev.token, mismatch: false } : view;
+    case 'confirmDelete':
+      if (view.v !== 'deleteConfirm') return view;
+      return tokenMatches(view.token, ev.input) ? busy({ t: 'delete' }) : { ...view, mismatch: true };
+    case 'askRevert': {
+      const sides = { now: ev.now ?? null, before: ev.before ?? null };
+      if (view.v === 'on') return { v: 'revertConfirm', back: 'on', ...sides };
+      if (view.v === 'intro' || view.v === 'deleted' || view.v === 'moved') return { v: 'revertConfirm', back: 'intro', ...sides };
+      return view;
+    }
+    case 'openParked':
+      return view.v === 'on' ? busy({ t: 'fetch', why: 'parked' }) : view;
+    case 'confirmRevert':
+      return view.v === 'revertConfirm' ? busy({ t: 'revert' }) : view;
+    case 'continue':
+      return view.v === 'already' || view.v === 'reverted' ? { v: 'on' } : view;
+    case 'restart':
+      return view.v === 'moved' || view.v === 'deleted' ? { v: 'intro' } : view;
+  }
+}
+
+/**
+ * 켜기·되찾기 시작 사건들(훅 useCloud.start가 그대로 보낸다 — 리뷰 M8: 훅 안 판단을 순수 함수로 꺼내 시험한다).
+ * 통과 기록이 지금 판이면 연령을 다시 묻지 않고, 오늘 미달 기록이 있으면 묻지 않고 바로 '쉼'으로 간다.
+ */
+export function startEvents(purpose: Purpose, age: { kind: 'ask' | 'passed' | 'wait' }): CloudEvent[] {
+  const evs: CloudEvent[] = [{ e: 'start', purpose }];
+  if (age.kind === 'passed') evs.push({ e: 'age', ok: true });
+  else if (age.kind === 'wait') evs.push({ e: 'age', ok: false });
+  return evs;
+}

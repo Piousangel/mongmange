@@ -1,0 +1,559 @@
+{
+  "base": "http://localhost:8140",
+  "log": [
+    {
+      "shot": "ko-fs100-intro",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-age",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-under",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-code",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-confirm",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-recover",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-choose",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-choose-confirm",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-unreadable",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-on",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-on-attention",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-slow",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-failed",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-delete",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-delete-check",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-already",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-revert",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-choose-has",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-on-parked",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs100-moved",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-intro",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "ko-fs200-age",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-under",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-code",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "ko-fs200-confirm",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-recover",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "ko-fs200-choose",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "ko-fs200-choose-confirm",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "ko-fs200-unreadable",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "ko-fs200-on",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-on-attention",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-slow",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-failed",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-delete",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-delete-check",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-already",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-revert",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "ko-fs200-choose-has",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "ko-fs200-on-parked",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-fs200-moved",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-intro",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-age",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-under",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-code",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-confirm",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-recover",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-choose",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-choose-confirm",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-unreadable",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-on",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-on-attention",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-slow",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-failed",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-delete",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-delete-check",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-already",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-revert",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-choose-has",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-on-parked",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs100-moved",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-intro",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-age",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-under",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-code",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-confirm",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-recover",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-choose",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-choose-confirm",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-unreadable",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-on",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-on-attention",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-slow",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-failed",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-delete",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-delete-check",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-already",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-revert",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-choose-has",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": true
+    },
+    {
+      "shot": "en-fs200-on-parked",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "en-fs200-moved",
+      "docScroll": false,
+      "outside": [],
+      "scrolled": false
+    },
+    {
+      "shot": "ko-w320-fs200-choose",
+      "titleCloseGap": 77,
+      "inputFits": true,
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-w320-fs200-recover",
+      "titleCloseGap": 77,
+      "inputFits": true,
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "ko-w320-fs200-delete",
+      "titleCloseGap": 77,
+      "inputFits": true,
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-w320-fs200-choose",
+      "titleCloseGap": 12,
+      "inputFits": true,
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-w320-fs200-recover",
+      "titleCloseGap": 12,
+      "inputFits": true,
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "shot": "en-w320-fs200-delete",
+      "titleCloseGap": 12,
+      "inputFits": true,
+      "docScroll": false,
+      "outside": []
+    },
+    {
+      "flow": [
+        {
+          "codeShown": true,
+          "a11yLabelSpelled": true
+        },
+        {
+          "escapeKeepsCode": true
+        },
+        {
+          "mismatchShown": true
+        },
+        {
+          "onAfterConfirm": true,
+          "codeGone": true
+        },
+        {
+          "deleteMismatchShown": true
+        },
+        {
+          "deleted": true
+        }
+      ]
+    },
+    {
+      "chooseFlow": {
+        "nextDisabledBeforePick": true,
+        "confirmShown": true,
+        "onAfter": true
+      }
+    }
+  ],
+  "errors": []
+}

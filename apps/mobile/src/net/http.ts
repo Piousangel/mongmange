@@ -8,7 +8,8 @@ export type FetchLike = (url: string, init?: { method?: string; headers?: Record
 
 export const NET_TIMEOUT_MS = 5000;
 
-export type HttpResult = { kind: 'ok'; status: number; body: string } | { kind: 'http'; status: number } | { kind: 'timeout' } | { kind: 'network' };
+/** http = 2xx가 아닌 응답. body는 오류 본문(맡겨 두기 409의 `error.details.server`처럼 판단에 쓰는 값 — C12). 못 읽으면 빈 문자열 */
+export type HttpResult = { kind: 'ok'; status: number; body: string } | { kind: 'http'; status: number; body: string } | { kind: 'timeout' } | { kind: 'network' };
 
 export async function request(fetchFn: FetchLike, url: string, init: Parameters<FetchLike>[1] = {}, timeoutMs = NET_TIMEOUT_MS): Promise<HttpResult> {
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -19,7 +20,7 @@ export async function request(fetchFn: FetchLike, url: string, init: Parameters<
   }, timeoutMs);
   try {
     const r = await fetchFn(url, { ...init, signal: ctl?.signal });
-    if (!r.ok) return { kind: 'http', status: r.status };
+    if (!r.ok) return { kind: 'http', status: r.status, body: await r.text().catch(() => '') };
     return { kind: 'ok', status: r.status, body: r.status === 204 ? '' : await r.text() };
   } catch {
     return timedOut ? { kind: 'timeout' } : { kind: 'network' };

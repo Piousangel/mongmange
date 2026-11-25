@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   handleRow: { position: 'absolute', left: 0, right: 0, top: 0, height: HANDLE_H, alignItems: 'center', justifyContent: 'flex-end' },
   grabber: { width: 36, height: 4, borderRadius: 2, opacity: 0.8 },
   webNoSelect: Platform.select({ web: { userSelect: 'none', cursor: 'grab' } as unknown as ViewStyle, default: {} }),
-  head: { marginTop: HANDLE_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth },
+  head: { marginTop: HANDLE_H, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth },
   titleBox: { flexShrink: 1 },
   title: { fontFamily: SERIF, fontSize: 19, letterSpacing: track.serif(19) },
   close: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'flex-end' },
