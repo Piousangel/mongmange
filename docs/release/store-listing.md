@@ -241,7 +241,7 @@ A brush, an inkstone, a water dropper, and a single drop of ink. A story of twen
 
 | 흐름 | 누구 | 항목 | 식별 | 선택 여부 |
 |---|---|---|---|---|
-| 집계 핑 | **켠 사람만**(기본 꺼짐) [빌드 2] | 코호트 날짜·n일째·플랫폼·버전·언어·`nt`·`wg`·`moon`·이벤트 10종 | 식별자 없음(IP는 요청 로그 7일) | 선택(켜야 보냄). **[B4 커밋 뒤 대조]** |
+| 집계 핑 | **켠 사람만**(기본 꺼짐) [빌드 2] | 코호트 날짜·n일째·플랫폼·버전·언어·`nt`·`wg`·`moon`·이벤트 10종 | 식별자 없음. 요청 UA는 `Mongmangi` 고정, Cloud Run 요청 로그는 받지 않음(B6) | 선택(켜야 보냄, 14세 확인 통과자만 — 2d08504). B4 대조 완료(3cd00f8) |
 | OTA 확인(**자체 업데이트 서버**, V21·V24) | 모든 설치자, 둘째 실행부터 기기 날짜로 하루 1회(예외: 시작 직후 치명 오류 때 네이티브 1회, 연속 비정상 종료 2회면 즉시) [빌드 2] | 플랫폼·런타임 버전·채널·현재·내장 업데이트 id(같은 판 공통)·IP·UA. `EAS-Client-ID`(설치 id)·실패한 업데이트 id·오류 텍스트는 **앱이 상수로 덮어 보내지 않음**(472bcc5). 받은 값 저장 0·로그 0. 경로: Firebase Hosting(전 세계 엣지) → Cloud Run 서울 | 식별자 없음(IP는 요청 로그 7일, Firebase 경유 플랫폼 기록은 B6 실측) | 끌 수 없음 |
 | ML Kit 손글씨 인식(Google SDK) | 모든 설치자, 첫 쓰기부터 [빌드 2] | 모델 내려받기(IP) + Google로 가는 진단: 기기 정보·앱 정보·**설치별 식별자**·성능 값·설정 언어·입출력 크기·오류 코드. 획·인식 결과는 보내지 않음(V15 네트워크 대조로 확인) | 설치별 식별자(우리 계정과 연결 안 됨) | 끌 수 없음 |
 | 플래그·모티프 정적 파일 | 모든 설치자 [빌드 2] | IP만(Firebase 엣지) | 없음 | 끌 수 없음 |
@@ -293,7 +293,7 @@ A brush, an inkstone, a water dropper, and a single drop of ink. A story of twen
 
 | Apple 분류 | 수집 | Linked to You | Tracking | 목적 | 근거 흐름 | 메모 |
 |---|---|---|---|---|---|---|
-| Usage Data > **Product Interaction** | 예 | **Not Linked** | 아니요 | Analytics | 집계 핑 | **[B4 커밋 뒤 대조]** |
+| Usage Data > **Product Interaction** | 예 | **Not Linked** | 아니요 | Analytics | 집계 핑 | B4 대조 완료(3cd00f8) — 식별자 칸 없음 |
 | Identifiers > **Device ID** | **예** | **Linked**(v0.5) | 아니요 | Analytics(SDK 진단) | ML Kit 설치별 식별자(Google SDK, 우리 계정과 연결 안 됨) | **v0.5 재판정(법률 리뷰 M6)**: Apple App Privacy Details는 개인 데이터를 수집 전에 비식별·익명화하는 보호 조치(직접 식별자 제거 등)가 없으면 '연결된 데이터'로 본다고 적는다. ML Kit은 설치별 식별자를 그대로 Google에 보내고 운영자가 수집 전에 지울 수 없으므로 Linked로 선언한다(Tracking 아님 → ATT 불필요, 비용은 라벨 한 칸). v0.3: 맡겨 두기 기기 값은 받지 않음. v0.4: 자체 OTA는 앱이 설치 id를 상수로 덮어 **보내지 않음**(472bcc5) — Apple '수집' 정의 질문이 사라짐 [확인 필요: V15 실측]. 처리방침 3-2·3-3·3-5와 일치 |
 | Identifiers > **User ID** | 예 | Linked | 아니요 | App Functionality | 익명 계정 id | |
 | User Content > **Other User Content** | 예 | Linked | 아니요 | App Functionality | 획·이름·공개 스냅숏·포스터·루프 | |
