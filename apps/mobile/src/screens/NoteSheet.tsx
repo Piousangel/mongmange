@@ -203,7 +203,7 @@ function Album({ cards, strokes, width, onOpen, look, sealSeed }: { cards: sim.D
         <Pressable key={i} onPress={() => onOpen(i)} style={{ width: tw }} accessibilityRole="button" accessibilityLabel={t('note.thumb.a11y', { card: cardA11y(c, pastLine(c)) })} testID={`album-${i}`}>
           <DreamCardThumb card={c} strokes={st} width={tw} look={look} sealSeed={sealSeed} />
           <KText style={styles.thumbText} numberOfLines={2} importantForAccessibility="no">
-            {t(c.nightsMerged > 1 ? 'note.thumb.long' : 'note.thumb', { night: nightName(c), motif: motifName(c.motifId) ?? t('motif.fallback') })}
+            {t(c.nightsMerged > 1 ? 'note.thumb.long' : 'note.thumb', { night: nightName(c), motif: motifName(c.motifId, sim.dreamArtRevOf(c)) ?? t('motif.fallback') })}
           </KText>
         </Pressable>
       ))}

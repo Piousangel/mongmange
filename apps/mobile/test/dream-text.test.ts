@@ -39,6 +39,29 @@ describe('core 모티프 25 ↔ i18n', () => {
     }
   });
 
+  it('판별 문구(8차 PM): 창가 그림은 판 1 카드만 \'창가의 등불\'(손을 뺀 그림), 판 0 카드는 \'창가의 손\' 문구가 바이트 그대로 — id는 같다', () => {
+    const w0 = card('near-with.window-hand');
+    const w1 = card('near-with.window-hand', { artRev: 1 });
+    setLanguagePref('ko');
+    expect(motifName(w0.motifId)).toBe('창가의 손');
+    expect(motifScene(w0.motifId)).toBe('창살 같은 물방울 너머로 손 하나가 비쳐요');
+    expect(dreamCaption(w0)).toBe('간밤 꿈에 창 너머로 손 하나가 비쳤어요');
+    expect(motifName(w1.motifId, sim.dreamArtRevOf(w1))).toBe('창가의 등불');
+    expect(dreamCaption(w1)).toBe('간밤 꿈에 창가에 등불이 켜져 있었어요');
+    setLanguagePref('en');
+    expect(motifName(w0.motifId)).toBe('a hand at the window');
+    expect(motifScene(w0.motifId)).toBe('A hand shows through drops of water, as through a window lattice');
+    expect(dreamCaption(w0)).toBe('A hand showed at the window');
+    expect(motifName(w1.motifId, 1)).toBe('a lamp at the window');
+    expect(dreamCaption(w1)).toBe('A lamp glowed at the window');
+    // 다른 모티프는 판과 무관
+    expect(motifName('near-with.umbrella', 1)).toBe(motifName('near-with.umbrella'));
+    // 판 1 문구도 스키마 1 상한·금지어(원격과 같은 검사)를 통과한다
+    const text = Object.fromEntries((['ko', 'en'] as const).map((lang) => [lang, { title: TABLES[lang][k('motif.near-with.window-hand.r1')], line: TABLES[lang][k('caption.line.near-with.window-hand.r1')], scene: TABLES[lang][k('scene.near-with.window-hand.r1')] }]));
+    const r = motifFileSchema.safeParse({ schema: 1, id: 'near-with-window-hand', zone: 'near-with', family: 'hand', paths: [{ d: 'M0 0 L1 1', w: 1, layer: 'ink' }], shader: { bleed: 0.3, grain: 0.2, tone: 'night' }, text });
+    expect(r.success, JSON.stringify(r.error?.issues)).toBe(true);
+  });
+
   it('문구가 스키마 1과 같은 상한·금지어를 지킨다(번들도 원격과 같은 상한, 5-2) — motifFileSchema로 검사', () => {
     const issues: string[] = [];
     for (const m of sim.MOTIFS) {
