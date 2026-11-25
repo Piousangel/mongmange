@@ -1,21 +1,21 @@
 # Privacy Policy — [English app name — set after the name test]
 
-- Version: v3.3 draft (2026-11-25 — the legal review of v3.2 applied; v3.2 = v3.1 (2026-11-24: legal first-pass review edits P1–P19, owner and PM decisions, concept v3 (D-26) and the independent review) aligned on 2026-11-25: app update checks, the 2-year inactivity clean-up, care routines (meals, treats, stroll); **written as of launch**)
+- Version: v3.3 draft (2026-11-25 — the legal review of v3.2 applied; v3.2 = v3.1 (2026-11-24: legal first-pass review edits P1–P19, owner and PM decisions, concept v3 (D-26) and the independent review) aligned on 2026-11-25: app update checks, the 2-year inactivity clean-up, care routines (meals, treats, stroll); **written as of launch**; the same day, roadmap D9: the 14-and-over target stated in the plain-words summary and section 4, the summary no longer reads as addressed to children, and the operator field is now a business-name field)
 - Effective date: [Effective date — owner to fill]
-- Operator: [Operator — owner to fill]
+- Operator (business name): [Business name — owner to fill]
 - Contact: hello@mongmang.ink
 
 > **Remove before publishing — internal implementation checklist.** This version describes, as launch behavior, several things not built yet (ML Kit handwriting recognition, zero trace of crisis words, the "one stroke + category" Keep it safe upload, opt-in usage statistics behind the age check, meals, treats, the meal reminder and the on-screen stroll). Check every line against code, tests and evidence before RC using the checklist **K1–K35** at the top of `privacy-policy.ko.md` (one table for both languages). If code and policy differ, fix one of them before publishing. v3.3 (2026-11-25): legal review `docs/team/reviews/2026-11-25-privacy-v32-review.md` and PM decisions applied — a separate tester-build policy (`privacy-policy-tester.en.md`) is what gets published before build 2 (12-19); the inactivity rule now has a one-month margin (check after V25c); the meal reminder wording follows what the OS actually keeps; User-Agent added to access logs; transfer countries; B4 mark on 3-3; a plain-language summary; ads and purchases narrowed to "none in this version" (see the Korean file's ad/purchase list). v3.2 (2026-11-25): our own update server and the in-app update check (V21, V24) and the 2-year inactivity clean-up (V25) are committed (K7, K8, K20, K27); D-27 care routines added as K33–K35; usage statistics (K1, K3, K25) are to be checked after the B4 commit. The real-steps update (planned for 01-26) is listed separately in the Korean file under "01-26 업데이트 전 개정 목록".
 
-This policy explains how [Operator — owner to fill] ("we") handles personal information in the mobile game [English app name] (Korean title: 몽망이 키우기, the "App") and on the shared-link web pages at `mongmang.ink` (the "Web Pages").
+This policy explains how [Business name — owner to fill] ("we") handles personal information in the mobile game [English app name] (Korean title: 몽망이 키우기, the "App") and on the shared-link web pages at `mongmang.ink` (the "Web Pages").
 
-**In plain words first (please read this too if you are under 14)**
+**In plain words first**
 
-- The Mongmangi game runs inside your phone. The handwriting you write with the brush is read only inside your phone.
+- This App is made for people aged 14 and over. The game runs on your phone, and what you write with the brush is read only on your phone.
 - We do not take your name, email, phone number, location or photos.
-- Some things leave everyone's phone: the App asking whether there is a new version, downloading files the game needs and the handwriting reading tool, and information that Google's handwriting feature sends to Google about how well it is working. Your handwriting is not part of it.
-- If you are under 14, usage statistics, Share by link and Keep it safe cannot be turned on.
-- If you have a question or want something deleted, email hello@mongmang.ink together with a parent or another adult.
+- A few things leave every phone: the App checking for a new version, downloads of game files and the handwriting tool, and reports Google's handwriting tool sends Google about how well it works. Your handwriting is not in any of them.
+- Usage statistics, Share by link and Keep it safe can be turned on only after you pass the age check (14 or older). Usage statistics stay off until you turn them on yourself.
+- If you have a question or want something deleted, email hello@mongmang.ink. If you are under 14, please ask a parent or guardian to help.
 
 ## 1. At a glance
 
@@ -125,8 +125,8 @@ The following is stored on your device. It is not sent to us unless you turn on 
 
 ## 4. Age check and children under 14
 
-- **Features that create an account are only for people aged 14 and older.** Anyone can play the on-device game. The App is not directed at children and does not take part in children's categories.
-- Before you first turn on "Send usage statistics" or a feature that creates an account ("Share by link", "Keep it safe", or the later "Night Water"), we ask once for your **birth year and month**. The check runs on your device, and **your birth year and month are not stored on your device or our server**.
+- The App is made **for people aged 14 and over**. It is not directed at children and does not take part in app stores' children's categories. **Features that create an account, and usage statistics, can be turned on only by people aged 14 and older.** Anyone can play the on-device game without an age check.
+- Before you first turn on "Send usage statistics" or a feature that creates an account ("Share by link", "Keep it safe", or the later "Night Water"), we ask once for your **birth year and month**. The check runs on your device, and **your birth year and month are not stored on your device or our server**. Because we do not ask for the day, if your birthday is in the current month we treat it as not yet reached.
 - If you are under 14, no account is created, and the feature and usage statistics stay off. Your device keeps only "under age" and the date so we do not ask again the same day. You can keep playing on your device and saving or sharing cards.
 - We do not offer a parental consent process and do not create accounts for children under 14. The information in sections 3-2 and 3-3 (update checks, file and model downloads, handwriting recognition diagnostics) is needed for the App to work and is sent from every user without an age check. Only people who have passed the age check can turn on the usage statistics in 3-1. [To be revised after legal review]
 - If we learn that a child under 14's information has been processed on our server, we will delete it without delay. We take the public page down as soon as we confirm, and, so that a mistaken request cannot erase someone else's records, we notify the account in the App and delete what is kept on our server **72 hours** later. Parents or guardians can contact us at the address in section 17. [Legal review: how to verify a guardian]
@@ -270,7 +270,7 @@ If we ever shut down the server, we will tell you in the App and on this page **
 
 ## 17. Contact and privacy officer
 
-| | |
+| Item | Details |
 |---|---|
 | Privacy officer | [Operator — owner to fill] |
 | Role | Operator (solo developer) |

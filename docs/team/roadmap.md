@@ -132,7 +132,7 @@
 - [ ] ~~C8 아이콘 3안·미리보기 영상·스토어 스크린샷(실제 화면, 주연 = 얼굴·'획 → 몸'·아침 카드)~~ [대체됨 → V19(주연 = 얼굴·'글씨 → 몸 대답'·아침 카드)]
 - [ ] C9 iOS 빌드·TestFlight(오너: Apple Developer) — [D-26: 가입 12-19 전, 베타 심사 01-07 제출, 외부 테스트 01-12]
 - [ ] C10 빌드 2 네이티브 묶음 한 번: `expo-updates`(채널·롤백 규칙), `associatedDomains`, `intentFilters`(EAS 서명 키 + Play 앱 서명 키), 위젯 타깃(`@bacons/apple-targets`·App Group·로컬 Expo 모듈), `react-native-android-widget` → ~~12-05 전후~~ EAS 리허설 빌드 — 진행: 인코더 모듈 1dd856c(EAS 리허설·expo-updates·딥링크·위젯 남음) — **[D-26: + V2 필기 인식 모듈. 리허설 12-12, 동결 = 빌드 2 12-19]**
-- [ ] C11 앱 net 모듈: 집계 핑 + 아웃박스, 플래그 로더(크래시 루프 탈출), 딥링크 수신 시트, 14세 확인, OG 1200×630 렌더·8초 루프 업로드(이름 공개 설정 반영) — [D-26: OG·루프에 유저 획(V13), 쓴 말 기본 숨김(V15)]
+- [ ] C11 앱 net 모듈: 집계 핑 + 아웃박스, 플래그 로더(크래시 루프 탈출), 딥링크 수신 시트, 14세 확인, OG 1200×630 렌더·8초 루프 업로드(이름 공개 설정 반영) — [D-26: OG·루프에 유저 획(V13), 쓴 말 기본 숨김(V15)] — [D9 11-25 발견: `apps/mobile/src/net/gate.ts:13-19` metricsConsent가 토글 연결 시 '끈 표시 없으면 켜짐' → K1·K25(직접 켠 14세 확인 통과자만)와 반대. 토글 연결 전 기본 꺼짐으로 고치고 시험]
   - [B4 리뷰 11-25] 완료 조건: 원격 문서는 `verifyRemoteDocStrict`(서명 필수·만료·바닥 판)만으로 받고, 탈출 중 값은 `escapeFlags`·`escapeThresholds`, 팩은 `sha256Hex`·`lexImmutableViolations`로 검사 — `verifyRemoteDoc`·`unsigned`를 앱에서 직접 다루지 않는다(B4-report 3절)
   - [web-static 리뷰 R3 11-25] 완료 조건: 앱 번들 공개키 목록을 `apps/mobile/src/net/remote-public-keys.json`({keys:[{kid,n,e}]})에 두고, `apps/web-static/remote-public-keys.json`과 같은지 보는 **두 목록 대조 시험**을 둔다(정적 빌드는 이미 이 경로가 있으면 대조해 다르면 실패)
 - [ ] C12 맡겨 두기 UI: 켜기·되찾기 글귀 표시·입력·충돌 시 나란히 고르기·복원 화면·지우기(다국어·200% 글자) — [D-26: 켜기 화면에 '쓴 글씨 획 좌표' 고지 한 줄(V15)]

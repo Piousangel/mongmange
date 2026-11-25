@@ -6,13 +6,13 @@
 
 The operator of Mongmangi ("we") handles the personal information of people who use the test build and people who ask to join the test as described in this policy. When the App officially launches, we will post the full Privacy Policy for the App at this address and keep this policy available as an earlier version.
 
-**In plain words first (please read this too if you are under 14)**
+**In plain words first**
 
-- The Mongmangi game runs inside your phone. The handwriting you write with the brush is read only inside your phone.
+- This App is made for people aged 14 and over, and only people aged 14 or older can ask to join the test. The game runs on your phone, and what you write with the brush is read only on your phone.
 - We do not take your name, phone number, location or photos. This test build has no account, no usage statistics, no ads and no purchases.
 - Two things leave your phone: the App asking whether there is a new version, and Google's handwriting feature downloading its reading tool and telling Google how well it is working. Your handwriting is not part of it.
 - The email you sent to join the test is deleted 30 days after the official launch.
-- If you have a question or want something deleted, email hello@mongmang.ink together with a parent or another adult.
+- If you have a question or want something deleted, email hello@mongmang.ink.
 
 ## 1. What the test build sends off your phone
 
@@ -88,7 +88,7 @@ We use the following providers. Because they are foreign companies or use facili
 
 ## 7. Children under 14
 
-- Only people aged 14 or older can ask to join the test, and features that create an account are not turned on in the test build.
+- Mongmangi is made for people aged 14 and over. Only people aged 14 or older can ask to join the test, and features that create an account and usage statistics are not turned on in the test build.
 - The update checks and handwriting recognition in section 1 are needed for the App to work and are sent regardless of age.
 - If we learn that we received a test request email from a child under 14, we delete it without delay.
 
@@ -111,7 +111,7 @@ We use the following providers. Because they are foreign companies or use facili
 
 ## 11. Contact and privacy officer
 
-| | |
+| Item | Details |
 |---|---|
 | Name (or business name) | [Name or business name — owner to fill] |
 | Role | Operator (solo developer) |
