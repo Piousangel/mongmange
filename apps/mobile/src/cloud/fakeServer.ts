@@ -1,7 +1,8 @@
 // 맡겨 두기 가짜 서버(시험 + 웹 확인판 ?screen=cloud 전용 — 제품 경로에서 부르지 않는다).
 // 규칙은 apps/server/src/{account,saves} 컨트롤러와 architecture 3-4-1 표를 줄여 옮겼다: rev·sha 전제 조건, 같은 sha 빨리 감기,
 // 행 없음 + If-Match → 409 {server:null}, keep_mine → 덮인 본 conflict 칸, 되찾기 → 옛 로그인 410, 글귀 재발급 → 옛 글귀 무효.
-// 고장 흉내: offline(연결 실패), delayMs(느린 서버), dropAfterCommit(커밋 뒤 응답 끊김 = 반쯤 성공), failNext(상태 코드 하나).
+// 고장 흉내: offline(연결 실패), delayMs(느린 서버), delayAfterMs(커밋한 뒤 늦은 응답 — 제한 시간을 넘으면 반쯤 성공),
+// dropAfterCommit(커밋 뒤 응답 끊김 = 반쯤 성공), failNext(상태 코드 하나). dump()는 시험이 서버 전체를 들여다보는 창(C13 불변식).
 // 인증은 B2b 계약(@mong/contract AUTH_ERROR)대로: 토큰 문제 = 401 unauthorized, 그 로그인(sub)에 사용자 없음 = 401 no_account,
 // DELETE /me에 지울 것 없음 = 410 no_account, 옮겨 감 = 410 moved. recover 재시도(같은 sub·같은 옛 글귀) = 200 replay:true.
 // 토큰은 JWT 꼴(`h.<base64url {sub}>.s`)이라 앱의 subOf가 sub를 읽는다.
@@ -29,6 +30,8 @@ interface User {
 export interface FakeFaults {
   offline: boolean;
   delayMs: number;
+  /** 서버가 처리(커밋)한 뒤 응답을 이만큼 늦춘다. 클라이언트 제한 시간을 넘으면 '서버는 받았는데 응답은 못 받음'(C13 느린 서버) */
+  delayAfterMs?: number;
   /** 다음 한 번: 서버는 처리하고 응답은 끊는다(timeout으로 보임) */
   dropAfterCommit: boolean;
   /** 다음 한 번: 이 상태 코드로 실패 */
@@ -42,14 +45,27 @@ export interface FakeServer {
   authFor(device: string): CloudAuth;
   /** 다른 기기가 올린 것처럼 서버 본을 바꾼다(충돌 만들기) */
   putFromElsewhere(device: string, body: string): Promise<void>;
-  peek(device: string): { save: Row | null; conflicts: Row[]; code16: string | null } | null;
+  peek(device: string): { save: Row | null; conflicts: Row[]; code16: string | null; creature: string } | null;
+  /** 서버의 모든 사용자(시험용 — 유실·거짓 '지워짐' 판정, C13) */
+  dump(): Array<{ id: string; creature: string; code16: string | null; save: Row | null; conflicts: Row[] }>;
   /** 요청 기록(메서드 경로) */
   log: string[];
   /** 이 기기의 지금 토큰을 만료시킨다(refresh 전까지 401) */
   expireSession(device: string): void;
+  /** 세션까지 따라온 백업 복원(세션 백업 제외 전 바이너리·기기 이전): 두 기기가 같은 로그인을 쓴다(C13 — 같은 계정 두 작성자) */
+  copySession(from: string, to: string): void;
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** 기다리다 요청이 끊기면(클라이언트 제한 시간) 실제 fetch처럼 바로 거절한다 */
+const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) return reject(new Error('aborted'));
+    const id = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(id);
+      reject(new Error('aborted'));
+    });
+  });
 
 export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 1): FakeServer {
   const users = new Map<string, User>();
@@ -170,7 +186,7 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
     const path = url.replace(/^.*\/api\/v1\//, '');
     const method = init.method ?? 'GET';
     log.push(`${method} ${path}`);
-    if (faults.delayMs > 0) await sleep(faults.delayMs);
+    if (faults.delayMs > 0) await sleep(faults.delayMs, init.signal);
     if (init.signal?.aborted) throw new Error('aborted');
     if (faults.offline) throw new Error('network');
     if (faults.failNext) {
@@ -179,6 +195,7 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
       return err(f.status, f.code);
     }
     const r = await handle(method, path, init.headers ?? {}, init.body);
+    if ((faults.delayAfterMs ?? 0) > 0) await sleep(faults.delayAfterMs!, init.signal);
     if (faults.dropAfterCommit) {
       faults.dropAfterCommit = false;
       throw new Error('network');
@@ -218,6 +235,10 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
         },
       };
     },
+    copySession(from, to) {
+      const t = sessions.get(from);
+      if (t) sessions.set(to, t);
+    },
     expireSession(device) {
       const t = sessions.get(device);
       const tk = t ? tokens.get(t) : undefined;
@@ -237,7 +258,10 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
       const sb = t ? tokens.get(t)?.sub : undefined;
       const u = sb ? subs.get(sb)?.user : null;
       const user = u ? users.get(u) : null;
-      return user ? { save: user.save, conflicts: user.conflicts, code16: user.code16 } : null;
+      return user ? { save: user.save, conflicts: user.conflicts, code16: user.code16, creature: user.creature } : null;
+    },
+    dump() {
+      return [...users.entries()].map(([id, u]) => ({ id, creature: u.creature, code16: u.code16, save: u.save, conflicts: u.conflicts }));
     },
   };
 }
