@@ -1,6 +1,9 @@
 import {
+  BlendMode,
   BlurMask,
   Canvas,
+  FractalNoise,
+  PathOp,
   Circle,
   Fill,
   Group,
@@ -42,6 +45,8 @@ import {
   sealOutlineOf,
   motifInkLayers,
   MOTIF_INK_MAX,
+  WASH_FACE,
+  hexRgb,
   type MotifInkLayer,
 } from '@mong/core';
 import { useMemo } from 'react';
@@ -132,9 +137,33 @@ export interface DreamArt {
   motifInk: MotifInkArt | null;
 }
 
+/** 담묵 면 한 덩이(같은 경로의 닫힌 모양들을 합친 하나) — 그림 좌표 */
+export interface FaceArt {
+  path: SkPath;
+  tone: number;
+  seed: number;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  /** 안쪽 젖은 테 폭(그림 단위) */
+  rim: number;
+}
+
+/** 같은 경로 번호의 면을 합친다(겹친 곳 이음매 없음) */
+export function faceGroups(faces: MotifInkLayer['faces']): FaceArt[] {
+  const by = new Map<number, MotifInkLayer['faces']>();
+  for (const f of faces) by.set(f.group, [...(by.get(f.group) ?? []), f]);
+  return [...by.values()].map((fs) => {
+    let path = polyPath(fs[0]!.poly);
+    for (const f of fs.slice(1)) path = Skia.Path.MakeFromOp(path, polyPath(f.poly), PathOp.Union) ?? path;
+    const f0 = fs[0]!;
+    const size = Math.max(...fs.map((f) => f.size));
+    return { path, tone: f0.tone, seed: f0.seed, from: { x: f0.from[0], y: f0.from[1] }, to: { x: f0.to[0], y: f0.to[1] }, rim: Math.max(0.8, size * WASH_FACE.rim) };
+  });
+}
+
 export interface MotifInkArt {
   t: object[];
-  layers: { layer: MotifInkLayer['layer']; verts: Verts; bleed: Verts; faces: { path: SkPath; rim: Verts }[] }[];
+  layers: { layer: MotifInkLayer['layer']; verts: Verts; bleed: Verts; faces: FaceArt[] }[];
   /** 인화 번짐(셰이더 fade와 같은 원: 반경 0.9 → 1.12배에서 사라짐) */
   fade: { cx: number; cy: number; r: number };
   /** 글 줄 위 경계(이 아래로는 그리지 않는다) */
@@ -264,8 +293,10 @@ interface CupArt {
 }
 interface WindowArt {
   kind: 'window';
-  /** 담묵 면 창 네 칸(밝은 바탕 틈을 사이에 둠, 가장자리 손으로 뜬 결) */
-  panes: SkPath[];
+  /** 담묵 면 창 한 장(가장자리 손으로 뜬 결) */
+  pane: SkPath;
+  /** 밝은 바탕 틈 두 줄(굵기·기울기가 다름 — 같은 격자 금지, 3차 아트 리뷰) */
+  gaps: { path: SkPath; w: number }[];
 }
 type VesselArt = QuiltArt | CupArt | WindowArt;
 
@@ -286,16 +317,20 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
   const w = u(v.w);
   const h = u(v.h);
   if (v.kind === 'window') {
-    const g = w * 0.09;
-    const pw = (w - g) / 2;
-    const ph = (h - g) / 2;
-    const x0 = cx - w / 2;
-    const panes = [0, 1, 2, 3].map((k) => {
-      const px = x0 + (k % 2) * (pw + g);
-      const py = top + Math.floor(k / 2) * (ph + g);
-      return deckleRect(px, py, pw, ph, u(0.0022), u(0.004), (scene.seed + k * 13) & 0xffff);
-    });
-    return { kind: 'window', panes };
+    const pane = deckleRect(cx - w / 2, top, w, h, u(0.0024), u(0.004), scene.seed & 0xffff);
+    const j = jitter(scene.seed + 5);
+    const line = (x0: number, y0: number, x1: number, y1: number) => {
+      const b = Skia.PathBuilder.Make();
+      b.moveTo(x0, y0);
+      b.quadTo((x0 + x1) / 2 + u(0.003) * j(1), (y0 + y1) / 2 + u(0.003) * j(2), x1, y1);
+      return b.build();
+    };
+    // 틈 두 줄은 모두 세로로, 서로 다른 굵기·기울기·자리(가운데를 비켜) — 십자·2×2 격자로 읽히지 않게(3차 아트 리뷰)
+    const gaps = [
+      { path: line(cx - w * 0.2, top - u(0.004), cx - w * 0.12, top + h + u(0.004)), w: w * 0.04 },
+      { path: line(cx + w * 0.2, top - u(0.004), cx + w * 0.15, top + h + u(0.004)), w: w * 0.022 },
+    ];
+    return { kind: 'window', pane, gaps };
   }
   if (v.kind === 'quilt') {
     // 누빔 이불: 물결진 윗단 + 둥근 아랫단, 마름모 바늘땀, 윗단 접힌 그늘
@@ -420,7 +455,7 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
           layer: l.layer,
           verts: toVerts(l.ribbons),
           bleed: toVerts(l.bleed),
-          faces: l.faces.map((f) => ({ path: polyPath(f.poly), rim: toVerts([f.rim]) })),
+          faces: faceGroups(l.faces),
         })),
         fade: { cx: fade[0], cy: fade[1], r: fade[2] * 1.12 },
         yLim,
@@ -468,64 +503,77 @@ export const INK_LAYER: Record<MotifInkLayer['layer'], { color: string; alpha: n
   wash: { color: PALETTE.day.strokeInk, alpha: 0.34 },
   gold: { color: GOLD_HEX, alpha: 0.95 },
 };
-/** 담묵 면: 칠 + 가장자리 덧칠(젖은 테 — 칠 위에 겹쳐 가장자리가 약 1.3배 짙다) */
-export const WASH_FACE = { fill: 0.5, rim: 0.18 } as const;
 /** 번짐 한 겹(폭 1.6배 리본) 불투명도 */
 export const INK_BLEED = 0.12;
-const layerPaints = new Map<number, ReturnType<typeof Skia.Paint>>();
-function alphaPaint(a: number) {
-  let p = layerPaints.get(a);
+/** 흰 바탕과 섞은 불투명 색(먹 a만큼) — 모티프 층 안에서는 불투명하게 칠하고 '어둡게(darken)'로 겹쳐 겹친 곳이 짙어지지 않게 한다 */
+function pm(hex: string, a: number): string {
+  const [r, g, b] = hexRgb(hex);
+  const m = (c: number) => Math.round(c * a + 255 * (1 - a));
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+}
+const blendPaints = new Map<string, ReturnType<typeof Skia.Paint>>();
+function blendPaint(mode: 'darken' | 'multiply') {
+  let p = blendPaints.get(mode);
   if (!p) {
     p = Skia.Paint();
-    p.setAlphaf(a);
-    layerPaints.set(a, p);
+    p.setBlendMode(mode === 'darken' ? BlendMode.Darken : BlendMode.Multiply);
+    blendPaints.set(mode, p);
   }
   return p;
 }
 
 /**
- * C14b 붓 형상(② 면·③ 획 — ① 장 변형은 마블링 셰이더가 그린다). 아래부터: 담묵 면(외곽선 없이 칠 + 젖은 테) → 번짐 한 겹 →
- * 획(층마다 한 번에 칠해 겹친 곳이 진해지지 않게 레이어 알파, 먹 획 끝은 비백 가닥). 마블링 위·몽망이 아래.
+ * C14b 붓 형상(② 면·③ 획 — ① 장 변형은 마블링 셰이더가 그린다). 모든 칠은 흰 바탕과 섞은 **불투명 색**으로 '어둡게' 겹친다 —
+ * 겹친 곳은 둘 중 짙은 쪽일 뿐 더 짙어지지 않아 이음매가 없고, 어떤 겹침도 먹 상한(MOTIF_INK_MAX)을 넘지 않는다(2차 아트 리뷰:
+ * 우산 막대가 몸처럼 검었다). 층 전체는 '곱하기'로 마블링 위에 얹어 물에 스민 먹처럼 아래 띠가 비친다.
+ * 담묵 면 = 또렷한 가장자리 + 안쪽 젖은 테 + 한쪽으로 짙은 농담 + 종이 결 + 바깥 0.5% 번짐(2차 리뷰 2-1).
  * 인화 바깥은 셰이더와 같은 원으로 지우고 글 줄 위에서 자른다
  */
 export function MotifInkArtView({ ink, W }: { ink: MotifInkArt; W: number }) {
   const { fade } = ink;
   const bl = (k: number) => (ink.bleed * k) / ink.unit;
+  const dk = blendPaint('darken');
   return (
     <Group clip={{ x: 0, y: 0, width: W, height: ink.yLim }}>
-      <Group layer>
+      <Group layer={blendPaint('multiply')}>
         {ink.layers.map(({ layer, verts, bleed, faces }) => {
           const st = INK_LAYER[layer];
           return (
             <Group key={layer}>
-              {faces.length > 0 && (
-                <Group transform={ink.t as never}>
-                  {faces.map((f, k) => (
-                    <Group key={k}>
-                      <Path path={f.path} color={st.color} opacity={WASH_FACE.fill}>
-                        <BlurMask blur={bl(1.5)} style="normal" />
-                      </Path>
-                      <Group layer={alphaPaint(WASH_FACE.rim)}>
-                        <Vertices vertices={f.rim.vertices} indices={f.rim.indices} mode="triangles" color={st.color}>
-                          <BlurMask blur={bl(3)} style="normal" />
-                        </Vertices>
-                      </Group>
-                    </Group>
-                  ))}
-                </Group>
-              )}
-              {layer !== 'gold' && (
-                <Group layer={alphaPaint(INK_BLEED)}>
+              {faces.map((f, k) => (
+                <Group key={`f${k}`} layer={dk}>
                   <Group transform={ink.t as never}>
-                    <Vertices vertices={bleed.vertices} indices={bleed.indices} mode="triangles" color={st.color}>
+                    {/* 바깥으로 아주 조금 번짐 */}
+                    <Path path={f.path} color={pm(st.color, f.tone * 0.35)}>
+                      <BlurMask blur={bl(0.8)} style="outer" />
+                    </Path>
+                    <Group clip={f.path}>
+                      {/* 면: 가장자리는 또렷하게, 붓이 처음 닿은 쪽이 짙다 */}
+                      <Path path={f.path}>
+                        <LinearGradient start={vec(f.from.x, f.from.y)} end={vec(f.to.x, f.to.y)} colors={[pm(st.color, f.tone), pm(st.color, f.tone * WASH_FACE.slope)]} />
+                      </Path>
+                      {/* 젖은 테: 안쪽 띠가 rimDark배 */}
+                      <Path path={f.path} style="stroke" strokeWidth={f.rim * 2} strokeJoin="round" color={pm(st.color, f.tone * WASH_FACE.rimDark)} />
+                      {/* 종이 결(시드 결정) */}
+                      <Fill blendMode="multiply" opacity={WASH_FACE.grain}>
+                        <FractalNoise freqX={0.9} freqY={0.6} octaves={2} seed={f.seed % 997} />
+                      </Fill>
+                    </Group>
+                  </Group>
+                </Group>
+              ))}
+              {layer !== 'gold' && (
+                <Group layer={dk}>
+                  <Group transform={ink.t as never}>
+                    <Vertices vertices={bleed.vertices} indices={bleed.indices} mode="triangles" color={pm(st.color, INK_BLEED)}>
                       <BlurMask blur={bl(2)} style="normal" />
                     </Vertices>
                   </Group>
                 </Group>
               )}
-              <Group layer={alphaPaint(st.alpha)}>
+              <Group layer={dk}>
                 <Group transform={ink.t as never}>
-                  <Vertices vertices={verts.vertices} indices={verts.indices} mode="triangles" color={st.color}>
+                  <Vertices vertices={verts.vertices} indices={verts.indices} mode="triangles" color={pm(st.color, st.alpha)}>
                     {layer !== 'gold' && <BlurMask blur={bl(0.35)} style="normal" />}
                   </Vertices>
                 </Group>
@@ -624,14 +672,14 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
             </Group>
           ) : v.kind === 'window' ? (
             <Group key={`w${i}`}>
-              {v.panes.map((pane, k) => (
-                <Group key={k}>
-                  <Path path={pane} color={PALETTE.day.strokeInk} opacity={0.26} />
-                  <Path path={pane} style="stroke" strokeWidth={W * 0.0022} color={PALETTE.day.strokeInk} opacity={0.3}>
-                    <BlurMask blur={art.blur.fold} style="normal" />
-                  </Path>
-                </Group>
-              ))}
+              <Group clip={v.pane}>
+                <Path path={v.pane} color={PALETTE.day.strokeInk} opacity={0.34} />
+                {/* 젖은 테(안쪽 가장자리가 짙다) */}
+                <Path path={v.pane} style="stroke" strokeWidth={W * 0.008} color={PALETTE.day.strokeInk} opacity={0.25} />
+                {v.gaps.map((g, k) => (
+                  <Path key={k} path={g.path} style="stroke" strokeWidth={g.w} strokeCap="butt" color="#EFE8DA" opacity={0.92} />
+                ))}
+              </Group>
             </Group>
           ) : (
             <Group key={`q${i}`}>

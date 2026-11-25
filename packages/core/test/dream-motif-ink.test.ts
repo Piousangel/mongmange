@@ -5,6 +5,7 @@ import {
   BRUSH,
   MOTIF_INK_COMPOSITION,
   MOTIF_INK_MAX,
+  WASH_FACE,
   brushProfile,
   isClosedLine,
   pathSeed,
@@ -131,8 +132,30 @@ describe('붓 리본 — 결정성(D-13)', () => {
     const f = motifInkLayers([{ d: 'M10 10 L60 10 L60 60 Z', w: 2, layer: 'wash' }])[0]!;
     expect(f.faces).toHaveLength(1);
     expect(f.ribbons).toHaveLength(0);
-    const order = motifInkLayers(sim.motifById('far-with.star-bridge')!.paths).map((x) => x.layer);
+    const order = motifInkLayers([
+      { d: 'M0 0 L9 9', w: 1, layer: 'gold' },
+      { d: 'M0 0 L9 9', w: 1, layer: 'ink' },
+      { d: 'M0 0 L9 9', w: 1, layer: 'wash' },
+    ]).map((x) => x.layer);
     expect(order).toEqual(['wash', 'ink', 'gold']);
+  });
+
+  it('담묵 면(3차): 곧은 변을 경로 해시로 흔든다(같은 경로 = 같은 흔들림), 농담 = w, 칠 시작 꼭짓점 → 가장 먼 점, 한 경로의 모양은 한 묶음', () => {
+    const sq = (d: string) => motifInkLayers([{ d, w: 2, layer: 'wash' }])[0]!.faces;
+    const a = sq('M10 10 L60 10 L60 60 L10 60 Z')[0]!;
+    expect(sq('M10 10 L60 10 L60 60 L10 60 Z')[0]).toEqual(a);
+    // 위 변(y = 10) 위의 점들이 한 줄로 곧지 않다
+    const top = [];
+    for (let i = 0; i < a.poly.length; i += 2) if (Math.abs(a.poly[i + 1]! - 10) < WASH_FACE.wobble + 0.01 && a.poly[i]! > 15 && a.poly[i]! < 55) top.push(a.poly[i + 1]!);
+    expect(Math.max(...top) - Math.min(...top)).toBeGreaterThan(0.2);
+    expect(Math.max(...top.map((y) => Math.abs(y - 10)))).toBeLessThanOrEqual(WASH_FACE.wobble + 1e-9);
+    expect(a.tone).toBeCloseTo(WASH_FACE.toneBase + 2 * WASH_FACE.toneStep, 9);
+    expect(a.from).toEqual([10, 10]);
+    expect(Math.hypot(a.to[0] - 60, a.to[1] - 60)).toBeLessThan(1);
+    const two = motifInkLayers([{ d: 'M0 0 L9 0 L9 9 Z M20 0 L29 0 L29 9 Z', w: 1, layer: 'wash' }])[0]!.faces;
+    expect(two.map((x) => x.group)).toEqual([0, 0]);
+    // 가장 짙은 면(w 4)의 젖은 테도 먹 상한 아래
+    expect((WASH_FACE.toneBase + 4 * WASH_FACE.toneStep) * WASH_FACE.rimDark).toBeLessThanOrEqual(MOTIF_INK_MAX);
   });
 });
 
@@ -149,6 +172,27 @@ describe('아트 바이블 7-6 꿈 모티프 그리는 법 — 기계로 잡는 
         if (p.layer === 'wash') continue;
         for (const l of flattenMotifPath(p.d)) expect(isClosedLine(l), `${m.id} ${p.d}`).toBe(false);
       }
+  });
+
+  it('겹침 이음매 금지(2차 리뷰 2-1 3): 한 모티프의 서로 다른 담묵 면 경로는 겹치지 않는다(한 경로 안 모양은 렌더가 합쳐 칠함)', () => {
+    const inside = (x: number, y: number, poly: readonly number[]) => {
+      let c = false;
+      for (let i = 0, j = poly.length - 2; i < poly.length; j = i, i += 2) {
+        const [xi, yi, xj, yj] = [poly[i]!, poly[i + 1]!, poly[j]!, poly[j + 1]!];
+        if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+      }
+      return c;
+    };
+    for (const m of NEW) {
+      const faces = motifInkLayers(m.paths).flatMap((l) => l.faces);
+      let both = 0;
+      for (let y = 0.25; y < 100; y += 0.5)
+        for (let x = 0.25; x < 100; x += 0.5) {
+          const gs = new Set(faces.filter((f) => inside(x, y, f.poly)).map((f) => f.group));
+          if (gs.size > 1) both++;
+        }
+      expect(both, m.id).toBe(0);
+    }
   });
 
   it('① 표현 순서·⑤ 장의 반응 의무: 모든 모티프가 장 조작(field)을 1개 이상 갖고, 장 또는 담묵 면이 있다(획만으로 된 모티프 없음)', () => {
@@ -202,7 +246,7 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
       }
   });
 
-  it('장 조작은 결 뒤·몽망이 자리 앞에 그대로 들어가고(자르기 0), 소리 없는 눈은 먹 대신 맑은 물방울 12개, 곁 방울은 맑은 자리 없음', () => {
+  it('장 조작은 결 뒤·몽망이 자리 앞에 그대로 들어가고(자르기 0), 소리 없는 눈은 먹 대신 맑은 물방울 14개, 곁 방울은 맑은 자리 없음', () => {
     for (const m of NEW) {
       const sc = buildDreamScene({ card: card(m.id), strokes: day7Records() });
       const seatAt = sc.post.findIndex((o) => o.k === 'drop' && o.seat);
@@ -214,7 +258,7 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
     expect(snow.motifInk).toBeUndefined();
     const seatAt = snow.post.findIndex((o) => o.k === 'drop' && o.seat);
     const clear = snow.post.slice(0, seatAt).filter((o) => o.k === 'drop' && o.ink === 0 && !o.gold);
-    expect(clear).toHaveLength(12);
+    expect(clear).toHaveLength(14);
     for (const id of ['near-with.umbrella', 'far-with.star-bridge', 'far-with.stepping-stones']) {
       const sc = buildDreamScene({ card: card(id), strokes: day7Records() });
       expect(sc.friend, id).not.toBeNull();
@@ -239,5 +283,5 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
   });
 });
 
-const RIBBON_SNAPSHOT = '4b37ae98';
-const SCENE_SNAPSHOT = 'f2096838';
+const RIBBON_SNAPSHOT = 'e5cdfc8f';
+const SCENE_SNAPSHOT = 'f7b93d46';

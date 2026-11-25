@@ -73,13 +73,7 @@ async function shootInk(id: string) {
         }
         return { vertices, indices };
       };
-      const faces = l.faces.map((f) => {
-        const b = Sk.Skia.PathBuilder.Make();
-        b.moveTo(f.poly[0]!, f.poly[1]!);
-        for (let i = 2; i < f.poly.length; i += 2) b.lineTo(f.poly[i]!, f.poly[i + 1]!);
-        b.close();
-        return { path: b.build(), rim: verts([f.rim]) };
-      });
+      const faces = DC.faceGroups(l.faces);
       return { layer: l.layer, verts: verts(l.ribbons), bleed: verts(l.bleed), faces };
     }),
     fade: { cx: px / 2, cy: px / 2, r: px * 4 },
@@ -124,7 +118,8 @@ describe('붓 층 64pt(2x) 렌더', () => {
     expect(DC.INK_LAYER.ink.alpha).toBeLessThanOrEqual(core.MOTIF_INK_MAX);
     expect(DC.INK_LAYER.ink.color).toBe(core.PALETTE.day.body);
     expect(DC.INK_LAYER.wash.alpha).toBeLessThan(DC.INK_LAYER.ink.alpha);
-    expect(DC.WASH_FACE.fill + DC.WASH_FACE.rim).toBeLessThanOrEqual(core.MOTIF_INK_MAX);
+    // 담묵 면: 가장 짙은 면(w 4)의 젖은 테도 상한 아래
+    expect((core.WASH_FACE.toneBase + 4 * core.WASH_FACE.toneStep) * core.WASH_FACE.rimDark).toBeLessThanOrEqual(core.MOTIF_INK_MAX);
     expect(DC.INK_BLEED).toBeLessThanOrEqual(0.15);
   });
 
@@ -147,6 +142,25 @@ describe('붓 층 64pt(2x) 렌더', () => {
   }, 120000);
 });
 
+describe('우산 막대 농도(2차 아트 리뷰 6 — 눈으로는 몸과 같은 검정)', () => {
+  it('붓 층에서 가장 짙은 픽셀도 몸 먹(순흑)보다 확실히 밝다 — 휘도가 한지와 몸 사이 상한(0.72) 합성값 근처 이상', async () => {
+    const lum = (r: number, g: number, b: number) => 0.299 * r + 0.587 * g + 0.114 * b;
+    const [br, bg, bb] = core.hexRgb(core.PALETTE.day.body);
+    const [pr, pg, pb] = core.hexRgb(core.PALETTE.day.bg);
+    const body = lum(br, bg, bb);
+    const paper = lum(pr, pg, pb);
+    // 층 안은 '어둡게'로 겹치므로 겹친 곳도 가장 짙은 칠(먹 상한) 하나 — 한지 위 먹 환산 0.75 이하(상한 0.72 + 곱하기 합성 여유)
+    const floor = body + (paper - body) * (1 - 0.75) - 2;
+    for (const id of ['near-with.umbrella', 'far-alone.kite', 'near-alone.washing-line', 'center.leaf']) {
+      const { rgba } = await shootInk(id);
+      let min = 255;
+      for (let p = 0; p < rgba.length; p += 4) min = Math.min(min, lum(rgba[p]!, rgba[p + 1]!, rgba[p + 2]!));
+      expect(min, id).toBeGreaterThanOrEqual(floor);
+      expect(min, id).toBeGreaterThan(body + 20);
+    }
+  }, 120000);
+});
+
 describe.skipIf(!process.env.RENDER_HEAVY)('카드 64pt — 기존 10 + 새 15가 한 화면에서 갈린다(회귀 가드)', () => {
   it('마블링 결만 바꾼 같은 꿈의 최근접은 늘 자기 꿈(새 15개 정답률 100%)', async () => {
     const ids = core.sim.MOTIFS.map((m) => m.id);
@@ -166,19 +180,19 @@ describe.skipIf(!process.env.RENDER_HEAVY)('카드 64pt — 기존 10 + 새 15�
 
 // 붓 리본·층 색·번짐이 바뀌면 실패: 의도한 변경이면 값을 갱신하고 docs/app/c14b 시트를 다시 본다(C14B_DUMP=<폴더>로 PNG)
 const INK_SNAPSHOT: Record<string, string> = {
-  'near-alone.inkstone': '55a92814',
-  'near-alone.washing-line': 'fc631e0c',
-  'near-alone.sprout': 'e44140c2',
-  'near-with.umbrella': '5f7db697',
-  'near-with.letter': '3b316582',
-  'near-with.palm': 'ffc4a4cf',
-  'far-alone.paper-boat': 'a619ec04',
-  'far-alone.kite': '58845c0d',
-  'far-alone.path': '53d33a41',
-  'far-with.geese': '132a1f31',
-  'far-with.star-bridge': 'ca411275',
-  'far-with.stepping-stones': '2ae698a5',
-  'center.leaf': '28f8216b',
-  'center.snow': '8fa12078',
-  'center.wind': '0fae2924',
+  'near-alone.inkstone': '07c4d103',
+  'near-alone.washing-line': '1304c470',
+  'near-alone.sprout': 'bad6330c',
+  'near-with.umbrella': 'da6fbc06',
+  'near-with.letter': '7838f54f',
+  'near-with.palm': 'bb43e9a8',
+  'far-alone.paper-boat': '413c5a15',
+  'far-alone.kite': 'f6a11f2b',
+  'far-alone.path': 'ea1f19f1',
+  'far-with.geese': '76014f91',
+  'far-with.star-bridge': '0adeb71d',
+  'far-with.stepping-stones': '5bc4912a',
+  'center.leaf': '601228ab',
+  'center.snow': '2427fc38',
+  'center.wind': '62fc72e3',
 };

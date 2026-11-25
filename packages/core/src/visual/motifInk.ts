@@ -91,8 +91,13 @@ const DOT_LEN = 0.6;
 export const BRUSH = { head: 0.55, belly: 1.15, bellyAt: 0.4, tailMin: 0.25, curveThin: 0.35, dryFrom: 0.72, lanes: 5 } as const;
 /** 모티프 먹 농도 상한(몸 먹 = 1 대비, 아트 리뷰 2절 — 순흑은 몽망이 몸만). 렌더 층 알파가 이 값을 넘으면 시험이 실패한다 */
 export const MOTIF_INK_MAX = 0.72;
-/** 담묵 면의 젖은 테 폭(경로 굵기 w 배) */
-export const RIM_K = 2.2;
+/**
+ * 담묵 면(2차 아트 리뷰 2-1): 가장자리는 흐리지 않고 또렷하게 두고, 안쪽 `rim`(면 크기의 비율) 폭을 `rimDark`배 짙게(먹이 마르며 고인 테),
+ * 바깥으로 `bleedOut`만 불규칙하게 번진다. 곧은 변은 경로 해시 시드로 `wobble`(그림 단위)만큼 흔든다(자로 그은 직선 없음).
+ * 면 농담 = 닫힌 경로의 굵기 w(1..4 → 알파 `toneBase + toneStep·w`), 붓이 처음 닿은 꼭짓점 쪽이 짙다(`slope`).
+ * 같은 경로(한 `P`)의 닫힌 모양들은 하나로 합쳐 한 번에 칠한다 — 겹친 곳에 이음매 없음. 다른 경로끼리는 겹치지 않게 그린다
+ */
+export const WASH_FACE = { toneBase: 0.3, toneStep: 0.06, rim: 0.035, rimDark: 1.3, bleedOut: 0.005, wobble: 0.7, slope: 0.7, grain: 0.2 } as const;
 
 function resample(pts: readonly Pt[]): { pts: Pt[]; len: number } {
   const acc: number[] = [0];
@@ -220,8 +225,11 @@ export interface MotifInkLayer {
   ribbons: Ribbon[];
   /** 번짐 한 겹(같은 획 폭 1.6배, 아주 옅게 깐다 — 먹이 젖은 종이에 퍼짐) */
   bleed: Ribbon[];
-  /** 담묵 면(닫힌 wash 경로): 외곽선 없이 칠하고, 테(rim)는 젖은 테로 조금 짙게. 면끼리 겹치면 더 짙다(접힌 그늘) */
-  faces: { poly: number[]; rim: Ribbon }[];
+  /**
+   * 담묵 면(닫힌 wash 경로). group = 같은 경로 번호(렌더가 합쳐 한 번에 칠함), tone = 면 알파, seed = 종이 결·흔들림 시드,
+   * from·to = 농담 기울기(붓이 처음 닿은 꼭짓점 → 가장 먼 점), size = 면 크기(경계 상자 짧은 변 — 젖은 테 폭 기준)
+   */
+  faces: { poly: number[]; group: number; tone: number; seed: number; from: [number, number]; to: [number, number]; size: number }[];
 }
 
 /** 경로 → 층별 붓 리본·담묵 면(층 순서 = 담묵 → 먹 → 금, 아래부터 칠한다) */
@@ -232,14 +240,12 @@ export function motifInkLayers(paths: readonly MotifPathData[]): MotifInkLayer[]
     const ribbons: Ribbon[] = [];
     const bleed: Ribbon[] = [];
     const faces: MotifInkLayer['faces'] = [];
-    for (const p of paths) {
+    for (const [pi, p] of paths.entries()) {
       if (p.layer !== layer) continue;
       const seed = pathSeed(p.d, p.w);
       for (const line of flattenMotifPath(p.d)) {
         if (layer === 'wash' && isClosedLine(line)) {
-          const { pts } = resample(line);
-          // 젖은 테: 면 가장자리를 따라 w의 2.2배 폭 띠(렌더가 크게 흐려 선이 아니라 가장자리 고임으로 보이게)
-          faces.push({ poly: pts.flatMap(([x, y]) => [x, y]), rim: buildRibbon(raw(pts), { widths: pts.map(() => p.w * RIM_K), roundStart: true, roundEnd: true }) });
+          faces.push(washFace(line, pi, p.w, seed));
           continue;
         }
         const { pts } = resample(line);
@@ -261,6 +267,34 @@ export function motifInkLayers(paths: readonly MotifPathData[]): MotifInkLayer[]
     if (ribbons.length + faces.length > 0) out.push({ layer, ribbons, bleed, faces });
   }
   return out;
+}
+
+/** 닫힌 담묵 경로 → 흔든 다각형 + 농담·결 메타 */
+function washFace(line: readonly Pt[], group: number, w: number, seed: number): MotifInkLayer['faces'][number] {
+  const { pts } = resample(line);
+  const ring = pts.slice(0, -1); // 닫는 점(= 첫 점) 빼기
+  const nm = normals([...ring, ring[0]!, ring[1]!]);
+  const W = WASH_FACE.wobble;
+  // 저주파 흔들림: 4점마다 시드 값, 사이는 부드럽게 잇는다(곧은 변이 살짝 굽고 떨림)
+  const knot = (k: number) => hash01(seed, k, 9) * 2 - 1;
+  const poly: number[] = [];
+  ring.forEach(([x, y], i) => {
+    const t = i / 4;
+    const k0 = Math.floor(t);
+    const f = t - k0;
+    const u = f * f * (3 - 2 * f);
+    const d = W * (knot(k0) * (1 - u) + knot(k0 + 1) * u);
+    poly.push(x + nm[i]![0] * d, y + nm[i]![1] * d);
+  });
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of ring) {
+    x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+  }
+  const from = line[0]! as Pt;
+  let to: Pt = from;
+  for (const q of ring) if (Math.hypot(q[0] - from[0], q[1] - from[1]) > Math.hypot(to[0] - from[0], to[1] - from[1])) to = q;
+  const tone = WASH_FACE.toneBase + WASH_FACE.toneStep * Math.min(4, Math.max(1, w));
+  return { poly, group, tone, seed, from: [from[0], from[1]], to: [to[0], to[1]], size: Math.min(x1 - x0, y1 - y0) };
 }
 
 // ---------- 장 변형(마블링이 형상을 받아들이는 조작, 아트 리뷰 3절 ①) ----------

@@ -61,7 +61,7 @@ describe('uniform 상한 — 자르기가 일어나면 실패', () => {
               expect(sc.post.length).toBeLessThanOrEqual(DREAM_LIMITS.post);
               expect(sc.segs.length).toBeLessThanOrEqual(DREAM_LIMITS.segs);
             }
-  });
+  }, 30000); // 무거운 전수 시험 — 기계가 바쁠 때(다른 작업 병렬) 기본 5초를 넘는 일이 있어 넉넉히(C14b, 바꾸기 전 코드에서도 같게 걸림)
 
   it('상한을 억지로 낮추면 자르기를 보고하고, 가장 바깥 고리(첫 방울)는 남는다', () => {
     const input = { card: card('far-with.stars-drops'), strokes: day7Records() };

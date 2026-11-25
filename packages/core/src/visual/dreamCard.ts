@@ -484,7 +484,7 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       const wx = -side * 0.14;
       const wy = -0.19;
       final.push({ k: 'drop', x: wx, y: wy, r: 0.085, ink: 0.16 });
-      vessels.push({ kind: 'window', x: wx, y: wy - 0.062, w: 0.124, h: 0.124, handle: 1, friend: false });
+      vessels.push({ kind: 'window', x: wx, y: wy - 0.075, w: 0.118, h: 0.15, handle: 1, friend: false });
       calm = 0.6;
       break;
     }

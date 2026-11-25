@@ -2,6 +2,8 @@
 //  - sheet-15.png    새 15개(구도 a, 성향 b) 5×3 — 한 장에 모아 보기
 //  - sheet-comp.png  새 15개 × 구도 a·b·c(성향 a·b·c를 번갈아) — 자리·뒤집기·잘림 확인
 //  - sheet-mixed.png 기존 10 + 새 15 = 25장(5×5) — 한 화면에 섞였을 때
+//  - sheet-64pt.png  같은 25장을 카드 폭 64pt(2x)로 줄인 판독 시트(아트 바이블 7-6 ⑦)
+//  - compare-ref.png 3차 대상 7장: Gemini 레퍼런스(docs/creative/c14b-ref, ★ = 고른 안)와 결과 카드를 한 줄에 나란히
 // 사용: node scripts/c14b-capture.mjs [baseUrl=http://localhost:8147] [outDir=docs/app/c14b]
 // 개발 서버(expo start --web)는 metro 감시가 멈추는 일이 있어 캡처 전에 `-c`로 새로 띄운다(11-25 확인: 고친 파일이 번들에 안 들어감).
 import { chromium } from 'playwright';
@@ -48,14 +50,15 @@ async function grab(motif, t, comp) {
   return file;
 }
 
-async function sheet(name, cells, cols, w) {
+async function sheet(name, cells, cols, w, dpr = 1) {
   const html = `<html><body style="margin:0;background:#141A2C;color:#E9E2D2;font:13px -apple-system,sans-serif">
 <div style="display:grid;grid-template-columns:repeat(${cols},${w}px);gap:10px;padding:14px">
 ${cells.map(([f, label]) => `<div><img src="file://${path.join(TMP, f)}" style="width:${w}px;display:block;border-radius:2px"><div style="padding:4px 0 2px">${label}</div></div>`).join('')}
 </div></body></html>`;
   const htmlPath = path.join(TMP, `${name}.html`);
   await writeFile(htmlPath, html);
-  const p = await ctx.newPage();
+  const c2 = dpr === 1 ? ctx : await browser.newContext({ viewport: { width: 540, height: 960 }, deviceScaleFactor: dpr });
+  const p = await c2.newPage();
   await p.setViewportSize({ width: cols * (w + 10) + 28, height: 800 });
   await p.goto(`file://${htmlPath}`);
   await p.waitForTimeout(800);
@@ -77,6 +80,36 @@ for (const m of OLD) olds.push([await grab(m, 'b', 0), `${m} (기존)`]);
 const news = [...a];
 const mixed = Array.from({ length: 25 }, (_, i) => ((i + Math.floor(i / 5) * 2) % 5 < 2 ? olds : news).shift());
 await sheet('sheet-mixed', mixed, 5, 220);
+await sheet('sheet-64pt', mixed.map(([f, l]) => [f, l.replace(/^[a-z-]+\./, '').replace(' (기존)', '*')]), 5, 64, 2);
+
+// 레퍼런스 ↔ 결과 비교(3차 아트 리뷰용)
+const REF = path.resolve('docs/creative/c14b-ref');
+const CMP = [
+  ['near-with.letter', ['letter-f2', 'letter-f1', 'letter-p1', 'letter-1'], 'letter-f2'],
+  ['near-with.palm', ['palm-f4', 'palm-p1', 'palm-f1', 'palm-3'], 'palm-f4'],
+  ['near-with.window-hand', ['window-f2', 'window-f4', 'window-p2', 'window-2'], 'window-f2'],
+  ['far-alone.kite', ['kite-f3', 'kite-f1', 'kite-p2', 'kite-1'], 'kite-f3'],
+  ['far-alone.paper-boat', ['boat-p1', 'boat-f2', 'boat-f4'], 'boat-p1'],
+  ['near-with.umbrella', ['umbrella-f3', 'umbrella-f1', 'umbrella-p1'], 'umbrella-f3'],
+  ['far-alone.path', ['path-f3', 'path-f1', 'path-p1'], 'path-f3'],
+];
+const cmpHtml = `<html><body style="margin:0;background:#141A2C;color:#E9E2D2;font:13px -apple-system,sans-serif;padding:14px">
+${CMP.map(([m, refs, pick]) => {
+  const card = `${m}__b0.png`;
+  const cells = refs.length
+    ? refs.map((r) => `<div><img src="file://${REF}/${r}.jpg" style="height:220px;display:block;${r === pick ? 'outline:3px solid #C9A45C' : ''}"><div>${r}${r === pick ? ' ★' : ''}</div></div>`).join('')
+    : '<div style="width:200px;height:260px;display:flex;align-items:center;justify-content:center;border:1px dashed #555">레퍼런스 없음<br>(Figma AI 크레딧 한도)</div>';
+  return `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px"><div style="width:150px">${m}</div>${cells}<div style="margin-left:24px"><img src="file://${path.join(TMP, card)}" style="height:260px;display:block"><div>결과(3차)</div></div></div>`;
+}).join('')}</body></html>`;
+await writeFile(path.join(TMP, 'compare.html'), cmpHtml);
+{
+  const p = await ctx.newPage();
+  await p.setViewportSize({ width: 1400, height: 800 });
+  await p.goto(`file://${path.join(TMP, 'compare.html')}`);
+  await p.waitForTimeout(800);
+  await p.screenshot({ path: path.join(OUT, 'compare-ref.png'), fullPage: true });
+  await p.close();
+}
 
 console.log('errors', errors.slice(0, 5));
 await browser.close();
