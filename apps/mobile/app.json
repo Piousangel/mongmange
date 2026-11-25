@@ -125,7 +125,8 @@
           "enabled": false
         }
       ],
-      "./plugins/withLowMemoryGradle"
+      "./plugins/withLowMemoryGradle",
+      "./plugins/withSessionBackupExclusion"
     ]
   }
 }

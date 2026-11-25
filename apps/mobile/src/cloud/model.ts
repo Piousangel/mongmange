@@ -26,6 +26,8 @@ export interface SaveSide {
 export interface ServerPick {
   rev: number;
   sha: string;
+  /** parked 칸 id(나란히 고르기 why 'parked'일 때 — 어느 칸과 맞바꿀지) */
+  slot?: string;
 }
 
 /** 나란히 고르기를 연 까닭: restore = 되찾기 직후, conflict = 다른 기기 본, parked = '이 기기'를 골라 밀려난 서버 본(기기 안 30일 칸) 다시 보기 */
@@ -38,15 +40,19 @@ export type Task =
   /** target = 사용자가 함께 넣은 인장 코드(모르면 null). has_creature가 났을 때 이 값과 같아야만 '이미 되찾음'(리뷰 R1) */
   | { t: 'recover'; code: string; target: string | null }
   /** 나란히 보려고 서버 본을 받는다 */
-  | { t: 'fetch'; why: Why }
+  | { t: 'fetch'; why: Why; slot?: string }
   /** 이 기기 본을 맡긴다(덮이는 서버 본은 서버 conflict 칸 30일 — 되찾기 맥락이면 그 행을 기록해 공방 노트에서 다시 고르게 한다) */
   | { t: 'keepLocal'; server: ServerPick; why: Why; /** 밀려나는 서버 본을 기기 parked 칸에 30일 둔다(되찾기·has_creature 맥락) */ park: boolean }
-  /** parked 칸의 본으로 이어 간다(지금 본은 preRestore 칸으로) */
-  | { t: 'takeParked' }
+  /** parked 칸의 본으로 이어 간다 = 맞바꾸기(지금 본은 같은 parked 칸으로) */
+  | { t: 'takeParked'; slot: string }
   /** 지우기 결과를 끝내 모를 때 '이 기기에서 맡겨 두기 끄기'(서버에 남았을 수 있다는 표시를 남김) */
   | { t: 'forget' }
   /** 끈 뒤 소개 화면에서 '다시 지우기' — 남아 있던 로그인으로 DELETE를 다시 보낸다 */
-  | { t: 'retryForgotten' }
+  | { t: 'retryForgotten'; then?: Purpose }
+  /** 확인하지 못한 지우기 안내를 닫는다 = 옛 로그인 버리기('두고 새로 시작'과 같은 동작, 재리뷰 4 S1) */
+  | { t: 'abandonOld' }
+  /** 가득 찬 parked 칸 하나 비우기(재리뷰 4 S4) */
+  | { t: 'dropParked'; slot: string }
   /** 서버 본으로 이어 간다(이 기기 본은 서버 conflict 칸 30일 + 기기 preRestore 칸) */
   | { t: 'takeServer'; server: ServerPick }
   | { t: 'sync' }
@@ -77,6 +83,14 @@ export type TaskResult =
   /** 인장 칸에 이 기기 몽망이의 코드를 넣었다(되찾을 대상이 아님) */
   | { r: 'ownSeal' }
   | { r: 'forgotten' }
+  /** parked 칸이 다 차 '이 기기'를 고를 수 없다(앞선 칸을 덮지 않는다 — 재리뷰 3 Q1) */
+  | { r: 'parkFull' }
+  | { r: 'abandoned' }
+  /** 서버에 이 로그인의 맡겨 두기가 없다(기록의 sub와 같음) → 기록을 비웠다 */
+  | { r: 'ended' }
+  /** 기록의 로그인과 지금 로그인이 달라 서버의 맡겨 두기에 닿을 수 없다(복원 폰) → 기록을 비우고 '예전 계정' 안내로 */
+  | { r: 'orphaned' }
+  | { r: 'parkedDropped' }
   | { r: 'reverted' }
   | { r: 'moved' }
   | { r: 'failed'; failure: Failure };
@@ -95,6 +109,14 @@ export type View =
   | { v: 'deleteConfirm'; token: string; mismatch: boolean }
   | { v: 'deleteCheck'; tries: number }
   | { v: 'forgotten' }
+  | { v: 'parkFull' }
+  | { v: 'ended' }
+  | { v: 'orphaned' }
+  | { v: 'dismissOldConfirm'; back: 'intro' | 'on' }
+  | { v: 'dropParkedConfirm'; slot: string }
+  /** 확인하지 못한 지우기가 남은 채 켜기·되찾기를 시작함 → 먼저 묻는다(재리뷰 3 Q3·Q6) */
+  | { v: 'oldAccount'; purpose: Purpose }
+  | { v: 'oldCleared'; purpose: Purpose }
   | { v: 'deleted' }
   /** 맞바꾸기 확인: 지금 몽망이와 바꾸기 전 몽망이를 나란히 보인다(리뷰 R3) */
   | { v: 'revertConfirm'; back: 'on' | 'intro'; now: SaveSide | null; before: SaveSide | null }
@@ -102,7 +124,15 @@ export type View =
   | { v: 'moved' };
 
 export type CloudEvent =
-  | { e: 'start'; purpose: Purpose }
+  /** unconfirmed = 확인하지 못한 지우기 표시가 있음 */
+  | { e: 'start'; purpose: Purpose; unconfirmed?: boolean }
+  | { e: 'retryOld' }
+  | { e: 'askDismissOld' }
+  | { e: 'confirmDismissOld' }
+  | { e: 'askDropParked'; slot: string }
+  | { e: 'confirmDropParked' }
+  | { e: 'skipOld' }
+  | { e: 'proceedOld' }
   /** 연령 확인 결과(ok=false면 미달) */
   | { e: 'age'; ok: boolean }
   /** seal = 함께 넣은 인장 코드(선택) */
@@ -126,7 +156,7 @@ export type CloudEvent =
   | { e: 'confirmRevert' }
   | { e: 'continue' }
   /** 공방 노트 '되찾은 몽망이 다시 고르기'(30일 칸) */
-  | { e: 'openParked' }
+  | { e: 'openParked'; slot: string }
   | { e: 'forget' }
   | { e: 'retryForgotten' }
   | { e: 'restart' };
@@ -167,6 +197,7 @@ export function fallbackOf(task: Task): View {
     case 'deleteCheck':
       return { v: 'deleteCheck', tries: 0 };
     case 'retryForgotten':
+      return task.then ? { v: 'oldAccount', purpose: task.then } : { v: 'intro' };
     case 'forget':
       return { v: 'intro' };
     default:
@@ -209,7 +240,16 @@ function onResult(view: Extract<View, { v: 'busy' }>, res: TaskResult): View {
     case 'localChanged':
       return busy({ t: 'fetch', why: res.why });
     case 'deleted':
-      return { v: 'deleted' };
+      return view.task.t === 'retryForgotten' && view.task.then ? { v: 'oldCleared', purpose: view.task.then } : { v: 'deleted' };
+    case 'parkFull':
+      return { v: 'parkFull' };
+    case 'abandoned':
+    case 'parkedDropped':
+      return { v: 'on' };
+    case 'ended':
+      return { v: 'ended' };
+    case 'orphaned':
+      return { v: 'orphaned' };
     case 'deleteUnknown':
       return { v: 'deleteCheck', tries: res.tries };
     case 'ownSeal':
@@ -229,7 +269,22 @@ function onResult(view: Extract<View, { v: 'busy' }>, res: TaskResult): View {
 export function reduce(view: View, ev: CloudEvent): View {
   switch (ev.e) {
     case 'start':
-      return view.v === 'intro' ? { v: 'age', purpose: ev.purpose } : view;
+      if (view.v !== 'intro') return view;
+      return ev.unconfirmed ? { v: 'oldAccount', purpose: ev.purpose } : { v: 'age', purpose: ev.purpose };
+    case 'askDismissOld':
+      return view.v === 'intro' || view.v === 'on' ? { v: 'dismissOldConfirm', back: view.v } : view;
+    case 'confirmDismissOld':
+      return view.v === 'dismissOldConfirm' ? busy({ t: 'abandonOld' }) : view;
+    case 'askDropParked':
+      return view.v === 'parkFull' ? { v: 'dropParkedConfirm', slot: ev.slot } : view;
+    case 'confirmDropParked':
+      return view.v === 'dropParkedConfirm' ? busy({ t: 'dropParked', slot: view.slot }) : view;
+    case 'retryOld':
+      return view.v === 'oldAccount' ? busy({ t: 'retryForgotten', then: view.purpose }) : view;
+    case 'skipOld':
+      return view.v === 'oldAccount' ? { v: 'age', purpose: view.purpose } : view;
+    case 'proceedOld':
+      return view.v === 'oldCleared' ? { v: 'age', purpose: view.purpose } : view;
     case 'age':
       if (view.v !== 'age') return view;
       if (!ev.ok) return { v: 'ageUnder' };
@@ -257,6 +312,7 @@ export function reduce(view: View, ev: CloudEvent): View {
         case 'age':
         case 'ageUnder':
         case 'recoverInput':
+        case 'oldAccount':
           return { v: 'intro' };
         case 'code':
           // 확인 단계에서만 '글귀 다시 보기'로 돌아간다. 보여 주는 단계에는 뒤가 없다(받은 글귀를 버리는 길이 없게)
@@ -266,6 +322,10 @@ export function reduce(view: View, ev: CloudEvent): View {
           return view.confirming ? { ...view, confirming: false } : { v: 'on' };
         case 'deleteConfirm':
           return { v: 'on' };
+        case 'dismissOldConfirm':
+          return { v: view.back };
+        case 'dropParkedConfirm':
+          return { v: 'parkFull' };
         case 'revertConfirm':
           return { v: view.back };
         default:
@@ -288,7 +348,7 @@ export function reduce(view: View, ev: CloudEvent): View {
     case 'confirmPick':
       if (view.v !== 'choose' || view.picked === null) return view;
       if (!view.confirming) return { ...view, confirming: true };
-      if (view.why === 'parked') return view.picked === 'local' ? { v: 'on' } : busy({ t: 'takeParked' });
+      if (view.why === 'parked') return view.picked === 'local' || !view.pick.slot ? { v: 'on' } : busy({ t: 'takeParked', slot: view.pick.slot });
       return busy(view.picked === 'local' ? { t: 'keepLocal', server: view.pick, why: view.why, park: view.why === 'restore' || view.note !== null } : { t: 'takeServer', server: view.pick });
     case 'resolve':
       return view.v === 'on' ? busy({ t: 'fetch', why: 'conflict' }) : view;
@@ -308,7 +368,7 @@ export function reduce(view: View, ev: CloudEvent): View {
       return view;
     }
     case 'openParked':
-      return view.v === 'on' || view.v === 'intro' ? busy({ t: 'fetch', why: 'parked' }) : view;
+      return view.v === 'on' || view.v === 'intro' ? busy({ t: 'fetch', why: 'parked', slot: ev.slot }) : view;
     case 'forget':
       return view.v === 'deleteCheck' && view.tries >= DELETE_TRIES_BEFORE_EXIT ? busy({ t: 'forget' }) : view;
     case 'retryForgotten':
@@ -316,7 +376,8 @@ export function reduce(view: View, ev: CloudEvent): View {
     case 'confirmRevert':
       return view.v === 'revertConfirm' ? busy({ t: 'revert' }) : view;
     case 'continue':
-      if (view.v === 'forgotten') return { v: 'intro' };
+      if (view.v === 'forgotten' || view.v === 'ended' || view.v === 'orphaned') return { v: 'intro' };
+      if (view.v === 'parkFull') return { v: 'on' };
       return view.v === 'already' || view.v === 'reverted' ? { v: 'on' } : view;
     case 'restart':
       return view.v === 'moved' || view.v === 'deleted' ? { v: 'intro' } : view;
@@ -327,9 +388,15 @@ export function reduce(view: View, ev: CloudEvent): View {
  * 켜기·되찾기 시작 사건들(훅 useCloud.start가 그대로 보낸다 — 리뷰 M8: 훅 안 판단을 순수 함수로 꺼내 시험한다).
  * 통과 기록이 지금 판이면 연령을 다시 묻지 않고, 오늘 미달 기록이 있으면 묻지 않고 바로 '쉼'으로 간다.
  */
-export function startEvents(purpose: Purpose, age: { kind: 'ask' | 'passed' | 'wait' }): CloudEvent[] {
-  const evs: CloudEvent[] = [{ e: 'start', purpose }];
-  if (age.kind === 'passed') evs.push({ e: 'age', ok: true });
-  else if (age.kind === 'wait') evs.push({ e: 'age', ok: false });
-  return evs;
+export function startEvents(purpose: Purpose, age: { kind: 'ask' | 'passed' | 'wait' }, unconfirmed = false): CloudEvent[] {
+  // 확인하지 못한 지우기가 남았으면 연령 확인보다 먼저 묻는다(재리뷰 3 Q3·Q6). 답한 뒤 ageEvents로 이어 간다
+  if (unconfirmed) return [{ e: 'start', purpose, unconfirmed: true }];
+  return [{ e: 'start', purpose }, ...ageEvents(age)];
+}
+
+/** 연령 확인 기록에 따른 사건(통과면 묻지 않고 다음, 오늘 미달이면 쉼, 없으면 묻는다) */
+export function ageEvents(age: { kind: 'ask' | 'passed' | 'wait' }): CloudEvent[] {
+  if (age.kind === 'passed') return [{ e: 'age', ok: true }];
+  if (age.kind === 'wait') return [{ e: 'age', ok: false }];
+  return [];
 }

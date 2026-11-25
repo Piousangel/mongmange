@@ -12,9 +12,9 @@
 //  - 410(다른 기기로 옮겨 감)이면 세션을 비우고 로컬 게임은 그대로 이어 간다.
 import { isFuture, sim, type KV } from '@mong/core';
 import { passGate } from './ageGate';
-import type { ApiResult, CloudApi, CloudAuth, Failure } from './api';
+import { subOf, type ApiResult, type CloudApi, type CloudAuth, type Failure } from './api';
 import type { ChooseNote, SaveSide, ServerPick, Task, TaskResult, Why } from './model';
-import { clearRecovering, clearUnconfirmedDelete, dropParked, dropPreRestore, FRESH_RECORD, keepParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
+import { clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, pruneSlots, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
 
 export interface LocalSave {
   /** 기기에 저장된 본 원문(core SAVE_KEYS.main 그대로 — 같은 본이면 같은 sha). 없으면 null */
@@ -103,8 +103,61 @@ async function common<T>(d: TaskDeps, r: ApiResult<T>): Promise<TaskResult | nul
     return { r: 'moved' };
   }
   if (r.kind === 'signedOut') return fail('signedOut');
+  if (r.kind === 'noAccount' || r.kind === 'alreadyGone') return loginGone(d);
   if (r.kind === 'failed') return fail(r.failure);
   return null;
+}
+
+/** 지금 접근 토큰의 sub */
+async function currentSub(d: TaskDeps): Promise<string | null> {
+  return subOf(await d.auth.token().catch(() => null));
+}
+
+/** 기록(또는 표시)의 sub가 지금 로그인과 같은가 — 같을 때만 서버의 '그 로그인에 사용자 없음'을 '이 맡겨 두기가 끝남'으로 확정한다(B2b 리뷰 H1) */
+async function sameLogin(d: TaskDeps, sub: string | null | undefined): Promise<boolean> {
+  if (!sub) return false;
+  return (await currentSub(d)) === sub;
+}
+
+/**
+ * 서버가 '이 로그인에 붙은 사용자가 없다'(401·410 no_account)고 했다.
+ *  - 기록을 켠 로그인과 지금 로그인이 같으면: 이 맡겨 두기는 끝났다(지움·정리) → 세션·기록 비움('ended').
+ *  - 다르거나 모르면(백업 복원 폰처럼 새 로그인): 서버의 맡겨 두기는 그대로일 수 있다 → 조용히 끄지 않고 '예전 계정' 표시를 남긴 뒤 기록을 비운다('orphaned').
+ */
+async function loginGone(d: TaskDeps): Promise<TaskResult> {
+  const rec = readRecord(d.kv);
+  if (rec && (await sameLogin(d, rec.sub))) {
+    await d.auth.signOut().catch(() => undefined);
+    writeRecord(d.kv, null);
+    return { r: 'ended' };
+  }
+  return orphan(d);
+}
+
+/** 기록의 맡겨 두기에 이 로그인으로 닿을 수 없다 → 예전 계정 표시(웹 삭제·되찾기 안내) + 기록 비움 + 로그인 비움 */
+async function orphan(d: TaskDeps): Promise<TaskResult> {
+  const rec = readRecord(d.kv);
+  if (rec) markUnconfirmedDelete(d.kv, rec.creature, d.now(), true, { reason: 'orphan', sub: rec.sub });
+  writeRecord(d.kv, null);
+  await d.auth.signOut().catch(() => undefined);
+  return { r: 'orphaned' };
+}
+
+/**
+ * 확인하지 못한 지우기의 옛 로그인을 버린다(한 번만). 표시는 남기고 abandoned로 바꾼다 — 그 뒤로는 웹 삭제 안내만(재리뷰 4 S1).
+ * '두고 새로 시작'·'안내 닫기'·켜기·되찾기가 모두 이 한 함수를 지난다.
+ */
+async function abandonOld(d: TaskDeps): Promise<void> {
+  const m = readUnconfirmedDelete(d.kv);
+  if (!m || m.abandoned) return;
+  await d.auth.signOut().catch(() => undefined);
+  markUnconfirmedDelete(d.kv, m.creature, m.at, true, { reason: m.reason, sub: m.sub });
+}
+
+/** 로그인을 비우고 새 익명 로그인 */
+async function freshSignIn(d: TaskDeps): Promise<TaskResult | null> {
+  await d.auth.signOut().catch(() => undefined);
+  return signIn(d);
 }
 
 async function signIn(d: TaskDeps): Promise<TaskResult | null> {
@@ -201,19 +254,19 @@ async function fetchCompare(d: TaskDeps, why: Why, opts: { note?: ChooseNote; ke
   };
 }
 
-/** '이 기기'를 골라 밀려난 서버 본(기기 parked 칸, 30일)을 다시 나란히. 서버를 부르지 않는다(칸이 기기에 있으므로) */
-async function fetchParked(d: TaskDeps): Promise<TaskResult> {
-  const p = readParked(d.kv, d.now());
+/** '이 기기'를 골라 밀려난 서버 본(기기 parked 칸 하나, 30일)을 다시 나란히. 서버를 부르지 않는다(칸이 기기에 있으므로) */
+async function fetchParked(d: TaskDeps, slot: string | undefined): Promise<TaskResult> {
+  const p = slot ? readParkedOne(d.kv, slot, d.now()) : (readParkedList(d.kv, d.now())[0] ?? null);
   if (!p) return { r: 'synced' };
-  return { r: 'compare', why: 'parked', local: sideOf(d.local.raw()), server: sideOf(p.raw), pick: { rev: 0, sha: await d.sha256(p.raw) } };
+  return { r: 'compare', why: 'parked', local: sideOf(d.local.raw()), server: sideOf(p.raw), pick: { rev: 0, sha: await d.sha256(p.raw), slot: p.id } };
 }
 
 /**
- * parked 칸의 본으로 이어 가기 = 맞바꾸기: 지금 본은 parked 칸으로(새 30일), 칸의 본은 지금 자리로.
+ * parked 칸의 본으로 이어 가기 = 맞바꾸기: 지금 본은 같은 칸으로(새 30일), 칸의 본은 지금 자리로.
  * 칸에 먼저 쓰고 바꾸며, 바꾸기에 실패하면 칸을 원래 본으로 되돌린다. 다음 맡기기는 평소처럼(사용자가 고른 본) — 밀려나는 서버 본은 서버 이력에 남는다.
  */
-async function takeParked(d: TaskDeps): Promise<TaskResult> {
-  const p = readParked(d.kv, d.now());
+async function takeParked(d: TaskDeps, slot: string): Promise<TaskResult> {
+  const p = readParkedOne(d.kv, slot, d.now());
   if (!p) return fail('device');
   let next: sim.State;
   try {
@@ -222,12 +275,11 @@ async function takeParked(d: TaskDeps): Promise<TaskResult> {
     return fail('device');
   }
   const cur = d.local.raw();
-  if (cur !== null && !keepParked(d.kv, cur, d.now())) return fail('device');
+  if (!setParked(d.kv, slot, cur, d.now())) return fail('device');
   if (!d.local.adopt(next)) {
-    keepParked(d.kv, p.raw, p.at);
+    setParked(d.kv, slot, p.raw, p.at);
     return fail('device');
   }
-  if (cur === null) dropParked(d.kv);
   return { r: 'synced' };
 }
 
@@ -267,7 +319,10 @@ async function keepLocal(d: TaskDeps, pick: ServerPick, park: boolean): Promise<
     if (r.kind === 'notFound') return { r: 'serverChanged', why: 'conflict' };
     if (r.kind !== 'ok') return (await common(d, r)) ?? fail('server');
     if (r.value.rev !== pick.rev || r.value.sha !== pick.sha) return { r: 'serverChanged', why: 'conflict' };
-    if (!keepParked(d.kv, r.value.body, d.now())) return fail('device');
+    // 앞선 칸을 덮지 않는다: 다 찼으면 고르기를 멈춘다(재리뷰 3 Q1). 같은 본이 이미 있으면 그대로
+    const kept = addParked(d.kv, r.value.body, d.now());
+    if (kept === 'full') return { r: 'parkFull' };
+    if (kept === 'io') return fail('device');
   }
   return upload(d, pick);
 }
@@ -282,12 +337,20 @@ async function recover(d: TaskDeps, code: string, target: string | null): Promis
   // 인장 칸에 이 기기 몽망이의 코드를 넣었다면 되찾을 대상이 아니다(리뷰 재리뷰 2 M-c) — 서버를 부르기 전에 되돌려 준다
   const own = readRecord(d.kv)?.creature ?? null;
   if (target !== null && own !== null && target === own) return { r: 'ownSeal' };
+  // 확인하지 못한 지우기가 남은 로그인으로는 되찾지 않는다(그 계정에 다시 붙지 않게 — 재리뷰 3 Q3). 표시는 남긴다
+  await abandonOld(d);
   const s = await signIn(d);
   if (s) return s;
   // 부르기 직전에 남긴다: 응답이 끊겨 다시 부를 때 has_creature를 판별할 근거(대상 인장 코드)
   if (!readRecovering(d.kv) || target !== null) markRecovering(d.kv, target, d.now());
   const marker = readRecovering(d.kv);
-  const r = await d.api.recover(code, passGate());
+  let r = await d.api.recover(code, passGate());
+  // 끝난 로그인(401 no_account)이면 로그인을 비우고 한 번 새로 시작한다(막다른 길 막기 — 재리뷰 4 S2, B2b ③)
+  if (r.kind === 'noAccount') {
+    const again = await freshSignIn(d);
+    if (again) return again;
+    r = await d.api.recover(code, passGate());
+  }
   if (r.kind === 'notFound') {
     clearRecovering(d.kv);
     return { r: 'badCode' };
@@ -301,18 +364,31 @@ async function recover(d: TaskDeps, code: string, target: string | null): Promis
     if (cur !== null && want !== null && cur === want) {
       // 성공: 앞선 되찾기가 이미 끝났다. 평소 되찾기와 같이 나란히 고르기로 이어 간다(서버 본이 없으면 '이미 되찾음'으로 끝)
       clearRecovering(d.kv);
-      if (!readRecord(d.kv)) save(d, { ...FRESH_RECORD, conflict: true, creature: cur });
+      if (!readRecord(d.kv)) save(d, { ...FRESH_RECORD, conflict: true, creature: cur, sub: await currentSub(d) });
       const c = await fetchCompare(d, 'restore', { note: 'already' });
       return c.r === 'synced' ? { r: 'already' } : c;
     }
-    if (!readRecord(d.kv)) save(d, { ...FRESH_RECORD, conflict: true, creature: cur });
+    if (!readRecord(d.kv)) save(d, { ...FRESH_RECORD, conflict: true, creature: cur, sub: await currentSub(d) });
     // 되찾았는지 모르므로 '되찾기' 맥락(restore — '이 기기'를 고르면 되찾은 본으로 기록)이 아니라 일반 충돌로 보인다
     return fetchCompare(d, 'conflict', { note: 'hasCreature', keepRecord: true });
   }
   if (r.kind !== 'ok') return (await common(d, r)) ?? fail('server');
+  if (r.value.replay) {
+    // 다시 부르기(B2b ①): 앞선 되찾기가 커밋됐다. 부르기 전에 남긴 대상 인장 코드와 같을 때만 정상 되찾기로 이어 간다.
+    // 대상을 모르거나 다르면 성공으로 보지 않고 has_creature와 같이 나란히(기록은 덮지 않는다)
+    const want = marker?.target ?? null;
+    if (want === null || want !== r.value.creature.code) {
+      if (!readRecord(d.kv)) save(d, { ...FRESH_RECORD, conflict: true, creature: r.value.creature.code, sub: await currentSub(d) });
+      return fetchCompare(d, 'conflict', { note: 'hasCreature', keepRecord: true });
+    }
+    clearRecovering(d.kv);
+    // 기존 기록은 덮지 않는다(같은 되찾기의 첫 시도가 남긴 것일 수 있다)
+    if (!readRecord(d.kv)) save(d, { ...FRESH_RECORD, conflict: r.value.save !== null, creature: r.value.creature.code, sub: await currentSub(d) });
+    return { r: 'recovered', code: r.value.newCode, then: r.value.save !== null ? 'restore' : 'on' };
+  }
   clearRecovering(d.kv);
   // 서버 본이 있으면 고르기 전까지 올리지 않는다(conflict 표시). 글귀는 아직 확인 전
-  save(d, { ...FRESH_RECORD, conflict: r.value.save !== null, creature: r.value.creature.code });
+  save(d, { ...FRESH_RECORD, conflict: r.value.save !== null, creature: r.value.creature.code, sub: await currentSub(d) });
   return { r: 'recovered', code: r.value.newCode, then: r.value.save !== null ? 'restore' : 'on' };
 }
 
@@ -330,14 +406,17 @@ async function finishDeleted(d: TaskDeps): Promise<TaskResult> {
 async function deleteMe(d: TaskDeps, first: boolean): Promise<TaskResult> {
   const rec0 = readRecord(d.kv) ?? FRESH_RECORD;
   const rec = save(d, { ...rec0, state: 'deleting', deleteTries: first ? 0 : rec0.deleteTries });
+  // 410·401 no_account(지울 것이 없다)는 이 맡겨 두기를 켠 로그인과 지금 로그인이 같을 때만 '지워짐'으로 확정한다(B2b 리뷰 H1).
+  // 다르면(복원 폰의 새 로그인 등) 서버의 맡겨 두기는 그대로일 수 있다 → 확인 필요
+  const gone = async (k: string) => (k === 'alreadyGone' || k === 'noAccount') && (await sameLogin(d, rec.sub));
   if (first) {
     const r = await d.api.deleteMe();
-    if (r.kind === 'ok') return finishDeleted(d);
+    if (r.kind === 'ok' || (await gone(r.kind))) return finishDeleted(d);
     if (r.kind === 'moved') return (await common(d, r))!;
   }
   await d.auth.refresh().catch(() => false);
   const again = await d.api.deleteMe();
-  if (again.kind === 'ok') return finishDeleted(d);
+  if (again.kind === 'ok' || (await gone(again.kind))) return finishDeleted(d);
   if (again.kind === 'moved') return (await common(d, again))!;
   const tries = rec.deleteTries + 1;
   save(d, { ...rec, deleteTries: tries });
@@ -350,7 +429,7 @@ async function deleteMe(d: TaskDeps, first: boolean): Promise<TaskResult> {
  */
 function forget(d: TaskDeps): TaskResult {
   const rec = readRecord(d.kv);
-  if (!markUnconfirmedDelete(d.kv, rec?.creature ?? null, d.now())) return fail('device');
+  if (!markUnconfirmedDelete(d.kv, rec?.creature ?? null, d.now(), false, { reason: 'delete', sub: rec?.sub ?? null })) return fail('device');
   writeRecord(d.kv, null);
   return { r: 'forgotten' };
 }
@@ -359,7 +438,9 @@ function forget(d: TaskDeps): TaskResult {
 async function retryForgotten(d: TaskDeps): Promise<TaskResult> {
   await d.auth.refresh().catch(() => false);
   const r = await d.api.deleteMe();
-  if (r.kind === 'ok') {
+  const m = readUnconfirmedDelete(d.kv);
+  const goneHere = (r.kind === 'alreadyGone' || r.kind === 'noAccount') && (await sameLogin(d, m?.sub));
+  if (r.kind === 'ok' || goneHere) {
     clearUnconfirmedDelete(d.kv);
     await d.auth.signOut().catch(() => undefined);
     return { r: 'deleted' };
@@ -394,18 +475,31 @@ async function revert(d: TaskDeps): Promise<TaskResult> {
   return { r: 'reverted' };
 }
 
+/** 기기 기록의 로그인으로 서버를 부르는 작업 */
+const NEEDS_LOGIN: ReadonlySet<Task['t']> = new Set(['fetch', 'keepLocal', 'takeServer', 'sync', 'reissue', 'delete', 'deleteCheck']);
+
 export async function runTask(task: Task, d: TaskDeps): Promise<TaskResult> {
+  // 기한이 지난 기기 칸 원문은 작업 때마다 먼저 치운다(최소 보관)
+  pruneSlots(d.kv, d.now());
   try {
+    // 기록은 있는데 로그인이 없다(백업으로 옮긴 새 폰 — 세션은 백업에서 빠짐, 3-3 ④): 그 맡겨 두기에 이 기기로는 닿을 수 없다 → 예전 계정 안내
+    if (NEEDS_LOGIN.has(task.t) && readRecord(d.kv)?.state === 'on' && !(await d.auth.token().catch(() => null))) return await orphan(d);
     switch (task.t) {
       case 'enable': {
         // 확인하지 못한 지우기가 남았으면 그 로그인을 쓰지 않고 새로 시작한다(지워졌을 수 있는 계정에 다시 붙지 않게)
-        if (readUnconfirmedDelete(d.kv)) await d.auth.signOut().catch(() => undefined);
+        await abandonOld(d);
         const s = await signIn(d);
         if (s) return s;
-        const b = await d.api.bootstrap(passGate());
+        let b = await d.api.bootstrap(passGate());
+        // 끝난 로그인(401 no_account — 지운 계정의 남은 로그인)이면 로그인을 비우고 한 번 새로 시작한다(재리뷰 4 S2, B2b ③)
+        if (b.kind === 'noAccount') {
+          const again = await freshSignIn(d);
+          if (again) return again;
+          b = await d.api.bootstrap(passGate());
+        }
         if (b.kind !== 'ok') return (await common(d, b)) ?? fail('server');
         // 기록을 먼저 남긴다: 이 뒤에 끊기면 켜짐 화면이 '글귀 받기'를 먼저 보인다
-        save(d, { ...(readRecord(d.kv) ?? FRESH_RECORD), creature: b.value.code });
+        save(d, { ...(readRecord(d.kv) ?? FRESH_RECORD), creature: b.value.code, sub: await currentSub(d) });
         const u = await upload(d);
         if (u.r === 'failed' || u.r === 'moved') return u;
         const c = await d.api.issueCode();
@@ -415,11 +509,16 @@ export async function runTask(task: Task, d: TaskDeps): Promise<TaskResult> {
       case 'recover':
         return await recover(d, task.code, task.target);
       case 'fetch':
-        return task.why === 'parked' ? await fetchParked(d) : await fetchCompare(d, task.why);
+        return task.why === 'parked' ? await fetchParked(d, task.slot) : await fetchCompare(d, task.why);
       case 'keepLocal':
         return await keepLocal(d, task.server, task.park);
+      case 'abandonOld':
+        await abandonOld(d);
+        return { r: 'abandoned' };
+      case 'dropParked':
+        return setParked(d.kv, task.slot, null, d.now()) ? { r: 'parkedDropped' } : fail('device');
       case 'takeParked':
-        return await takeParked(d);
+        return await takeParked(d, task.slot);
       case 'forget':
         return forget(d);
       case 'retryForgotten':

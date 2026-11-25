@@ -11,7 +11,8 @@ import { MorningScreen } from '../screens/MorningScreen';
 import { NoteSheet } from '../screens/NoteSheet';
 import { CloudSheetHost, cloudRowState } from '../screens/CloudSheet';
 import { useCloudDeps } from '../cloud';
-import { PARKED_DAYS, PRE_RESTORE_DAYS, readParked, readPreRestore, readRecord } from '../cloud/record';
+import { PARKED_DAYS, PRE_RESTORE_DAYS, readParkedList, readPreRestore, readRecord, readUnconfirmedDelete } from '../cloud/record';
+import type { CloudEntry } from '../cloud/useCloud';
 import { bornDate } from '../screens/NameTag';
 import { kv } from './storage';
 import { NameSheet, type NameSheetMode } from '../screens/NameSheet';
@@ -93,7 +94,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const [developed, setDeveloped] = useState<{ card: sim.DreamCard; line: sim.MorningLine } | null>(null);
   const [line, setLine] = useState('');
   const [noteOpen, setNoteOpen] = useState(false);
-  const [cloudOpen, setCloudOpen] = useState<false | 'default' | 'revert' | 'parked'>(false);
+  const [cloudOpen, setCloudOpen] = useState<false | 'default' | CloudEntry>(false);
   const cloudFlag = useFeature('cloud');
   const cloudDeps = useCloudDeps();
   const [nowT, setNowT] = useState(() => now());
@@ -547,17 +548,18 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
                     setNoteOpen(false);
                     setCloudOpen('default');
                   },
-                  parked: (() => {
-                    const p = readParked(kv, nowT);
-                    if (!p) return null;
-                    return {
-                      until: bornDate(p.at + PARKED_DAYS * 86_400_000, tzOffsetNow()),
-                      open: () => {
-                        setNoteOpen(false);
-                        setCloudOpen('parked');
-                      },
-                    };
+                  oldNote: (() => {
+                    const m = readUnconfirmedDelete(kv);
+                    return m ? (m.creature ?? '?') : null;
                   })(),
+                  parked: readParkedList(kv, nowT).map((p) => ({
+                    id: p.id,
+                    until: bornDate(p.at + PARKED_DAYS * 86_400_000, tzOffsetNow()),
+                    open: () => {
+                      setNoteOpen(false);
+                      setCloudOpen(`parked:${p.id}`);
+                    },
+                  })),
                   revert: (() => {
                     const pre = readPreRestore(kv, nowT);
                     if (!pre) return null;
@@ -582,7 +584,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           }
         />
       )}
-      {cloudFlag && cloudDeps && <CloudSheetHost visible={cloudOpen !== false} entry={cloudOpen === 'revert' || cloudOpen === 'parked' ? cloudOpen : undefined} onClose={() => setCloudOpen(false)} deps={cloudDeps} tzOffsetMin={tzOffsetNow} />}
+      {cloudFlag && cloudDeps && <CloudSheetHost visible={cloudOpen !== false} entry={cloudOpen === false || cloudOpen === 'default' ? undefined : cloudOpen} onClose={() => setCloudOpen(false)} deps={cloudDeps} tzOffsetMin={tzOffsetNow} />}
       {nameSheet && state && (
         <NameSheet
           mode={nameSheet.mode}

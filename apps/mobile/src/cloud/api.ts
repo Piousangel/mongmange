@@ -2,6 +2,7 @@
 // 모든 응답을 한 갈래 결과(ApiResult)로 접는다 — 화면·작업 코드는 HTTP 상태 숫자를 보지 않는다.
 // 실패는 던지지 않는다(net/http.ts). 응답 본문은 계약 스키마로 읽고, 모양이 틀리면 'server'(서버를 믿지 않는다).
 import {
+  AUTH_ERROR,
   bootstrapResponseSchema,
   deleteMeResponseSchema,
   recoverResponseSchema,
@@ -33,8 +34,12 @@ export type ApiResult<T> =
   | { kind: 'notFound' }
   /** 409 has_creature(되찾기: 이 기기 로그인에 이미 몽망이가 있음) */
   | { kind: 'hasCreature' }
-  /** 401: 이 로그인에 연결된 사용자가 없다(지워짐·auth_gc) 또는 토큰이 받아들여지지 않음 — 지우기 확인에서만 '지워짐'의 증거로 쓴다 */
+  /** 401 `unauthorized`: 토큰 문제(서명·만료 등). call이 토큰을 새로 받아 한 번 더 보낸 뒤에도 그러면 이 갈래 */
   | { kind: 'signedOut' }
+  /** 401 `no_account`(B2b): 서명이 맞는 토큰인데 서버에 그 로그인(sub)에 붙은 사용자가 없다 — 지움·Auth 삭제 대기·**맡긴 적 없는 새 로그인**(백업 복원 폰) */
+  | { kind: 'noAccount' }
+  /** 410 `no_account`(B2b, DELETE /me 전용): 지울 것이 없다. 지움 확정은 기록의 sub와 지금 sub가 같을 때만(B2b 리뷰 H1) */
+  | { kind: 'alreadyGone' }
   /** 410 moved: 되찾기로 다른 기기로 옮겨 감 */
   | { kind: 'moved' }
   /** 413: 본문 상한 초과 → 조용히 보류 */
@@ -81,8 +86,8 @@ export function classify(r: HttpResult): ApiResult<string> {
   if (r.kind === 'network') return { kind: 'failed', failure: 'offline' };
   const code = errorCode(r.body);
   switch (r.status) {
-    case 401:
-      return { kind: 'signedOut' };
+    case AUTH_ERROR.unauthorized.status:
+      return code === AUTH_ERROR.noAccount.code ? { kind: 'noAccount' } : { kind: 'signedOut' };
     case 404:
       return { kind: 'notFound' };
     case 409: {
@@ -96,8 +101,11 @@ export function classify(r: HttpResult): ApiResult<string> {
         return { kind: 'failed', failure: 'server' };
       }
     }
-    case 410:
-      return { kind: 'moved' };
+    case AUTH_ERROR.moved.status:
+      // 410은 error.code로 가른다(B2b): moved = 다른 기기로 옮겨 감, no_account = DELETE /me에 지울 것 없음. 모르는 코드는 서버 문제로
+      if (code === AUTH_ERROR.moved.code) return { kind: 'moved' };
+      if (code === AUTH_ERROR.alreadyGone.code) return { kind: 'alreadyGone' };
+      return { kind: 'failed', failure: 'server' };
     case 413:
       return { kind: 'tooLarge' };
     case 429:
@@ -133,14 +141,21 @@ export interface CloudApi {
 
 export function createCloudApi(deps: CloudApiDeps): CloudApi {
   const timeout = deps.timeoutMs ?? CLOUD_TIMEOUT_MS;
-  async function call(method: string, path: string, opts: { body?: unknown; headers?: Record<string, string> } = {}): Promise<ApiResult<string>> {
-    if (!deps.base) return { kind: 'failed', failure: 'unavailable' };
+  async function once(method: string, path: string, opts: { body?: unknown; headers?: Record<string, string> }): Promise<ApiResult<string>> {
     const token = await deps.auth.token().catch(() => null);
     if (!token) return { kind: 'failed', failure: 'unavailable' };
     const headers: Record<string, string> = { accept: 'application/json', authorization: `Bearer ${token}`, ...opts.headers };
     if (opts.body !== undefined) headers['content-type'] = 'application/json';
     const r = await request(deps.fetch, `${deps.base}/api/v1/${path}`, { method, headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body) }, timeout);
     return classify(r);
+  }
+  /** 401 `unauthorized`(토큰 문제)면 토큰을 새로 받아 한 번만 더 보낸다(B2b ③). `no_account`는 새 토큰으로도 같으므로 다시 보내지 않는다 */
+  async function call(method: string, path: string, opts: { body?: unknown; headers?: Record<string, string> } = {}): Promise<ApiResult<string>> {
+    if (!deps.base) return { kind: 'failed', failure: 'unavailable' };
+    const r = await once(method, path, opts);
+    if (r.kind !== 'signedOut') return r;
+    if (!(await deps.auth.refresh().catch(() => false))) return r;
+    return once(method, path, opts);
   }
   return {
     async bootstrap(ageGate) {
@@ -178,4 +193,23 @@ export function createCloudApi(deps: CloudApiDeps): CloudApi {
       return read(await call('DELETE', 'me'), deleteMeResponseSchema);
     },
   };
+}
+
+/**
+ * 접근 토큰(JWT)의 sub. 서명은 보지 않는다 — 서버가 보증한 토큰을 우리 기기 기록과 견주는 데만 쓴다(B2b 리뷰 H1:
+ * 맡겨 두기를 켠 로그인과 지금 로그인이 같은지). 읽을 수 없으면 null(그러면 '지워짐'을 확정하지 않는다).
+ */
+export function subOf(token: string | null): string | null {
+  if (!token) return null;
+  const part = token.split('.')[1];
+  if (!part) return null;
+  try {
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    const json = typeof atob === 'function' ? atob(pad) : '';
+    const o = JSON.parse(json) as { sub?: unknown };
+    return typeof o.sub === 'string' && o.sub.length > 0 ? o.sub : null;
+  } catch {
+    return null;
+  }
 }

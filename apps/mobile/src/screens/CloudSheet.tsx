@@ -10,8 +10,8 @@ import type { Failure } from '../cloud/api';
 import { CAN_COPY, copyText } from '../cloud/clipboard';
 import { CONFIRM_TAIL, type SaveSide, type Task, type View as CloudView } from '../cloud/model';
 import type { CloudRecord } from '../cloud/record';
-import { useCloud, type CloudController } from '../cloud/useCloud';
-import { DELETE_TRIES_BEFORE_EXIT, readParked, readRecord, readUnconfirmedDelete } from '../cloud/record';
+import { useCloud, type CloudController, type CloudEntry } from '../cloud/useCloud';
+import { DELETE_TRIES_BEFORE_EXIT, PARKED_DAYS, readParkedList, readRecord, readUnconfirmedDelete } from '../cloud/record';
 import type { TaskDeps } from '../cloud/tasks';
 import type { AgeInputError } from '../cloud/ageGate';
 import { useMongLook, useStrokeInks } from '../game/look';
@@ -22,11 +22,11 @@ import { Portrait } from './NameTag';
 
 const C = PALETTE.day;
 
-/** 기록 밖의 기기 칸 상태(그릴 때마다 읽는다): parked = 다시 고를 수 있는 되찾은 본이 있음, unconfirmed = 확인하지 못한 지우기(인장 코드) */
-export type CloudExtra = { parked: boolean; unconfirmed: { creature: string | null } | null };
-const NO_EXTRA: CloudExtra = { parked: false, unconfirmed: null };
+/** 기록 밖의 기기 칸 상태(그릴 때마다 읽는다): parked = 다시 고를 수 있는 본들(칸 id·기한), unconfirmed = 확인하지 못한 지우기(인장 코드) */
+export type CloudExtra = { parked: { id: string; until: number }[]; unconfirmed: { creature: string | null; abandoned: boolean; reason: 'delete' | 'orphan' } | null };
+const NO_EXTRA: CloudExtra = { parked: [], unconfirmed: null };
 
-export function CloudSheet({ visible, onClose, cloud, record, entry, extra = NO_EXTRA }: { visible: boolean; onClose: () => void; cloud: CloudController; record: CloudRecord | null; entry?: 'revert' | 'parked'; extra?: CloudExtra }) {
+export function CloudSheet({ visible, onClose, cloud, record, entry, extra = NO_EXTRA }: { visible: boolean; onClose: () => void; cloud: CloudController; record: CloudRecord | null; entry?: CloudEntry; extra?: CloudExtra }) {
   const { view } = cloud;
   const closable = view.v !== 'code';
   const { reopen } = cloud;
@@ -45,10 +45,13 @@ export function CloudSheet({ visible, onClose, cloud, record, entry, extra = NO_
 }
 
 /** 작업 묶음을 받아 상태 기계를 쥐는 겉 컴포넌트(앱·확인판 공통). 기기 기록은 그릴 때마다 읽는다(작업이 기록을 바꾼 뒤 보기도 바뀐다) */
-export function CloudSheetHost({ visible, onClose, deps, initial, entry, tzOffsetMin }: { visible: boolean; onClose: () => void; deps: TaskDeps; initial?: CloudView; entry?: 'revert' | 'parked'; tzOffsetMin: () => number }) {
+export function CloudSheetHost({ visible, onClose, deps, initial, entry, tzOffsetMin }: { visible: boolean; onClose: () => void; deps: TaskDeps; initial?: CloudView; entry?: CloudEntry; tzOffsetMin: () => number }) {
   const cloud = useCloud(deps, { initial, tzOffsetMin });
   const record = readRecord(deps.kv);
-  const extra: CloudExtra = { parked: readParked(deps.kv, deps.now()) !== null, unconfirmed: readUnconfirmedDelete(deps.kv) };
+  const extra: CloudExtra = {
+    parked: readParkedList(deps.kv, deps.now()).map((p) => ({ id: p.id, until: p.at + PARKED_DAYS * 86_400_000 })),
+    unconfirmed: readUnconfirmedDelete(deps.kv),
+  };
   return <CloudSheet visible={visible} onClose={onClose} cloud={cloud} record={record} entry={entry} extra={extra} />;
 }
 
@@ -104,7 +107,8 @@ function announceLine(view: CloudView): string | null {
 
 /** 고른 뒤 확인 문구: 되찾기 맥락에서 '이 기기'를 고르면 맡겨 둔 본이 어디 남는지 분명히(리뷰 재리뷰 M) */
 function confirmKey(view: Extract<CloudView, { v: 'choose' }>): 'cloud.choose.confirmLocalRestore' | 'cloud.choose.confirmLocalParked' | 'cloud.choose.confirmLocal' | 'cloud.choose.confirmServer' {
-  if (view.picked === 'local') return view.why === 'restore' ? 'cloud.choose.confirmLocalRestore' : view.why === 'parked' ? 'cloud.choose.confirmLocalParked' : 'cloud.choose.confirmLocal';
+  // 밀려나는 서버 본을 기기 parked 칸에 두는 경우(되찾기·has_creature 맥락)는 같은 문구 — 실제 보관 위치와 맞춘다(재리뷰 3 낮음)
+  if (view.picked === 'local') return view.why === 'restore' || view.note !== null ? 'cloud.choose.confirmLocalRestore' : view.why === 'parked' ? 'cloud.choose.confirmLocalParked' : 'cloud.choose.confirmLocal';
   return 'cloud.choose.confirmServer';
 }
 
@@ -135,6 +139,9 @@ export function busyKey(task: Task): BusyKey {
       return 'cloud.busy.forget';
     case 'takeParked':
       return 'cloud.busy.takeServer';
+    case 'abandonOld':
+    case 'dropParked':
+      return 'cloud.busy.forget';
     case 'revert':
       return 'cloud.busy.revert';
   }
@@ -154,13 +161,8 @@ function Body({ cloud, record, onClose, extra }: { cloud: CloudController; recor
           <P sub>{t('cloud.intro.what')}</P>
           <P sub testID="cloud-word-notice">{t('cloud.intro.word')}</P>
           <P sub>{t('cloud.intro.free')}</P>
-          {extra.unconfirmed && (
-            <View testID="cloud-unconfirmed">
-              <P>{t('cloud.unconfirmed.body', { code: extra.unconfirmed.creature ?? t('cloud.choose.unknown') })}</P>
-              <Btn label={t('cloud.unconfirmed.retry')} onPress={() => send({ e: 'retryForgotten' })} testID="cloud-unconfirmed-retry" />
-            </View>
-          )}
-          {extra.parked && <Row label={t('cloud.on.parked')} onPress={() => send({ e: 'openParked' })} strong testID="cloud-parked-intro" />}
+          {extra.unconfirmed && <UnconfirmedNote cloud={cloud} code={extra.unconfirmed.creature} canRetry={!extra.unconfirmed.abandoned} orphan={extra.unconfirmed.reason === 'orphan'} />}
+          <ParkedRows rows={extra.parked} cloud={cloud} testID="cloud-parked-intro" />
           <Actions>
             <Btn primary label={t('cloud.intro.enable')} onPress={() => cloud.start('enable')} testID="cloud-enable" />
             <Btn label={t('cloud.intro.recover')} onPress={() => cloud.start('recover')} testID="cloud-recover" />
@@ -239,6 +241,16 @@ function Body({ cloud, record, onClose, extra }: { cloud: CloudController; recor
           </Actions>
         </View>
       );
+    case 'ended':
+    case 'orphaned':
+      return (
+        <>
+          <P testID={`cloud-${view.v}`}>{t(view.v === 'ended' ? 'cloud.ended.body' : 'cloud.orphan.body')}</P>
+          <Actions>
+            <Btn primary label={t('cloud.continue')} onPress={() => send({ e: 'continue' })} testID="cloud-gone-continue" />
+          </Actions>
+        </>
+      );
     case 'forgotten':
       return (
         <>
@@ -251,7 +263,61 @@ function Body({ cloud, record, onClose, extra }: { cloud: CloudController; recor
     case 'choose':
       return <Choose view={view} cloud={cloud} />;
     case 'on':
-      return <OnView record={record} cloud={cloud} parked={extra.parked} />;
+      return <OnView record={record} cloud={cloud} extra={extra} />;
+    case 'parkFull':
+      return (
+        <>
+          <P testID="cloud-park-full">{t('cloud.parkFull.body')}</P>
+          {extra.parked.map((r, i) => (
+            <Row key={r.id} label={t('cloud.parkFull.drop', { date: savedDay(r.until) })} onPress={() => send({ e: 'askDropParked', slot: r.id })} testID={i === 0 ? 'cloud-park-drop' : `cloud-park-drop-${i}`} />
+          ))}
+          <Actions>
+            <Btn primary label={t('cloud.later')} onPress={() => send({ e: 'continue' })} testID="cloud-park-full-ok" />
+          </Actions>
+        </>
+      );
+    case 'dropParkedConfirm':
+      return (
+        <>
+          <P testID="cloud-park-drop-confirm">{t('cloud.parkFull.dropConfirm')}</P>
+          <Actions>
+            <Btn primary danger label={t('cloud.parkFull.dropYes')} onPress={() => send({ e: 'confirmDropParked' })} testID="cloud-park-drop-yes" />
+            <Btn label={t('cloud.cancel')} onPress={() => send({ e: 'back' })} />
+          </Actions>
+        </>
+      );
+    case 'dismissOldConfirm':
+      return (
+        <>
+          <P testID="cloud-dismiss-old-confirm">{t('cloud.unconfirmed.dismissConfirm')}</P>
+          <Actions>
+            <Btn primary label={t('cloud.unconfirmed.dismissYes')} onPress={() => send({ e: 'confirmDismissOld' })} testID="cloud-dismiss-old-yes" />
+            <Btn label={t('cloud.cancel')} onPress={() => send({ e: 'back' })} />
+          </Actions>
+        </>
+      );
+    case 'oldAccount':
+      return (
+        <View testID="cloud-old-account">
+          <P>{t('cloud.old.body', { code: extra.unconfirmed?.creature ?? t('cloud.choose.unknown') })}</P>
+          <P sub>{t('cloud.unconfirmed.webGone')}</P>
+          <P sub>{t('cloud.unconfirmed.sweep')}</P>
+          <Actions>
+            <Btn primary label={t('cloud.old.retry')} onPress={() => send({ e: 'retryOld' })} testID="cloud-old-retry" />
+            <Btn label={t('cloud.old.skip')} onPress={() => cloud.afterOld('skipOld')} testID="cloud-old-skip" />
+            <Btn label={t('cloud.cancel')} onPress={() => send({ e: 'back' })} testID="cloud-old-cancel" />
+          </Actions>
+        </View>
+      );
+    case 'oldCleared':
+      return (
+        <>
+          <P testID="cloud-old-cleared">{t('cloud.old.cleared')}</P>
+          <Actions>
+            <Btn primary label={t('cloud.continue')} onPress={() => cloud.afterOld('proceedOld')} testID="cloud-old-continue" />
+          </Actions>
+        </>
+      );
     case 'deleteConfirm':
       return <DeleteConfirm token={view.token} mismatch={view.mismatch} onConfirm={(input) => send({ e: 'confirmDelete', input })} onBack={() => send({ e: 'back' })} />;
     case 'deleted':
@@ -621,7 +687,7 @@ function SidePortrait({ state }: { state: sim.State }) {
 
 // ── 켜짐 ──
 
-function OnView({ record, cloud, parked }: { record: CloudRecord | null; cloud: CloudController; parked: boolean }) {
+function OnView({ record, cloud, extra }: { record: CloudRecord | null; cloud: CloudController; extra: CloudExtra }) {
   const { send } = cloud;
   const held = record?.held ?? null;
   return (
@@ -633,13 +699,50 @@ function OnView({ record, cloud, parked }: { record: CloudRecord | null; cloud: 
       <P sub testID="cloud-last">{record?.syncedAt ? t('cloud.on.last', { when: savedWhen(record.syncedAt) }) : t('cloud.on.never')}</P>
       {held && <P sub testID="cloud-held">{t(held === 'tooLarge' ? 'cloud.on.held.tooLarge' : held === 'quota' ? 'cloud.on.held.quota' : 'cloud.on.held.shape')}</P>}
       {record?.conflict && <Row label={t('cloud.on.conflict')} onPress={() => send({ e: 'resolve' })} strong testID="cloud-resolve" />}
-      {parked && <Row label={t('cloud.on.parked')} onPress={() => send({ e: 'openParked' })} strong testID="cloud-parked" />}
+      <ParkedRows rows={extra.parked} cloud={cloud} testID="cloud-parked" />
+      {extra.unconfirmed && <UnconfirmedNote cloud={cloud} code={extra.unconfirmed.creature} canRetry={false} orphan={extra.unconfirmed.reason === 'orphan'} />}
       {record && !record.codeConfirmed && <Row label={t('cloud.on.codePending')} onPress={() => send({ e: 'reissue' })} strong testID="cloud-code-pending" />}
       {!record?.conflict && <Row label={t('cloud.on.sync')} onPress={() => send({ e: 'syncNow' })} testID="cloud-sync" />}
       {record?.codeConfirmed !== false && <Row label={t('cloud.on.reissue')} hint={t('cloud.on.reissueHint')} onPress={() => send({ e: 'reissue' })} testID="cloud-reissue" />}
       <Row label={t('cloud.on.delete')} onPress={cloud.askDelete} testID="cloud-delete" />
     </>
   );
+}
+
+/** 다시 고를 수 있는 parked 칸들(칸마다 한 줄, 기한 날짜) */
+function ParkedRows({ rows, cloud, testID }: { rows: CloudExtra['parked']; cloud: CloudController; testID: string }) {
+  return (
+    <>
+      {rows.map((r, i) => (
+        <Row key={r.id} label={t('cloud.on.parkedUntil', { date: savedDay(r.until) })} hint={t('cloud.parked.deviceOnly')} onPress={() => cloud.send({ e: 'openParked', slot: r.id })} strong testID={i === 0 ? testID : `${testID}-${i}`} />
+      ))}
+    </>
+  );
+}
+
+/** '서버에 남았을 수 있음' 안내. canRetry = 이 기기에 그 로그인이 남아 있을 수 있는 자리(소개)에서만 다시 지우기를 보인다 */
+/**
+ * '서버에 남았을 수 있음' 안내. canRetry = 옛 로그인이 아직 남은 자리(버리기 전)에서만 다시 지우기·닫기를 보인다.
+ * 닫기 = 옛 로그인 버리기(확인 한 번, '두고 새로 시작'과 같은 동작 — 재리뷰 4 S1). 버린 뒤에는 웹 삭제 안내만 남는다.
+ */
+function UnconfirmedNote({ cloud, code, canRetry, orphan = false }: { cloud: CloudController; code: string | null; canRetry: boolean; orphan?: boolean }) {
+  return (
+    <View testID="cloud-unconfirmed">
+      <P>{t(orphan ? 'cloud.orphan.note' : canRetry ? 'cloud.unconfirmed.body' : 'cloud.unconfirmed.bodyOn', { code: code ?? t('cloud.choose.unknown') })}</P>
+      <P sub>{t('cloud.unconfirmed.webGone')}</P>
+      <P sub>{t('cloud.unconfirmed.sweep')}</P>
+      {canRetry && <Btn label={t('cloud.unconfirmed.retry')} onPress={() => cloud.send({ e: 'retryForgotten' })} testID="cloud-unconfirmed-retry" />}
+      {canRetry && <Btn label={t('cloud.unconfirmed.dismiss')} onPress={() => cloud.send({ e: 'askDismissOld' })} testID="cloud-unconfirmed-dismiss" />}
+    </View>
+  );
+}
+
+function savedDay(ms: number): string {
+  try {
+    return new Intl.DateTimeFormat(formatTag(getLocale()), { month: 'short', day: 'numeric' }).format(ms);
+  } catch {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
 }
 
 // ── 공통 부품 ──

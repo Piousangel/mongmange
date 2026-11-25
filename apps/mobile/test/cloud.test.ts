@@ -8,7 +8,7 @@ import { AGE_KEY, ageStatus, checkAgeInput, judgeAge, recordAge } from '../src/c
 import { classify, createCloudApi } from '../src/cloud/api';
 import { createFakeServer } from '../src/cloud/fakeServer';
 import { closable, deleteToken, initialView, reduce, startEvents, tailMatches, type CloudEvent, type SaveSide, type View } from '../src/cloud/model';
-import { CLOUD_KEY, keepPreRestore, PARKED_KEY, PRE_RESTORE_KEY, readParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete } from '../src/cloud/record';
+import { addParked, CLOCK_KEY, CLOUD_KEY, keepPreRestore, markUnconfirmedDelete, PARKED_KEY, PARKED_SLOTS, PRE_RESTORE_KEY, readParkedList, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete } from '../src/cloud/record';
 import { markCodeConfirmed, runTask, uploadShapeOk, type TaskDeps } from '../src/cloud/tasks';
 
 const sha = async (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
@@ -49,6 +49,10 @@ function device(server: ReturnType<typeof createFakeServer>, name: string, raw: 
 }
 
 const run = (v: View, ...evs: CloudEvent[]) => evs.reduce(reduce, v);
+const formatCode = (c16: string) => c16.match(/.{4}/g)!.join('-');
+const FRESH_REC = { v: 1, state: 'on', rev: null, sha: null, syncedAt: null, codeConfirmed: false, conflict: false, held: null, creature: null, deleteTries: 0, sub: null };
+/** 가장 최근 parked 칸(없으면 null) */
+const readParked = (kv: KV, now: number) => readParkedList(kv, now)[0] ?? null;
 
 describe('연령 확인(중립형, 기기 판정)', () => {
   it('같은 달은 아직 생일 전(보수적 → 미달), 한 달 지났으면 통과 — 기준 숫자는 판정 안에만', () => {
@@ -196,6 +200,11 @@ describe('API 결과 갈래', () => {
     expect(http(429, { error: { code: 'rate_limited' } })).toEqual({ kind: 'failed', failure: 'rateLimited' });
     expect(http(503, {})).toEqual({ kind: 'failed', failure: 'unavailable' });
     expect(http(410, { error: { code: 'moved' } })).toEqual({ kind: 'moved' });
+    // B2b: 401·410은 error.code로 가른다
+    expect(http(401, { error: { code: 'unauthorized' } })).toEqual({ kind: 'signedOut' });
+    expect(http(401, { error: { code: 'no_account' } })).toEqual({ kind: 'noAccount' });
+    expect(http(410, { error: { code: 'no_account' } })).toEqual({ kind: 'alreadyGone' });
+    expect(http(410, { error: { code: 'something' } })).toEqual({ kind: 'failed', failure: 'server' });
     expect(http(409, { error: { code: 'has_creature' } })).toEqual({ kind: 'hasCreature' });
     expect(http(409, { error: { code: 'save_conflict', details: { server: null } } })).toEqual({ kind: 'conflict', server: null });
     expect(http(409, { error: { code: 'save_conflict', details: { server: { rev: 'x' } } } })).toEqual({ kind: 'failed', failure: 'server' });
@@ -366,7 +375,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(await a.deps.auth.token()).toBeNull();
   });
 
-  it('[리뷰 C1 재현] 되찾기 커밋 뒤 응답 끊김 → 다시 → has_creature: 대상 인장 코드를 넣었고 같으면 이미 되찾음 → 나란히, 지우지 않음', async () => {
+  it('[리뷰 C1 재현·B2b] 되찾기 커밋 뒤 응답 끊김 → 다시 부르면 200 replay, 대상 인장 코드가 같으면 정상 되찾기(같은 새 글귀), 지우지 않음', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1, 4));
     const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
@@ -376,16 +385,53 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     srv.faults.dropAfterCommit = true;
     expect(await runTask({ t: 'recover', code: en.code, target: x }, b.deps)).toEqual({ r: 'failed', failure: 'offline' });
     expect(readRecovering(b.kv)).toMatchObject({ target: x });
+    const newCode = formatCode(srv.peek('B')!.code16!);
     // 다시 누를 때는 인장 코드를 비워도(target null) 앞선 표시의 대상이 남아 있다
     const again = await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
-    expect(again).toMatchObject({ r: 'compare', why: 'restore', note: 'already', server: { dayIndex: 4 }, local: { dayIndex: 0 } });
+    expect(again).toEqual({ r: 'recovered', code: newCode, then: 'restore' });
     expect(srv.log.some((l) => l.startsWith('DELETE'))).toBe(false);
     expect(srv.peek('B')!.save!.body).toBe(serverBody);
     expect(readRecovering(b.kv)).toBeNull();
-    expect(readRecord(b.kv)).toMatchObject({ conflict: true, codeConfirmed: false, creature: x });
-    const pick = (again as { pick: { rev: number; sha: string } }).pick;
-    expect(await runTask({ t: 'takeServer', server: pick }, b.deps)).toEqual({ r: 'synced' });
+    expect(readRecord(b.kv)).toMatchObject({ conflict: true, codeConfirmed: false, creature: x, sub: expect.any(String) });
+    const cmp = (await runTask({ t: 'fetch', why: 'restore' }, b.deps)) as { pick: { rev: number; sha: string } };
+    expect(await runTask({ t: 'takeServer', server: cmp.pick }, b.deps)).toEqual({ r: 'synced' });
     expect(b.adopted[0]!.dayIndex).toBe(4);
+  });
+
+  it('[B2b] replay이고 대상이 같아도 이미 있는 기기 기록은 덮지 않는다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 4));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const x = readRecord(a.kv)!.creature!;
+    const b = device(srv, 'B', mong(2, 0));
+    srv.faults.dropAfterCommit = true;
+    await runTask({ t: 'recover', code: en.code, target: x }, b.deps);
+    const keep = { ...FRESH_REC, creature: 'KEEP0000', sub: 'first-try', conflict: true, rev: 3 };
+    b.kv.set(CLOUD_KEY, JSON.stringify(keep));
+    expect(await runTask({ t: 'recover', code: en.code, target: x }, b.deps)).toMatchObject({ r: 'recovered' });
+    expect(readRecord(b.kv)).toEqual(keep);
+  });
+
+  it('[R4·B2b] 토큰을 새로 받아도 DELETE가 계속 401 unauthorized면 지워짐이 아니라 확인 필요', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    const api = { ...a.deps.api, deleteMe: async () => ({ kind: 'signedOut' as const }) };
+    expect(await runTask({ t: 'delete' }, { ...a.deps, api })).toEqual({ r: 'deleteUnknown', tries: 1 });
+    expect(readRecord(a.kv)!.state).toBe('deleting');
+  });
+
+  it('[B2b] replay인데 대상 인장 코드가 다르면 정상 되찾기로 보지 않고 나란히, 기존 기록은 덮지 않는다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 4));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const b = device(srv, 'B', mong(2, 0));
+    srv.faults.dropAfterCommit = true;
+    await runTask({ t: 'recover', code: en.code, target: 'ZZZZZZZZ' }, b.deps);
+    const keep = { ...FRESH_REC, creature: 'KEEP0000', sub: 'kept', conflict: true };
+    b.kv.set(CLOUD_KEY, JSON.stringify(keep));
+    expect(await runTask({ t: 'recover', code: en.code, target: null }, b.deps)).toMatchObject({ r: 'compare', note: 'hasCreature' });
+    expect(readRecord(b.kv)).toEqual(keep);
   });
 
   it('[리뷰 C1] 대상 인장 코드를 모르면 반쯤 성공이어도 성공으로 보지 않고 나란히(안내 hasCreature), 지우지 않음', async () => {
@@ -437,13 +483,14 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(readParked(b.kv, T + 29 * 86_400_000)).not.toBeNull();
     expect(readParked(b.kv, T + 31 * 86_400_000)).toBeNull();
     // 공방 노트 → 다시 나란히 → 되찾은 본 고름(맞바꾸기: 지금 본은 parked 칸으로)
-    expect(reduce({ v: 'on' }, { e: 'openParked' })).toEqual({ v: 'busy', task: { t: 'fetch', why: 'parked' }, slow: false });
-    const again = await runTask({ t: 'fetch', why: 'parked' }, b.deps);
+    const slot = readParked(b.kv, T)!.id;
+    expect(reduce({ v: 'on' }, { e: 'openParked', slot })).toEqual({ v: 'busy', task: { t: 'fetch', why: 'parked', slot }, slow: false });
+    const again = await runTask({ t: 'fetch', why: 'parked', slot }, b.deps);
     expect(again).toMatchObject({ r: 'compare', why: 'parked', server: { dayIndex: 4 }, local: { dayIndex: 1 } });
     const v = reduce(reduce(reduce({ v: 'busy', task: { t: 'fetch', why: 'parked' }, slow: false }, { e: 'done', result: again }), { e: 'pick', side: 'server' }), { e: 'confirmPick' });
-    expect(reduce(v, { e: 'confirmPick' })).toEqual({ v: 'busy', task: { t: 'takeParked' }, slow: false });
+    expect(reduce(v, { e: 'confirmPick' })).toEqual({ v: 'busy', task: { t: 'takeParked', slot }, slow: false });
     const mine = b.kv.getString(SAVE_KEYS.main);
-    expect(await runTask({ t: 'takeParked' }, b.deps)).toEqual({ r: 'synced' });
+    expect(await runTask({ t: 'takeParked', slot }, b.deps)).toEqual({ r: 'synced' });
     expect(b.adopted.at(-1)!.dayIndex).toBe(4);
     expect(readParked(b.kv, T)!.raw).toBe(mine);
   });
@@ -527,33 +574,84 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(a.kv.getString(SAVE_KEYS.main)).toBe(mong(1, 2));
   });
 
-  it('[재리뷰 R4] 지우기 커밋 뒤 응답 끊김 → 토큰을 새로 받아 DELETE 다시 → 401이면 지워짐으로 확정하지 않고 확인 필요(계약이 구별 못 함)', async () => {
+  it('[재리뷰 R4·B2b] 지우기 커밋 뒤 응답 끊김 → 다시 보낸 DELETE가 410 no_account, 맡겨 두기를 켠 로그인과 같으면 지워짐 확정', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1));
     await runTask({ t: 'enable' }, a.deps);
     srv.faults.dropAfterCommit = true;
-    expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 1 });
-    expect(readRecord(a.kv)!.state).toBe('deleting');
+    expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleted' });
+    expect(readRecord(a.kv)).toBeNull();
     expect(srv.log.filter((l) => l === 'DELETE me')).toHaveLength(2);
-    expect(initialView(readRecord(a.kv))).toEqual({ v: 'deleteCheck', tries: 1 });
   });
 
-  it('[재리뷰 2 M-a] 확인 필요에서 영구히 갇히지 않는다: 몇 번 확인 뒤 이 기기에서 끄기 → 서버에 남았을 수 있다는 표시 + 다시 지우기 길 → 다시 켤 수 있음', async () => {
+  it('[B2b 리뷰 H1 재현] 백업으로 옮긴 새 폰: 기록은 있고 로그인이 없으면 조용히 끄지 않고 예전 계정 안내, 서버의 맡겨 두기는 그대로', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 3));
+    await runTask({ t: 'enable' }, a.deps);
+    const rec = readRecord(a.kv)!;
+    const b = device(srv, 'B', a.kv.getString(SAVE_KEYS.main)!);
+    b.kv.set(CLOUD_KEY, a.kv.getString(CLOUD_KEY)!); // OS 백업이 기기 기록을 옮김(세션은 백업에서 빠짐)
+    b.kv.set(SAVE_KEYS.main, mong(1, 4));
+    expect(await runTask({ t: 'sync' }, b.deps)).toEqual({ r: 'orphaned' });
+    expect(readRecord(b.kv)).toBeNull();
+    expect(readUnconfirmedDelete(b.kv)).toMatchObject({ creature: rec.creature, reason: 'orphan', sub: rec.sub, abandoned: true });
+    expect(srv.peek('A')).not.toBeNull();
+    expect(srv.log.some((l) => l.startsWith('DELETE'))).toBe(false);
+    expect(reduce({ v: 'busy', task: { t: 'sync' }, slow: false }, { e: 'done', result: { r: 'orphaned' } })).toEqual({ v: 'orphaned' });
+  });
+
+  it('[B2b 리뷰 H1 재현] 새 폰이 새 로그인으로 지우기를 눌러 410 no_account가 와도 로그인이 다르면 지워짐을 확정하지 않는다(확인 필요)', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 3));
+    await runTask({ t: 'enable' }, a.deps);
+    const b = device(srv, 'B', a.kv.getString(SAVE_KEYS.main)!);
+    b.kv.set(CLOUD_KEY, a.kv.getString(CLOUD_KEY)!);
+    await b.deps.auth.signIn(); // 새 폰의 새 익명 로그인(다른 sub)
+    expect(await runTask({ t: 'delete' }, b.deps)).toEqual({ r: 'deleteUnknown', tries: 1 });
+    expect(readRecord(b.kv)!.state).toBe('deleting');
+    expect(srv.peek('A')).not.toBeNull();
+  });
+
+  it('[B2b 리뷰 H1] 401 no_account: 켠 로그인과 같으면 끝난 로그인으로 정리(ended), 다르면 예전 계정 안내(orphaned)', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    // 다른 길(웹 삭제 등)로 지워짐 → 같은 로그인으로 맡기기
+    srv.faults.dropAfterCommit = true;
+    await a.deps.api.deleteMe();
+    a.kv.set(SAVE_KEYS.main, mong(1, 2));
+    expect(await runTask({ t: 'sync' }, a.deps)).toEqual({ r: 'ended' });
+    expect(readRecord(a.kv)).toBeNull();
+    expect(readUnconfirmedDelete(a.kv)).toBeNull();
+    // 다른 로그인으로 기록이 남은 기기
+    const b = device(srv, 'B', mong(2));
+    await runTask({ t: 'enable' }, b.deps);
+    const brec = readRecord(b.kv)!;
+    b.kv.set(CLOUD_KEY, JSON.stringify({ ...brec, sub: 'someone-else' }));
+    await b.deps.api.deleteMe();
+    b.kv.set(SAVE_KEYS.main, mong(2, 2));
+    expect(await runTask({ t: 'sync' }, b.deps)).toEqual({ r: 'orphaned' });
+    expect(readUnconfirmedDelete(b.kv)).toMatchObject({ reason: 'orphan', creature: brec.creature });
+  });
+
+  it('[재리뷰 2 M-a] 확인 필요에서 영구히 갇히지 않는다: 몇 번 확인 뒤 이 기기에서 끄기 → 표시 + 다시 지우기 길 → 실제로 지워졌으면(같은 로그인 410) 다시 지우기가 확정', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1));
     await runTask({ t: 'enable' }, a.deps);
     const creature = readRecord(a.kv)!.creature;
+    // DELETE는 서버에 닿았지만 응답이 끊기고, 그 뒤 확인은 연결이 없어 모름
     srv.faults.dropAfterCommit = true;
+    await a.deps.api.deleteMe();
+    srv.faults.offline = true;
     expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 1 });
     expect(await runTask({ t: 'deleteCheck' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 2 });
+    srv.faults.offline = false;
     expect(await runTask({ t: 'forget' }, a.deps)).toEqual({ r: 'forgotten' });
     expect(readRecord(a.kv)).toBeNull();
-    expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature });
+    expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature, reason: 'delete' });
     expect(reduce({ v: 'forgotten' }, { e: 'continue' })).toEqual({ v: 'intro' });
-    // 다시 지우기: 서버에서 이미 지워져 401 → 표시는 그대로(지웠다고 하지 않음)
-    expect(await runTask({ t: 'retryForgotten' }, a.deps)).toEqual({ r: 'failed', failure: 'signedOut' });
-    expect(readUnconfirmedDelete(a.kv)).not.toBeNull();
-    // 다시 켜기: 남은 로그인을 버리고 새로 시작
+    expect(await runTask({ t: 'retryForgotten' }, a.deps)).toEqual({ r: 'deleted' });
+    expect(readUnconfirmedDelete(a.kv)).toBeNull();
     expect(await runTask({ t: 'enable' }, a.deps)).toMatchObject({ r: 'enabled' });
     expect(readRecord(a.kv)!.creature).not.toBe(creature);
   });
@@ -572,18 +670,17 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(readUnconfirmedDelete(a.kv)).toBeNull();
   });
 
-  it('[재리뷰 R4] DELETE가 닿지 않고(오프라인) 확인도 401(토큰 문제)이어도 지웠다고 하지 않는다 → 다시 확인하면 새 토큰으로 202 → 그때만 지워짐', async () => {
+  it('[재리뷰 R4·B2b] DELETE가 닿지 않고(오프라인) 다음 확인이 401 unauthorized여도 지웠다고 하지 않는다 — 토큰을 새로 받아 다시 보낸 202에서만 지워짐', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1));
     await runTask({ t: 'enable' }, a.deps);
     srv.faults.offline = true;
     expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 1 });
     srv.faults.offline = false;
-    srv.faults.failNext = { status: 401, code: 'unauthorized' };
-    expect(await runTask({ t: 'deleteCheck' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 2 });
     expect(srv.peek('A')).not.toBeNull();
-    expect(readRecord(a.kv)!.state).toBe('deleting');
+    srv.faults.failNext = { status: 401, code: 'unauthorized' };
     expect(await runTask({ t: 'deleteCheck' }, a.deps)).toEqual({ r: 'deleted' });
+    expect(srv.peek('A')).toBeNull();
     expect(readRecord(a.kv)).toBeNull();
   });
 
@@ -611,9 +708,9 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(await runTask({ t: 'revert' }, failing)).toEqual({ r: 'failed', failure: 'device' });
     expect(readPreRestore(a.kv, T)).toEqual({ at: T - 1000, raw: before });
     expect(a.kv.getString(SAVE_KEYS.main)).toBe(cur);
-    a.kv.set(PARKED_KEY, JSON.stringify({ at: T - 2000, raw: before }));
-    expect(await runTask({ t: 'takeParked' }, failing)).toEqual({ r: 'failed', failure: 'device' });
-    expect(readParked(a.kv, T)).toEqual({ at: T - 2000, raw: before });
+    a.kv.set(PARKED_KEY, JSON.stringify([{ id: 'p1', at: T - 2000, raw: before }]));
+    expect(await runTask({ t: 'takeParked', slot: 'p1' }, failing)).toEqual({ r: 'failed', failure: 'device' });
+    expect(readParked(a.kv, T)).toEqual({ id: 'p1', at: T - 2000, raw: before });
     expect(a.kv.getString(SAVE_KEYS.main)).toBe(cur);
   });
 
@@ -625,6 +722,231 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleted' });
     expect(srv.peek('A')).toBeNull();
     expect(readRecord(a.kv)).toBeNull();
+  });
+
+  it('[재리뷰 3 Q1] 30일 안에 이 기기를 두 번 골라도 앞선 parked 본이 덮이지 않는다 — 칸이 다 차면 고르기 자체를 멈추고 아무것도 바꾸지 않음', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 4));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const b = device(srv, 'B', mong(2, 1));
+    await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
+    const bodies: string[] = [];
+    for (let i = 0; i <= PARKED_SLOTS; i++) {
+      if (i > 0) await srv.putFromElsewhere('B', mong(30 + i, 10 + i));
+      const cmp = (await runTask({ t: 'fetch', why: 'restore' }, b.deps)) as { pick: { rev: number; sha: string } };
+      const serverBody = srv.peek('B')!.save!.body;
+      const puts = srv.log.filter((l) => l.startsWith('PUT')).length;
+      const r = await runTask({ t: 'keepLocal', server: cmp.pick, why: 'restore', park: true }, b.deps);
+      if (i < PARKED_SLOTS) {
+        expect(r).toEqual({ r: 'synced' });
+        bodies.push(serverBody);
+      } else {
+        expect(r).toEqual({ r: 'parkFull' });
+        expect(srv.log.filter((l) => l.startsWith('PUT')).length).toBe(puts);
+        expect(srv.peek('B')!.save!.body).toBe(serverBody);
+      }
+    }
+    expect(readParkedList(b.kv, T).map((p) => p.raw).sort()).toEqual([...bodies].sort());
+    expect(reduce({ v: 'busy', task: { t: 'keepLocal', server: { rev: 1, sha: 'x' }, why: 'restore', park: true }, slow: false }, { e: 'done', result: { r: 'parkFull' } })).toEqual({ v: 'parkFull' });
+    // 같은 본을 다시 두면 칸을 더 쓰지 않는다
+    expect(addParked(b.kv, bodies[0]!, T)).toBe('ok');
+    expect(readParkedList(b.kv, T)).toHaveLength(PARKED_SLOTS);
+  });
+
+  it('[재리뷰 3 Q1] 업로드가 실패해도(오프라인) 앞선 parked 본은 그대로', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 4));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const b = device(srv, 'B', mong(2, 1));
+    await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
+    const first = mong(40, 40);
+    addParked(b.kv, first, T - 1000);
+    const cmp = (await runTask({ t: 'fetch', why: 'restore' }, b.deps)) as { pick: { rev: number; sha: string } };
+    const api = { ...b.deps.api, putSave: async () => ({ kind: 'failed' as const, failure: 'offline' as const }) };
+    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'restore', park: true }, { ...b.deps, api })).toEqual({ r: 'failed', failure: 'offline' });
+    expect(readParkedList(b.kv, T).map((p) => p.raw)).toContain(first);
+  });
+
+  it('[재리뷰 4 S3·Z5] 기한 지난 칸은 먼저 만료 표시만, 하루 넘게 지난 다음 실행에서 다시 확인되면 그때 지운다(parked·preRestore 둘 다)', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    let now = T;
+    const deps = { ...a.deps, now: () => now };
+    a.kv.set(CLOCK_KEY, String(T - 3_600_000));
+    addParked(a.kv, mong(3, 3), T - 31 * 86_400_000);
+    addParked(a.kv, mong(4, 4), T - 1000);
+    keepPreRestore(a.kv, mong(5, 5), T - 31 * 86_400_000);
+    await runTask({ t: 'sync' }, deps);
+    // 1단계: 숨김(읽기에는 안 보임) + 원문은 남음
+    expect(JSON.parse(a.kv.getString(PARKED_KEY)!)).toHaveLength(2);
+    expect(readParkedList(a.kv, now)).toHaveLength(1);
+    expect(a.kv.getString(PRE_RESTORE_KEY)).toBeDefined();
+    now = T + 86_400_000 + 1;
+    await runTask({ t: 'sync' }, deps);
+    // 2단계: 지움
+    expect(JSON.parse(a.kv.getString(PARKED_KEY)!).map((p: { raw: string }) => p.raw)).toEqual([mong(4, 4)]);
+    expect(a.kv.getString(PRE_RESTORE_KEY)).toBeUndefined();
+  });
+
+  it('[재리뷰 4 S3] 시계를 앞으로 크게 돌려도(같은 날 몇 번 실행) 아무 칸도 지워지지 않고, 되돌리면 다시 보인다. 뒤로 돌린 실행도 지우지 않는다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    let now = T;
+    const deps = { ...a.deps, now: () => now };
+    for (let i = 0; i < 3; i++) addParked(a.kv, mong(10 + i, i), T - 10 * 86_400_000 + i);
+    keepPreRestore(a.kv, mong(20, 2), T - 10 * 86_400_000);
+    await runTask({ t: 'sync' }, deps); // 지금 시각을 본다
+    now = T + 31 * 86_400_000; // 앞으로 31일
+    for (let k = 0; k < 3; k++) await runTask({ t: 'sync' }, deps);
+    expect(JSON.parse(a.kv.getString(PARKED_KEY)!)).toHaveLength(3);
+    expect(a.kv.getString(PRE_RESTORE_KEY)).toBeDefined();
+    now = T; // 되돌림
+    await runTask({ t: 'sync' }, deps);
+    expect(readParkedList(a.kv, now)).toHaveLength(3);
+    expect(readPreRestore(a.kv, now)).not.toBeNull();
+    expect(JSON.parse(a.kv.getString(PARKED_KEY)!).some((p: { expiredSeenAt?: number }) => p.expiredSeenAt !== undefined)).toBe(false);
+    // 뒤로 간 시각(지금까지 본 가장 늦은 시각보다 이전)에서는 기한이 지났어도 지우지 않는다
+    now = T - 40 * 86_400_000 + 1;
+    addParked(a.kv, mong(30, 3), T - 80 * 86_400_000);
+    a.kv.set(PARKED_KEY, JSON.stringify([...JSON.parse(a.kv.getString(PARKED_KEY)!), { id: 'old', at: T - 80 * 86_400_000, raw: 'x', expiredSeenAt: T - 79 * 86_400_000 }]));
+    await runTask({ t: 'sync' }, deps);
+    expect(JSON.parse(a.kv.getString(PARKED_KEY)!).some((p: { id: string }) => p.id === 'old')).toBe(true);
+  });
+
+  it('[재리뷰 4 S4] 칸이 가득 차면 한 칸을 비우는 길(확인 한 번)이 있고, 비운 뒤 이 기기를 다시 고를 수 있다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 4));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const b = device(srv, 'B', mong(2, 1));
+    await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
+    for (let i = 0; i < PARKED_SLOTS; i++) addParked(b.kv, mong(50 + i, i), T - i);
+    const cmp = (await runTask({ t: 'fetch', why: 'restore' }, b.deps)) as { pick: { rev: number; sha: string } };
+    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'restore', park: true }, b.deps)).toEqual({ r: 'parkFull' });
+    const slot = readParkedList(b.kv, T)[2]!.id;
+    const v = run({ v: 'parkFull' }, { e: 'askDropParked', slot });
+    expect(v).toEqual({ v: 'dropParkedConfirm', slot });
+    expect(reduce(v, { e: 'back' })).toEqual({ v: 'parkFull' });
+    expect(reduce(v, { e: 'confirmDropParked' })).toEqual({ v: 'busy', task: { t: 'dropParked', slot }, slow: false });
+    expect(await runTask({ t: 'dropParked', slot }, b.deps)).toEqual({ r: 'parkedDropped' });
+    expect(readParkedList(b.kv, T)).toHaveLength(PARKED_SLOTS - 1);
+    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'restore', park: true }, b.deps)).toEqual({ r: 'synced' });
+    expect(readParkedList(b.kv, T)).toHaveLength(PARKED_SLOTS);
+  });
+
+  it('[재리뷰 4 S1 재현] 안내 닫기 = 옛 로그인 버리기(확인 한 번): DELETE가 닿지 않았던 계정에 켜기가 다시 붙지 않는다. 표시는 남는다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    const old = readRecord(a.kv)!.creature;
+    srv.faults.offline = true;
+    await runTask({ t: 'delete' }, a.deps);
+    await runTask({ t: 'deleteCheck' }, a.deps);
+    srv.faults.offline = false;
+    await runTask({ t: 'forget' }, a.deps);
+    expect(srv.peek('A')).not.toBeNull();
+    const ask = reduce({ v: 'intro' }, { e: 'askDismissOld' });
+    expect(ask).toEqual({ v: 'dismissOldConfirm', back: 'intro' });
+    expect(reduce(ask, { e: 'back' })).toEqual({ v: 'intro' });
+    expect(reduce(ask, { e: 'confirmDismissOld' })).toEqual({ v: 'busy', task: { t: 'abandonOld' }, slow: false });
+    expect(await runTask({ t: 'abandonOld' }, a.deps)).toEqual({ r: 'abandoned' });
+    expect(await a.deps.auth.token()).toBeNull();
+    expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature: old, abandoned: true });
+    // 버린 뒤에는 되묻지 않고(이미 버렸으므로) 켜기가 새 계정으로
+    expect(startEvents('enable', { kind: 'passed' }, readUnconfirmedDelete(a.kv)!.abandoned === false)).toEqual([{ e: 'start', purpose: 'enable' }, { e: 'age', ok: true }]);
+    expect(await runTask({ t: 'enable' }, a.deps)).toMatchObject({ r: 'enabled' });
+    expect(readRecord(a.kv)!.creature).not.toBe(old);
+    expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature: old });
+  });
+
+  it('[재리뷰 4 S2 재현] 실제로 지워진 뒤 끄고 닫아도 켜기가 영원히 실패하지 않는다(지워진 계정의 남은 로그인이면 새로 시작)', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    srv.faults.dropAfterCommit = true;
+    await runTask({ t: 'delete' }, a.deps);
+    await runTask({ t: 'deleteCheck' }, a.deps);
+    await runTask({ t: 'forget' }, a.deps);
+    expect(await runTask({ t: 'abandonOld' }, a.deps)).toEqual({ r: 'abandoned' });
+    expect(await runTask({ t: 'enable' }, a.deps)).toMatchObject({ r: 'enabled' });
+    // 표시가 없어도(예: 기록이 지워진 기기) 지워진 계정의 남은 로그인 401이면 한 번 새로 시작한다
+    const b = device(srv, 'B', mong(2));
+    await runTask({ t: 'enable' }, b.deps);
+    srv.faults.dropAfterCommit = true;
+    await b.deps.api.deleteMe();
+    b.kv.remove(CLOUD_KEY);
+    expect(await runTask({ t: 'enable' }, b.deps)).toMatchObject({ r: 'enabled' });
+  });
+
+  it('[재리뷰 4 S2] 되찾기도 지워진 계정의 남은 로그인(401)이면 로그인을 비우고 한 번 새로 시작한다', async () => {
+    const srv = createFakeServer(sha);
+    const x = device(srv, 'X', mong(5, 6));
+    const xEn = (await runTask({ t: 'enable' }, x.deps)) as { code: string };
+    const b = device(srv, 'B', mong(2));
+    await runTask({ t: 'enable' }, b.deps);
+    srv.faults.dropAfterCommit = true;
+    await b.deps.api.deleteMe();
+    b.kv.remove(CLOUD_KEY);
+    expect(await runTask({ t: 'recover', code: xEn.code, target: null }, b.deps)).toMatchObject({ r: 'recovered' });
+  });
+
+  it('[재리뷰 3 Q3·Q6] 확인하지 못한 지우기가 남은 채 켜기·되찾기를 시작하면 먼저 묻는다(다시 지우기 / 두고 새로 시작)', () => {
+    for (const purpose of ['enable', 'recover'] as const) {
+      const evs = startEvents(purpose, { kind: 'passed' }, true);
+      expect(evs).toEqual([{ e: 'start', purpose, unconfirmed: true }]);
+      const v = run({ v: 'intro' }, ...evs);
+      expect(v).toEqual({ v: 'oldAccount', purpose });
+      expect(reduce(v, { e: 'skipOld' })).toEqual({ v: 'age', purpose });
+      const retry = reduce(v, { e: 'retryOld' });
+      expect(retry).toEqual({ v: 'busy', task: { t: 'retryForgotten', then: purpose }, slow: false });
+      expect(reduce(retry, { e: 'done', result: { r: 'deleted' } })).toEqual({ v: 'oldCleared', purpose });
+      expect(reduce(retry, { e: 'done', result: { r: 'failed', failure: 'signedOut' } })).toMatchObject({ v: 'failed' });
+      expect(reduce({ v: 'failed', task: { t: 'retryForgotten', then: purpose }, failure: 'signedOut' }, { e: 'back' })).toEqual({ v: 'oldAccount', purpose });
+      expect(reduce({ v: 'oldCleared', purpose }, { e: 'proceedOld' })).toEqual({ v: 'age', purpose });
+    }
+    expect(startEvents('enable', { kind: 'passed' }, false)).toEqual([{ e: 'start', purpose: 'enable' }, { e: 'age', ok: true }]);
+  });
+
+  it('[재리뷰 3 Q3] 두고 새로 시작한 되찾기는 옛 로그인을 버린다 → 지우려던 계정에 다시 붙지 않고 글귀의 몽망이를 되찾는다. 표시는 남는다', async () => {
+    const srv = createFakeServer(sha);
+    const x = device(srv, 'X', mong(5, 6));
+    const xEn = (await runTask({ t: 'enable' }, x.deps)) as { code: string };
+    const a = device(srv, 'A', mong(1, 2));
+    await runTask({ t: 'enable' }, a.deps);
+    const old = readRecord(a.kv)!.creature;
+    // 지우기가 서버에 닿지 않은 채 끔
+    srv.faults.offline = true;
+    await runTask({ t: 'delete' }, a.deps);
+    await runTask({ t: 'deleteCheck' }, a.deps);
+    srv.faults.offline = false;
+    await runTask({ t: 'forget' }, a.deps);
+    expect(srv.peek('A')).not.toBeNull();
+    const r = await runTask({ t: 'recover', code: xEn.code, target: null }, a.deps);
+    expect(r).toMatchObject({ r: 'recovered' });
+    expect(readRecord(a.kv)!.creature).not.toBe(old);
+    expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature: old });
+  });
+
+  it('[재리뷰 3 Q6·4 S1] 끈 뒤(로그인 남음) 두고 새로 켜면 옛 로그인을 버려 지우려던 계정에 다시 붙지 않는다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    const old = readRecord(a.kv)!.creature;
+    srv.faults.offline = true;
+    await runTask({ t: 'delete' }, a.deps);
+    await runTask({ t: 'deleteCheck' }, a.deps);
+    srv.faults.offline = false;
+    await runTask({ t: 'forget' }, a.deps);
+    expect(await runTask({ t: 'enable' }, a.deps)).toMatchObject({ r: 'enabled' });
+    expect(readRecord(a.kv)!.creature).not.toBe(old);
+    expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature: old, abandoned: true });
+  });
+
+  it('[재리뷰 3 Q6] 두고 새로 켜도 표시는 남아 켜짐 화면이 계속 안내한다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    markUnconfirmedDelete(a.kv, 'K7M2ABCD', T);
+    expect(await runTask({ t: 'enable' }, a.deps)).toMatchObject({ r: 'enabled' });
+    expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature: 'K7M2ABCD' });
   });
 
   it('지우기: 서버 것만 지우고 기기 몽망이는 그대로', async () => {

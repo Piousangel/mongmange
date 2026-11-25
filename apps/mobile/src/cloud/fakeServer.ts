@@ -2,6 +2,9 @@
 // 규칙은 apps/server/src/{account,saves} 컨트롤러와 architecture 3-4-1 표를 줄여 옮겼다: rev·sha 전제 조건, 같은 sha 빨리 감기,
 // 행 없음 + If-Match → 409 {server:null}, keep_mine → 덮인 본 conflict 칸, 되찾기 → 옛 로그인 410, 글귀 재발급 → 옛 글귀 무효.
 // 고장 흉내: offline(연결 실패), delayMs(느린 서버), dropAfterCommit(커밋 뒤 응답 끊김 = 반쯤 성공), failNext(상태 코드 하나).
+// 인증은 B2b 계약(@mong/contract AUTH_ERROR)대로: 토큰 문제 = 401 unauthorized, 그 로그인(sub)에 사용자 없음 = 401 no_account,
+// DELETE /me에 지울 것 없음 = 410 no_account, 옮겨 감 = 410 moved. recover 재시도(같은 sub·같은 옛 글귀) = 200 replay:true.
+// 토큰은 JWT 꼴(`h.<base64url {sub}>.s`)이라 앱의 subOf가 sub를 읽는다.
 import { formatRecoveryCode, normalizeRecoveryCode, RECOVERY_ALPHABET, type SaveMeta } from '@mong/contract';
 import type { FetchLike } from '../net/http';
 import type { CloudAuth } from './api';
@@ -17,6 +20,8 @@ interface Row {
 interface User {
   creature: string;
   code16: string | null;
+  /** 마지막 되찾기(같은 sub·같은 옛 글귀로 다시 부르면 replay) */
+  lastRecover?: { sub: string; old16: string; newCode16: string };
   save: Row | null;
   conflicts: Row[];
 }
@@ -48,8 +53,19 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 1): FakeServer {
   const users = new Map<string, User>();
-  /** token → userId. revoked면 410 */
-  const tokens = new Map<string, { user: string | null; revoked: boolean; expired?: boolean; gone?: boolean }>();
+  /** sub(로그인) → 붙은 사용자. revoked면 410 moved, gone이면(지운 계정의 sub) bootstrap·recover도 401 no_account */
+  const subs = new Map<string, { user: string | null; revoked: boolean; gone?: boolean }>();
+  /** 토큰 → sub. expired면 401 unauthorized */
+  const tokens = new Map<string, { sub: string; expired?: boolean }>();
+  const b64url = (x: string) => {
+    const b = typeof btoa === 'function' ? btoa(x) : '';
+    return b.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+  const mint = (sub: string) => {
+    const t = `h.${b64url(JSON.stringify({ sub, n: rnd() }))}.s`;
+    tokens.set(t, { sub });
+    return t;
+  };
   const sessions = new Map<string, string>();
   let n = seed;
   const rnd = () => {
@@ -70,16 +86,17 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
 
   async function handle(method: string, path: string, headers: Record<string, string>, bodyText: string | undefined) {
     const tok = (headers.authorization ?? '').replace(/^Bearer /, '');
-    const sess = tokens.get(tok);
-    if (!sess || sess.expired) return err(401, 'unauthorized');
+    const tk = tokens.get(tok);
+    if (!tk || tk.expired) return err(401, 'unauthorized');
+    const sess = subs.get(tk.sub)!;
     if (sess.revoked) return err(410, 'moved');
     const body = bodyText ? (JSON.parse(bodyText) as Record<string, unknown>) : {};
     const user = sess.user ? users.get(sess.user) ?? null : null;
     const route = `${method} ${path}`;
     if (route === 'POST me/bootstrap') {
       if (!(body.ageGate as { ok?: unknown } | undefined)?.ok) return err(400, 'bad_request');
-      // 지운 계정의 남은 로그인으로는 되살아나지 않는다(실서버: Auth Admin에 sub가 없으면 401)
-      if (sess.gone) return err(401, 'unauthorized');
+      // 지운 계정의 남은 로그인으로는 되살아나지 않는다(실서버: Auth Admin에 sub가 없으면 401 no_account)
+      if (sess.gone) return err(401, 'no_account');
       if (!sess.user) {
         const id = `u${rnd()}`;
         users.set(id, { creature: Array.from({ length: 8 }, () => RECOVERY_ALPHABET[(rnd() >> 16) % 32]).join(''), code16: null, save: null, conflicts: [] });
@@ -88,24 +105,35 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
       return res(200, { userId: sess.user, creature: { code: users.get(sess.user)!.creature } });
     }
     if (route === 'POST recover') {
+      if (sess.gone) return err(401, 'no_account');
       const code16 = normalizeRecoveryCode(String(body.code ?? ''));
-      if (user) return err(409, 'has_creature');
+      if (user) {
+        // 다시 부르기(B2b ①): 같은 sub·같은 옛 글귀면 200 replay(첫 응답과 같은 새 글귀, 아무것도 쓰지 않음)
+        const lr = user.lastRecover;
+        if (lr && lr.sub === tk.sub && code16 !== null && lr.old16 === code16 && user.code16 === lr.newCode16) {
+          return res(200, { creature: { code: user.creature }, save: user.save ? meta(user.save) : null, newCode: formatRecoveryCode(lr.newCode16), replay: true });
+        }
+        return err(409, 'has_creature');
+      }
       const hit = [...users.entries()].find(([, u]) => code16 !== null && u.code16 === code16);
       if (!hit) return err(404, 'not_found');
-      for (const [t, s] of tokens) if (s.user === hit[0] && t !== tok) s.revoked = true;
+      for (const [sb, s] of subs) if (s.user === hit[0] && sb !== tk.sub) s.revoked = true;
       sess.user = hit[0];
       hit[1].code16 = newCode16();
+      hit[1].lastRecover = { sub: tk.sub, old16: code16!, newCode16: hit[1].code16 };
       return res(200, { creature: { code: hit[1].creature }, save: hit[1].save ? meta(hit[1].save) : null, newCode: formatRecoveryCode(hit[1].code16) });
     }
-    if (!user) return err(401, 'unauthorized'); // 실서버와 같은 코드: 토큰 문제와 '사용자 없음'을 구별하지 않는다
+    // 서명이 맞는 토큰인데 그 로그인에 사용자가 없다(B2b): DELETE /me는 410 no_account(지울 것 없음), 나머지는 401 no_account
+    if (!user) return route === 'DELETE me' ? err(410, 'no_account') : err(401, 'no_account');
     if (route === 'POST recovery-code') {
       user.code16 = newCode16();
       return res(200, { code: formatRecoveryCode(user.code16) });
     }
     if (route === 'DELETE me') {
-      users.delete(sess.user!);
-      for (const s of tokens.values())
-        if (s.user === sess.user) {
+      const gone = sess.user;
+      users.delete(gone!);
+      for (const s of subs.values())
+        if (s.user === gone) {
           s.user = null;
           s.gone = true;
         }
@@ -169,9 +197,9 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
         },
         async signIn() {
           if (faults.offline) return { ok: false, failure: 'offline' };
-          const t = `t${device}-${rnd()}`;
-          tokens.set(t, { user: null, revoked: false });
-          sessions.set(device, t);
+          const sub = `s${device}-${rnd()}`;
+          subs.set(sub, { user: null, revoked: false });
+          sessions.set(device, mint(sub));
           return { ok: true };
         },
         async signOut() {
@@ -179,23 +207,22 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
         },
         async refresh() {
           const old = sessions.get(device);
-          const s = old ? tokens.get(old) : undefined;
-          if (!s || faults.offline) return false;
-          const t = `t${device}-${rnd()}`;
-          tokens.set(t, { user: s.user, revoked: s.revoked, gone: s.gone });
-          sessions.set(device, t);
+          const tk = old ? tokens.get(old) : undefined;
+          if (!tk || faults.offline) return false;
+          sessions.set(device, mint(tk.sub));
           return true;
         },
       };
     },
     expireSession(device) {
       const t = sessions.get(device);
-      const s = t ? tokens.get(t) : undefined;
-      if (s) s.expired = true;
+      const tk = t ? tokens.get(t) : undefined;
+      if (tk) tk.expired = true;
     },
     async putFromElsewhere(device, b) {
       const t = sessions.get(device);
-      const u = t ? tokens.get(t)?.user : null;
+      const sb = t ? tokens.get(t)?.sub : undefined;
+      const u = sb ? subs.get(sb)?.user : null;
       const user = u ? users.get(u) : null;
       if (!user) return;
       const sha = await sha256(b);
@@ -203,7 +230,8 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
     },
     peek(device) {
       const t = sessions.get(device);
-      const u = t ? tokens.get(t)?.user : null;
+      const sb = t ? tokens.get(t)?.sub : undefined;
+      const u = sb ? subs.get(sb)?.user : null;
       const user = u ? users.get(u) : null;
       return user ? { save: user.save, conflicts: user.conflicts, code16: user.code16 } : null;
     },

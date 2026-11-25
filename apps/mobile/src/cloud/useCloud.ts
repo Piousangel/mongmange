@@ -4,12 +4,15 @@
 // - 시트를 닫거나 화면이 사라져도 작업 결과는 기기 기록에 남는다(tasks.ts). 다시 열면 기록에서 처음 자리를 정한다.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ageStatus, judgeAge, recordAge, type AgeInput, type AgeInputError, checkAgeInput } from './ageGate';
-import { deleteToken, initialView, reduce, startEvents, type CloudEvent, type Purpose, type View } from './model';
-import { readPreRestore, readRecord, writeRecord } from './record';
+import { ageEvents, deleteToken, initialView, reduce, startEvents, type CloudEvent, type Purpose, type View } from './model';
+import { pruneSlots, readPreRestore, readRecord, readUnconfirmedDelete, writeRecord } from './record';
 import { markCodeConfirmed, runTask, sideOf, type TaskDeps } from './tasks';
 
 /** 이보다 오래 걸리면 '서버가 조금 느려요'를 보인다(ms) */
 export const SLOW_MS = 4000;
+
+/** 시트를 여는 입구: 되돌리기 확인, 또는 parked 칸 하나(`parked:<id>`) */
+export type CloudEntry = 'revert' | `parked:${string}`;
 
 export interface CloudController {
   view: View;
@@ -19,7 +22,10 @@ export interface CloudController {
   /** 태어난 해·달 판정 → 기기에 결과만 남기고 다음 보기로. 입력이 틀리면 그 갈래 */
   submitAge(input: AgeInput): AgeInputError | null;
   /** 시트를 다시 열 때: 작업·글귀 보기가 아니면 기기 기록에서 처음 자리. revert = 공방 노트 '바꾸기 전으로 되돌리기'에서 열림 */
-  reopen(entry?: 'revert' | 'parked'): void;
+  reopen(entry?: CloudEntry): void;
+  /** 확인하지 못한 지우기 질문에 답한 뒤(새로 시작 / 지운 뒤 계속) 연령 확인으로 이어 간다 */
+  afterOld(ev: 'skipOld' | 'proceedOld'): void;
+
   /** 지우기 확인으로(확인 낱말 = 인장 코드 끝 네 자, 기기 기록에서) */
   askDelete(): void;
 }
@@ -54,7 +60,7 @@ export function useCloud(deps: TaskDeps | null, opts: { initial?: View; tzOffset
   const start = useCallback(
     (purpose: Purpose) => {
       if (!deps) return;
-      for (const ev of startEvents(purpose, ageStatus(deps.kv, deps.now(), tz()))) send(ev);
+      for (const ev of startEvents(purpose, ageStatus(deps.kv, deps.now(), tz()), readUnconfirmedDelete(deps.kv)?.abandoned === false)) send(ev);
     },
     [deps, send, tz],
   );
@@ -74,18 +80,27 @@ export function useCloud(deps: TaskDeps | null, opts: { initial?: View; tzOffset
   );
 
   const reopen = useCallback(
-    (entry?: 'revert' | 'parked') => {
+    (entry?: CloudEntry) => {
       const cur = ref.current;
       if (cur.v === 'busy' || cur.v === 'code' || !deps) return;
+      pruneSlots(deps.kv, deps.now());
       const init = initialView(readRecord(deps.kv));
       if (entry === 'revert') {
         // 맞바꾸기 확인에 두 몽망이(지금·바꾸기 전)를 나란히
         const pre = readPreRestore(deps.kv, deps.now());
         set(reduce(init, { e: 'askRevert', now: sideOf(deps.local.raw()), before: pre ? sideOf(pre.raw) : null }));
-      } else if (entry === 'parked') set(reduce(init, { e: 'openParked' }));
+      } else if (entry?.startsWith('parked:')) set(reduce(init, { e: 'openParked', slot: entry.slice('parked:'.length) }));
       else set(init);
     },
     [deps, set],
+  );
+
+  const afterOld = useCallback(
+    (ev: 'skipOld' | 'proceedOld') => {
+      send({ e: ev });
+      if (deps) for (const a of ageEvents(ageStatus(deps.kv, deps.now(), tz()))) send(a);
+    },
+    [deps, send, tz],
   );
 
   const askDelete = useCallback(() => {
@@ -109,5 +124,5 @@ export function useCloud(deps: TaskDeps | null, opts: { initial?: View; tzOffset
     };
   }, [task, deps, send]);
 
-  return { view, send, start, submitAge, reopen, askDelete };
+  return { view, send, start, submitAge, reopen, askDelete, afterOld };
 }
