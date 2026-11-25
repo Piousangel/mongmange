@@ -104,3 +104,4 @@
 3. 템플릿 앱 아이콘 교체 시 이 원장 2절 갱신.
 
 - 9차(11-25): `leafwater`(잎에 고인 물)·`letterdoor`(문지방 아래 편지) 생성은 Gemini 크레딧 소진(402)으로 0장 — 재시도 1회도 402. 생성물 없음.
+- 공유 루프 v1 시안(11-25, 마케팅·기획 TF): `docs/design/share/2026-11-25-share-loop/mock/gen.mjs`(gemini-3.1-flash-image, 아침 꿈·이레 폭·두루마리 각 최대 3안 계획)은 첫 호출에서 **402 크레딧 소진 → 0장, 즉시 중단**(`mock/gen-log.txt`). 생성물 없음. 대신 시안 캡처 7장(`mock/card-{morning,ire,scroll}.png`·`preview-360.png`·`preview-hidden-360.png`·`landing-360.png`·`landing-after-360.png`)은 팀 작성 HTML이 판 1 손질본(`apps/mobile/assets/motifs/r1`, 위 표의 기존 기록분)을 배치한 합성이다 — **탐색**(앱·스토어·마케팅 사용 금지).

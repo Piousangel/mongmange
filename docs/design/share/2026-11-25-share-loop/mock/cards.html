@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- 공유 루프 v1 — 공유 카드 3종 시안(탐색 전용). ?only=morning|ire|scroll 이면 그 카드 하나만 360px 폭으로.
+     그림 조각 = 앱 판 1 손질본(apps/mobile/assets/motifs/r1, 원장 기록됨). 몽망이·물길은 SVG. 글자(쓴 말)는 어디에도 없다. -->
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>공유 카드 3종</title>
+<style>
+  @font-face{font-family:Gowun;src:url(../../../../../apps/mobile/assets/fonts/GowunBatang_400Regular.subset.ttf)}
+  :root{--hanji:#efe8da;--hanji2:#f6f1e6;--ink:#1d1a17;--mid:#5a534a;--faded:#9a9184;--gold:#b89b5e}
+  *{box-sizing:border-box}
+  body{margin:0;background:#d9d1c2;font-family:Gowun,serif;color:var(--ink);display:flex;flex-wrap:wrap;gap:20px;padding:20px;justify-content:center}
+  body.one{padding:0;gap:0;background:var(--hanji);justify-content:flex-start}
+  .card{position:relative;width:360px;overflow:hidden;background:radial-gradient(120% 70% at 50% 35%,var(--hanji2),var(--hanji) 70%,#e6dccb);box-shadow:0 2px 10px #0003}
+  .one .card{box-shadow:none}
+  .r916{height:640px}.r45{height:450px}
+  .card img{position:absolute;mix-blend-mode:multiply}
+  .water{position:absolute;inset:0;pointer-events:none}
+  .v{position:absolute;writing-mode:vertical-rl;font-size:13px;letter-spacing:.25em;color:var(--mid)}
+  .foot{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:11px;color:var(--faded);letter-spacing:.08em}
+  .hook{position:absolute;left:0;right:0;text-align:center;font-size:17px;line-height:1.55;color:var(--ink)}
+  .seal{display:inline-block;width:14px;height:14px;border:1.5px solid #a8453a;border-radius:3px;vertical-align:-2px;margin-right:5px;background:repeating-linear-gradient(45deg,#a8453a33 0 2px,transparent 2px 4px)}
+  .mong{position:absolute}
+  .bubble{position:absolute;border-radius:50%;border:1px solid #b9b0a1;background:#f6f1e680}
+  .tag{position:absolute;top:10px;left:10px;font:11px system-ui;color:#fff;background:#0007;padding:3px 7px;border-radius:9px}
+  .one .tag{display:none}
+  .panel{position:absolute;border:1px solid #cfc5b3;background:#f4eee2}
+  .play{position:absolute;right:12px;top:12px;font:11px system-ui;color:var(--mid);border:1px solid #b9b0a1;border-radius:10px;padding:2px 8px;background:#f6f1e6cc}
+</style></head><body>
+<script src="common.js"></script><script>const I = MOTIF;
+const only = new URLSearchParams(location.search).get('only');
+if (only) document.body.classList.add('one');
+const img = (src, s) => `<img src="${src}" style="${s}">`;
+
+// ① 아침 꿈 카드 9:16 — 매일. 새 말 1 + 남은 말 ≤2, 물길이 셋을 잇는다
+const morning = `<div class="card r916" id="morning"><span class="tag">① 아침 꿈 · 9:16</span>
+  ${water(360, 640, ['M-10 300 C80 260 160 340 250 290 S380 250 400 270','M-10 320 C90 285 170 360 260 312 S380 275 400 292','M-10 345 C100 310 180 380 270 335 S380 300 400 318','M60 140 C120 170 170 120 230 160','M200 380 C240 400 290 370 340 395'])}
+  ${img(I.umbrella, 'left:120px;top:110px;width:170px')}
+  ${img(I.boat, 'left:70px;top:255px;width:150px')}
+  ${img(I.kite, 'left:26px;top:70px;width:92px;transform:rotate(-12deg)')}
+  <div class="bubble" style="left:178px;top:420px;width:16px;height:16px"></div>
+  <div class="bubble" style="left:196px;top:398px;width:10px;height:10px"></div>
+  <div class="mong" style="left:120px;top:430px">${mong(96, { asleep: true, strokes: 1 })}</div>
+  <div class="v" style="right:20px;top:26px">열두 번째 밤의 꿈</div>
+  <div class="hook" style="top:540px">내가 건넨 말 한 마디가<br>밤새 이 꿈이 되었어요</div>
+  <div class="foot"><span class="seal"></span>몽망이 키우기 · mongmang.ink</div></div>`;
+
+// ② 이레 폭 4:5 — 일곱 밤이 한 물길로 이어지고, 몸에 이레의 한 획(금빛 테)
+const xs = [[I.boat,20,190,70],[I.teacup,78,150,56],[I.kite,128,92,60],[I.umbrella,178,150,74],[I.quilt,236,200,62],[I.stones,282,130,58],[I.line,214,74,64]];
+const ire = `<div class="card r45" id="ire"><span class="tag">② 이레 폭 · 4:5</span>
+  ${water(360, 450, ['M-10 250 C60 210 110 270 170 230 S290 200 380 240','M-10 268 C60 228 120 290 180 248 S290 220 380 258','M-10 290 C70 250 130 310 190 270 S300 240 380 280'])}
+  ${xs.map(([s,x,y,w]) => img(s, `left:${x}px;top:${y}px;width:${w}px`)).join('')}
+  <div class="mong" style="left:146px;top:296px">${mong(78, { strokes: 1, newStroke: true })}</div>
+  <div class="v" style="left:18px;top:22px">첫 이레 · 일곱 밤</div>
+  <div class="hook" style="top:384px;font-size:15px">일곱 밤의 말이 한 폭이 되었어요</div>
+  <div class="foot" style="bottom:10px"><span class="seal"></span>몽망이 키우기 · mongmang.ink</div></div>`;
+
+// ③ 28번째 아침 두루마리 9:16 — 네 폭이 한 물길로, 아래에 네 획 몸. 영상판은 위→아래 8초 펼침
+const P = (y, items) => `<div class="panel" style="left:22px;top:${y}px;width:316px;height:112px"></div>` + items.map(([s,x,yy,w]) => img(s, `left:${x}px;top:${y+yy}px;width:${w}px`)).join('');
+const scroll = `<div class="card r916" id="scroll"><span class="tag">③ 28번째 아침 두루마리 · 9:16 · 8초</span>
+  ${P(40, [[I.kite,50,10,60],[I.letter,150,22,74],[I.line,240,12,72]])}
+  ${P(160, [[I.umbrella,40,8,84],[I.boat,170,36,80],[I.teacup,262,40,52]])}
+  ${P(280, [[I.quilt,48,30,76],[I.teacup2,160,22,72],[I.inkstone,250,30,70]])}
+  ${P(400, [[I.stones,40,26,96],[I.boat,190,30,60],[I.kite,262,10,48]])}
+  ${water(360, 640, ['M180 30 C140 90 230 140 180 200 S120 300 190 360 S240 470 180 520','M196 30 C156 92 246 144 196 204 S136 304 206 364 S256 474 196 524'], { op: .45 })}
+  <div class="mong" style="left:142px;top:516px">${mong(76, { strokes: 4 })}</div>
+  <div class="v" style="left:4px;top:200px;font-size:12px">스물여덟 밤</div>
+  <div class="hook" style="top:592px;font-size:14px;color:var(--mid)">스물여덟 밤, 내 말로 꾼 꿈</div>
+  <div class="foot" style="bottom:4px;font-size:10px"><span class="seal"></span>mongmang.ink</div></div>`;
+
+const all = { morning, ire, scroll };
+document.body.insertAdjacentHTML('beforeend', only ? all[only] : Object.values(all).join(''));
+</script>
+</body></html>

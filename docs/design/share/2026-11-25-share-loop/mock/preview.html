@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- 공유 전 미리보기 시트 시안(탐색 전용). 360px 기준. ?state=hidden = 그림 하나를 가린 상태.
+     기본값은 안전 쪽: 그림은 보임(눌러서 가림) · 쓴 말 끔 · 이름 끔 · 링크 끔. 미리보기는 건너뛸 수 없다. -->
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>공유 미리보기</title>
+<style>
+  @font-face{font-family:Gowun;src:url(../../../../../apps/mobile/assets/fonts/GowunBatang_400Regular.subset.ttf)}
+  :root{--hanji:#efe8da;--hanji2:#f6f1e6;--ink:#1d1a17;--mid:#5a534a;--faded:#9a9184;--gold:#b89b5e;--line:#d6ccba}
+  *{box-sizing:border-box}
+  body{margin:0;background:#2a2622;font-family:Gowun,serif;color:var(--ink)}
+  .sheet{width:100%;max-width:360px;margin:0 auto;min-height:780px;background:var(--hanji);border-radius:18px 18px 0 0;padding:10px 16px 20px;position:relative;top:0}
+  .grab{width:40px;height:4px;border-radius:2px;background:#c9bfae;margin:0 auto 10px}
+  h1{font-size:17px;font-weight:400;margin:0 0 2px;text-align:center}
+  .sub{font-size:12px;color:var(--mid);text-align:center;margin:0 0 10px}
+  .fmt{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+  .fmt b{font:400 12px Gowun,serif;border:1px solid var(--line);border-radius:14px;padding:5px 10px;color:var(--mid);background:var(--hanji2)}
+  .fmt b.on{background:var(--ink);color:var(--hanji);border-color:var(--ink)}
+  .stage{position:relative;width:200px;height:356px;margin:0 auto;overflow:hidden;border-radius:6px;box-shadow:0 2px 10px #0003;background:radial-gradient(120% 70% at 50% 35%,var(--hanji2),var(--hanji) 70%,#e6dccb)}
+  .stage img{position:absolute;mix-blend-mode:multiply}
+  .water{position:absolute;inset:0}
+  .hit{position:absolute;border:1.5px dashed #8c847888;border-radius:50%}
+  .x{position:absolute;width:18px;height:18px;border-radius:50%;background:var(--ink);color:var(--hanji);font:12px/18px system-ui;text-align:center}
+  .blot{position:absolute;border-radius:48% 52% 45% 55%;background:radial-gradient(circle at 45% 45%,#2b2622 0 55%,#2b262299 66%,transparent 72%)}
+  .mong{position:absolute}
+  .mist{position:absolute;border-radius:50%;background:radial-gradient(closest-side,#f6f1e6 0 55%,#f6f1e6cc 70%,transparent);filter:blur(2px)}
+  .hook{position:absolute;left:0;right:0;text-align:center;font-size:9.5px;line-height:1.5}
+  .foot{position:absolute;left:0;right:0;bottom:7px;text-align:center;font-size:6.5px;color:var(--faded)}
+  .hint{font-size:12px;color:var(--mid);text-align:center;margin:8px 0 10px;line-height:1.5}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:9px 2px;border-top:1px solid var(--line);font-size:14px}
+  .row small{display:block;font-size:11px;color:var(--faded);margin-top:2px}
+  .sw{width:40px;height:24px;border-radius:12px;background:#cfc5b3;position:relative;flex:none}
+  .sw:after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+  .dest{display:flex;justify-content:space-between;margin:12px 0 12px}
+  .dest div{width:52px;text-align:center;font-size:10.5px;color:var(--mid)}
+  .dest i{display:block;width:44px;height:44px;margin:0 auto 4px;border-radius:12px;background:var(--hanji2);border:1px solid var(--line);font:600 13px/44px system-ui;font-style:normal;color:var(--ink)}
+  .go{display:block;width:100%;border:0;border-radius:24px;padding:13px;background:var(--ink);color:var(--hanji);font:16px Gowun,serif}
+</style></head><body>
+<div class="sheet" id="s"></div>
+<script src="common.js"></script>
+<script>
+const I = MOTIF;
+const hidden = new URLSearchParams(location.search).get('state') === 'hidden';
+const img = (src, s) => `<img src="${src}" style="${s}">`;
+document.getElementById('s').innerHTML = `
+  <div class="grab"></div>
+  <h1>보내기 전에 한 번 볼까요</h1>
+  <p class="sub">열두 번째 밤의 꿈</p>
+  <div class="fmt"><b class="on">스토리 9:16</b><b>피드 4:5</b><b>움직이는 꿈 8초</b></div>
+  <div class="stage">
+    ${water(200, 356, ['M-5 166 C45 144 90 190 140 160 S210 140 220 150','M-5 178 C50 156 95 200 145 172 S210 152 220 162','M30 78 C70 95 95 66 130 90'])}
+    ${img(I.umbrella, 'left:67px;top:61px;width:94px')}
+    ${hidden ? `<div class="mist" style="left:30px;top:134px;width:104px;height:70px"></div>` : img(I.boat, 'left:39px;top:142px;width:83px')}
+    ${img(I.kite, 'left:14px;top:39px;width:51px;transform:rotate(-12deg)')}
+    <div class="mong" style="left:67px;top:239px">${mong(53, { asleep: true, strokes: 1 })}</div>
+    <div class="hook" style="top:300px">내가 건넨 말 한 마디가<br>밤새 이 꿈이 되었어요</div>
+    <div class="foot">몽망이 키우기 · mongmang.ink</div>
+    <div class="hit" style="left:62px;top:56px;width:104px;height:84px"></div><span class="x" style="left:152px;top:56px">${'−'}</span>
+    <div class="hit" style="left:34px;top:136px;width:94px;height:62px${hidden ? ';border-color:#b89b5e' : ''}"></div><span class="x" style="left:116px;top:134px${hidden ? ';background:#b89b5e' : ''}">${hidden ? '+' : '−'}</span>
+    <div class="hit" style="left:8px;top:32px;width:62px;height:66px"></div><span class="x" style="left:56px;top:30px">−</span>
+  </div>
+  <p class="hint">${hidden ? '가린 그림은 물안개 속으로 사라졌어요.<br>다시 누르면 돌아와요.' : '그림을 보면 어떤 말을 썼는지 짐작될 수 있어요.<br>가리고 싶은 그림을 눌러 주세요.'}</p>
+  ${hidden ? `<div class="row" style="font-size:12px;color:var(--faded)"><span>두 번째부터 · 지난번 설정 그대로(쓴 말·이름·링크 꺼짐)</span><span>펼치기 ▾</span></div>` : ""}
+${hidden ? "" : `  <div class="row"><span>쓴 말 보이기<small>글자는 이 사진에만 들어가요 · 기본 끔</small></span><span class="sw"></span></div>
+  <div class="row"><span>이름 넣기<small>'몽이'를 사진에 적어요 · 기본 끔</small></span><span class="sw"></span></div>
+  <div class="row"><span>링크도 함께<small>친구가 웹에서 꿈을 바꿔 볼 수 있어요 · 기본 끔</small></span><span class="sw"></span></div>
+`}  <p class="hint" style="margin:12px 0 6px">누르면 바로 보내져요</p>
+  <div class="dest">
+    <div><i style="background:linear-gradient(45deg,#f2b25a,#d6436e,#7a4bc4);color:#fff">◎</i>인스타 스토리</div><div><i style="background:#111;color:#fff">♪</i>틱톡</div><div><i style="background:#111;color:#fff">𝕏</i>X</div><div><i style="background:#fee500">💬</i>카카오톡</div><div><i>↓</i>사진 저장</div><div><i>···</i>더 보기</div>
+  </div>`;
+</script>
+</body></html>

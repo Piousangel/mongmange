@@ -1,0 +1,61 @@
+<!doctype html>
+<!-- 웹 /m/{코드} 랜딩 첫 화면 시안(탐색 전용). 360px 기준. ?state=after = '내 말로 바꿔 보기'에서 '별'을 고른 뒤.
+     맛보기는 브라우저 안에서만 돈다: 낱말은 고정 칩 6개(자유 입력 없음), 서버로 보내는 값 0, 공개 모티프 파일만 쓴다. -->
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>몽망이 꿈 보기</title>
+<style>
+  @font-face{font-family:Gowun;src:url(../../../../../apps/mobile/assets/fonts/GowunBatang_400Regular.subset.ttf)}
+  :root{--hanji:#efe8da;--hanji2:#f6f1e6;--ink:#1d1a17;--mid:#5a534a;--faded:#9a9184;--gold:#b89b5e;--line:#d6ccba}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--hanji);font-family:Gowun,serif;color:var(--ink)}
+  main{max-width:420px;margin:0 auto;padding:14px 16px 24px}
+  .top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mid)}
+  .top .seal{display:inline-block;width:13px;height:13px;border:1.5px solid #a8453a;border-radius:3px;vertical-align:-2px;margin-right:5px}
+  .lead{font-size:18px;line-height:1.5;margin:14px 0 4px}
+  .lead em{font-style:normal;color:var(--mid);font-size:13px;display:block;margin-top:2px}
+  .stage{position:relative;width:100%;aspect-ratio:4/5;margin:10px 0 8px;overflow:hidden;border-radius:6px;background:radial-gradient(120% 70% at 50% 35%,var(--hanji2),var(--hanji) 70%,#e6dccb);box-shadow:0 1px 6px #0002}
+  .stage img{position:absolute;mix-blend-mode:multiply;transition:opacity .6s}
+  .water{position:absolute;inset:0}
+  .mong{position:absolute}
+  .star{position:absolute}
+  .swap{position:absolute;border-radius:50%;border:1.5px solid var(--gold);box-shadow:0 0 0 6px #b89b5e22}
+  .ask{font-size:14px;margin:10px 0 8px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chips b{font:400 14px Gowun,serif;border:1px solid var(--line);border-radius:16px;padding:6px 13px;background:var(--hanji2)}
+  .chips b.on{background:var(--ink);color:var(--hanji)}
+  .after{font-size:13px;color:var(--mid);margin:10px 0 0;line-height:1.55}
+  .cta{display:block;width:100%;margin:14px 0 8px;border:0;border-radius:26px;padding:14px;background:var(--ink);color:var(--hanji);font:17px Gowun,serif}
+  .cta small{display:block;font-size:11px;opacity:.75;margin-top:2px}
+  .sec{display:flex;gap:8px}
+  .sec a{flex:1;text-align:center;font-size:13px;color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:9px 4px;text-decoration:none;background:var(--hanji2)}
+  .note{font-size:11px;color:var(--faded);line-height:1.6;margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .note a{color:var(--faded)}
+</style></head><body>
+<main id="m"></main>
+<script src="common.js"></script>
+<script>
+const I = MOTIF;
+const after = new URLSearchParams(location.search).get('state') === 'after';
+const img = (src, s) => `<img src="${src}" style="${s}">`;
+// 별 = 아직 없는 모티프 → 시안에서는 먹 점 다섯 개로 그린 SVG(실제는 판 2 조각)
+const star = `<svg class="star" viewBox="0 0 60 60" style="left:22%;top:13%;width:24%" aria-hidden="true">${[[30,10,4],[14,24,3],[44,22,3.2],[22,42,2.6],[40,44,3.4],[30,28,1.6]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#3a342d" opacity=".85"/>`).join('')}<path d="M30 10 L14 24 L22 42 L40 44 L44 22 Z" stroke="#b89b5e" stroke-width=".8" fill="none" opacity=".7"/></svg>`;
+document.getElementById('m').innerHTML = `
+  <div class="top"><span><span class="seal"></span>몽망이 키우기</span><span>열두 번째 밤의 꿈</span></div>
+  <p class="lead">누군가 건넨 말 한 마디가<br>밤새 이 꿈이 되었어요<em>무슨 말이었는지는 그 사람만 알아요.</em></p>
+  <div class="stage">
+    ${(after?'':'')}${water(100, 125, ['M-3 58 C15 50 30 66 45 56 S75 48 103 54','M-3 62 C17 54 32 70 47 60 S77 52 103 58','M8 30 C20 36 28 26 38 33'])}
+    ${after ? img(I.quilt, 'left:6%;top:12%;width:30%') : img(I.kite, 'left:7%;top:9%;width:26%;transform:rotate(-12deg)')}
+    ${img(I.umbrella, 'left:34%;top:17%;width:46%')}
+    ${img(I.boat, 'left:20%;top:41%;width:42%')}
+    ${after ? `<div class="swap" style="left:4%;top:4%;width:34%;aspect-ratio:1"></div>` : ''}
+    <div class="mong" style="left:37%;top:66%${after?';transform:rotate(-8deg)':''}">${mong(84, { asleep: true, strokes: 1 })}</div>
+  </div>
+  ${after
+    ? `<p class="after">'이불'을 건넸더니 연이 이불이 되어 내려왔어요. 몽망이가 뒤척였어요.<br>내 몽망이는 매일 밤 <b>내 말</b>로 꿈을 꿔요. 스물여덟 밤이면 한 두루마리가 돼요.</p>`
+    : `<p class="ask">너라면 오늘 밤 무슨 말을 건넬래? <span style="color:var(--faded);font-size:12px">눌러서 꿈을 바꿔 봐요</span></p>`}
+  <div class="chips">${['비','바람','편지','이불','차','빨래'].map(w=>`<b class="${after&&w==='이불'?'on':''}">${w}</b>`).join('')}</div>
+  <button class="cta">내 몽망이 받기<small>무료 · 광고 없음 · 가입 없이 바로</small></button>
+  <div class="sec"><a href="#">이미 있어요 · 앱에서 열기</a></div><p style="font-size:12px;color:var(--mid);margin:8px 0 0;text-align:center">설치한 뒤 이 링크를 다시 누르면 이 꿈의 조각 하나가 내 첫 밤에 찾아와요</p>
+  <p class="note">이 그림은 쓴 말에서 나온 사물이에요. 쓴 글자·마음은 이 페이지에 없어요. 그림 조각은 AI로 그린 뒤 사람이 손질했어요. · <a href="#">알리기</a></p>`;
+</script>
+</body></html>
