@@ -1,6 +1,6 @@
 // 기능 플래그의 가운데 층(3-7 우선순위: FEATURE_DEFAULTS < 원격 < 개발 메뉴). 원격 층은 원격 키와 이름이 같은 기능만 덮는다(3-7-1).
 import { afterEach, describe, expect, it } from 'vitest';
-import { FEATURE_DEFAULTS, isOn, remoteBundled, setFeature, setRemoteLayer } from '../src/features';
+import { FEATURE_DEFAULTS, isOn, remoteBundled, resolveFeature, setFeature, setRemoteLayer } from '../src/features';
 import { readSessionBackupExcluded, SESSION_BACKUP_EXCLUDED_EXTRA_KEY } from '../src/net/nativeFlags';
 import { gateRemoteFlag } from '../src/net/remoteGate';
 
@@ -42,6 +42,13 @@ describe('원격 층의 바이너리 조건(cloud ↔ 세션 백업 제외)', ()
     expect(isOn('cloud')).toBe(false);
     setRemoteLayer(layer(undefined, false)); // 원격이 말하지 않아도 꺼짐(번들 기본값이 OTA로 켜져도)
     expect(isOn('cloud')).toBe(false);
+  });
+  it('번들 기본값이 OTA로 켜져도(true) 백업 제외 미확인 바이너리면 꺼짐 — 문이 undefined가 아니라 false를 낸다(재리뷰 N2)', () => {
+    expect(gateRemoteFlag('cloud', undefined, { sessionBackupExcluded: false })).toBe(false);
+    expect(gateRemoteFlag('cloud', true, { sessionBackupExcluded: false })).toBe(false);
+    // 번들 기본값 true(OTA로 바뀐 경우)에서도 원격 층의 false가 이긴다
+    expect(resolveFeature(undefined, gateRemoteFlag('cloud', undefined, { sessionBackupExcluded: false }), true)).toBe(false);
+    expect(resolveFeature(undefined, gateRemoteFlag('cloud', undefined, { sessionBackupExcluded: true }), true)).toBe(true);
   });
   it('백업 제외 바이너리면 원격 값을 그대로 받는다', () => {
     setRemoteLayer(layer(true, true));

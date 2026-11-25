@@ -372,7 +372,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(await runTask({ t: 'sync' }, a.deps)).toEqual({ r: 'moved' });
     expect(readRecord(a.kv)!.state).toBe('moved');
     expect(a.kv.getString(SAVE_KEYS.main)).toBe(aMain);
-    expect(await a.deps.auth.token()).toBeNull();
+    expect(await a.deps.auth.token()).toEqual({ kind: 'none' });
   });
 
   it('[리뷰 C1 재현·B2b] 되찾기 커밋 뒤 응답 끊김 → 다시 부르면 200 replay, 대상 인장 코드가 같으면 정상 되찾기(같은 새 글귀), 지우지 않음', async () => {
@@ -640,6 +640,71 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(reduce({ v: 'busy', task: { t: 'sync' }, slow: false }, { e: 'done', result: { r: 'orphaned' } })).toEqual({ v: 'orphaned' });
   });
 
+  it('[C11 재리뷰 N1 재현] 오프라인에서 접근 토큰이 만료돼도(세션은 있음) 예전 계정으로 읽지 않는다 — 미루고 기록·세션·표시 그대로', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 3));
+    await runTask({ t: 'enable' }, a.deps);
+    const rec = readRecord(a.kv)!;
+    srv.expireSession('A'); // 접근 토큰 만료(1시간 넘게 안 연 앱)
+    srv.faults.offline = true; // 지하철 — 갱신도 못 함
+    expect(await a.deps.auth.token()).toEqual({ kind: 'unavailable', failure: 'offline' });
+    a.kv.set(SAVE_KEYS.main, mong(1, 4));
+    for (const task of [{ t: 'sync' }, { t: 'fetch', why: 'restore' }, { t: 'reissue' }, { t: 'deleteCheck' }] as const) {
+      expect(await runTask(task, a.deps), task.t).toEqual({ r: 'failed', failure: 'offline' });
+    }
+    expect(readRecord(a.kv)).toEqual(rec);
+    expect(readUnconfirmedDelete(a.kv)).toBeNull();
+    expect((await a.deps.auth.token()).kind).toBe('unavailable'); // 세션이 남았다(signOut 없음)
+    // 연결이 돌아오면 같은 로그인으로 이어서 맡긴다
+    srv.faults.offline = false;
+    const r = await runTask({ t: 'sync' }, a.deps);
+    expect(r.r).not.toBe('orphaned');
+    expect(readRecord(a.kv)!.sub).toBe(rec.sub);
+  });
+
+  it('[C11 재리뷰 N1] 켜기: 남은 세션의 토큰을 지금 못 받으면 새 익명 사용자를 만들지 않고 미룬다(남은 로그인을 덮지 않음)', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await a.deps.auth.signIn(); // 이 기기에 이미 세션이 있다
+    const before = await a.deps.auth.token();
+    const stuck = { ...a.deps.auth, token: async () => ({ kind: 'unavailable', failure: 'unavailable' }) as const };
+    expect(await runTask({ t: 'enable' }, { ...a.deps, auth: stuck })).toEqual({ r: 'failed', failure: 'unavailable' });
+    expect(await a.deps.auth.token()).toEqual(before); // 새 로그인으로 바뀌지 않았다
+    expect(readRecord(a.kv)).toBeNull();
+  });
+
+  it('[C11 재리뷰 N1] 로그인 포트가 던져도 세션 없음으로 읽지 않는다(예전 계정 처리 없음)', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    const rec = readRecord(a.kv)!;
+    const broken = { ...a.deps.auth, token: async (): Promise<never> => { throw new Error('storage'); } };
+    expect(await runTask({ t: 'sync' }, { ...a.deps, auth: broken })).toEqual({ r: 'failed', failure: 'offline' });
+    expect(readRecord(a.kv)).toEqual(rec);
+    expect(readUnconfirmedDelete(a.kv)).toBeNull();
+  });
+
+  it('[C11 재리뷰 N1] 서버가 no_account라고 했는데 지금 로그인을 확인하지 못하면 다른 로그인으로 단정하지 않는다(미룸)', async () => {
+    const srv = createFakeServer(sha);
+    const b = device(srv, 'B', mong(2));
+    await runTask({ t: 'enable' }, b.deps);
+    const brec = readRecord(b.kv)!;
+    b.kv.set(CLOUD_KEY, JSON.stringify({ ...brec, sub: 'someone-else' }));
+    await b.deps.api.deleteMe();
+    // no_account 응답 뒤 토큰 확인 단계에서만 '못 받음'이 되게 한다
+    const real = b.deps.auth;
+    let calls = 0;
+    const flaky = { ...real, token: async () => (++calls > 2 ? ({ kind: 'unavailable', failure: 'timeout' } as const) : real.token()) };
+    const deps = { ...b.deps, auth: flaky, api: createCloudApi({ fetch: srv.fetch, base: 'https://api.test', auth: flaky, timeoutMs: 200 }) };
+    // 가드(1)·요청(2)은 토큰을 받아 서버가 401 no_account로 답하고, 그 뒤 '지금 로그인' 확인(3~)에서 못 받음
+    calls = 0;
+    b.kv.set(SAVE_KEYS.main, mong(2, 2));
+    expect(await runTask({ t: 'sync' }, deps)).toEqual({ r: 'failed', failure: 'timeout' });
+    expect(calls).toBeGreaterThanOrEqual(3);
+    expect(readRecord(b.kv)).not.toBeNull();
+    expect(readUnconfirmedDelete(b.kv)).toBeNull();
+  });
+
   it('[B2b 리뷰 H1 재현] 새 폰이 새 로그인으로 지우기를 눌러 410 no_account가 와도 로그인이 다르면 지워짐을 확정하지 않는다(확인 필요)', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1, 3));
@@ -895,7 +960,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(reduce(ask, { e: 'back' })).toEqual({ v: 'intro' });
     expect(reduce(ask, { e: 'confirmDismissOld' })).toEqual({ v: 'busy', task: { t: 'abandonOld' }, slow: false });
     expect(await runTask({ t: 'abandonOld' }, a.deps)).toEqual({ r: 'abandoned' });
-    expect(await a.deps.auth.token()).toBeNull();
+    expect(await a.deps.auth.token()).toEqual({ kind: 'none' });
     expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature: old, abandoned: true });
     // 버린 뒤에는 되묻지 않고(이미 버렸으므로) 켜기가 새 계정으로
     expect(startEvents('enable', { kind: 'passed' }, readUnconfirmedDelete(a.kv)!.abandoned === false)).toEqual([{ e: 'start', purpose: 'enable' }, { e: 'age', ok: true }]);
@@ -1003,7 +1068,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleted' });
     expect(readRecord(a.kv)).toBeNull();
     expect(a.kv.getString(SAVE_KEYS.main)).toBe(main);
-    expect(await a.deps.auth.token()).toBeNull();
+    expect(await a.deps.auth.token()).toEqual({ kind: 'none' });
   });
 
   it('느린 서버(제한 시간 초과)는 timeout 갈래, 기록은 그대로', async () => {

@@ -49,9 +49,26 @@ export type ApiResult<T> =
   | { kind: 'failed'; failure: Failure };
 
 /** 로그인 포트. Supabase 익명 로그인은 C11(net 모듈)이 이 모양으로 넘긴다. 세션 저장은 백업 제외 MMKV(3-3 ④) */
+/**
+ * 지금 접근 토큰의 상태(C11 재리뷰 N1). **'세션 없음'과 '세션은 있는데 지금 토큰을 못 받음'을 가른다** —
+ * 오프라인에서 접근 토큰이 만료돼 갱신이 실패한 것을 '로그인 없음(백업 복원 폰)'으로 읽어 세션·기록을 지우지 않게.
+ *  - ok: 쓸 수 있는 접근 토큰 / none: 이 기기에 세션이 없다(또는 Auth가 '그 로그인이 끝났다'고 해 비웠다)
+ *  - unavailable: 세션은 있는데 지금 토큰을 못 받음(연결 실패·시간 초과·서버 오류·한도) — 작업을 미루고 아무것도 지우지 않는다
+ */
+export type TokenState = { kind: 'ok'; token: string } | { kind: 'none' } | { kind: 'unavailable'; failure: Failure };
+
+/** token()이 던져도 '못 받음'으로(세션 없음으로 읽지 않는다) */
+export async function readToken(auth: CloudAuth): Promise<TokenState> {
+  try {
+    return await auth.token();
+  } catch {
+    return { kind: 'unavailable', failure: 'offline' };
+  }
+}
+
 export interface CloudAuth {
-  /** 지금 세션의 접근 토큰(없으면 null) */
-  token(): Promise<string | null>;
+  /** 지금 세션의 접근 토큰 상태(TokenState) */
+  token(): Promise<TokenState>;
   /** 익명 로그인. **연령 확인 통과 뒤에만** 부른다 */
   signIn(): Promise<{ ok: true } | { ok: false; failure: Failure }>;
   /** 세션 비우기(410·지우기 뒤). 실패해도 던지지 않는다 */
@@ -142,8 +159,10 @@ export interface CloudApi {
 export function createCloudApi(deps: CloudApiDeps): CloudApi {
   const timeout = deps.timeoutMs ?? CLOUD_TIMEOUT_MS;
   async function once(method: string, path: string, opts: { body?: unknown; headers?: Record<string, string> }): Promise<ApiResult<string>> {
-    const token = await deps.auth.token().catch(() => null);
-    if (!token) return { kind: 'failed', failure: 'unavailable' };
+    const t = await readToken(deps.auth);
+    if (t.kind === 'none') return { kind: 'failed', failure: 'unavailable' };
+    if (t.kind === 'unavailable') return { kind: 'failed', failure: t.failure };
+    const token = t.token;
     const headers: Record<string, string> = { accept: 'application/json', authorization: `Bearer ${token}`, ...opts.headers };
     if (opts.body !== undefined) headers['content-type'] = 'application/json';
     const r = await request(deps.fetch, `${deps.base}/api/v1/${path}`, { method, headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body) }, timeout);

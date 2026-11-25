@@ -145,9 +145,15 @@ export function createSupabaseAuth(deps: SupabaseAuthDeps): CloudAuth {
   const auth: CloudAuth = {
     async token() {
       const s = read();
-      if (!s) return null;
-      if (s.expiresAt - REFRESH_LEEWAY_MS > deps.now()) return s.accessToken;
-      return (await refreshOnce()).ok ? (read()?.accessToken ?? null) : null;
+      if (!s) return { kind: 'none' };
+      if (s.expiresAt - REFRESH_LEEWAY_MS > deps.now()) return { kind: 'ok', token: s.accessToken };
+      const r = await refreshOnce();
+      if (r.ok) {
+        const next = read();
+        return next ? { kind: 'ok', token: next.accessToken } : { kind: 'unavailable', failure: 'device' };
+      }
+      // Auth가 '그 로그인이 끝났다'고 해 세션을 비웠으면 세션 없음, 그 밖(연결·서버·한도·키 오류)은 세션을 둔 채 '지금 못 받음'(C11 재리뷰 N1)
+      return read() ? { kind: 'unavailable', failure: r.failure } : { kind: 'none' };
     },
     async signIn() {
       const s = read();

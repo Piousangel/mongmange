@@ -114,8 +114,13 @@ export function remoteBundled(): Partial<Record<RemoteFlagKey, boolean>> {
   return out;
 }
 
+/** 층 합치기(3-7): 개발 메뉴 → 원격 → 번들. undefined = 그 층이 말하지 않음 */
+export function resolveFeature(dev: boolean | undefined, remote: boolean | undefined, bundled: boolean): boolean {
+  return dev ?? remote ?? bundled;
+}
+
 export function isOn(id: FeatureId): boolean {
-  return overrides[id] ?? (isRemoteFeature(id) ? remoteLayer?.(id) : undefined) ?? FEATURE_DEFAULTS[id];
+  return resolveFeature(overrides[id], isRemoteFeature(id) ? remoteLayer?.(id) : undefined, FEATURE_DEFAULTS[id]);
 }
 
 /** 개발 메뉴·테스트에서만 켜고 끈다(저장하지 않음 — 재시작하면 기본값) */

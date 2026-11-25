@@ -281,7 +281,8 @@ export function createPingClient(deps: PingClientDeps) {
       }
       done.push(...ping.items); // 응답을 받았거나 시간 초과 → 서버가 셌을 수 있으므로 다시 보내지 않는다
     }
-    if (!done.length || !enabled()) return;
+    // (끈 경우는 위 요청 뒤 확인에서 이미 돌아갔다 — 마지막 await 뒤로는 동의가 바뀔 틈이 없어 여기서 다시 보지 않는다, 재리뷰 N2)
+    if (!done.length) return;
     // 보내는 사이 새로 쌓인 항목은 남기고, 처리한 항목만 하나씩 지운다(같은 모양이 여럿이어도 개수만큼만)
     const rest = readJson<OutboxItem[]>(kv, NET_KEYS.outbox, []);
     for (const d of done) {

@@ -193,7 +193,11 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
     authFor(device) {
       return {
         async token() {
-          return sessions.get(device) ?? null;
+          const t = sessions.get(device);
+          if (!t) return { kind: 'none' as const };
+          // 실제 어댑터처럼: 접근 토큰이 만료됐는데 오프라인이면 갱신을 못 해 '지금 못 받음'(세션은 남음 — C11 재리뷰 N1)
+          if (tokens.get(t)?.expired && faults.offline) return { kind: 'unavailable' as const, failure: 'offline' as const };
+          return { kind: 'ok' as const, token: t };
         },
         async signIn() {
           if (faults.offline) return { ok: false, failure: 'offline' };

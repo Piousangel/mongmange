@@ -31,7 +31,7 @@ describe('Supabase 익명 로그인 어댑터', () => {
     const store = memKV();
     const { f, reqs } = fake([{ status: 200, body: session(1) }]);
     const a = createSupabaseAuth({ fetch: f, url: URL_, key: KEY, store, now: () => clock });
-    expect(await a.token()).toBeNull();
+    expect(await a.token()).toEqual({ kind: 'none' });
     expect(await a.signIn()).toEqual({ ok: true });
     expect(reqs).toEqual([
       {
@@ -41,7 +41,7 @@ describe('Supabase 익명 로그인 어댑터', () => {
         body: '{"data":{}}',
       },
     ]);
-    expect(await a.token()).toBe('at1');
+    expect(await a.token()).toEqual({ kind: 'ok', token: 'at1' });
     expect(JSON.parse(store.getString(SESSION_KEY)!)).toEqual({ accessToken: 'at1', refreshToken: 'rt1', expiresAt: clock + 3_600_000 });
     clock += 1;
     expect(Object.keys(JSON.parse(store.getString(SESSION_KEY)!)).sort()).toEqual(['accessToken', 'expiresAt', 'refreshToken']); // 사용자 정보는 두지 않는다
@@ -54,7 +54,7 @@ describe('Supabase 익명 로그인 어댑터', () => {
     const a = createSupabaseAuth({ fetch: f, url: URL_, key: KEY, store, now: () => clock });
     await a.signIn();
     clock = 3_600_000 - 59_000;
-    expect(await Promise.all([a.token(), a.token()])).toEqual(['at2', 'at2']);
+    expect(await Promise.all([a.token(), a.token()])).toEqual([{ kind: 'ok', token: 'at2' }, { kind: 'ok', token: 'at2' }]);
     expect(reqs[1]).toEqual({
       url: 'https://proj.supabase.co/auth/v1/token?grant_type=refresh_token',
       method: 'POST',
@@ -100,7 +100,7 @@ describe('Supabase 익명 로그인 어댑터', () => {
       clock = 3_600_000;
       expect(await a.refresh()).toBe(false);
       expect(store.getString(SESSION_KEY), JSON.stringify(b)).toBeUndefined();
-      expect(await a.token()).toBeNull();
+      expect(await a.token()).toEqual({ kind: 'none' });
     }
     expect(refreshEnded('not json')).toBe(false);
     expect(refreshEnded('{"error":"invalid_grant","error_description":"something else"}')).toBe(false);
@@ -138,6 +138,24 @@ describe('Supabase 익명 로그인 어댑터', () => {
     expect(JSON.parse(store.getString(SESSION_KEY)!).accessToken).toBe('at9');
   });
 
+  it('token 상태 구분(C11 재리뷰 N1): 만료 + 갱신 연결 실패·503·키 오류 → unavailable(세션 유지), 끝난 로그인 → none', async () => {
+    const cases: Array<[{ status: number; body?: unknown } | 'network', unknown]> = [
+      ['network', { kind: 'unavailable', failure: 'offline' }],
+      [{ status: 503 }, { kind: 'unavailable', failure: 'unavailable' }],
+      [{ status: 401, body: { message: 'Invalid API key' } }, { kind: 'unavailable', failure: 'server' }],
+      [{ status: 400, body: { error_code: 'refresh_token_not_found' } }, { kind: 'none' }],
+    ];
+    for (const [r, want] of cases) {
+      const store = memKV();
+      let clock = 0;
+      const a = createSupabaseAuth({ fetch: fake([{ status: 200, body: session(1) }, r]).f, url: URL_, key: KEY, store, now: () => clock });
+      await a.signIn();
+      clock = 3_600_000;
+      expect(await a.token(), JSON.stringify(r)).toEqual(want);
+      expect(store.getString(SESSION_KEY) !== undefined, JSON.stringify(r)).toBe((want as { kind: string }).kind === 'unavailable');
+    }
+  });
+
   it('signIn 실패 갈래: 연결 실패 offline / 429 rateLimited / 5xx unavailable / 모양 틀림 server', async () => {
     const cases: Array<[{ status: number; body?: unknown } | 'network', string]> = [
       ['network', 'offline'],
@@ -165,13 +183,13 @@ describe('Supabase 익명 로그인 어댑터', () => {
       body: undefined,
     });
     expect(store.getString(SESSION_KEY)).toBeUndefined();
-    expect(await a.token()).toBeNull();
+    expect(await a.token()).toEqual({ kind: 'none' });
   });
 
   it('깨진 세션 기록은 없는 것으로 본다', async () => {
     const store = memKV();
     store.set(SESSION_KEY, '{"accessToken":1}');
     const a = createSupabaseAuth({ fetch: fake([]).f, url: URL_, key: KEY, store, now: () => 0 });
-    expect(await a.token()).toBeNull();
+    expect(await a.token()).toEqual({ kind: 'none' });
   });
 });

@@ -708,3 +708,8 @@
   - M4: 딥링크 고정물을 서버 렌더러(`m-html.ts`)로 시험 안에서 다시 만들어 바이트 비교(`test/support/mPageFixtures.ts`, 다시 쓰기 `MPAGE_WRITE=1`).
   - M5: 시계 되감기·만료 캐시 If-None-Match·no-store 시험 추가. 리뷰 생존 변이 3 + 새 변이 7(H1 두 곳·M1·M2·M3·서버 틀 변경) 모두 잡힘, 복원 cmp 일치. `pnpm verify` 7단계 통과.
   - 남김(다음 작업): L1(연령 판 바뀜 시 켠 표시·아웃박스 지우기), L3(만료 중 탈출 기록 메모리 올리기), L4~L8. K25 문구는 QA-3·PM에 제안(docs/release는 고치지 않음).
+- **[C11b — 재리뷰 N1·N2 반영 11-25, `docs/team/reviews/2026-11-25-c11-review.md` '재리뷰' 절]**
+  - N1: 로그인 포트 `CloudAuth.token()`이 `TokenState` = `{kind:'ok', token} | {kind:'none'} | {kind:'unavailable', failure}`를 돌려준다(`cloud/api.ts`, 던지면 `readToken`이 unavailable offline으로). '세션 없음'과 '세션은 있는데 지금 토큰을 못 받음(연결·시간 초과·서버·한도·키 오류)'을 가른다. Supabase 어댑터는 만료 + 갱신 실패면 세션을 둔 채 unavailable, Auth가 '로그인 끝남'이라 비웠을 때만 none. C12 `runTask` 가드는 none일 때만 예전 계정(orphan), unavailable이면 `fail(failure)`로 미루고 기록·세션·표시를 건드리지 않는다. `loginGone`(no_account 뒤)도 지금 로그인을 확인 못 하면 다른 로그인으로 단정하지 않고 미룬다. 켜기의 `signIn`도 unavailable이면 새 사용자를 만들지 않는다. 가짜 서버 로그인도 '만료 + 오프라인 → unavailable'을 흉내 낸다.
+  - N2: `gateRemoteFlag`가 undefined가 아닌 false를 내는 것을 번들 true 경우로 고정(`resolveFeature` 순수 함수로 층 합치기). `sendAll` 끝의 동의 재확인은 마지막 await 뒤라 동의가 바뀔 틈이 없는 죽은 줄이라 지웠다(요청 뒤 확인이 같은 일을 한다).
+  - C10b 맞물림: **충족**(C11 재리뷰 2 확인) — C10b 92116a6의 `withSessionBackupExclusion.js`가 최종 산출물 검증 뒤 `extra.mongSessionBackupExcluded = true`를 쓰고 c10b-backup 시험이 고정, nativeFlags와 이름·타입·조건 일치. 12-12 리허설에서 빌드 산출물 `expoConfig.extra` 값 한 번 확인.
+  - 증거: `pnpm verify` 7단계 통과, cloud 72·net-auth·net-features 18 등 통과. 변이 6개(가드가 못 받음도 orphan·어댑터가 갱신 실패를 none·no_account 뒤 확인 실패를 orphan·못 받음이면 signup·던짐을 none·cloud 문 undefined) 모두 잡힘, 복원 cmp 일치.

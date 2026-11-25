@@ -12,7 +12,7 @@
 //  - 410(다른 기기로 옮겨 감)이면 세션을 비우고 로컬 게임은 그대로 이어 간다.
 import { isFuture, sim, type KV } from '@mong/core';
 import { passGate } from './ageGate';
-import { subOf, type ApiResult, type CloudApi, type CloudAuth, type Failure } from './api';
+import { readToken, subOf, type ApiResult, type CloudApi, type CloudAuth, type Failure } from './api';
 import type { ChooseNote, SaveSide, ServerPick, Task, TaskResult, Why } from './model';
 import { clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
 
@@ -108,9 +108,17 @@ async function common<T>(d: TaskDeps, r: ApiResult<T>): Promise<TaskResult | nul
   return null;
 }
 
-/** 지금 접근 토큰의 sub */
+/** 지금 로그인: sub / 세션 없음 / 지금 토큰을 못 받음(C11 재리뷰 N1 — 일시 실패를 '다른 로그인'·'로그인 없음'으로 읽지 않는다) */
+type Login = { kind: 'sub'; sub: string | null } | { kind: 'none' } | { kind: 'unavailable'; failure: Failure };
+async function login(d: TaskDeps): Promise<Login> {
+  const t = await readToken(d.auth);
+  return t.kind === 'ok' ? { kind: 'sub', sub: subOf(t.token) } : t;
+}
+
+/** 지금 접근 토큰의 sub(모르면 null — 같다고 확정하는 데만 쓴다) */
 async function currentSub(d: TaskDeps): Promise<string | null> {
-  return subOf(await d.auth.token().catch(() => null));
+  const l = await login(d);
+  return l.kind === 'sub' ? l.sub : null;
 }
 
 /** 기록(또는 표시)의 sub가 지금 로그인과 같은가 — 같을 때만 서버의 '그 로그인에 사용자 없음'을 '이 맡겨 두기가 끝남'으로 확정한다(B2b 리뷰 H1) */
@@ -131,6 +139,9 @@ async function loginGone(d: TaskDeps): Promise<TaskResult> {
     writeRecord(d.kv, null);
     return { r: 'ended' };
   }
+  // 지금 로그인을 확인하지 못했으면 '다른 로그인'으로 단정하지 않고 미룬다(아무것도 지우지 않음)
+  const l = await login(d);
+  if (l.kind === 'unavailable') return fail(l.failure);
   return orphan(d);
 }
 
@@ -161,8 +172,10 @@ async function freshSignIn(d: TaskDeps): Promise<TaskResult | null> {
 }
 
 async function signIn(d: TaskDeps): Promise<TaskResult | null> {
-  const tok = await d.auth.token().catch(() => null);
-  if (tok) return null;
+  const t = await readToken(d.auth);
+  if (t.kind === 'ok') return null;
+  // 세션은 있는데 지금 토큰을 못 받음 → 새 사용자를 만들지 않고 미룬다(남은 로그인을 덮지 않게, 리뷰 M2·N1)
+  if (t.kind === 'unavailable') return fail(t.failure);
   const s = await d.auth.signIn().catch(() => ({ ok: false as const, failure: 'offline' as Failure }));
   return s.ok ? null : fail(s.failure);
 }
@@ -494,8 +507,13 @@ const NEEDS_LOGIN: ReadonlySet<Task['t']> = new Set(['fetch', 'keepLocal', 'take
 
 export async function runTask(task: Task, d: TaskDeps): Promise<TaskResult> {
   try {
-    // 기록은 있는데 로그인이 없다(백업으로 옮긴 새 폰 — 세션은 백업에서 빠짐, 3-3 ④): 그 맡겨 두기에 이 기기로는 닿을 수 없다 → 예전 계정 안내
-    if (NEEDS_LOGIN.has(task.t) && readRecord(d.kv)?.state === 'on' && !(await d.auth.token().catch(() => null))) return await orphan(d);
+    // 기록은 있는데 로그인이 없다(백업으로 옮긴 새 폰 — 세션은 백업에서 빠짐, 3-3 ④): 그 맡겨 두기에 이 기기로는 닿을 수 없다 → 예전 계정 안내.
+    // 세션은 있는데 지금 토큰을 못 받음(오프라인에서 접근 토큰 만료 등)은 로그인 없음이 아니다 → 미루고 아무것도 지우지 않는다(C11 재리뷰 N1)
+    if (NEEDS_LOGIN.has(task.t) && readRecord(d.kv)?.state === 'on') {
+      const t = await readToken(d.auth);
+      if (t.kind === 'none') return await orphan(d);
+      if (t.kind === 'unavailable') return fail(t.failure);
+    }
     switch (task.t) {
       case 'enable': {
         // 확인하지 못한 지우기가 남았으면 그 로그인을 쓰지 않고 새로 시작한다(지워졌을 수 있는 계정에 다시 붙지 않게)
