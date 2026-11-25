@@ -104,11 +104,11 @@ async function shootInk(id: string) {
 }
 
 /** 카드 그림 전체(글 제외)를 폭 PT로 */
-async function shootCard(c: import('@mong/core').sim.DreamCard, o: { width?: number; labels?: import('../../src/render/dreamCard/DreamCard').DreamCardLabels } = {}) {
+async function shootCard(c: import('@mong/core').sim.DreamCard, o: { width?: number; labels?: import('../../src/render/dreamCard/DreamCard').DreamCardLabels; theme?: 'day' | 'night' } = {}) {
   const { makeOffscreenSurface, drawOffscreen } = headless();
   const { createElement } = await import('react');
   const w = o.width ?? PT * DPR;
-  const art = DC.makeDreamArt({ card: c, strokes: core.day7Records(), labels: o.labels }, '4:5', w, 1, { devicePerUnit: 1, ptPerUnit: 1 / DPR });
+  const art = DC.makeDreamArt({ card: c, strokes: core.day7Records(), labels: o.labels }, '4:5', w, 1, { devicePerUnit: 1, ptPerUnit: 1 / DPR, theme: o.theme });
   const h = Math.round(art.H);
   const surf = makeOffscreenSurface(w, h);
   const img = await drawOffscreen(surf, createElement(DC.DreamCardArt, { art }));
@@ -371,6 +371,27 @@ describe.skipIf(!process.env.RENDER_HEAVY)('판 0 = 빌드 1 그림 그대로 �
   }, 900000);
 });
 
+describe('밤 판(7차 — 2차 블라인드: 실제 밤 카드에서 몽망이·사물 대비)', () => {
+  it('밤 카드 6장: 몽망이 몸이 둘레 밤 물보다 밝게 서고(휘도 차 30 이상), 사물 래스터 자리에 밝은 먹이 있다', async () => {
+    loadRasters(true);
+    const lum = (a: Uint8Array, p: number) => 0.299 * a[p]! + 0.587 * a[p + 1]! + 0.114 * a[p + 2]!;
+    const bg = (() => {
+      const [r, g, b] = core.hexRgb(core.PALETTE.night.bg);
+      return 0.299 * r + 0.587 * g + 0.114 * b;
+    })();
+    for (const id of MR.MOTIF_RASTER_IDS) {
+      const shot = await shootCard(card(id, { artRev: 1 }), { width: 200, theme: 'night' });
+      const { art } = shot;
+      const p = (Math.round(art.c0.y) * shot.w + Math.round(art.c0.x)) * 4;
+      expect(lum(shot.rgba, p) - bg, `${id} 몸`).toBeGreaterThan(30);
+      // 사물이 있는 판 1 자리(창가 손은 그릇 래스터, 나머지는 붓 층 래스터)에서 가장 밝은 픽셀이 밤 바탕보다 확실히 밝다
+      let max = 0;
+      for (let q = 0; q < shot.rgba.length; q += 4) max = Math.max(max, lum(shot.rgba, q));
+      expect(max - bg, `${id} 밝은 먹`).toBeGreaterThan(80);
+    }
+  }, 300000);
+});
+
 describe('제목 안전 여백(블라인드 판정: 제목이 그림에 겹침)', () => {
   it('가로(영어)·세로(한국어) 이름 자리에는 마블링·모티프 먹이 남지 않는다 — 대표 4장', async () => {
     loadRasters(true);
@@ -411,6 +432,11 @@ describe.skipIf(!process.env.RENDER_HEAVY)('카드 64pt — 기존 10 + 새 15�
       ['far-with.stepping-stones', 'far-alone.path'],
       ['far-with.stepping-stones', 'far-with.star-bridge'],
       ['center.rain', 'near-with.palm'],
+      // 2차 블라인드(7차)
+      ['center.wind', 'center.leaf'],
+      ['center.leaf', 'far-alone.path'],
+      ['center.wind', 'far-alone.path'],
+      ['far-with.star-bridge', 'far-alone.mountain'],
     ];
     const g = new Map(ids.map((id, i) => [id, gallery[i]!]));
     for (const [a, b] of PAIRS) {
@@ -424,19 +450,19 @@ describe.skipIf(!process.env.RENDER_HEAVY)('카드 64pt — 기존 10 + 새 15�
 
 // 붓 리본·층 색·번짐이 바뀌면 실패: 의도한 변경이면 값을 갱신하고 docs/app/c14b 시트를 다시 본다(C14B_DUMP=<폴더>로 PNG)
 const INK_SNAPSHOT: Record<string, string> = {
-  'near-alone.inkstone': '83fcdcad',
+  'near-alone.inkstone': '3dca459d',
   'near-alone.washing-line': '1304c470',
-  'near-alone.sprout': 'bad6330c',
+  'near-alone.sprout': 'c808f4d5',
   'near-with.umbrella': 'da6fbc06',
   'near-with.letter': '7838f54f',
   'near-with.palm': 'bb43e9a8',
   'far-alone.paper-boat': '413c5a15',
   'far-alone.kite': 'f6a11f2b',
   'far-alone.path': 'ea1f19f1',
-  'far-with.geese': '76014f91',
-  'far-with.star-bridge': '0adeb71d',
-  'far-with.stepping-stones': '5bc4912a',
-  'center.leaf': '601228ab',
-  'center.snow': '2427fc38',
+  'far-with.geese': '4912bb55',
+  'far-with.star-bridge': '8169f61f',
+  'far-with.stepping-stones': 'ac7994bd',
+  'center.leaf': 'a7cf74ab',
+  'center.snow': '20d3d1e2',
   'center.wind': '62fc72e3',
 };

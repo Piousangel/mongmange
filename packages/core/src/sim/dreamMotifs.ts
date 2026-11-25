@@ -6,6 +6,7 @@
 import type { MotifPathData } from '../moon/motifs';
 import type { MotifFieldOp } from '../visual/motifInk';
 import { MOTIF_SHAPES } from './dreamMotifShapes';
+import { ART_REV_SHAPES_ARCHIVE } from './artRevArchive';
 import type { AxisRecord, DreamCard } from './types';
 
 export type MotifZone = 'near-alone' | 'near-with' | 'far-alone' | 'far-with' | 'center';
@@ -36,7 +37,7 @@ export interface Motif {
   /** 곁의 다른 방울 [x, y, 몸 배율](그림 좌표). 눈 없는 방울 — '함께'는 나란함·맞댐으로만 */
   friend?: readonly [number, number, number];
   /** C14b 4차: 사물 한 겹 래스터 자리(`dreamMotifShapes.ts` MotifShape.raster) */
-  raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number };
+  raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number; stretch?: true };
   /** 'clear' = 경로를 먹으로 그리지 않는다(소리 없는 눈 — 그림은 `field`의 맑은 방울) */
   water?: 'clear';
   /** 정본에 없어 개발이 쓴 초안 문구 슬롯(i18n 키 기준). 검수로 확정되면 지운다 — `motifBlockers`가 제품 출시를 막는다 */
@@ -297,6 +298,21 @@ export function pickCause(v: AxisRecord, zone: MotifZone, prev: Pick<DreamCard, 
  * (`apps/mobile/assets/motifs/r<판>`)는 지우지 않는다** — 이미 받은 카드가 그 판으로 그려져야 한다(시험이 판마다 에셋·예산을 고정).
  */
 export const DREAM_ART_REV = 1;
+/**
+ * 아직 고정되지 않은 판(코드 리뷰 2차 낮음 ①). 운영에서 받은 카드가 없어 값을 다시 매길 수 있는 판 — `dreamContent`를 운영에서
+ * 처음 켜는 빌드에서 null로 바꾼다(앱 시험이 '운영 기본 켜짐인데 열린 판이 있으면 실패'로 지킨다). 닫힌 판은 형상 보관
+ * (`ART_REV_SHAPES_ARCHIVE`)과 장면·형상 해시가 바뀌면 시험이 실패한다
+ */
+export const OPEN_ART_REV: number | null = 1;
+
+/** 그 판의 모티프(형상): 지금 판 = `MOTIFS`, 지난 판 = 보관 데이터로 덮은 것. 판 1 카드는 판 2가 생겨도 판 1 형상으로 그린다 */
+export function motifForRev(id: string, rev: number): Motif | null {
+  const base = motifById(id);
+  if (!base || rev >= DREAM_ART_REV) return base;
+  const sh = ART_REV_SHAPES_ARCHIVE[rev]?.[id];
+  if (!sh) return base;
+  return { ...base, paths: sh.paths, field: sh.field, seat: sh.seat, friend: sh.friend, water: sh.water, raster: sh.raster };
+}
 /** 판마다 래스터 사물을 쓰는 모티프(앱 에셋 `r<판>/<id>.webp` + `.mask.webp`) */
 export const ART_REV_RASTERS: Readonly<Record<number, readonly string[]>> = {
   1: ['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand'],

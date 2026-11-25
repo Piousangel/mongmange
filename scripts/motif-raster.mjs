@@ -27,7 +27,8 @@ const picks = { ...PICKS, ...(process.env.PICKS ? JSON.parse(process.env.PICKS) 
  * 장마다 손질 옵션(5차, 4차 아트 리뷰): rotate = 원본을 돌려 넣기(도, 시계 방향 +) — 편지를 덜 기울여 64pt에서 연과 갈리게,
  * clipBottom = 사물 경계 아래쪽 이 비율을 지움 — 종이배 밑 장식 물결(물살은 코드 장이 맡는다)
  */
-const OPTS = { 'near-with.letter': { rotate: -28 }, 'far-alone.paper-boat': { clipBottom: 0.25 } };
+// 7차: 종이배 밑은 직선으로 자르지 않고 아래 22%에서 번지듯 사라지게(fadeBottom), 창가 손은 중간 농담을 더 올려(gamma) 밤 판에서도 손이 서게
+const OPTS = { 'near-with.letter': { rotate: -28 }, 'far-alone.paper-boat': { clipBottom: 0.12, fadeBottom: 0.22 }, 'near-with.window-hand': { gamma: 0.6 } };
 /** 판(artRev, D-13): 그림을 바꾸면 판을 올리고 이전 판 폴더는 지우지 않는다(시험이 고정) */
 const REV = Number(process.env.ART_REV ?? 1);
 const SRC = path.resolve('docs/creative/c14b-ref');
@@ -79,7 +80,7 @@ for (const [id, name] of Object.entries(picks)) {
       const cols = new Uint32Array(W);
       for (let i = 0; i < W * H; i++) {
         let v = Math.min(1, Math.max(0, (paper - lum[i]) / Math.max(1, paper - ink)));
-        v = v < 0.06 ? 0 : Math.pow((v - 0.06) / 0.94, 0.8); // 중간 농담을 조금 올림(곱하기 합성에서 묽어 보이지 않게)
+        v = v < 0.06 ? 0 : Math.pow((v - 0.06) / 0.94, opt.gamma ?? 0.8); // 중간 농담을 조금 올림(곱하기 합성에서 묽어 보이지 않게)
         a[i] = v * CAP;
         if (v > 0.1) {
           rows[(i / W) | 0]++;
@@ -149,7 +150,17 @@ for (const [id, name] of Object.entries(picks)) {
         for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
         return btoa(s);
       };
-      const webp = await encode((i) => Math.round(a[i] * 255));
+      // 아래 가장자리 번짐(fadeBottom): 사물 경계 아래쪽 이 비율 구간에서 알파가 0으로 부드럽게
+      const fadeAt = (i) => {
+        if (!opt.fadeBottom) return 1;
+        const Y = (i / W) | 0;
+        const y0f = by1 - (by1 - by0) * opt.fadeBottom;
+        if (Y <= y0f) return 1;
+        const t = Math.min(1, (Y - y0f) / Math.max(1, by1 - y0f));
+        const n = 0.12 * Math.sin((i % W) * 0.05) * Math.sin((i % W) * 0.013 + 1.3);
+        return Math.max(0, 1 - (t + n) * (t + n) * (3 - 2 * Math.min(1, t + n)));
+      };
+      const webp = await encode((i) => Math.round(a[i] * 255 * fadeAt(i)));
       const mask = await encode((i) => (seen[i] ? 0 : 255));
       return { webp, mask, w: tw, h: th, paper, ink };
     },

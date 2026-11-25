@@ -5,6 +5,11 @@ import {
   BRUSH,
   MOTIF_INK_COMPOSITION,
   MOTIF_INK_MAX,
+  BLOB_INK_MAX,
+  COMPANION,
+  COMPANION_ROUNDNESS_MAX,
+  companionBlob,
+  roundness,
   MOTIF_NIGHT_INK,
   PALETTE,
   hexRgb,
@@ -25,6 +30,7 @@ import {
   sim,
   type DreamScene,
 } from '../src/index';
+import { ART_REV_SHAPES_ARCHIVE } from '../src/sim/artRevArchive';
 
 const NEW = sim.MOTIFS.filter((m) => m.unlockAtCards > 0);
 const card = (motifId: string, over: Partial<sim.DreamCard> = {}): sim.DreamCard => ({
@@ -151,6 +157,70 @@ describe('블라인드 판정 반영(6차) — 기계 규칙', () => {
   });
 });
 
+describe('2차 블라인드 반영(7차) — 기계 규칙', () => {
+  it('곁 방울은 몽망이와 재질로 갈린다: 담묵(몸 먹 45~60%) + 젖은 테 합쳐 0.6 이하, 붓 방울 꼴(원형도 0.94 미만, 시드 결정)', () => {
+    expect(COMPANION.fill).toBeGreaterThanOrEqual(0.45);
+    expect(COMPANION.fill).toBeLessThanOrEqual(COMPANION.total);
+    expect(COMPANION.total).toBeLessThanOrEqual(BLOB_INK_MAX);
+    expect(BLOB_INK_MAX).toBeLessThanOrEqual(0.6);
+    for (const seed of [1, 7, 12345, 4242424242]) {
+      const b = companionBlob(seed);
+      expect(companionBlob(seed)).toEqual(b);
+      expect(roundness(b), String(seed)).toBeLessThan(COMPANION_ROUNDNESS_MAX);
+    }
+    // 원형도 잣대 자체: 원 ≈ 1
+    const circle = Array.from({ length: 96 }, (_, i) => [Math.cos((i / 48) * Math.PI), Math.sin((i / 48) * Math.PI)]).flat();
+    expect(roundness(circle)).toBeGreaterThan(0.99);
+  });
+
+  it('몸 이외 덩어리 먹 상한: 판 1 장면의 맑지 않은 방울(고리 뒤 — 모티프·늦은 방울)은 0.6 이하 — 25모티프 × 구도 3', () => {
+    for (const m of sim.MOTIFS)
+      for (const composition of [0, 1, 2] as const) {
+        const sc = buildDreamScene({ card: card(m.id, { composition, artRev: 1 }), strokes: day7Records() });
+        for (const o of sc.post) if (o.k === 'drop' && !o.seat && !o.gold) expect(o.ink, `${m.id} ${composition}`).toBeLessThanOrEqual(BLOB_INK_MAX);
+      }
+  });
+
+  it('사물 크기 하한(64px에서 사라지지 않게): 새 15모티프의 사물(경로 + 장의 방울 + 래스터 상자) 경계가 그림 좌표 45 이상·넓이 900 이상(잎은 몸보다 크지 않게라 900이 하한)', () => {
+    for (const m of NEW) {
+      let x0 = 100, y0 = 100, x1 = 0, y1 = 0;
+      const add = (x: number, y: number, r = 0) => {
+        x0 = Math.min(x0, x - r); y0 = Math.min(y0, y - r); x1 = Math.max(x1, x + r); y1 = Math.max(y1, y + r);
+      };
+      for (const p of m.paths) for (const l of flattenMotifPath(p.d)) for (const [x, y] of l) add(x, y, p.w / 2);
+      for (const f of m.field ?? []) {
+        if (f.k === 'drop') add(f.x, f.y, f.r);
+        else if (f.k === 'tine') add(f.x, f.y); // 빗질·들어올림이 형상을 만드는 자리
+      }
+      if (m.raster) {
+        const [bx, by, bw, bh] = m.raster.box;
+        add(bx, by);
+        add(bx + bw, by + bh);
+      }
+      expect(Math.max(x1 - x0, y1 - y0), m.id).toBeGreaterThanOrEqual(45);
+      expect((x1 - x0) * (y1 - y0), m.id).toBeGreaterThanOrEqual(900);
+    }
+  });
+
+  it('새싹은 좌우 대칭이 아니다(신체 연상 금지 — 2차 블라인드 안전): 경로·장 조작의 무게중심이 몸 축(x=50)에서 비켜 있고 들어올림이 기울어 있다', () => {
+    const m = sim.motifById('near-alone.sprout')!;
+    const lifts = m.field!.filter((f) => f.k === 'tine' && f.gauss);
+    for (const f of lifts) if (f.k === 'tine') expect(Math.abs(f.dx), '들어올림 기울기').toBeGreaterThan(2);
+    // 거울쌍 장 조작 금지(예전: x=40에서 좌우 ±7로 똑같이 끈 두 가닥 = 대칭 주름)
+    const f = m.field!;
+    for (let i = 0; i < f.length; i++)
+      for (let j = i + 1; j < f.length; j++) {
+        const a = f[i]!;
+        const b = f[j]!;
+        if (a.k === 'tine' && b.k === 'tine') expect(Math.abs(a.x - b.x) < 1 && Math.abs(a.y - b.y) < 1 && Math.abs(a.dx + b.dx) < 1 && Math.abs(a.dy - b.dy) < 1, '거울쌍').toBe(false);
+      }
+    // 떡잎 둘의 길이가 다르다(20% 이상)
+    const len = (d: string) => flattenMotifPath(d)[0]!.reduce((acc, p, k, arr) => (k ? acc + Math.hypot(p[0] - arr[k - 1]![0], p[1] - arr[k - 1]![1]) : 0), 0);
+    const [l1, l2] = [len(m.paths[0]!.d), len(m.paths[1]!.d)];
+    expect(Math.max(l1, l2) / Math.min(l1, l2)).toBeGreaterThan(1.2);
+  });
+});
+
 describe('그림 판(artRev, 5차·6차 코드 리뷰 H1·M-2)', () => {
   const build1 = sim.MOTIFS.filter((m) => m.unlockAtCards === 0);
   const rev0Scenes = () =>
@@ -165,6 +235,14 @@ describe('그림 판(artRev, 5차·6차 코드 리뷰 H1·M-2)', () => {
     for (let r = 0; r <= sim.DREAM_ART_REV; r++) expect(SCENE_SNAPSHOT_BY_REV[r], `판 ${r}`).toBeDefined();
     const shapes = NEW.map((m) => ({ id: m.id, paths: m.paths, field: m.field, seat: m.seat, friend: m.friend, water: m.water, raster: m.raster }));
     expect(hash(shapes)).toBe(SHAPE_SNAPSHOT_BY_REV[sim.DREAM_ART_REV]);
+  });
+
+  it('판 보관(2차 ①): 판마다 형상 보관이 있고, 열린 판이면 지금 형상과 같다 — 닫힌 판은 보관·해시가 바뀌면 실패', () => {
+    for (let r = 1; r <= sim.DREAM_ART_REV; r++) expect(ART_REV_SHAPES_ARCHIVE[r], `판 ${r}`).toBeDefined();
+    const now = Object.fromEntries(NEW.map((m) => [m.id, { paths: m.paths, field: m.field, seat: m.seat, ...(m.friend ? { friend: m.friend } : {}), ...(m.water ? { water: m.water } : {}), ...(m.raster ? { raster: m.raster } : {}) }]));
+    expect(JSON.parse(JSON.stringify(ART_REV_SHAPES_ARCHIVE[sim.DREAM_ART_REV]))).toEqual(JSON.parse(JSON.stringify(now)));
+    // 지난 판 카드는 보관 형상으로(지금은 판 1뿐이라 같은 값) — motifForRev 경로가 장면에 쓰인다
+    expect(sim.motifForRev('far-alone.kite', 1)!.paths).toEqual(ART_REV_SHAPES_ARCHIVE[1]!['far-alone.kite']!.paths);
   });
 
   it('판 1 카드는 빌드 1 모티프도 C14b 그림(창가 손 = 창 그릇, 찻잔 둘·바다 손 새 구도), 판 0은 옛 그림', () => {
@@ -356,7 +434,7 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
       }
   });
 
-  it('장 조작은 결 뒤·몽망이 자리 앞에 그대로 들어가고(자르기 0), 소리 없는 눈은 먹 대신 맑은 물방울 14개, 곁 방울은 맑은 자리 없음', () => {
+  it('장 조작은 결 뒤·몽망이 자리 앞에 그대로 들어가고(자르기 0), 소리 없는 눈은 먹 대신 맑은 물방울 15개, 곁 방울은 맑은 자리 없음', () => {
     for (const m of NEW) {
       const sc = buildDreamScene({ card: card(m.id), strokes: day7Records() });
       const seatAt = sc.post.findIndex((o) => o.k === 'drop' && o.seat);
@@ -368,7 +446,7 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
     expect(snow.motifInk).toBeUndefined();
     const seatAt = snow.post.findIndex((o) => o.k === 'drop' && o.seat);
     const clear = snow.post.slice(0, seatAt).filter((o) => o.k === 'drop' && o.ink === 0 && !o.gold);
-    expect(clear).toHaveLength(14);
+    expect(clear).toHaveLength(15);
     for (const id of ['near-with.umbrella', 'far-with.star-bridge', 'far-with.stepping-stones']) {
       const sc = buildDreamScene({ card: card(id), strokes: day7Records() });
       expect(sc.friend, id).not.toBeNull();
@@ -393,12 +471,12 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
   });
 });
 
-const RIBBON_SNAPSHOT = '39e1cdf2';
+const RIBBON_SNAPSHOT = 'fc4a1acc';
 /**
  * 판(artRev)마다 장면 해시(코드 리뷰 M-2). 판 0 = 빌드 1의 10모티프 × 구도 3 × 비율 2 장면(main과 같음 — 판 번호 없는 카드),
  * 판 1 = 새 15모티프(구도 a, 4:5). **지난 판 값은 지우지 않는다** — 형상·장면 규칙을 바꾸면 판을 올리고 그 판을 더한다
  */
-const SCENE_SNAPSHOT_BY_REV: Record<number, string> = { 0: '4eeaf729', 1: '69911da2' };
+const SCENE_SNAPSHOT_BY_REV: Record<number, string> = { 0: '4eeaf729', 1: '13877512' };
 const SCENE_SNAPSHOT = SCENE_SNAPSHOT_BY_REV[sim.DREAM_ART_REV]!;
 /** 판마다 형상 데이터 해시(경로·장·자리·래스터 상자·가림). 형상을 바꾸고 판을 안 올리면 실패 */
-const SHAPE_SNAPSHOT_BY_REV: Record<number, string> = { 1: 'a19abdb8' };
+const SHAPE_SNAPSHOT_BY_REV: Record<number, string> = { 1: 'b234c697' };

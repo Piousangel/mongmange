@@ -96,6 +96,50 @@ export const MOTIF_INK_MAX = 0.72;
  * 따뜻한 회갈색(#7E7973)은 남색 위에서 진흙빛으로 묻혔다. 밤 바탕 대비 7:1 이상(시험)
  */
 export const MOTIF_NIGHT_INK = '#BEC5D1';
+
+/**
+ * 곁의 존재(곁 방울, 7차 — 2차 블라인드: 바다 손·우산·은하수 다리·별과 물방울·징검다리·찻잔 둘의 '두 번째 몽망이'). 곁은 설계상 필요하지만
+ * 몽망이와 **재질로** 가른다: 순흑 대신 담묵(몸 먹의 45~60%) + 젖은 테, 모양은 완전한 원이 아닌 붓 방울(시드 흔들림·가로로 조금 긴 꼴),
+ * 눈 없음. fill = 면 알파, total = 테 자리 합성 농도(상한), 판 1에만(판 0 = 빌드 1 그대로)
+ */
+export const COMPANION = { fill: 0.45, total: 0.6, stretch: 1.38, wobble: 0.18 } as const;
+/** 몸 이외 덩어리(장면의 맑지 않은 방울·곁 방울)의 먹 농도 상한(몸 = 1) */
+export const BLOB_INK_MAX = 0.6;
+/** 곁 방울 원형도(4πA/P²) 상한 — 완전한 원(1)이 아니어야 한다 */
+export const COMPANION_ROUNDNESS_MAX = 0.94;
+
+/** 곁 방울 붓 방울 꼴(반경 1 기준 꺾은선 [x0,y0,x1,y1,…], 아래가 조금 평평 — 물 위에 앉은 방울). 같은 시드 = 같은 꼴 */
+export function companionBlob(seed: number, n = 48): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 2 * Math.PI;
+    const k0 = Math.floor((i / n) * 7);
+    const f = (i / n) * 7 - k0;
+    const u = f * f * (3 - 2 * f);
+    const noise = (hash01(seed, k0 % 7, 3) * (1 - u) + hash01(seed, (k0 + 1) % 7, 3) * u) * 2 - 1;
+    const r = 1 + COMPANION.wobble * noise;
+    const y = Math.sin(a) * r;
+    out.push(Math.cos(a) * r * COMPANION.stretch, y > 0 ? y * 0.78 : y);
+  }
+  return out;
+}
+
+/** 꺾은선의 원형도 4πA/P²(원 = 1) */
+export function roundness(poly: readonly number[]): number {
+  let A = 0;
+  let P = 0;
+  const n = poly.length / 2;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const x0 = poly[2 * i]!;
+    const y0 = poly[2 * i + 1]!;
+    const x1 = poly[2 * j]!;
+    const y1 = poly[2 * j + 1]!;
+    A += x0 * y1 - x1 * y0;
+    P += Math.hypot(x1 - x0, y1 - y0);
+  }
+  return (4 * Math.PI * Math.abs(A / 2)) / (P * P);
+}
 /**
  * 담묵 면(2차 아트 리뷰 2-1): 가장자리는 흐리지 않고 또렷하게 두고, 안쪽 `rim`(면 크기의 비율) 폭을 `rimDark`배 짙게(먹이 마르며 고인 테),
  * 바깥으로 `bleedOut`만 불규칙하게 번진다. 곧은 변은 경로 해시 시드로 `wobble`(그림 단위)만큼 흔든다(자로 그은 직선 없음).
@@ -327,7 +371,7 @@ export interface DreamMotifInk {
   flip: boolean;
   paths: readonly MotifPathData[];
   /** 사물 한 겹 래스터(4차 혼합안) — 렌더가 모티프 id의 에셋을 이 상자(그림 좌표)에 넣고, keep 밖의 경로는 그리지 않는다 */
-  raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number };
+  raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number; stretch?: true };
 }
 
 /**

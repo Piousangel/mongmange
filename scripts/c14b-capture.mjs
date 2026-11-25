@@ -5,6 +5,7 @@
 //  - sheet-64pt.png  같은 25장을 카드 폭 64pt(2x)로 줄인 판독 시트(아트 바이블 7-6 ⑦)
 //  - sheet-dark.png  는 서버 없이 scripts/c14b-dark-sheet.mjs가 만든다
 //  - blind/sheet-25.png 라벨 없는 25장(번호만, 순서는 고정 시드로 섞음 — 래스터·코드 표시 없음) + 정답표 docs/team/reviews/2026-11-25-c14b-blind-key.md(리뷰어에게 주지 않는다)
+//  - sheet-night.png 실제 밤 카드 6장(마블링·몽망이·래스터 사물 함께, &theme=night — 확인판 전용 밤 판)
 //  - compare-ref.png 3차 대상 7장: Gemini 레퍼런스(docs/creative/c14b-ref, ★ = 고른 안)와 결과 카드를 한 줄에 나란히
 // 모든 카드는 판 1(꿈 콘텐츠가 켜진 카드의 그림, &rev=1)로 찍는다 — 판 0(빌드 1) 그림은 main과 바이트 같음(시험)
 // 사용: node scripts/c14b-capture.mjs [baseUrl=http://localhost:8147] [outDir=docs/app/c14b]
@@ -43,9 +44,9 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 
-async function grab(motif, t, comp) {
-  const file = `${motif}__${t}${comp}.png`;
-  await page.goto(`${BASE}/?screen=card&export=1&rev=1&motif=${motif}&t=${t}&seed=7&comp=${comp}`, { waitUntil: 'networkidle', timeout: 300000 });
+async function grab(motif, t, comp, night = false) {
+  const file = `${motif}__${t}${comp}${night ? '_night' : ''}.png`;
+  await page.goto(`${BASE}/?screen=card&export=1&rev=1${night ? '&theme=night' : ''}&motif=${motif}&t=${t}&seed=7&comp=${comp}`, { waitUntil: 'networkidle', timeout: 300000 });
   await page.waitForFunction(() => window.__dreamPng, null, { timeout: 180000 });
   const b64 = await page.evaluate(() => window.__dreamPng);
   await writeFile(path.join(TMP, file), Buffer.from(b64, 'base64'));
@@ -88,7 +89,7 @@ await sheet('sheet-mixed', mixed, 5, 220);
   const RASTER = new Set(['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand']);
   // mixed = 기존 10 + 새 15(위에서 olds·news를 꺼내 썼으므로 mixed에서 가져온다)
   const all = mixed.map(([f, l]) => [f, l.replace(' (기존)', '')]);
-  let seed = 20261126; // 6차: 판정 뒤 새 시드로 다시 섞음
+  let seed = 20261127; // 7차: 2차 판정 뒤 새 시드로 다시 섞음
   const rnd = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
   for (let i = all.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
@@ -102,10 +103,17 @@ await sheet('sheet-mixed', mixed, 5, 220);
   const key = all.map(([, id], i) => `| ${i + 1} | ${id} | ${RASTER.has(id) ? '래스터 사물' : '코드'} |`).join('\n');
   await writeFile(
     path.resolve('docs/team/reviews/2026-11-25-c14b-blind-key.md'),
-    `# C14b 블라인드 시트 정답표 (리뷰어에게 주지 않는다)\n\n- 시트: \`docs/app/c14b/blind/sheet-25.png\`(번호만, 고정 시드 20261126으로 섞음). 판정 뒤에 이 표와 맞춘다.\n\n| 번호 | 모티프 | 그린 방법 |\n|---|---|---|\n${key}\n`,
+    `# C14b 블라인드 시트 정답표 (리뷰어에게 주지 않는다)\n\n- 시트: \`docs/app/c14b/blind/sheet-25.png\`(번호만, 고정 시드 20261127로 섞음). 판정 뒤에 이 표와 맞춘다.\n\n| 번호 | 모티프 | 그린 방법 |\n|---|---|---|\n${key}\n`,
   );
 }
 await sheet('sheet-64pt', mixed.map(([f, l]) => [f, l.replace(/^[a-z-]+\./, '').replace(' (기존)', '*')]), 5, 64, 2);
+
+// 밤 카드 6장(7차)
+{
+  const nights = [];
+  for (const m of ['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand']) nights.push([await grab(m, 'b', 0, true), `${m} · 밤`]);
+  await sheet('sheet-night', nights, 3, 300);
+}
 
 // 레퍼런스 ↔ 결과 비교(3차 아트 리뷰용)
 const REF = path.resolve('docs/creative/c14b-ref');

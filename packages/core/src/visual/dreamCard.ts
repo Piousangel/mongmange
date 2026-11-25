@@ -13,7 +13,7 @@
 import { hexRgb, mixHex, type InkLook } from './ink';
 import { simplifyStroke } from '../geometry/simplify';
 import type { RawPoint, StrokeRecord } from '../geometry/types';
-import { MOTIFS, dreamArtRevOf, motifUsable } from '../sim/dreamMotifs';
+import { MOTIFS, dreamArtRevOf, motifForRev, motifUsable } from '../sim/dreamMotifs';
 import { isMoonMotifId, moonMotifUsable } from '../moon/motifs';
 import { rngNext } from '../sim/rng';
 import type { DreamCard } from '../sim/types';
@@ -371,7 +371,9 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
   }
   // C14b 붓 형상: 그림의 몽망이 자리(seat)가 c0에 오게 놓는다. 고리는 기존 꿈처럼 인화를 채워 몽망이를 감싸되, 중심은
   // 인화 가운데·몽망이에서 비켜 둔다(몽망이 반대쪽으로 비스듬히 RING_OFF·R — 눈동자·과녁·정가운데 동심원 금지)
-  const inkDef = MOTIFS.find((m) => m.id === motif && m.paths.length > 0 && m.seat);
+  // 형상은 카드의 판으로(지난 판 카드 = 보관 형상, 코드 리뷰 M-2·2차 ①)
+  const forRev = motifForRev(motif, rev);
+  const inkDef = forRev && forRev.paths.length > 0 && forRev.seat ? forRev : undefined;
   const inkPlace = inkDef?.seat ? motifInkPlacement(inkDef.seat, card.composition, R) : null;
   if (inkPlace) {
     anchor.x = inkPlace.anchor.x;
@@ -473,7 +475,8 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       if (two) {
         // 6차(블라인드 64px: '찻잔 하나'와 같은 구도) — 둘째 잔을 더 떨어뜨려 비스듬히 위에 두고, 김을 그쪽으로 눕힌다
         const fx = side * (v1 ? 0.31 : 0.27);
-        vessels.push({ kind: 'cup', x: fx, y: v1 ? -0.03 : 0.05, w: 0.2, h: 0.1, handle: side as 1 | -1, friend: true });
+        // 7차: 둘째 잔을 1.3배로(64px에서 '찻잔 하나'와 갈리게)
+        vessels.push({ kind: 'cup', x: fx, y: v1 ? -0.05 : 0.05, w: v1 ? 0.26 : 0.2, h: v1 ? 0.13 : 0.1, handle: side as 1 | -1, friend: true });
         if (v1) late.push({ k: 'tine', x: ringC.x, y: ringC.y, dx: side * 0.07, dy: 0, lambda: 0.12, len: 0, gauss: true });
         // 두 잔의 김이 꼬여 하나로(서로 반대 방향 소용돌이)
         post.push({ op: { k: 'curl', x: ringC.x - side * 0.08, y: ringC.y + 0.06, angle: side * 1.6, radius: 0.1 }, p: 2 });
@@ -532,6 +535,10 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       late.push({ k: 'tine', x: 0, y: 0, dx: 0, dy: up * 0.085 * (tall ? 1.2 : 1), lambda: 40, len: 0, gauss: true });
       for (let k = 0; k < 3; k++) late.push({ k: 'tine', x: 0, y: up * (0.11 + k * 0.06), dx: (k % 2 ? -1 : 1) * 0.045, dy: 0, lambda: 0.028, len: 0 });
       late.push({ k: 'wave', dx: 0, dy: 1, amp: 0.011, freq: 15, phase: rnd() * 6.28 });
+      if (motif === 'far-with.sea-hand' && v1) {
+        // 7차(64px: '혼자 보는 바다'와 같은 마노 타원): 둘 뒤로 바다가 너울처럼 한쪽만 높게 솟는다(비대칭 물마루)
+        late.push({ k: 'tine', x: side * 0.2, y: -0.06, dx: side * 0.02, dy: -0.08, lambda: 0.06, len: 0, gauss: true });
+      }
       if (motif === 'far-with.sea-hand') {
         // 손잡고 본 바다: 곁에 작은 방울 하나, 두 자리가 맞닿아 한 웅덩이
         friend = { x: side * 0.135, y: 0.022, r: 0.6 };
@@ -551,7 +558,8 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
         const a = rnd() * 6.28;
         const d = R * (0.45 + 0.6 * rnd());
         const p = P(ringC.x + Math.cos(a) * d, ringC.y + Math.sin(a) * d);
-        late.push({ k: 'drop', x: p.x, y: p.y, r: 0.0032 + 0.005 * rnd() * rnd(), ink: 0.85, gold: k % 3 === 0 || undefined });
+        // 판 1: 먹점은 담묵(몸 이외 덩어리 먹 상한 BLOB_INK_MAX — 검은 둥근 점이 두 번째 몽망이로 읽혔다, 2차 블라인드)
+        late.push({ k: 'drop', x: p.x, y: p.y, r: 0.0032 + 0.005 * rnd() * rnd(), ink: v1 ? 0.55 : 0.85, gold: k % 3 === 0 || undefined });
       }
       friend = { x: -side * 0.3, y: -0.26, r: 0.5 };
       final.push({ k: 'drop', x: -side * 0.3, y: -0.262, r: pool * 0.55, ink: 0 });
@@ -564,6 +572,10 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
         const x = ringC.x + (k - 4) * 0.072 + (rnd() - 0.5) * 0.02;
         const dy = 0.035 + 0.012 * rnd();
         late.push({ k: 'tine', x, y: 0, dx: dy * slant, dy, lambda: 0.0065, len: 0 });
+      }
+      if (v1) {
+        // 7차(2차 블라인드: 64px에서 비가 안 보임 — 비늘 무늬만): 빗줄기 끝에 떨어지는 담묵 방울 몇 개(몸 이외 덩어리 상한 안)
+        for (let k = 0; k < 6; k++) late.push({ k: 'drop', x: ringC.x + (k - 2.5) * 0.085 + (rnd() - 0.5) * 0.02, y: 0.02 + 0.06 * rnd(), r: 0.006 + 0.004 * rnd(), ink: 0.5 });
       }
       calm = 0.6;
       break;
