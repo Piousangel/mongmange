@@ -614,11 +614,11 @@ export const en: Messages = {
   'v3.inkstone.again': 'You can lift one again next waking',
   'v3.inkstone.treatAgain': 'You can bring one out again next waking',
   'v3.fed.a11y': `{item} · ${M} took it`,
-  // M4 jeong captions (systems 3.8 — one observer line, third person, first three times only. Draft; V14·C14 review)
-  'v3.jeong.recognize': '{name} knew you first',
-  'v3.jeong.wait': '{name} remembers you tend to come about now',
-  'v3.jeong.offer': '{name} leans its favorite spot toward you',
-  'v3.jeong.reply': '{name} answered to its name',
+  // M4 jeong captions (systems 3.8 — one observer line, third person — no 'you', no first person, no addressing, first three times only. Draft; V14·C14 review)
+  'v3.jeong.recognize': '{name} looks up first',
+  'v3.jeong.wait': '{name} watches the edge of the paper about now',
+  'v3.jeong.offer': '{name} gently turns out its favorite spot',
+  'v3.jeong.reply': '{name} hears its name and hums back',
   // ── What's kept (C12f — privacy policy section 12, access) ──
   'note.cloud.view': 'See what’s kept on the server',
   'note.cloud.view.a11y': 'Open what’s kept on the server',

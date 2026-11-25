@@ -89,9 +89,10 @@ export interface V3Block {
   tonightCounted: boolean;
   /**
    * M4 정 자막을 보인 횟수(JEONG_SIGNALS 순서: 알아봄·기다림·내밂·이름 대답), 각 0~3에서 멈춘다(처음 세 번만).
-   * 시각·날짜·연속은 저장하지 않는다. 기기 전용(업로드 안 함 — 되찾은 기기에서 자막이 다시 세 번 나와도 해가 없다)
+   * 시각·날짜·연속은 저장하지 않는다. 기기 전용(업로드 안 함 — 되찾은 기기에서 자막이 다시 세 번 나와도 해가 없다).
+   * 처음 자막을 보일 때 생긴다 — 없음 = 0 넷(플래그 jeong이 꺼진 동안 세이브가 M4 이전 v3와 바이트까지 같게, 리뷰 M2)
    */
-  captionsShown: number[];
+  captionsShown?: number[];
 }
 
 export interface V3State {
@@ -109,7 +110,17 @@ export interface WordInput {
 export type V3Event =
   | SimEvent
   /** 한 마디 + 붓 한 획. 판정(사전·위기 대조)은 앱이 끝낸 뒤 말결만 싣는다 — 쓴 글자는 이벤트에도 없다(R1·R8) */
-  | { type: 'write'; at: Millis; word: WordInput; chars: number; raw: RawPoint[]; level?: AttachLevel; birthShape?: boolean }
+  | {
+      type: 'write';
+      at: Millis;
+      word: WordInput;
+      chars: number;
+      raw: RawPoint[];
+      level?: AttachLevel;
+      birthShape?: boolean;
+      /** M4 플래그 jeong 값(켜졌을 때만 싣는다). true면 한 마디도 그 깸의 정 한 칸 — 없으면 M4 이전 v3와 같다(리뷰 M2) */
+      jeong?: boolean;
+    }
   /** 벼루 시트에서 밥(한 숟갈)·간식(작은 것) 건네기 */
   | { type: 'offer'; at: Millis; kind: 'meal'; item: MealItem }
   | { type: 'offer'; at: Millis; kind: 'treat'; item: TreatItem }
@@ -163,7 +174,6 @@ export function emptyV3Block(): V3Block {
     meal: { spoons: 0, treats: 0, nudgeOptIn: false },
     pantry: startPantry(),
     tonightCounted: false,
-    captionsShown: emptyCaptionsShown(),
   };
 }
 
@@ -293,7 +303,7 @@ export function jeongOf(s: V3State): number {
 
 /** 이 신호의 정 자막을 아직 보일 수 있는가(처음 세 번만) */
 export function captionDue(s: V3State, signal: JeongSignal): boolean {
-  return (s.v3.captionsShown[JEONG_SIGNALS.indexOf(signal)] ?? CAPTION_MAX) < CAPTION_MAX;
+  return ((s.v3.captionsShown ?? emptyCaptionsShown())[JEONG_SIGNALS.indexOf(signal)] ?? CAPTION_MAX) < CAPTION_MAX;
 }
 
 /**
@@ -378,7 +388,7 @@ export function reduceV3(s: V3State, e: V3Event): V3Step {
       }
       out.push(...r.effects);
       // 한 마디의 붓 획도 '만짐'이다(시스템 3.8 정 정의: 탭·길게 누르기·부르기·획) — 그 깸에 한 번
-      const simAfter: SimState = { ...r.state, relation: markJeong(r.state.relation, r.state.dayIndex) };
+      const simAfter: SimState = e.jeong === true ? { ...r.state, relation: markJeong(r.state.relation, r.state.dayIndex) } : r.state;
       const word: Word = { night, sense: e.word.sense, intensity: e.word.intensity, lexVer: e.word.lexVer, source: e.word.source, strokeId: acc.strokeId };
       st = { sim: simAfter, v3: { ...st.v3, words: [...st.v3.words, word] } };
       out.push({ type: 'wordAccepted', night, sense: word.sense, strokeId: word.strokeId });
@@ -401,7 +411,7 @@ export function reduceV3(s: V3State, e: V3Event): V3Step {
     case 'jeongCaption': {
       const t = tickV3(s, e.at);
       const i = JEONG_SIGNALS.indexOf(e.signal);
-      const cur = t.state.v3.captionsShown;
+      const cur = t.state.v3.captionsShown ?? emptyCaptionsShown();
       if (i < 0 || (cur[i] ?? CAPTION_MAX) >= CAPTION_MAX) return t;
       const captionsShown = cur.map((n, k) => (k === i ? n + 1 : n));
       return { state: { ...t.state, v3: { ...t.state.v3, captionsShown } }, effects: t.effects };
@@ -433,8 +443,11 @@ export function reduceV3(s: V3State, e: V3Event): V3Step {
       });
       if (!g) return { state: st, effects: out };
       out.push({ type: 'greeted', ...g });
+      // 72h 이상(머뭇거림 자리)에는 정 신호를 내지 않는다 — 머뭇거림부터 큰 반김까지 글 0(리뷰 H1).
+      // '기다림' 신호는 30h 미만(glance·joy)에서만 — 이틀 넘게 비운 뒤 '이맘때면…'은 부재를 떠올리게 한다(리뷰 H1 권고)
+      if (g.tier === 'long') return { state: st, effects: out };
       if (g.recognize) out.push({ type: 'jeongSignal', signal: 'recognize', caption: captionDue(st, 'recognize') });
-      if (g.waiting) out.push({ type: 'jeongSignal', signal: 'wait', caption: captionDue(st, 'wait') });
+      if (g.waiting && (g.tier === 'glance' || g.tier === 'joy')) out.push({ type: 'jeongSignal', signal: 'wait', caption: captionDue(st, 'wait') });
       return { state: st, effects: out };
     }
     case 'mealNudge': {
@@ -568,7 +581,7 @@ function validateV3(b: unknown, sim: SimState): V3Block {
   if (!(pantry!.meal as unknown[]).every((x) => isPantryItem('meal', x)) || !(pantry!.treat as unknown[]).every((x) => isPantryItem('treat', x))) bad('pantry');
   if (!Array.isArray(v.words)) bad('words');
   if (typeof v.tonightCounted !== 'boolean') bad('tonightCounted');
-  // M4 이행: 칸이 없는 세이브(세로 조각·V27)는 0 넷으로 채운다. 있으면 모양만 본다(다시 적용해도 그대로 — 멱등)
+  // M4: 칸이 없는 세이브(세로 조각·V27·jeong 꺼짐)는 없는 채로 둔다(= 0 넷). 있으면 모양만 본다(다시 적용해도 그대로 — 멱등)
   if (v.captionsShown !== undefined && !(Array.isArray(v.captionsShown) && v.captionsShown.length === JEONG_SIGNALS.length && v.captionsShown.every((n) => isInt(n, 0, CAPTION_MAX))))
     bad('captionsShown');
   const ids = new Set(sim.strokes.map((x) => x.id));
@@ -578,7 +591,8 @@ function validateV3(b: unknown, sim: SimState): V3Block {
   }
   const block = v as unknown as V3Block;
   const { pantry: opened } = openPantry(block.pantry, boundaryProgress(block, sim));
-  return { ...block, pantry: opened, captionsShown: v.captionsShown === undefined ? emptyCaptionsShown() : [...block.captionsShown] };
+  // captionsShown: 없으면 없는 채로(M4 이전 v3 세이브와 바이트 같음), 있으면 사본
+  return v.captionsShown === undefined ? { ...block, pantry: opened } : { ...block, pantry: opened, captionsShown: [...(block.captionsShown as number[])] };
 }
 
 export function parseV3(json: string): V3State {

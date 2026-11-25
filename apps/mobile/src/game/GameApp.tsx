@@ -33,7 +33,22 @@ import { boot, dispatch, getSnapshot, getV3, goBackground, goForeground, install
 import { InkstoneSheet, WordSheet, type WordPick } from '../screens/V3Sheets';
 import { CUE } from '../render/answer';
 import type { V3Home } from '../screens/GameHome';
-import { CAPTION_FADE_MS, CAPTION_HOLD_MS, JEONG_CAPTION_KEYS, captionShown, greetPlan, leanIntensity, type GreetCue } from './v3Flow';
+import {
+  CAPTION_FADE_MS,
+  CAPTION_HOLD_MS,
+  JEONG_CAPTION_KEYS,
+  captionShown,
+  emptyGreetQueue,
+  greetPlan,
+  leanIntensity,
+  queueCaption,
+  queueGreet,
+  quietOnFirstTouch,
+  quietOnGreet,
+  textAllowed,
+  type GreetCue,
+  type GreetQueue,
+} from './v3Flow';
 import { GREET_MS } from '../render/answer';
 import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, sheetGrindMode, sheetGrindOn, sheetGrindStep, wordSheetClose, wordSheetOnAppState, type SheetGrindEvent, type V3Cue } from './v3Flow';
 import { rejectText } from './text';
@@ -120,8 +135,11 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const captionBusyUntil = useRef(0);
   /** 72h 이상·기다림: 첫 터치에 이어질 몸짓(메모리에만 — 앱을 닫으면 다음 돌아옴이 새로 정한다) */
   const firstTouch = useRef<{ cue: GreetCue; intensity: number; notBefore: number } | null>(null);
-  /** 낮 홈이 아닐 때(아침 카드·인트로) 난 반김은 낮 홈에 들어갈 때 보인다 */
-  const greetQueue = useRef<(() => void)[]>([]);
+  /** 낮 홈이 아닐 때(아침 카드·인트로) 난 반김은 낮 홈에 들어갈 때 보인다 — 반김은 마지막 한 번만(리뷰 L2) */
+  const greetQueue = useRef<GreetQueue<() => void>>(emptyGreetQueue());
+  /** 머뭇거림부터 큰 반김이 끝날 때까지 글 0(리뷰 H1): 이 시각 전에는 자막·안내 한 줄·스크린리더 알림을 내지 않는다 */
+  const quietUntil = useRef(0);
+  const showCaptionRef = useRef<((signal: v3.JeongSignal) => void) | null>(null);
   const kindRef = useRef<string>('intro');
   const [introPlaying, setIntroPlaying] = useState(false);
   const [developed, setDeveloped] = useState<{ card: sim.DreamCard; line: sim.MorningLine } | null>(null);
@@ -165,7 +183,12 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   useSoundSettings(meta.sound);
   const later = useLater();
 
+  /** 스크린리더 알림도 머뭇거림~큰 반김 동안 0(리뷰 H1·M1) */
+  const announce = useCallback((text: string) => {
+    if (textAllowed(Date.now(), quietUntil.current)) AccessibilityInfo.announceForAccessibility(text);
+  }, []);
   const flash = useCallback((text: string, ms = 3400) => {
+    if (!textAllowed(Date.now(), quietUntil.current)) return; // 머뭇거림~큰 반김 동안 안내 한 줄 0(리뷰 H1)
     if (lineTimer.current) clearTimeout(lineTimer.current);
     setLine(text);
     lineTimer.current = setTimeout(() => setLine(''), ms);
@@ -220,18 +243,24 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       setCue({ kind, intensity, net: false, fromX: spot, fromY: 0, key: ++cueSeq.current });
     };
     /** 낮 홈에서만 몸짓·자막을 보인다(아침 카드 위에 겹치지 않게) */
-    const onDay = (f: () => void) => (kindRef.current === 'day' ? f() : greetQueue.current.push(f));
+    const onDayGreet = (f: () => void) => (kindRef.current === 'day' ? f() : (greetQueue.current = queueGreet(greetQueue.current, f)));
+    const onDayCaption = (signal: v3.JeongSignal) => (kindRef.current === 'day' ? showCaption(signal) : (greetQueue.current = queueCaption(greetQueue.current, signal)));
     /** 정 자막: 한 번에 한 줄, 앞 줄이 흐려진 뒤 다음 줄. 보인 순간 core에 알린다(처음 세 번만 — captionsShown) */
     const showCaption = (signal: v3.JeongSignal) => {
       const wait = Math.max(0, captionBusyUntil.current - Date.now());
       captionBusyUntil.current = Date.now() + wait + CAPTION_HOLD_MS + CAPTION_FADE_MS + 200;
       later(() => {
         const st = getSnapshot().state;
-        if (!st) return;
-        setCaption({ text: t(JEONG_CAPTION_KEYS[signal], { name: displayName(st) ?? t('name.default') }), key: ++cueSeq.current });
+        // 머뭇거림~큰 반김 동안은 자막을 내지 않고 횟수도 쓰지 않는다(리뷰 H1)
+        if (!st || !textAllowed(Date.now(), quietUntil.current)) return;
+        const text = t(JEONG_CAPTION_KEYS[signal], { name: displayName(st) ?? t('name.default') });
+        setCaption({ text, key: ++cueSeq.current });
+        // 스크린리더: Android는 자막 띠의 liveRegion(polite)이 읽고, iOS는 알림으로 한 번(정보 동등성, 리뷰 M1)
+        if (Platform.OS === 'ios') announce(text);
         dispatch({ type: 'jeongCaption', signal });
       }, wait);
     };
+    showCaptionRef.current = showCaption;
     const handle = (effects: v3.V3Effect[], ev: Parameters<Parameters<typeof onEffects>[0]>[1], st: sim.State) => {
         setNowT(now());
         const jeongOn = isV3Mode() && isOn('jeong');
@@ -241,7 +270,15 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               if (!jeongOn) break;
               const plan = greetPlan(e, { hesitation: isOn('hesitation') });
               const intensity = leanIntensity(e.lean);
-              onDay(() => {
+              onDayGreet(() => {
+                const q = quietOnGreet(plan);
+                if (q !== null) {
+                  // 72h 이상: 지금 떠 있는 안내 한 줄·자막도 거둔다 — 머뭇거림 동안 화면에 글 0
+                  quietUntil.current = q;
+                  if (lineTimer.current) clearTimeout(lineTimer.current);
+                  setLine('');
+                  setCaption(null);
+                }
                 greetCue(plan.open, intensity);
                 // 머뭇거림과 물방울(첫 터치)은 같은 프레임에 겹치지 않는다 — 큰 반김은 머뭇거림이 끝난 뒤에
                 firstTouch.current = plan.firstTouch ? { cue: plan.firstTouch, intensity, notBefore: Date.now() + (plan.open === 'hesitate' ? GREET_MS[CUE.hesitate]! : 0) } : null;
@@ -256,7 +293,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
                 const after = firstTouch.current ? GREET_MS[CUE.greetBig]! : 0;
                 later(() => setCue({ kind: CUE.offerSpot, intensity: 2, net: false, fromX: spot, fromY: 0, key: ++cueSeq.current }), after);
               }
-              if (captionShown(e, { jeong: jeongOn, jeongCaptions: isOn('jeongCaptions') })) onDay(() => showCaption(e.signal));
+              if (captionShown(e, { jeong: jeongOn, jeongCaptions: isOn('jeongCaptions') })) onDayCaption(e.signal);
               break;
             }
             case 'called':
@@ -270,7 +307,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
                 const w = layout(width, height);
                 setCue(cueOf(pick.interpretation, width * 0.5, w.objectsY, ++cueSeq.current)); // v3 붓 = 가운데 칸
                 // 모든 대답에 같은 알림 한 줄(곁 대답만 다르면 위기 판정이 들린다, 리뷰 M2)
-                AccessibilityInfo.announceForAccessibility(t('v3.answer.a11y'));
+                announce(t('v3.answer.a11y'));
               }
               if (st.strokesTotal === 1) later(() => flash(t('v3.line.firstWord'), 4000), 4400);
               break;
@@ -285,7 +322,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             case 'received': {
               const w = layout(width, height);
               setCue({ kind: e.kind === 'treat' ? CUE.treat : e.bow ? CUE.mealBow : CUE.meal, intensity: 2, net: false, fromX: width * 0.2, fromY: w.objectsY, key: ++cueSeq.current }); // v3 벼루 = 왼쪽 칸
-              AccessibilityInfo.announceForAccessibility(t('v3.fed.a11y', { item: t(`v3.item.${e.item}`) }));
+              announce(t('v3.fed.a11y', { item: t(`v3.item.${e.item}`) }));
               break;
             }
             case 'ireReached':
@@ -354,6 +391,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         if (jeongOn && ev?.type === 'tap' && ev.target === 'body' && firstTouch.current) {
           const f = firstTouch.current;
           firstTouch.current = null;
+          if (f.cue === 'big') quietUntil.current = quietOnFirstTouch(Date.now(), f.notBefore);
           later(() => {
             greetCue(f.cue, f.intensity);
             if (f.cue === 'big') {
@@ -374,7 +412,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     const st0 = getSnapshot().state;
     if (booted.length > 0 && st0) handle(booted, null, st0);
     return off;
-  }, [flash, later, width, height]);
+  }, [flash, announce, later, width, height]);
 
 
   /** 재우기 직후: 권한이 있으면 바로 예약. 처음이면 조수·안심 문구 뒤 앱 안 사전 문구 → (동의하면) OS 권한 창 */
@@ -439,16 +477,17 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     const st = getSnapshot().state;
     if (!st) return 'turn';
     // v3: 부르기도 정 한 칸 — 대답은 core가 공방과 같은 정 값으로 정한다(called 효과). v2는 그대로 sim.callReply
-    const called = isV3Mode() ? dispatch({ type: 'call', melody: isOn('nameMelody') }).find((e) => e.type === 'called') : undefined;
+    // 플래그 jeong이 꺼져 있으면 M4 이전 v3 그대로(부르기 이벤트 없음 — 정에 세지 않고 대답은 sim.callReply, 리뷰 M2)
+    const called = isV3Mode() && isOn('jeong') ? dispatch({ type: 'call', melody: isOn('nameMelody') }).find((e) => e.type === 'called') : undefined;
     const reply = called && called.type === 'called' ? called.reply : sim.callReply(st, { melody: isOn('nameMelody') });
     const who = displayName(st) ?? t('name.default');
     if (reply === 'melody') {
       const m = sim.melodyOfState(st);
       sound.playMelody(nameMelodySound(m.id), m.rate);
-      AccessibilityInfo.announceForAccessibility(t('name.reply.melody.a11y', { name: who }));
+      announce(t('name.reply.melody.a11y', { name: who }));
     } else {
       sound.play('mongWait');
-      AccessibilityInfo.announceForAccessibility(t('name.reply.turn.a11y', { name: who }));
+      announce(t('name.reply.turn.a11y', { name: who }));
     }
     return reply;
   };
@@ -466,10 +505,13 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   // 낮 홈에 들어가면 미뤄 둔 반김·정 자막을 보인다(아침 카드를 닫은 뒤 등)
   kindRef.current = kind;
   useEffect(() => {
-    if (kind !== 'day' || greetQueue.current.length === 0) return;
     const q = greetQueue.current;
-    greetQueue.current = [];
-    later(() => q.forEach((f) => f()), 600);
+    if (kind !== 'day' || (q.greet === null && q.captions.length === 0)) return;
+    greetQueue.current = emptyGreetQueue();
+    later(() => {
+      q.greet?.();
+      q.captions.forEach((sig) => showCaptionRef.current?.(sig));
+    }, 600);
   }, [kind, later]);
 
   // ── 환경음: 낮 = 종이 공기, 밤·아침 물 = 밤 물소리(조수가 다 찬 2400ms 뒤). 엔진이 원하는 환경음을 기억한다 ──
@@ -553,7 +595,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     later(() => sound.stop('inkGrind'), 700, { flushOnUnmount: true });
     dispatch({ type: 'grind', durationMs: A11Y_GRIND_MS });
     const f = getV3();
-    if (f) AccessibilityInfo.announceForAccessibility(t('v3.word.ink', { n: v3.inkCells(f) }));
+    if (f) announce(t('v3.word.ink', { n: v3.inkCells(f) }));
   };
   const v3Home: V3Home | null = full
     ? {
@@ -630,7 +672,16 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       // v3: 한 마디(판정 끝난 말결) + 붓 한 획을 한 이벤트로(R1 — 판정 뒤에만 영속화)
       const eff =
         v3On && pick
-          ? dispatch({ type: 'write', word: { ...v3.storedWordOf(pick.interpretation), lexVer: v3.LEX_VER, source: 'keyboard' }, chars: pick.chars, raw, level, birthShape: isOn('birthTraits') })
+          ? dispatch({
+              type: 'write',
+              word: { ...v3.storedWordOf(pick.interpretation), lexVer: v3.LEX_VER, source: 'keyboard' },
+              chars: pick.chars,
+              raw,
+              level,
+              birthShape: isOn('birthTraits'),
+              // M4: 켜졌을 때만 싣는다(꺼짐 = M4 이전 v3 이벤트와 같은 모양 — 한 마디가 정에 세지 않음, 리뷰 M2)
+              ...(isOn('jeong') ? { jeong: true } : {}),
+            })
           : // M1: 타고남 플래그가 켜져 있으면 그 개체의 체형으로 부착(D-12 개정 ①)
             dispatch({ type: 'stroke', raw, level, birthShape: isOn('birthTraits') });
       if (!eff.some((e) => e.type === 'strokeAccepted')) return null;
@@ -730,7 +781,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             dispatch({ type: 'chooseInk', ink });
             setInkChanging(false);
             const name = t('ink.name', { ink });
-            AccessibilityInfo.announceForAccessibility(firstDay ? t('ink.chosen.a11y', { name }) : t('ink.changed.a11y', { name }));
+            announce(firstDay ? t('ink.chosen.a11y', { name }) : t('ink.changed.a11y', { name }));
           },
           onInkName: (ink) => flash(t('ink.name', { ink }), 2400),
         }}

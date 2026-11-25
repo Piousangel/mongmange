@@ -6,7 +6,21 @@ import { v3, type KV } from '@mong/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FEATURE_DEFAULTS, isOn, setFeature } from '../src/features';
 import { __configureForTest, boot, dispatch, getSnapshot, getV3, goBackground, install, takeBootGreeting } from '../src/game/store';
-import { CAPTION_FADE_MS, CAPTION_HOLD_MS, JEONG_CAPTION_KEYS, captionShown, greetPlan, leanIntensity } from '../src/game/v3Flow';
+import {
+  BIG_GREET_MS,
+  CAPTION_FADE_MS,
+  CAPTION_HOLD_MS,
+  JEONG_CAPTION_KEYS,
+  captionShown,
+  emptyGreetQueue,
+  greetPlan,
+  leanIntensity,
+  queueCaption,
+  queueGreet,
+  quietOnFirstTouch,
+  quietOnGreet,
+  textAllowed,
+} from '../src/game/v3Flow';
 import { messages, setLanguagePref, t as tr } from '../src/i18n';
 import { CUE, GREET_MS, answerPose, cueLength, drinks, greetPose, type CueValue } from '../src/render/answer';
 
@@ -152,10 +166,22 @@ describe('정 자막 문구 — 관찰자 3인칭 한 줄, 금지 표현 0(시�
       }
     }
   });
+  it('관찰자 3인칭 서술만: 듣는 사람(당신·너·you)·몽망이 1인칭·말 걸기·인용이 없고, 주어는 몽망이(이름)로 시작한다(PM 판정)', () => {
+    const VIEWER_KO = /당신|너희|너는|너를|너도|네가|니가|우리|내가|나는|나를|저는|제가|저를|님|해\s*줘|줄래|볼래|["“”'‘’]|\?/;
+    const VIEWER_EN = /\byou\b|\byour|\byou'|\bI\b|\bme\b|\bmy\b|\bmine\b|\bwe\b|\bus\b|\bour\b|\blet's\b|["“”]|\?/i;
+    for (const loc of ['ko', 'en'] as const) {
+      const m = messages(loc) as Record<string, string>;
+      for (const key of Object.values(JEONG_CAPTION_KEYS)) {
+        const s = m[key]!;
+        expect(s, `${loc} ${key}`).not.toMatch(loc === 'ko' ? VIEWER_KO : VIEWER_EN);
+        expect(s.startsWith('{name'), `${loc} ${key} 주어`).toBe(true);
+      }
+    }
+  });
   it('이름이 없으면 기본 이름으로, 조사가 맞는다(ko)', () => {
     setLanguagePref('ko');
-    expect(tr('v3.jeong.recognize', { name: tr('name.default') })).toBe('몽망이가 당신을 먼저 알아봤어요');
-    expect(tr('v3.jeong.wait', { name: '먹물' })).toBe('먹물은 이맘때 당신이 오는 걸 기억해요');
+    expect(tr('v3.jeong.recognize', { name: tr('name.default') })).toBe('몽망이가 먼저 고개를 들어요');
+    expect(tr('v3.jeong.wait', { name: '먹물' })).toBe('먹물은 이맘때면 종이 끝을 바라봐요');
     setLanguagePref('system');
   });
   it('머뭇거림·반김에는 문구 키가 없다(글·알림 없음) — v3 문구 어디에도 비운 시간·서운 낱말이 없다', () => {
@@ -213,5 +239,95 @@ describe('콜드 스타트 반김(store)', () => {
     now += 60_000;
     dispatch({ type: 'tap', target: 'body', holdMs: 100, x: 0, y: -0.3 });
     expect(getV3()!.sim.relation.jeongDays).toBe(1);
+  });
+});
+
+describe('머뭇거림부터 큰 반김까지 글 0(리뷰 H1)', () => {
+  it('72h 이상 계획은 첫 터치 전까지 조용(Infinity) — 머뭇거림 스위치와 무관. 그 밖 반김은 구간을 바꾸지 않는다', () => {
+    for (const hesitation of [true, false]) expect(quietOnGreet(greetPlan({ tier: 'long', waiting: true }, { hesitation }))).toBe(Number.POSITIVE_INFINITY);
+    for (const tier of ['glance', 'joy', 'wait'] as const) expect(quietOnGreet(greetPlan({ tier, waiting: true }, { hesitation: true }))).toBeNull();
+    expect(textAllowed(1e15, Number.POSITIVE_INFINITY)).toBe(false);
+  });
+  it('첫 터치 뒤에는 머뭇거림이 끝난 때부터 큰 반김 길이만큼 조용하고, 그 뒤엔 글이 다시 된다', () => {
+    expect(BIG_GREET_MS).toBe(GREET_MS[CUE.greetBig]);
+    const q = quietOnFirstTouch(1000, 1800);
+    expect(q).toBe(1800 + BIG_GREET_MS);
+    expect(textAllowed(q - 1, q)).toBe(false);
+    expect(textAllowed(q, q)).toBe(true);
+    expect(quietOnFirstTouch(5000, 1800)).toBe(5000 + BIG_GREET_MS);
+  });
+  it('store: 80h 뒤 돌아오면 반김(long)만 — 정 신호(자막 후보)가 하나도 없다(core 규칙, 정 4·익숙한 시각이어도)', () => {
+    boot();
+    install({ x: 0, y: 0 });
+    // 날마다 같은 시각에 와서 쓰다듬는다(정 4 이상 + 익숙한 시각)
+    for (let d = 0; d < 6; d++) {
+      now += 60_000;
+      dispatch({ type: 'tap', target: 'body', holdMs: 100, x: 0, y: -0.3 });
+      goBackground();
+      now += 24 * H - 60_000;
+      dispatch({ type: 'appForeground', tzOffsetMin: 540 });
+    }
+    expect(v3.jeongOf(getV3()!)).toBeGreaterThanOrEqual(4);
+    goBackground();
+    now += 96 * H;
+    const fx = dispatch({ type: 'appForeground', tzOffsetMin: 540 });
+    const g = fx.find((e) => e.type === 'greeted');
+    expect(g).toMatchObject({ tier: 'long' });
+    const shown = fx.filter((e) => e.type === 'jeongSignal' && captionShown(e, { jeong: true, jeongCaptions: true }));
+    expect(shown).toEqual([]);
+    expect(fx.filter((e) => e.type === 'jeongSignal')).toEqual([]);
+  });
+  it('GameApp: 안내 한 줄(flash)·스크린리더 알림(announce)·정 자막은 모두 textAllowed 문을 지난다 — 알림 직접 호출은 한 곳뿐', () => {
+    const app = src('src/game/GameApp.tsx');
+    expect(app.match(/AccessibilityInfo\.announceForAccessibility\(/g)).toHaveLength(1);
+    expect(app).toMatch(/if \(textAllowed\(Date\.now\(\), quietUntil\.current\)\) AccessibilityInfo\.announceForAccessibility\(text\);/);
+    expect(app).toMatch(/const flash = useCallback\(\(text: string, ms = 3400\) => \{\n\s+if \(!textAllowed\(Date\.now\(\), quietUntil\.current\)\) return;/);
+    expect(app).toMatch(/if \(!st \|\| !textAllowed\(Date\.now\(\), quietUntil\.current\)\) return;/);
+    // 72h 반김이 시작되면 떠 있던 한 줄·자막도 거둔다
+    expect(app).toMatch(/quietUntil\.current = q;\n\s+if \(lineTimer\.current\) clearTimeout\(lineTimer\.current\);\n\s+setLine\(''\);\n\s+setCaption\(null\);/);
+    expect(app).toMatch(/if \(f\.cue === 'big'\) quietUntil\.current = quietOnFirstTouch\(Date\.now\(\), f\.notBefore\);/);
+  });
+});
+
+describe('정 자막 스크린리더(리뷰 M1): Android = 자막 띠 liveRegion polite, iOS = 자막을 보일 때 알림 한 번', () => {
+  it('GameHome 자막 띠는 polite(끼어들지 않음) 하나, GameApp은 iOS에서만 자막 알림', () => {
+    const home = src('src/screens/GameHome.tsx');
+    const band = home.slice(home.indexOf('function CaptionBand'), home.indexOf('function ObjLabel'));
+    expect(band).toMatch(/accessibilityLiveRegion="polite"/);
+    expect(band).not.toMatch(/assertive/);
+    const app = src('src/game/GameApp.tsx');
+    expect(app).toMatch(/if \(Platform\.OS === 'ios'\) announce\(text\);/);
+  });
+});
+
+describe('미뤄 둔 반김은 마지막 한 번만(리뷰 L2)', () => {
+  it('새 반김이 오면 앞 반김과 그 뒤 자막 신호를 버리고, 자막 신호는 중복 없이', () => {
+    let q = emptyGreetQueue<string>();
+    q = queueGreet(q, 'g1');
+    q = queueCaption(q, 'recognize');
+    q = queueCaption(q, 'recognize');
+    expect(q).toEqual({ greet: 'g1', captions: ['recognize'] });
+    q = queueGreet(q, 'g2');
+    q = queueCaption(q, 'wait');
+    expect(q).toEqual({ greet: 'g2', captions: ['wait'] });
+  });
+});
+
+describe('플래그 jeong 꺼짐 = M4 이전 v3(리뷰 M2)', () => {
+  it('GameApp은 jeong이 켜졌을 때만 한 마디에 jeong 칸을 싣고, 부르기 이벤트를 보낸다', () => {
+    const app = src('src/game/GameApp.tsx');
+    expect(app).toMatch(/\.\.\.\(isOn\('jeong'\) \? \{ jeong: true \} : \{\}\)/);
+    expect(app).toMatch(/const called = isV3Mode\(\) && isOn\('jeong'\) \? dispatch\(\{ type: 'call'/);
+  });
+  it('store: jeong 칸 없는 한 마디는 정을 올리지 않고, 세이브에 captionsShown 칸이 생기지 않는다', () => {
+    boot();
+    install({ x: 0, y: 0 });
+    now += 60_000;
+    dispatch({ type: 'grind', durationMs: 9000 });
+    const raw = Array.from({ length: 60 }, (_, i) => ({ x: Math.sin(1.4 + i / 50) * (0.56 + i / 300), y: -Math.cos(1.4 + i / 50) * (0.56 + i / 300), t: i * 15 }));
+    const fx = dispatch({ type: 'write', word: { ...v3.storedWordOf(v3.interpretWord('비', 'ko')), lexVer: v3.LEX_VER, source: 'keyboard' }, chars: 1, raw });
+    expect(fx.some((e) => e.type === 'wordAccepted')).toBe(true);
+    expect(getV3()!.sim.relation.jeongDays).toBe(0);
+    expect(kv.m.get(v3.V3_KEYS.main)).not.toContain('captionsShown');
   });
 });

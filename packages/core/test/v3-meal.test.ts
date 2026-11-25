@@ -293,7 +293,7 @@ describe('세이브 v3 이행 — 세로 조각 세이브가 유실 없이 이�
   }
   it('세로 조각 세이브(9밤·정 3)를 읽으면 말·밤·밥 칸은 그대로, 이미 지난 이레·정의 열림만 채운다', () => {
     let s = days(fresh(), 3, { touch: true }).state;
-    // M4부터 한 마디(붓 획)도 정 한 칸이라, 정 3을 지키려고 뒤 6일은 말 없이 연적으로만 재운다
+    // M4(플래그 jeong 켜짐)에서는 한 마디도 정 한 칸이라, 어느 쪽이든 정 3이 되게 뒤 6일은 말 없이 연적으로만 재운다
     s = days(s, 6, { write: false }, 3).state;
     expect(v3.jeongOf(s)).toBe(3);
     s = { ...s, v3: { ...s.v3, meal: { ...s.v3.meal, nudgeOptIn: true } } };

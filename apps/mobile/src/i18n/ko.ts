@@ -612,11 +612,11 @@ export const ko = {
   'v3.inkstone.again': '다음 깸에 다시 뜰 수 있어요',
   'v3.inkstone.treatAgain': '다음 깸에 다시 꺼낼 수 있어요',
   'v3.fed.a11y': '{item} · 몽망이가 받았어요',
-  // M4 정 자막(시스템 3.8 — 관찰자 3인칭 한 줄, 처음 세 번만. 임시판, 정식 검수는 V14·C14)
-  'v3.jeong.recognize': '{name, josa, 이/가} 당신을 먼저 알아봤어요',
-  'v3.jeong.wait': '{name, josa, 은/는} 이맘때 당신이 오는 걸 기억해요',
-  'v3.jeong.offer': '{name, josa, 이/가} 좋아하는 자리를 내밀어요',
-  'v3.jeong.reply': '{name, josa, 이/가} 이름에 대답했어요',
+  // M4 정 자막(시스템 3.8 — 관찰자 3인칭 서술 한 줄 — 듣는 사람(당신)·몽망이 1인칭·말 걸기 없음, 처음 세 번만. 임시판, 정식 검수는 V14·C14)
+  'v3.jeong.recognize': '{name, josa, 이/가} 먼저 고개를 들어요',
+  'v3.jeong.wait': '{name, josa, 은/는} 이맘때면 종이 끝을 바라봐요',
+  'v3.jeong.offer': '{name, josa, 이/가} 좋아하는 자리를 살짝 내밀어요',
+  'v3.jeong.reply': '{name, josa, 이/가} 이름을 듣고 가락으로 대답해요',
   // ── 맡긴 것 보기(C12f — 처리방침 12절 열람) ──
   'note.cloud.view': '서버에 맡긴 것 보기',
   'note.cloud.view.a11y': '서버에 맡긴 것 보기 열기',

@@ -4,6 +4,8 @@
 import { describe, expect, it } from 'vitest';
 import { v3 } from '../src/index';
 import { H, KST, MIN, handStroke, kst } from './sim-helpers';
+import { PRE_M4_START, preM4Events } from './m4-off-seq';
+import preM4 from './fixtures/v3-pre-m4.json';
 
 const CORE = import.meta.glob<string>('../src/**/*.ts', { query: '?raw', import: 'default', eager: true });
 
@@ -34,7 +36,7 @@ function day(s: S, d: number, o: { touch?: boolean; write?: boolean; call?: bool
   const base = kst(11, 25 + d, 20);
   const ev: E[] = [{ type: 'appForeground', at: base, tzOffsetMin: KST }, { type: 'grind', at: base + MIN, durationMs: 9000 }];
   if (o.touch) ev.push({ type: 'tap', at: base + 90_000, target: 'body', holdMs: 100, x: 0.3, y: -0.3 });
-  if (o.write) ev.push({ type: 'write', at: base + 2 * MIN, word: word(o.text ?? '비'), chars: 1, raw: handStroke(d + 1) });
+  if (o.write) ev.push({ type: 'write', at: base + 2 * MIN, word: word(o.text ?? '비'), chars: 1, raw: handStroke(d + 1), jeong: true });
   if (o.call) ev.push({ type: 'call', at: base + 3 * MIN, melody: true });
   ev.push({ type: 'putToSleep', at: base + 2 * H });
   ev.push({ type: 'appBackground', at: base + 2 * H + MIN });
@@ -68,7 +70,7 @@ describe('정 = 만진 깸의 수, 쌓이기만 한다(시스템 3.8, D-03)', ()
     for (const ev of [
       { type: 'tap', at: at + 5000, target: 'body', holdMs: 100, x: 0, y: -0.3 },
       { type: 'tap', at: at + 5000, target: 'body', holdMs: 900, x: 0, y: -0.3 },
-      { type: 'write', at: at + 5000, word: word('비'), chars: 1, raw: handStroke(1) },
+      { type: 'write', at: at + 5000, word: word('비'), chars: 1, raw: handStroke(1), jeong: true },
       { type: 'call', at: at + 5000, melody: false },
     ] as E[]) {
       const once = play(base, [ev]).state;
@@ -298,18 +300,19 @@ describe('정 자막 — 신호마다 처음 세 번만(세이브 captionsShown,
 
   it('jeongCaption을 보내지 않으면(플래그 꺼짐) 횟수는 그대로 — 나중에 켜도 처음 세 번이 남아 있다', () => {
     const s = days(fresh(), 6, { touch: true, call: true }).state;
-    expect(s.v3.captionsShown).toEqual([0, 0, 0, 0]);
+    expect(s.v3.captionsShown).toBeUndefined();
     expect(v3.JEONG_SIGNALS.every((x) => v3.captionDue(s, x))).toBe(true);
   });
 });
 
 describe('세이브 v3 — captionsShown 이행(멱등)·기기 전용', () => {
-  it('칸이 없는 옛 v3 세이브(세로 조각·V27)는 0 넷으로 읽고, 다시 쓰고 읽어도 같은 바이트', () => {
+  it('칸이 없는 옛 v3 세이브(세로 조각·V27·jeong 꺼짐)는 없는 채로(= 0 넷) 읽고, 다시 쓰고 읽어도 같은 바이트', () => {
     const s = days(fresh(), 4, { touch: true, write: true }).state;
     const o = JSON.parse(v3.serializeV3(s, kst(12, 1, 9))) as { v3: Record<string, unknown> };
     delete o.v3.captionsShown;
     const back = v3.parseV3(JSON.stringify(o));
-    expect(back.v3.captionsShown).toEqual([0, 0, 0, 0]);
+    expect(back.v3.captionsShown).toBeUndefined();
+    expect(v3.JEONG_SIGNALS.every((x) => v3.captionDue(back, x))).toBe(true);
     const once = v3.serializeV3(back, kst(12, 1, 9));
     const twice = v3.serializeV3(v3.parseV3(once), kst(12, 1, 9));
     expect(twice).toBe(once);
@@ -429,5 +432,73 @@ describe('위기 판정 흔적 0 · 결정적(D-13)', () => {
     collect([...v3.JEONG_SIGNALS]);
     expect(names.size).toBeGreaterThan(10);
     expect([...names].filter((n) => BAN.test(n))).toEqual([]);
+  });
+});
+
+describe('플래그 jeong 꺼짐 = M4 이전 v3와 바이트 동일(리뷰 M2)', () => {
+  it('M4 이전 코드(main 6199815)로 만든 세이브와 사건마다 sha256·끝 원문이 같다', () => {
+    const fx = preM4 as { sha: string[]; last: string };
+    let s = v3.createV3(PRE_M4_START, KST, 7, { birth: { x: 0.1, y: -0.2, ms: PRE_M4_START, installAt: PRE_M4_START, entropy: 0x1234 } });
+    const sha: string[] = [];
+    let last = '';
+    for (const e of preM4Events((t) => word(t))) {
+      s = v3.reduceV3(s, e as E).state;
+      last = v3.serializeV3(s, (e as { at: number }).at);
+      sha.push(v3.sha256Hex(last));
+    }
+    expect(sha.length).toBe(fx.sha.length);
+    expect(sha).toEqual(fx.sha);
+    expect(last).toBe(fx.last);
+    expect(last).not.toContain('captionsShown');
+  });
+  it('jeong 칸이 없는 한 마디는 정을 올리지 않는다(켜짐이면 올림)', () => {
+    const at = kst(11, 25, 10);
+    const base = play(fresh(), [{ type: 'grind', at, durationMs: 9000 }]).state;
+    const w = { type: 'write', at: at + 1000, word: word('비'), chars: 1, raw: handStroke(1) } as const;
+    expect(play(base, [w]).state.sim.relation.jeongDays).toBe(0);
+    expect(play(base, [{ ...w, jeong: false }]).state.sim.relation.jeongDays).toBe(0);
+    expect(play(base, [{ ...w, jeong: true }]).state.sim.relation.jeongDays).toBe(1);
+  });
+});
+
+describe('머뭇거림부터 큰 반김까지 글 0 — 72h 이상엔 정 신호 없음(리뷰 H1)', () => {
+  const back = (s: S, hours: number, h0 = 20) => {
+    const out = kst(11, 30, h0);
+    return play(s, [
+      { type: 'appBackground', at: out },
+      { type: 'appForeground', at: out + hours * H, tzOffsetMin: KST },
+    ]);
+  };
+  it('정 6·익숙한 시각이라도 72h·96h·216h 비운 뒤엔(같은 저녁 시각) 반김(long)만, 정 신호(자막 후보) 0', () => {
+    const s = days(fresh(), 7, { touch: true }).state;
+    expect(v3.jeongOf(s)).toBeGreaterThanOrEqual(4);
+    for (const h of [72, 96, 216]) {
+      const r = back(s, h);
+      const g = greetOf(r.effects);
+      expect(g, `${h}h`).toHaveLength(1);
+      expect(g[0]!.tier).toBe('long');
+      expect(signals(r.effects), `${h}h`).toEqual([]);
+    }
+  });
+  it('기다림 신호는 30h 미만(glance·joy)에서만 — 30~72h(wait)는 반김 몸짓만', () => {
+    const s = days(fresh(), 7, { touch: true }).state;
+    const at = (h: number) => signals(back(s, h).effects).map((x) => x.signal);
+    expect(at(24)).toEqual(['recognize', 'wait']); // 같은 시각, joy
+    expect(at(48)).toEqual(['recognize']); // wait 단계: 기다림 자막 없음
+  });
+});
+
+describe('위기 흔적 0 — 한 마디만 쓴 날(리뷰 L4)', () => {
+  it('몸 탭·부르기 없이 한 마디만 쓴 날도, 위기 말·고요한 말의 정·relation 바이트가 같다', () => {
+    const run = (text: string) => {
+      let s = fresh();
+      for (let d = 0; d < 5; d++) s = day(s, d, { write: true, text: d === 2 ? text : '비' }).state;
+      return s;
+    };
+    const a = run('죽고싶어');
+    const b = run('고마워');
+    expect(a.sim.relation.jeongDays).toBe(5);
+    expect(JSON.stringify(a.sim.relation)).toBe(JSON.stringify(b.sim.relation));
+    expect(v3.jeongOf(a)).toBe(v3.jeongOf(b));
   });
 });

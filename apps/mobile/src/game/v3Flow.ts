@@ -145,3 +145,41 @@ export function captionShown(sig: { caption: boolean }, flags: { jeong: boolean;
 /** 정 자막 띠: 1.6초 뒤 흐려지기 시작해 0.6초에 걸쳐 사라진다(아트 7-5 '흐려짐') */
 export const CAPTION_HOLD_MS = 1600;
 export const CAPTION_FADE_MS = 600;
+
+// ── M4 리뷰 H1: 머뭇거림부터 첫 터치 뒤 큰 반김이 끝날 때까지 글 0(자막·안내 한 줄·스크린리더 알림) ──
+
+/** 큰 반김 길이(answer.ts GREET_MS[greetBig]와 같아야 한다 — 시험) */
+export const BIG_GREET_MS = 3000;
+
+/**
+ * 반김이 시작될 때 조용한 구간의 끝(ms, Date.now 기준). 72h 이상(첫 터치 = 큰 반김)이면 첫 터치 전까지 끝이 없다(Infinity).
+ * 머뭇거림 스위치가 꺼져 기다림 자세로 열어도 같다. 그 밖의 반김은 구간을 바꾸지 않는다(null)
+ */
+export function quietOnGreet(plan: GreetPlan): number | null {
+  return plan.firstTouch === 'big' ? Number.POSITIVE_INFINITY : null;
+}
+
+/** 첫 터치: 큰 반김은 머뭇거림이 끝난 뒤(notBefore) 시작해 BIG_GREET_MS 동안 — 그때까지 조용하다 */
+export function quietOnFirstTouch(now: number, notBefore: number): number {
+  return Math.max(now, notBefore) + BIG_GREET_MS;
+}
+
+/** 지금 글(자막·안내 한 줄·스크린리더 알림)을 내도 되는가 */
+export function textAllowed(now: number, quietUntil: number): boolean {
+  return now >= quietUntil;
+}
+
+/** 낮 홈이 아닐 때 미뤄 둔 반김: 반김은 마지막 한 번만, 자막 신호는 그 반김 뒤에 난 것만(중복 없이) — 리뷰 L2 */
+export interface GreetQueue<F> {
+  greet: F | null;
+  captions: v3.JeongSignal[];
+}
+export function emptyGreetQueue<F>(): GreetQueue<F> {
+  return { greet: null, captions: [] };
+}
+export function queueGreet<F>(q: GreetQueue<F>, greet: F): GreetQueue<F> {
+  return { greet, captions: [] };
+}
+export function queueCaption<F>(q: GreetQueue<F>, signal: v3.JeongSignal): GreetQueue<F> {
+  return q.captions.includes(signal) ? q : { ...q, captions: [...q.captions, signal] };
+}
