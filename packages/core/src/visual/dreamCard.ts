@@ -13,7 +13,7 @@
 import { hexRgb, mixHex, type InkLook } from './ink';
 import { simplifyStroke } from '../geometry/simplify';
 import type { RawPoint, StrokeRecord } from '../geometry/types';
-import { MOTIFS, motifUsable } from '../sim/dreamMotifs';
+import { MOTIFS, dreamArtRevOf, motifUsable } from '../sim/dreamMotifs';
 import { isMoonMotifId, moonMotifUsable } from '../moon/motifs';
 import { rngNext } from '../sim/rng';
 import type { DreamCard } from '../sim/types';
@@ -82,6 +82,8 @@ export interface DreamScene {
   friend: { x: number; y: number; r: number } | null;
   /** 상한 때문에 합치거나 뺀 조작 수(0이어야 정상 — 테스트가 지킨다) */
   trimmed: number;
+  /** 그림 판(0 = 빌드 1 그림). 판 0에서는 키 자체가 없다(빌드 1 장면 해시 그대로) */
+  artRev?: number;
   /**
    * C14b 붓 형상(경로 `paths`가 있는 모티프만 — 빌드 1의 10개는 없음). 마블링 위·몽망이 아래에 먹·담묵·금 붓으로 그린다.
    * 없을 때는 키 자체가 없다(빌드 1 장면 해시 그대로)
@@ -257,6 +259,11 @@ export function dreamMotifShape(motifId: string, dev: boolean): string {
   return 'center.moon';
 }
 
+/** 곁 방울이 몽망이와 '맞닿음'으로 보는 거리(카드 폭, 몽망이 중심 기준) — 이보다 멀면 작게·눈 없이 */
+export const FRIEND_ADJ = 0.2;
+/** 맞닿지 않은 곁 방울의 몸 배율 상한(둥글고 검은 덩어리가 두 번째 몽망이로 읽히지 않게) */
+export const FRIEND_FAR_MAX = 0.3;
+
 /** C14b 붓 형상 카드의 고리 중심: 인화 중심에서 몽망이 반대쪽으로 이 배(R)만큼 */
 export const RING_OFF = 1;
 
@@ -268,6 +275,10 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
   const rnd = makeRng(seed ^ 0x9e3779b9);
   const lay = dreamCardLayout(aspect);
   const motif = dreamMotifShape(card.motifId, dev === true);
+  // 그림 판(코드 리뷰 H1·M-2): 판 0 = 빌드 1 그림(꿈 콘텐츠가 꺼진 카드 — 판 번호 없음), 판 1 = C14b 그림. 빌드 1 모티프의 바뀐 그림(창가 손·
+  // 찻잔 둘·바다 손·곁 방울 규칙)은 판 1 카드(꿈 콘텐츠가 켜진 밤에 받은 카드)에만 쓴다
+  const rev = dreamArtRevOf(card);
+  const v1 = rev >= 1;
   const B = clamp(card.inkTone, 0, 1);
   const T = clamp(card.flow, -1, 1);
   const n = strokes.length;
@@ -310,7 +321,7 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       ringC.x = side * 0.13;
       ringC.y = tall ? -0.3 : -0.24;
       ringShare = 0.5;
-      anchor.x = -side * 0.12;
+      anchor.x = v1 ? -side * 0.16 : -side * 0.12;
       anchor.y = tall ? 0.16 : 0.13;
       break;
     case 'far-alone.mountain':
@@ -327,10 +338,11 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       ringShare = 0.95;
       break;
     case 'far-with.sea-hand':
+      // 6차(블라인드 64px: '혼자 보는 바다'와 같은 수평 타원) — 둘은 바다 **아래** 물가에 앉고 바다는 위로 올린다
       ringC.x = side * 0.06;
-      ringC.y = 0.03;
+      ringC.y = v1 ? -0.05 : 0.03;
       anchor.x = -side * 0.07;
-      anchor.y = tall ? -0.14 : -0.1;
+      anchor.y = v1 ? (tall ? 0.16 : 0.12) : tall ? -0.14 : -0.1;
       ringShare = 0.95;
       break;
     case 'far-with.stars-drops':
@@ -459,8 +471,10 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       late.push({ k: 'wave', dx: 1, dy: 0, amp: 0.034, freq: 13, phase: rnd() * 6.28 });
       late.push({ k: 'curl', x: ringC.x, y: ringC.y - 0.06, angle: side * 2.2, radius: 0.11 });
       if (two) {
-        const fx = side * 0.27;
-        vessels.push({ kind: 'cup', x: fx, y: 0.05, w: 0.2, h: 0.1, handle: side as 1 | -1, friend: true });
+        // 6차(블라인드 64px: '찻잔 하나'와 같은 구도) — 둘째 잔을 더 떨어뜨려 비스듬히 위에 두고, 김을 그쪽으로 눕힌다
+        const fx = side * (v1 ? 0.31 : 0.27);
+        vessels.push({ kind: 'cup', x: fx, y: v1 ? -0.03 : 0.05, w: 0.2, h: 0.1, handle: side as 1 | -1, friend: true });
+        if (v1) late.push({ k: 'tine', x: ringC.x, y: ringC.y, dx: side * 0.07, dy: 0, lambda: 0.12, len: 0, gauss: true });
         // 두 잔의 김이 꼬여 하나로(서로 반대 방향 소용돌이)
         post.push({ op: { k: 'curl', x: ringC.x - side * 0.08, y: ringC.y + 0.06, angle: side * 1.6, radius: 0.1 }, p: 2 });
         post.push({ op: { k: 'curl', x: ringC.x + side * 0.08, y: ringC.y - 0.02, angle: -side * 1.6, radius: 0.1 }, p: 2 });
@@ -483,8 +497,18 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       // 담묵 면 창 네 칸 + 밝은 바탕 틈(그림 `window`)
       const wx = -side * 0.14;
       const wy = -0.19;
-      final.push({ k: 'drop', x: wx, y: wy, r: 0.085, ink: 0.16 });
-      vessels.push({ kind: 'window', x: wx, y: wy - 0.075, w: 0.118, h: 0.15, handle: 1, friend: false });
+      if (v1) {
+        final.push({ k: 'drop', x: wx, y: wy, r: 0.085, ink: 0.16 });
+        vessels.push({ kind: 'window', x: wx, y: wy - 0.075, w: 0.118, h: 0.15, handle: 1, friend: false });
+      } else {
+        // 판 0(빌드 1): 짙은 테 맑은 방울 넷을 맞대 창살
+        for (let k = 0; k < 4; k++) {
+          const x = wx + (k % 2 ? 0.047 : -0.047);
+          const y = wy + (k < 2 ? -0.047 : 0.047);
+          final.push({ k: 'drop', x, y, r: 0.016, ink: 0.8 });
+          final.push({ k: 'drop', x, y, r: 0.044, ink: 0 });
+        }
+      }
       calm = 0.6;
       break;
     }
@@ -503,9 +527,10 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
     case 'far-alone.sea':
     case 'far-with.sea-hand': {
       // 바다: 고리를 가로로 펴 물띠 → 몽망이 아래로 내림 + 너울(가로 빗질은 넓게 — 좁으면 찢긴 화면처럼 보임)
-      late.push({ k: 'scale', x: ringC.x, y: ringC.y, sx: 1.55, sy: 0.48 });
-      late.push({ k: 'tine', x: 0, y: 0, dx: 0, dy: 0.085 * (tall ? 1.2 : 1), lambda: 40, len: 0, gauss: true });
-      for (let k = 0; k < 3; k++) late.push({ k: 'tine', x: 0, y: 0.11 + k * 0.06, dx: (k % 2 ? -1 : 1) * 0.045, dy: 0, lambda: 0.028, len: 0 });
+      const up = v1 && motif === 'far-with.sea-hand' ? -1 : 1;
+      late.push({ k: 'scale', x: ringC.x, y: ringC.y, sx: 1.55, sy: up < 0 ? 0.62 : 0.48 });
+      late.push({ k: 'tine', x: 0, y: 0, dx: 0, dy: up * 0.085 * (tall ? 1.2 : 1), lambda: 40, len: 0, gauss: true });
+      for (let k = 0; k < 3; k++) late.push({ k: 'tine', x: 0, y: up * (0.11 + k * 0.06), dx: (k % 2 ? -1 : 1) * 0.045, dy: 0, lambda: 0.028, len: 0 });
       late.push({ k: 'wave', dx: 0, dy: 1, amp: 0.011, freq: 15, phase: rnd() * 6.28 });
       if (motif === 'far-with.sea-hand') {
         // 손잡고 본 바다: 곁에 작은 방울 하나, 두 자리가 맞닿아 한 웅덩이
@@ -554,6 +579,9 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       break;
     }
   }
+
+  // 곁 방울 규칙(블라인드 판정 '두 번째 몽망이'): 몽망이에 맞닿지 않은 둥글고 검은 덩어리는 몸의 FRIEND_FAR_MAX배까지만
+  if (v1 && friend && Math.hypot(friend.x, friend.y) > FRIEND_ADJ) friend = { ...friend, r: Math.min(friend.r, FRIEND_FAR_MAX) };
 
   // 3) 획 빗질: 몽망이 둘레에서, 간밤 획이 가장 세게. 끄는 세기는 번짐 폭 이하(그보다 세면 물이 접혀 조각이 튄다)
   const segs: DreamSeg[] = [];
@@ -659,5 +687,6 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
     friend,
     trimmed,
     ...(motifInk ? { motifInk } : {}),
+    ...(v1 ? { artRev: rev } : {}),
   };
 }

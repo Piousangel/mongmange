@@ -9,7 +9,8 @@ import { DreamCard, type DreamCardLabels } from './DreamCard';
 import { renderDreamCardImage } from './renderImage';
 
 /**
- * 미리보기: ?screen=card&motif=<id>&seed=<n>&t=a|b|c&aspect=45|916&comp=0|1|2&hand=base|clumsy&night=7&export=1
+ * 미리보기: ?screen=card&motif=<id>&seed=<n>&t=a|b|c&aspect=45|916&comp=0|1|2&hand=base|clumsy&night=7&export=1&rev=0|1
+ * rev = 그림 판(C14b): 없으면 카드에 판 번호를 싣지 않는다(빌드 1 카드 = 판 0, 새 모티프 = 판 1)
  * export=1이면 공유 이미지 함수(renderDreamCardImage)의 결과 PNG를 그대로 보여 주고 window.__dreamPng에 base64를 둔다.
  */
 export function DreamCardPreview() {
@@ -21,6 +22,7 @@ export function DreamCardPreview() {
   const aspect: DreamAspect = q.get('aspect') === '916' ? '9:16' : '4:5';
   const night = Number(q.get('night') ?? 7);
   const comp = q.get('comp');
+  const rev = q.get('rev');
   const exportMode = q.get('export') === '1';
   const temper = DREAM_TEMPERS[t] ?? DREAM_TEMPERS.b;
   const card: sim.DreamCard = useMemo(
@@ -33,8 +35,9 @@ export function DreamCardPreview() {
       flowSeed: Math.imul(seed + 1, 2654435761) >>> 0,
       strokeRef: null,
       nightsMerged: 1,
+      ...(rev !== null ? { artRev: Number(rev) } : {}),
     }),
-    [night, motifId, comp, seed, temper],
+    [night, motifId, comp, seed, temper, rev],
   );
   const strokes = useMemo(() => (q.get('hand') === 'clumsy' ? day7ClumsyRecords() : day7Records()).slice(0, Math.max(1, Math.min(7, night))), [q, night]);
   const labels: DreamCardLabels = cardLabels(card, morningLine({ kind: 'observation', axis: null, keys: [] }, card));

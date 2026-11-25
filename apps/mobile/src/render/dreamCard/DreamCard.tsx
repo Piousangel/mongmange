@@ -47,6 +47,7 @@ import {
   sealOutlineOf,
   motifInkLayers,
   MOTIF_INK_MAX,
+  FRIEND_ADJ,
   WASH_FACE,
   hexRgb,
   type MotifInkLayer,
@@ -132,6 +133,11 @@ export interface DreamArt {
   friend: { t: object[]; geo: BodyGeo; eyes: boolean } | null;
   ringPx: { x: number; y: number; r: number };
   seal: { plate: SkPath; figure: SkPath; combs: Verts; eyes: SkPath };
+  /**
+   * 제목 안전 여백(블라인드 판정 '제목이 그림에 겹침'): 이름 줄 자리를 한지로 다시 덮는 사각형(픽셀)과 사라지는 방향.
+   * 가로 이름 = 위 띠(아래로 사라짐), 세로 이름(한국어) = 오른쪽 기둥(왼쪽으로 사라짐)
+   */
+  titleSafe: { x: number; y: number; width: number; height: number; fadeFrom: { x: number; y: number }; fadeTo: { x: number; y: number } } | null;
   /** 낙관을 그리나(이레 영상 카드 줄은 끔 — 주사는 한 화면 한 곳) */
   showSeal: boolean;
   dots: { x: number; y: number; r: number; kind: 'past' | 'now' | 'future' }[];
@@ -284,6 +290,8 @@ interface QuiltArt {
   path: SkPath;
   seams: SkPath;
   fold: SkPath;
+  /** 판 1(C14b) 박음질 땀·번진 가장자리. 판 0 = 빌드 1 격자 빗금·먹 테 */
+  v1: boolean;
 }
 interface CupArt {
   kind: 'cup';
@@ -361,30 +369,42 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
     pb.cubicTo(cx - w * 0.1, top + h * 1.04, cx - w * 0.46, top + h * 0.95, cx - w * 0.56, edge[1]! + h * 0.3);
     pb.cubicTo(cx - w * 0.58, edge[1]! + h * 0.12, cx - w * 0.52, edge[1]!, edge[0]!, edge[1]!);
     pb.close();
-    // 누빔 박음질: 비스듬한 두 방향 줄을 따라 짧은 땀(길이·간격·어긋남이 시드로 흔들림) — 격자 빗금은 라켓·그물로 읽혔다(C14b 아트 리뷰 16)
     const seams = Skia.PathBuilder.Make();
-    const k = u(0.056);
-    const sj = jitter(scene.seed + 31);
-    let st = 0;
-    for (let d = -w; d <= w + h; d += k) {
-      for (const dir of [1, -1] as const) {
-        const x0 = dir === 1 ? cx - w / 2 + d : cx - w / 2 + d - h * 1.2;
-        const y0 = top - u(0.02);
-        const x1 = dir === 1 ? cx - w / 2 + d - h * 1.2 : cx - w / 2 + d;
-        const y1 = top + h * 1.2;
-        const L = Math.hypot(x1 - x0, y1 - y0);
-        for (let t = (0.5 + sj(st++)) * u(0.012); t < L; ) {
-          const len = u(0.007) * (1 + 0.6 * sj(st++));
-          const off = u(0.0016) * sj(st++ * 3);
-          const ax = x0 + ((x1 - x0) * t) / L + off;
-          const ay = y0 + ((y1 - y0) * t) / L;
-          seams.moveTo(ax, ay);
-          seams.lineTo(ax + ((x1 - x0) * len) / L, ay + ((y1 - y0) * len) / L);
-          t += len + u(0.012) * (1 + 0.8 * Math.abs(sj(st++)));
+    if (rev >= 1) {
+      // 누빔 박음질: 비스듬한 두 방향 줄을 따라 짧은 땀(길이·간격·어긋남이 시드로 흔들림) — 격자 빗금은 라켓·그물로 읽혔다(C14b 아트 리뷰 16)
+      const k = u(0.056);
+      const sj = jitter(scene.seed + 31);
+      let st = 0;
+      for (let d = -w; d <= w + h; d += k) {
+        for (const dir of [1, -1] as const) {
+          const x0 = dir === 1 ? cx - w / 2 + d : cx - w / 2 + d - h * 1.2;
+          const y0 = top - u(0.02);
+          const x1 = dir === 1 ? cx - w / 2 + d - h * 1.2 : cx - w / 2 + d;
+          const y1 = top + h * 1.2;
+          const L = Math.hypot(x1 - x0, y1 - y0);
+          for (let t = (0.5 + sj(st++)) * u(0.012); t < L; ) {
+            const len = u(0.007) * (1 + 0.6 * sj(st++));
+            const off = u(0.0016) * sj(st++ * 3);
+            const ax = x0 + ((x1 - x0) * t) / L + off;
+            const ay = y0 + ((y1 - y0) * t) / L;
+            seams.moveTo(ax, ay);
+            seams.lineTo(ax + ((x1 - x0) * len) / L, ay + ((y1 - y0) * len) / L);
+            t += len + u(0.012) * (1 + 0.8 * Math.abs(sj(st++)));
+          }
         }
       }
+
+    } else {
+      // 판 0(빌드 1): 격자 빗금
+      const k = u(0.034);
+      for (let d = -w; d <= w + h; d += k) {
+        seams.moveTo(cx - w / 2 + d, top - u(0.02));
+        seams.lineTo(cx - w / 2 + d - h * 1.2, top + h * 1.2);
+        seams.moveTo(cx - w / 2 + d - h * 1.2, top - u(0.02));
+        seams.lineTo(cx - w / 2 + d, top + h * 1.2);
+      }
     }
-    return { kind: 'quilt', path: pb.build(), seams: seams.build(), fold: polyPath(edge.map((v2, i) => (i % 2 ? v2 + u(0.008) : v2)), false) };
+    return { kind: 'quilt', path: pb.build(), seams: seams.build(), fold: polyPath(edge.map((v2, i) => (i % 2 ? v2 + u(0.008) : v2)), false), v1: rev >= 1 };
   }
   // 옆에서 본 찻잔: 입술 타원 + 사발 + 굽 + 받침. 유약은 같은 물의 다른 자리(마블링)
   const rx = w / 2;
@@ -426,6 +446,20 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
   };
 }
 
+/** 제목 안전 여백(카드 폭 단위 → 픽셀). 시험이 이 영역에 그림 먹이 남지 않는지 픽셀로 본다 */
+export function titleSafeArea(layout: DreamLayout, labels: DreamCardLabels, W: number): NonNullable<DreamArt['titleSafe']> {
+  const it = layout.text.find((t) => t.key === 'name')!;
+  const sh = layout.sheet;
+  if (isVertical(it, labels)) {
+    const n = [...labels.name].length;
+    const x0 = it.x - it.size * 1.6;
+    const y1 = it.y + n * it.size * 1.32 + it.size * 0.8;
+    return { x: x0 * W, y: sh.y * W, width: (sh.x + sh.w - x0) * W, height: (y1 - sh.y) * W, fadeFrom: { x: (it.x - it.size * 0.7) * W, y: 0 }, fadeTo: { x: x0 * W, y: 0 } };
+  }
+  const y1 = it.y + it.size * 1.9;
+  return { x: sh.x * W, y: sh.y * W, width: sh.w * W, height: (y1 - sh.y) * W, fadeFrom: { x: 0, y: (it.y + it.size * 0.5) * W }, fadeTo: { x: 0, y: y1 * W } };
+}
+
 export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx: number, aa: number, opts: DreamArtOpts = {}): DreamArt {
   // 개발 빌드만 미완 모티프(보름 번들 자리표시·초안)를 임시 형상으로 그린다. 제품은 형상 없는 일반 카드(core `dreamMotifShape`).
   // 꿈 모티프 25는 C14b 뒤 모두 형상이 있다(10 = 마블링 조작, 15 = 붓 경로 `scene.motifInk`)
@@ -439,18 +473,21 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   const c0 = { x: u(layout.print.x + scene.anchor.x), y: u(layout.print.y + scene.anchor.y) };
   const sheetPath = deckleRect(u(sh.x), u(sh.y), u(sh.w), u(sh.h), u(0.0035), u(0.0045), scene.seed & 0xffff);
   const pr = layout.print;
-  const fade: [number, number, number] = [u(pr.x), u(pr.y), u(pr.r * 1.18)];
+  // 인화 번짐 반경: 1.18R이면 바깥 감쇠가 한지 옆 가장자리(0.955)에 닿아 마블링이 네모로 잘려 보였다(블라인드 판정 '사각 페더') — 1.04R
+  // 9:16은 인화가 넓어 한지 옆 가장자리 안(여백 1.2%)으로 한 번 더 줄인다
+  const artRev = sim.dreamArtRevOf(input.card);
+  const v1 = artRev >= 1;
+  const fade: [number, number, number] = [u(pr.x), u(pr.y), v1 ? u(Math.min(pr.r * 1.04, (pr.x - sh.x - 0.012) / 1.12)) : u(pr.r * 1.18)];
   const lineItem = layout.text.find((t) => t.key === 'line')!;
   const yLim = u(lineItem.y - lineItem.size * 1.9);
-  const uniforms = marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim);
+  const uniforms = marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, [0, 0], v1 ? 1 : 0);
   const wpx = scene.body.w * W;
-  const artRev = sim.cardArtRev(input.card);
-  const vessels = scene.vessels.map((v) => vesselArt(v, c0, W, scene, (sft) => marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, sft), wpx, artRev));
+  const vessels = scene.vessels.map((v) => vesselArt(v, c0, W, scene, (sft) => marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, sft, v1 ? 1 : 0), wpx, artRev));
   // 몸 폭(1W)의 pt → LOD. 문법은 카드 몸에 쓰지 않으므로(획은 마블링으로 풀림) 눈·빗 배율만 쓴다
   const L = bodyLod(wpx * (opts.ptPerUnit ?? 1), GRAMMARS.C, opts.lod ?? false);
   const body = bodyGeometry(input.strokes.length, scene.body.s, true, shape, L.eyeScale, L.combScale);
   const friend = scene.friend
-    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false), eyes: !scene.motifInk }
+    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false), eyes: v1 ? !scene.motifInk && Math.hypot(scene.friend.x, scene.friend.y) <= FRIEND_ADJ : !scene.motifInk }
     : null;
   // 낙관: 주사 인면에 몽망이(빗 포함)를 양각으로 새김 — 글꼴 없이 그리는 이 앱만의 인장
   const sl = layout.seal;
@@ -503,6 +540,7 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
     ringPx: { x: c0.x + u(scene.ringC.x), y: c0.y + u(scene.ringC.y), r: u(pr.r) },
     seal: { plate, figure: fig.core, combs: fig.combs, eyes: fig.eyes },
     showSeal: opts.seal ?? true,
+    titleSafe: v1 ? titleSafeArea(layout, input.labels ?? defaultLabels(input.card), W) : null,
     dots,
     // 블러 마스크 장치 0.5px 하한(눈 소실 결함과 같은 GPU 문턱). 큰 카드는 입력 그대로
     blur: { shadow: blurFloorPt(W * 0.012, opts.devicePerUnit ?? 1), fold: blurFloorPt(W * 0.003, opts.devicePerUnit ?? 1) },
@@ -756,17 +794,36 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
             <Group key={`q${i}`}>
               <Path path={v.path} color="#EAE1CF" />
               <Group clip={v.path}>
-                <Path path={v.seams} style="stroke" strokeWidth={W * 0.0013} strokeCap="round" color={PALETTE.day.wash} opacity={0.75} />
+                {v.v1 ? (
+                  <Path path={v.seams} style="stroke" strokeWidth={W * 0.0013} strokeCap="round" color={PALETTE.day.wash} opacity={0.75} />
+                ) : (
+                  <Path path={v.seams} style="stroke" strokeWidth={W * 0.0014} color={PALETTE.day.inkFaded} opacity={0.85} />
+                )}
                 <Path path={v.fold} style="stroke" strokeWidth={W * 0.006} color={PALETTE.day.wash} opacity={0.6}>
                   <BlurMask blur={art.blur.fold} style="normal" />
                 </Path>
               </Group>
-              {/* 이불 가장자리는 짙은 테가 아니라 번진 담묵 — 마블링 띠로 이어진다 */}
-              <Path path={v.path} style="stroke" strokeWidth={lw * 1.6} color={PALETTE.day.strokeInk} opacity={0.4}>
-                <BlurMask blur={art.blur.fold} style="normal" />
-              </Path>
+              {/* 판 1: 이불 가장자리는 짙은 테가 아니라 번진 담묵 — 마블링 띠로 이어진다. 판 0 = 빌드 1 먹 테 */}
+              {v.v1 ? (
+                <Path path={v.path} style="stroke" strokeWidth={lw * 1.6} color={PALETTE.day.strokeInk} opacity={0.4}>
+                  <BlurMask blur={art.blur.fold} style="normal" />
+                </Path>
+              ) : (
+                <Path path={v.path} style="stroke" strokeWidth={lw} color={PALETTE.day.body} opacity={0.7} />
+              )}
             </Group>
           ),
+        )}
+        {/* 제목 안전 여백: 이름 줄 자리를 한지로 다시 덮어 마블링·모티프가 글과 겹치지 않게(가장자리는 부드럽게 사라짐) */}
+        {art.titleSafe && (
+        <Group layer>
+          <Rect rect={{ x: art.titleSafe!.x, y: art.titleSafe!.y, width: art.titleSafe!.width, height: art.titleSafe!.height }}>
+            <Shader source={paperFx} uniforms={paperU} />
+          </Rect>
+          <Rect rect={{ x: art.titleSafe!.x, y: art.titleSafe!.y, width: art.titleSafe!.width, height: art.titleSafe!.height }} blendMode="dstIn">
+            <LinearGradient start={vec(art.titleSafe!.fadeFrom.x, art.titleSafe!.fadeFrom.y)} end={vec(art.titleSafe!.fadeTo.x, art.titleSafe!.fadeTo.y)} colors={['#000000', 'rgba(0,0,0,0)']} />
+          </Rect>
+        </Group>
         )}
         {/* 일곱 날 점 줄(05b에서 가져온 장치) */}
         {art.dots.map((d, i) =>

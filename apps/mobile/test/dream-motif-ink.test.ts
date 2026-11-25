@@ -2,6 +2,8 @@
 // (번들과 원격이 같은 꼴 — 나중에 원격 팩으로 옮겨도 고칠 것 없음) ② dreamContent 플래그는 운영 기본 꺼짐, 개발 빌드 기본 켜짐.
 import { motifFileSchema } from '@mong/contract';
 import { sim } from '@mong/core';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEV_BUILD_ON, FEATURE_DEFAULTS, bundledDefault, isOn, remoteBundled, setFeature } from '../src/features';
 import { en } from '../src/i18n/en';
@@ -52,5 +54,34 @@ describe('dreamContent 플래그 — 운영 기본 꺼짐·개발 빌드 기본 
     expect(isOn('dreamContent')).toBe(true);
     setFeature('dreamContent', null);
     expect(isOn('dreamContent')).toBe(false);
+  });
+});
+
+describe('앱 에셋 등록 = 판 목록(코드 리뷰 H2·M-1)', () => {
+  const src = readFileSync(path.resolve(__dirname, '../src/render/dreamCard/motifRasters.ts'), 'utf8');
+
+  it('motifRasters.ts의 require 표(먹 + 가림)가 판마다 ART_REV_RASTERS와 같고, 줄의 키 = 파일 이름 = 판 폴더', () => {
+    const re = /'([^']+)': \[require\('\.\.\/\.\.\/\.\.\/assets\/motifs\/r(\d+)\/([^']+)\.webp'\), require\('\.\.\/\.\.\/\.\.\/assets\/motifs\/r(\d+)\/([^']+)\.mask\.webp'\)\]/g;
+    const got: Record<number, string[]> = {};
+    for (const m of src.matchAll(re)) {
+      expect(m[3], m[1]).toBe(m[1]);
+      expect(m[5], m[1]).toBe(m[1]);
+      expect(m[4], m[1]).toBe(m[2]);
+      (got[Number(m[2])] ??= []).push(m[1]!);
+    }
+    // 판 키 블록(`1: {`)과 그 안 require의 판 폴더가 같다
+    for (const block of src.matchAll(/\n {2}(\d+): \{([\s\S]*?)\n {2}\},/g)) for (const r of block[2]!.matchAll(/motifs\/r(\d+)\//g)) expect(r[1], `판 ${block[1]}`).toBe(block[1]);
+    const want = Object.fromEntries(Object.entries(sim.ART_REV_RASTERS).map(([r, ids]) => [Number(r), [...ids].sort()]));
+    expect(Object.fromEntries(Object.entries(got).map(([r, ids]) => [Number(r), ids.sort()]))).toEqual(want);
+  });
+
+  it('공유 이미지(네이티브·웹)는 그리기 전에 그 카드의 래스터를 기다린다(ensureMotifRasters → makeDreamArt 순서)', () => {
+    for (const f of ['renderImage.tsx', 'renderImage.web.tsx']) {
+      const t = readFileSync(path.resolve(__dirname, `../src/render/dreamCard/${f}`), 'utf8');
+      const body = t.slice(t.indexOf('export async function renderDreamCardImage'));
+      const a = body.indexOf('await ensureMotifRasters(input.card)');
+      expect(a, f).toBeGreaterThan(0);
+      expect(body.indexOf('makeDreamArt('), f).toBeGreaterThan(a);
+    }
   });
 });

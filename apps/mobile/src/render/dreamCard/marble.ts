@@ -61,6 +61,8 @@ export function marbleUniforms(
   fade: [number, number, number],
   yLim: number,
   shift: [number, number] = [0, 0],
+  /** 그림 판 결(0 = 빌드 1 셰이더 그대로, 1 = C14b 띠 농담·방울 가장자리 붓맛) — u2.w(남는 칸)에 싣는다 */
+  style = 0,
 ) {
   const pre = pack(scene.pre, NP);
   const post = pack(scene.post, NQ);
@@ -79,7 +81,7 @@ export function marbleUniforms(
   return {
     u0: [origin[0], origin[1], unit, aa],
     u1: [shift[0], shift[1], Math.max(0.8, unit / 700), yLim],
-    u2: [fade[0], fade[1], fade[2], 0],
+    u2: [fade[0], fade[1], fade[2], style],
     u3: [scene.pre.length, scene.post.length, scene.segs.length, 0],
     preA: pre.A,
     preB: pre.B,

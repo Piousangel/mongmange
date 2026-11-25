@@ -301,9 +301,13 @@ export const DREAM_ART_REV = 1;
 export const ART_REV_RASTERS: Readonly<Record<number, readonly string[]>> = {
   1: ['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand'],
 };
-/** 카드의 그림 판(없으면 1판 — 판 번호가 생기기 전 카드) */
-export function cardArtRev(c: Pick<DreamCard, 'artRev'>): number {
-  return typeof c.artRev === 'number' && c.artRev >= 1 ? c.artRev : 1;
+/**
+ * 카드의 그림 판. 판 0 = 빌드 1 그림(꿈 콘텐츠가 꺼진 밤의 카드 — 판 번호 없음, 코드 리뷰 H1). 새 모티프(C6) 카드는 판 번호가 없어도
+ * 1(판 번호가 생기기 전 개발 빌드 카드 — 세이브 이행 `withArtRev`와 같은 규칙). 렌더·장면은 이 값으로 그 판의 형상·래스터를 고른다
+ */
+export function dreamArtRevOf(c: Pick<DreamCard, 'artRev' | 'motifId'>): number {
+  if (typeof c.artRev === 'number' && c.artRev >= 1) return Math.floor(c.artRev);
+  return (motifById(c.motifId)?.unlockAtCards ?? 0) > 0 ? 1 : 0;
 }
 /**
  * 세이브 이행(멱등): 판 번호가 없는 C6 새 모티프 카드에 1을 적는다. 빌드 1 모티프·보름 카드는 건드리지 않아 세이브 문자열이 같고,

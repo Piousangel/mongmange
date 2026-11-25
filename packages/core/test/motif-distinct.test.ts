@@ -24,6 +24,17 @@ describe('형상이 들어온 모티프 — 64px 시트에서 헷갈리는 쌍 3
     expect(confusablePairs(items, CONFUSABLE_BELOW * 1.5)).toEqual([]);
   });
 
+  it('블라인드 판정(11-25)이 64px에서 헷갈린다고 한 쌍(경로 형상끼리): 징검다리↔은하수 다리, 벼루↔징검다리↔길 — 문턱 1.5배 넘게 떨어진다', () => {
+    const by = new Map(shapedMotifs().map((x) => [x.id, x]));
+    const PAIRS: [string, string][] = [
+      ['far-with.stepping-stones', 'far-with.star-bridge'],
+      ['near-alone.inkstone', 'far-with.stepping-stones'],
+      ['near-alone.inkstone', 'far-alone.path'],
+      ['far-with.stepping-stones', 'far-alone.path'],
+    ];
+    for (const [a, b] of PAIRS) expect(confusablePairs([by.get(a)!, by.get(b)!], CONFUSABLE_BELOW * 1.5), `${a} ↔ ${b}`).toEqual([]);
+  });
+
   it('보름 번들(4×3 시트, 번들 3개 먼저)', () => {
     const items = shapedMoons();
     expect(items.map((x) => x.id)).toEqual(GATED_MOONS);

@@ -4,7 +4,9 @@
 //  ③ 종이 결 지우기: 알파 0.06 아래는 0(한지 섬유·얼룩), 그 위는 다시 0..1로 펴기 — 종이 결은 앱이 공통 한 장을 얹는다
 //  ④ 최대 농도 = 0.72(MOTIF_INK_MAX): 알파 × 0.72
 //  ⑥ 가림 마스크(5차): 사물 실루엣(속 빈 곳 채움)을 같은 크기 알파 WebP로 — 앱이 종이색 토큰 × 가림 농도로 사물 밑에 깐다
-//  ⑤ 사물 경계 상자로 자르고(여백 3%) 긴 변 640px로 줄여 WebP(품질 0.8, 알파 포함 — 번들 예산: 장당 200KB·6장 900KB, 시험이 고정)로 저장
+//  ⑤ 사물 경계 상자로 자르고(여백 3%) 긴 변 640px로 줄여 WebP(품질 0.8, 알파 포함 — 번들 예산: 먹 장당 200KB·가림 24KB·판당 760KB·전체 2MB, 시험이 고정)로 저장
+// 출력: apps/mobile/assets/motifs/r<판>/ (ART_REV, 기본 1). **지난 판 폴더는 덮지 않는다** — 그림을 바꾸면 ART_REV를 올린다(이미 받은 카드는 그 판으로 그려진다).
+// 바이트 재현은 같은 playwright·Chromium 판에서만 보장된다(WebP 인코딩·리샘플을 Chromium canvas가 한다) — 판을 gen.json `tool`에 적는다
 // 사용: node scripts/motif-raster.mjs   (원본 docs/creative/c14b-ref/<이름>.jpg → apps/mobile/assets/motifs/<모티프 id>.webp + motifRasters.gen.json)
 // 원본은 Gemini 2048px PNG를 1536px JPG(품질 92)로 줄여 저장소에 둔다 — 이 스크립트는 저장소의 JPG만 읽어 같은 결과를 낸다
 import { chromium } from 'playwright';
@@ -17,7 +19,7 @@ export const PICKS = {
   'far-alone.kite': 'kite-o3',
   'near-with.umbrella': 'umbrella-o1',
   'far-alone.paper-boat': 'boat-o1',
-  'near-with.palm': 'palm-o3',
+  'near-with.palm': 'palm-o1', // 6차: o3(넓은 V)가 부메랑으로 읽혀 가는 U로
   'near-with.window-hand': 'window-o3',
 };
 const picks = { ...PICKS, ...(process.env.PICKS ? JSON.parse(process.env.PICKS) : {}) };
@@ -159,5 +161,5 @@ for (const [id, name] of Object.entries(picks)) {
   meta[id] = { rev: REV, ...opt, src: name, w: r.w, h: r.h, aspect: Number((r.w / r.h).toFixed(4)), paper: Math.round(r.paper), ink: Math.round(r.ink) };
   console.log(id, '←', name, `${r.w}×${r.h}`, `${Math.round(Buffer.from(r.webp, 'base64').length / 1024)}KB + 가림 ${Math.round(Buffer.from(r.mask, 'base64').length / 1024)}KB`);
 }
-writeFileSync(path.join(OUT, 'motifRasters.gen.json'), JSON.stringify(meta, null, 2) + '\n');
+writeFileSync(path.join(OUT, 'motifRasters.gen.json'), JSON.stringify({ tool: { playwright: JSON.parse(readFileSync(path.resolve('node_modules/playwright/package.json'), 'utf8')).version, chromium: browser.version() }, ...meta }, null, 2) + '\n');
 await browser.close();

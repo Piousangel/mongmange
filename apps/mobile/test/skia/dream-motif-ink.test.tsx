@@ -104,16 +104,40 @@ async function shootInk(id: string) {
 }
 
 /** 카드 그림 전체(글 제외)를 폭 PT로 */
-async function shootCard(c: import('@mong/core').sim.DreamCard) {
+async function shootCard(c: import('@mong/core').sim.DreamCard, o: { width?: number; labels?: import('../../src/render/dreamCard/DreamCard').DreamCardLabels } = {}) {
   const { makeOffscreenSurface, drawOffscreen } = headless();
   const { createElement } = await import('react');
-  const w = PT * DPR;
-  const art = DC.makeDreamArt({ card: c, strokes: core.day7Records() }, '4:5', w, 1, { devicePerUnit: 1, ptPerUnit: 1 / DPR });
+  const w = o.width ?? PT * DPR;
+  const art = DC.makeDreamArt({ card: c, strokes: core.day7Records(), labels: o.labels }, '4:5', w, 1, { devicePerUnit: 1, ptPerUnit: 1 / DPR });
   const h = Math.round(art.H);
   const surf = makeOffscreenSurface(w, h);
   const img = await drawOffscreen(surf, createElement(DC.DreamCardArt, { art }));
-  return { w, h, rgba: img.readPixels(0, 0, { width: w, height: h, colorType: 4, alphaType: 3 }) as Uint8Array, png: () => img.encodeToBytes() };
+  return { w, h, art, rgba: img.readPixels(0, 0, { width: w, height: h, colorType: 4, alphaType: 3 }) as Uint8Array, png: () => img.encodeToBytes() };
 }
+
+/** 제목 안전 여백 안(사라지는 가장자리 빼고)에서 한지보다 가장 짙은 정도(휘도 차, 0..255) */
+async function titleInk(id: string, labels: import('../../src/render/dreamCard/DreamCard').DreamCardLabels) {
+  // 제목 안전 여백은 판 1(꿈 콘텐츠) 카드 규칙 — 판 0(빌드 1)은 바이트 그대로
+  const shot = await shootCard(card(id, { artRev: 1 }), { width: 200, labels });
+  const t = shot.art.titleSafe!;
+  const vertical = t.fadeFrom.y === 0;
+  // 덮개가 완전히 불투명한 안쪽만: 가로 = 위 띠의 위 60%, 세로 = 기둥의 오른쪽 55%
+  const x0 = Math.ceil(vertical ? t.x + t.width * 0.45 : t.x + 4);
+  const x1 = Math.floor(t.x + t.width - 4);
+  const y0 = Math.ceil(t.y + 3);
+  const y1 = Math.floor(vertical ? t.y + t.height - 4 : t.fadeFrom.y);
+  const [pr, pg, pb] = core.hexRgb(core.PALETTE.day.bg);
+  const paper = 0.299 * pr + 0.587 * pg + 0.114 * pb;
+  let worst = 0;
+  for (let y = y0; y < y1; y++)
+    for (let x = x0; x < x1; x++) {
+      const p = (y * shot.w + x) * 4;
+      worst = Math.max(worst, paper - (0.299 * shot.rgba[p]! + 0.587 * shot.rgba[p + 1]! + 0.114 * shot.rgba[p + 2]!));
+    }
+  return worst;
+}
+const EN_LABELS = { name: 'Mongmangi · Day 7', line: 'x', sub: 'x' };
+const KO_LABELS = { name: '몽망이·이레째', line: 'x', sub: 'x' };
 
 /** 휘도 평균 절대 차(0..1) */
 function lumaDist(a: Uint8Array, b: Uint8Array): number {
@@ -238,6 +262,31 @@ describe('4차 혼합안 — 사물 한 겹 래스터 에셋(번들 예산·먹 
     expect(DC.COVER_PAPER).toBe(core.PALETTE.day.bg);
   });
 
+  it('불러오기 실패는 고정되지 않는다(코드 리뷰 M-1): 첫 시도에 디코드가 실패한 장은 다음 부름에서 다시 시도해 들어온다', async () => {
+    const real = (rev: number, id: string) => {
+      const dec = (f: string) => Sk.Skia.Image.MakeImageFromEncoded(Sk.Skia.Data.fromBytes(new Uint8Array(readFileSync(path.join(ROOT, `r${rev}`, f)))));
+      return { ink: dec(`${id}.webp`)!, mask: dec(`${id}.mask.webp`) };
+    };
+    let failKite = true;
+    MR.setMotifRasterLoader(async (rev, id) => {
+      if (id === 'far-alone.kite' && failKite) {
+        failKite = false;
+        throw new Error('일시 디코드 실패');
+      }
+      return real(rev, id);
+    });
+    const kite = { motifId: 'far-alone.kite' };
+    expect(await MR.ensureMotifRasters(kite)).toBe(true); // 첫 시도 실패 → 같은 부름 안에서 한 번 더
+    expect(MR.motifRaster('far-alone.kite', 1)).not.toBeNull();
+    // 빌드 1 카드(판 0)는 래스터를 기다릴 것이 없다
+    expect(await MR.ensureMotifRasters({ motifId: 'near-with.window-hand' })).toBe(true);
+    // 끝내 없으면 false(호출부가 기록하고 코드판)
+    MR.setMotifRasterLoader(async () => null);
+    expect(await MR.ensureMotifRasters(kite)).toBe(false);
+    MR.setMotifRasterLoader(null);
+    loadRasters(true);
+  }, 120000);
+
   it('카드는 받은 판으로 그린다: 판 2 래스터만 바꿔 넣어도 판 1 카드(artRev 없음·1)는 그대로', async () => {
     loadRasters(true);
     const id = 'far-alone.kite';
@@ -253,15 +302,88 @@ describe('4차 혼합안 — 사물 한 겹 래스터 에셋(번들 예산·먹 
   it('래스터가 있으면 카드가 그것으로 그려지고(코드판과 픽셀이 다름), 같은 입력 = 같은 픽셀', async () => {
     for (const id of MR.MOTIF_RASTER_IDS) {
       loadRasters(true);
-      const a = await shootCard(card(id));
-      const b = await shootCard(card(id));
+      const a = await shootCard(card(id, { artRev: 1 }));
+      const b = await shootCard(card(id, { artRev: 1 }));
       expect(hashRgba(b.rgba), id).toBe(hashRgba(a.rgba));
       loadRasters(false);
-      const code = await shootCard(card(id));
+      const code = await shootCard(card(id, { artRev: 1 }));
       expect(hashRgba(code.rgba), id).not.toBe(hashRgba(a.rgba));
     }
     loadRasters(true);
   }, 300000);
+});
+
+/**
+ * 판 0(꿈 콘텐츠 꺼짐 — 판 번호 없는 빌드 1 카드) 픽셀 해시(코드 리뷰 H1): main(3c6ca98)의 렌더러로 같은 조건에서 그린 값과 같다
+ * (11-25 main 사본을 같은 헤드리스로 그려 30장 모두 바이트 일치 확인). 빌드 1 그림이 바뀌면 실패한다. 폭 160px, 한국어 이름
+ */
+const REV0_PIXELS: Record<string, string> = {
+  'near-alone.quilt/0': 'a6e2724e',
+  'near-alone.quilt/1': '9cb9fa79',
+  'near-alone.quilt/2': 'eb36cb40',
+  'near-alone.teacup/0': '3e309bd1',
+  'near-alone.teacup/1': '73a8ce39',
+  'near-alone.teacup/2': '06104593',
+  'near-with.window-hand/0': 'c55b8963',
+  'near-with.window-hand/1': 'd4c2f5f2',
+  'near-with.window-hand/2': 'd2b670f0',
+  'near-with.teacup-two/0': '5724f32e',
+  'near-with.teacup-two/1': '0e54162c',
+  'near-with.teacup-two/2': 'ed3e3d48',
+  'far-alone.mountain/0': '003e589a',
+  'far-alone.mountain/1': '397b2c4a',
+  'far-alone.mountain/2': 'c5b8aa91',
+  'far-alone.sea/0': 'a81bfc83',
+  'far-alone.sea/1': '87ac4948',
+  'far-alone.sea/2': '72273409',
+  'far-with.stars-drops/0': 'd1bde805',
+  'far-with.stars-drops/1': 'cc966bb2',
+  'far-with.stars-drops/2': '19ed59fb',
+  'far-with.sea-hand/0': '91ff37c4',
+  'far-with.sea-hand/1': 'd79415d5',
+  'far-with.sea-hand/2': 'c3af1ed8',
+  'center.rain/0': '8b7f0700',
+  'center.rain/1': '1bab0ceb',
+  'center.rain/2': 'f67f29bc',
+  'center.moon/0': '9c583c9b',
+  'center.moon/1': '49758a09',
+  'center.moon/2': 'd4fd9e0f',
+};
+async function shootRev0(id: string, comp: number) {
+  const shot = await shootCard({ ...card(id), composition: comp as 0 | 1 | 2 }, { width: 160, labels: { name: '몽망이·이레째', line: 'x', sub: 'x' } });
+  return hashRgba(shot.rgba);
+}
+
+describe('판 0 = 빌드 1 그림 그대로(코드 리뷰 H1)', () => {
+  it('대표 3장(이불·창가 손·별과 물방울, 구도 a): main과 픽셀이 같다 — 래스터를 불러와 둬도 판 0 카드는 쓰지 않는다', async () => {
+    loadRasters(true);
+    for (const id of ['near-alone.quilt', 'near-with.window-hand', 'far-with.stars-drops']) expect(await shootRev0(id, 0), id).toBe(REV0_PIXELS[`${id}/0`]);
+  }, 300000);
+});
+
+describe.skipIf(!process.env.RENDER_HEAVY)('판 0 = 빌드 1 그림 그대로 — 10모티프 × 구도 3', () => {
+  it('30장 main과 같은 픽셀', async () => {
+    loadRasters(true);
+    for (const k of Object.keys(REV0_PIXELS)) {
+      const [id, comp] = k.split('/');
+      expect(await shootRev0(id!, Number(comp)), k).toBe(REV0_PIXELS[k]);
+    }
+  }, 900000);
+});
+
+describe('제목 안전 여백(블라인드 판정: 제목이 그림에 겹침)', () => {
+  it('가로(영어)·세로(한국어) 이름 자리에는 마블링·모티프 먹이 남지 않는다 — 대표 4장', async () => {
+    loadRasters(true);
+    for (const id of ['near-with.letter', 'far-alone.kite', 'center.moon', 'near-alone.washing-line'])
+      for (const lb of [EN_LABELS, KO_LABELS]) expect(await titleInk(id, lb), `${id} ${lb.name}`).toBeLessThan(28);
+  }, 300000);
+});
+
+describe.skipIf(!process.env.RENDER_HEAVY)('제목 안전 여백 — 25장 전부', () => {
+  it('25모티프 × 가로·세로 이름', async () => {
+    loadRasters(true);
+    for (const m of core.sim.MOTIFS) for (const lb of [EN_LABELS, KO_LABELS]) expect(await titleInk(m.id, lb), `${m.id} ${lb.name}`).toBeLessThan(28);
+  }, 900000);
 });
 
 describe.skipIf(!process.env.RENDER_HEAVY)('카드 64pt — 기존 10 + 새 15가 한 화면에서 갈린다(회귀 가드)', () => {
@@ -269,22 +391,40 @@ describe.skipIf(!process.env.RENDER_HEAVY)('카드 64pt — 기존 10 + 새 15�
     loadRasters(true);
     const ids = core.sim.MOTIFS.map((m) => m.id);
     const gallery: Uint8Array[] = [];
-    for (const id of ids) gallery.push((await shootCard(card(id))).rgba);
+    // 꿈 콘텐츠가 켜진 판(1)의 그림끼리 — 판 0(빌드 1) 그림은 위 시험이 main과 같음을 본다
+    for (const id of ids) gallery.push((await shootCard(card(id, { artRev: 1 }))).rgba);
     const miss: string[] = [];
     for (const m of core.sim.MOTIFS.filter((x) => x.paths.length > 0)) {
-      const q = await shootCard(card(m.id, { flowSeed: 777 }));
+      const q = await shootCard(card(m.id, { flowSeed: 777, artRev: 1 }));
       if (DUMP) writeFileSync(path.join(DUMP, `card64-${m.id}.png`), q.png());
       const d = gallery.map((g) => lumaDist(q.rgba, g));
       const best = d.indexOf(Math.min(...d));
       if (ids[best] !== m.id) miss.push(`${m.id} → ${ids[best]}`);
     }
     expect(miss).toEqual([]);
-  }, 600000);
+    // 블라인드 판정(11-25)이 64px에서 헷갈린다고 한 쌍: 서로의 거리가 같은 꿈을 결만 바꿨을 때의 거리보다 멀다
+    const PAIRS: [string, string][] = [
+      ['far-alone.sea', 'far-with.sea-hand'],
+      ['near-alone.teacup', 'near-with.teacup-two'],
+      ['near-alone.inkstone', 'far-with.stepping-stones'],
+      ['near-alone.inkstone', 'far-alone.path'],
+      ['far-with.stepping-stones', 'far-alone.path'],
+      ['far-with.stepping-stones', 'far-with.star-bridge'],
+      ['center.rain', 'near-with.palm'],
+    ];
+    const g = new Map(ids.map((id, i) => [id, gallery[i]!]));
+    for (const [a, b] of PAIRS) {
+      const qa = (await shootCard(card(a, { flowSeed: 777, artRev: 1 }))).rgba;
+      const qb = (await shootCard(card(b, { flowSeed: 777, artRev: 1 }))).rgba;
+      const self = Math.max(lumaDist(qa, g.get(a)!), lumaDist(qb, g.get(b)!));
+      expect(lumaDist(g.get(a)!, g.get(b)!), `${a} ↔ ${b}`).toBeGreaterThan(self);
+    }
+  }, 900000);
 });
 
 // 붓 리본·층 색·번짐이 바뀌면 실패: 의도한 변경이면 값을 갱신하고 docs/app/c14b 시트를 다시 본다(C14B_DUMP=<폴더>로 PNG)
 const INK_SNAPSHOT: Record<string, string> = {
-  'near-alone.inkstone': '07c4d103',
+  'near-alone.inkstone': '83fcdcad',
   'near-alone.washing-line': '1304c470',
   'near-alone.sprout': 'bad6330c',
   'near-with.umbrella': 'da6fbc06',
