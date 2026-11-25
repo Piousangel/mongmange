@@ -186,6 +186,8 @@ step_check() {
     eq(env.CRON_AUDIENCE.value, process.env.SERVICE_URL, "CRON_AUDIENCE");
     eq(env.CRON_SA_EMAIL.value, process.env.SCHED_SA, "CRON_SA_EMAIL");
     eq(env.STORAGE_DRIVER.value, "none", "STORAGE_DRIVER");
+    // DB CA는 Secret Manager의 Supabase CA만(위 secretKeyRef 검사). 파일 경로 값은 compose 전용 CA를 쓰는 길이라 운영에서 금지
+    if (env.DATABASE_CA_FILE) fail("DATABASE_CA_FILE은 운영에 두지 않는다(compose 로컬 CA 전용) — DATABASE_CA_CERT 비밀만");
     if (env.CDN_DRIVER && env.CDN_DRIVER.value !== "none") fail("CDN_DRIVER는 오너 결정 전까지 none(README 10-3 — sites.update = 사이트 전체 배포 권한)");
     eq(env.REPORT_AUTO_HIDE.value, "false", "REPORT_AUTO_HIDE(XFF 실측 전 끔)");
     for (const h of ["TRUSTED_PROXY_HOPS_API", "TRUSTED_PROXY_HOPS_WEB", "TRUSTED_PROXY_HOPS_OTA"]) if (!/^[1-5]$/.test(env[h].value)) fail(h + "는 운영에서 1~5");
