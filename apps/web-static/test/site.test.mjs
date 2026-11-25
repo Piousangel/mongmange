@@ -1,18 +1,20 @@
 // 출시 전 판(마케팅 P0, SE-2·GE-1): 페이지 내용 · GEO 파일 · 색인 정책 · 링크 · 이미지 예산 · 처리방침 두 모드.
 // 검사(check)가 그럴듯한 고장을 실제로 잡는지 산출물을 고장 내 본다(OPERATING 8-1). 리뷰 2026-11-25(B1·B2·I1~I5·L1~L7) 반영.
+// 11-25 W1~W7(docs/release/README): 출시 전 모드 /privacy = 빌드 2 테스터판 방침. 보호책임자 칸이 빈 정본이면 빌드 실패(W7) —
+// 성공 경로는 칸을 채운 사본(filledDocs)이나 PRIVACY_OFFICER 주입으로 본다.
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { build, BuildError, check, IMAGE_BYTES_BUDGET, readFirebaseJson, ROOT, visibleText } from '../scripts/build.mjs';
 import { inline, markdownToHtml, stripInternal } from '../scripts/markdown.mjs';
-import { CONTACT, FACTS, NOTICE, PAGES } from '../scripts/site.mjs';
+import { CONTACT, FACTS, PAGES } from '../scripts/site.mjs';
+import { cleanDocs as cleanDocsIn, DOCS, filledDocs, keysFile, OFFICER, OFFICER_SLOT, signedSrc } from './helpers.mjs';
 
 const FP = Array.from({ length: 32 }, (_, i) => (i * 7 + 16).toString(16).toUpperCase().padStart(2, '0')).join(':');
 const API = 'https://mong-api-abc123-du.a.run.app';
 const ENV = { APPLE_TEAM_ID: 'A1B2C3D4E5', ANDROID_CERT_SHA256: FP, APP_STORE_ID: '6739012345', API_ORIGIN: API };
 const ORIGIN = 'https://mongmang.ink';
-const DOCS = join(ROOT, '../../docs/release');
 
 const dirs = [];
 afterEach(() => {
@@ -23,41 +25,26 @@ const tmp = () => {
   dirs.push(d);
   return d;
 };
-function built({ env = ENV, docsDir = DOCS } = {}) {
+const filled = () => filledDocs(tmp());
+const cleanDocs = (o) => cleanDocsIn(tmp(), o);
+/** 출시 모드 성공 경로: 메모를 걷은 정본 + 서명된 config·매니페스트 + 공개키 목록(B4 후속) */
+const launchReady = (o) => ({ env: { ...ENV, SITE_MODE: 'launch' }, docsDir: cleanDocs(o), srcDir: signedSrc(tmp()), remoteKeysPath: keysFile(tmp()) });
+function built({ env = ENV, docsDir = filled(), srcDir, remoteKeysPath } = {}) {
   const o = join(tmp(), 'out');
-  const r = build({ env, outDir: o, docsDir });
+  const r = build({ env, outDir: o, docsDir, ...(srcDir && { srcDir }), ...(remoteKeysPath && { remoteKeysPath }) });
   const app = JSON.parse(readFileSync(join(ROOT, '../mobile/app.json'), 'utf8')).expo;
   const v = { team: 'A1B2C3D4E5', origin: ORIGIN, apiOrigin: API, iosBundle: app.ios.bundleIdentifier, androidPackage: app.android.package, firebaseJson: readFirebaseJson(join(ROOT, 'firebase.json')), mode: env.SITE_MODE ?? 'prelaunch' };
   return { o, v, r, read: (p) => readFileSync(join(o, p), 'utf8') };
 }
-function fails(env, docsDir = DOCS) {
+function fails(env, docsDir = filled(), extra = {}) {
   const o = join(tmp(), 'out');
   try {
-    build({ env, outDir: o, docsDir });
+    build({ env, outDir: o, docsDir, ...extra });
   } catch (e) {
     expect(e).toBeInstanceOf(BuildError);
     return e.problems.join('\n');
   }
   throw new Error('빌드가 통과했다');
-}
-/** 내부 메모·기입 칸·작업 메모를 걷어 낸 '출시 준비가 끝난' 정본 사본(출시 모드 성공 경로 시험용). 체크리스트 상자는 그대로 둔다 */
-function cleanDocs({ blankInBox = false } = {}) {
-  const d = tmp();
-  for (const l of ['ko', 'en']) {
-    let md = readFileSync(join(DOCS, `privacy-policy.${l}.md`), 'utf8');
-    if (blankInBox) md = md.replace(/^(> \| K1 \|.*)$/m, '\n$1'); // 변이 M4: 상자 안 빈 줄
-    const lines = md.split('\n');
-    const boxStart = lines.findIndex((x) => /게시 전 삭제|Remove before publishing/.test(x));
-    let boxEnd = boxStart + 1;
-    while (boxEnd < lines.length && (/^>/.test(lines[boxEnd]) || !lines[boxEnd].trim())) boxEnd++;
-    const clean = (t) =>
-      t
-        .replace(/\s*\[[^\]\n]+\]/g, '')
-        .replace(/초안|draft|법률 검토|확인 필요|도입 시 추가|독립 리뷰|independent review|legal first-pass review|legal review|P1~P19|P1–P19|To verify/gi, '');
-    const out = [...lines.slice(0, boxStart).map(clean), ...lines.slice(boxStart, boxEnd), ...lines.slice(boxEnd).map(clean)].join('\n');
-    writeFileSync(join(d, `privacy-policy.${l}.md`), out);
-  }
-  return d;
 }
 const ld = (html) => JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)[1]);
 const text = (html) => visibleText(html).replace(/\s+/g, ' ');
@@ -94,9 +81,10 @@ describe('출시 전 판 페이지', () => {
     for (const pg of PAGES.filter((p) => !p.handwritten && !p.path.endsWith('/facts'))) {
       expect(text(read(pg.file)), pg.file).not.toMatch(/\d{4}-\d{2}-\d{2}/);
     }
+    // /privacy(테스터판)는 법정 기재인 시행일·적용 대상 날짜를 싣는다 — 약속 문구 검사에서 날짜만 뺀다
     for (const pg of PAGES.filter((p) => !p.handwritten)) {
       const t = text(read(pg.file));
-      expect(t, pg.file).not.toMatch(/\d+월 \d+일|2027/);
+      if (!pg.path.endsWith('/privacy')) expect(t, pg.file).not.toMatch(/\d+월 \d+일|2027/);
       expect(t, pg.file).not.toMatch(/결제가 없|광고가 없|광고와 앱 안 결제|No ads|no in-app purchases/);
     }
     expect(text(read('facts/index.html'))).toContain('준비 중. 날짜는 테스트를 마친 뒤 정해요');
@@ -168,35 +156,84 @@ describe('출시 전 판 페이지', () => {
 });
 
 describe('/privacy 두 모드(PM 11-25 웹 리뷰 결정)', () => {
-  it('출시 전 모드(기본): 출시 전 개인정보 안내 한·영 — 테스터 메일 → 운영자 Gmail, 출시 30일 뒤 삭제, 문의처, 전체 방침은 출시 때. 정본 본문·외부 링크 없음', () => {
+  it('W1·W5 출시 전 모드(기본): /privacy·/en/privacy = 빌드 2 테스터판 방침 — 1-1 업데이트 확인·1-2 손글씨 인식 문장, \'지금 받는 것 = 메일뿐\' 문장 없음, 외부 링크는 Google 문서 두 곳만', () => {
     const { read, r } = built();
+    const want = {
+      ko: { h1: '몽망이 키우기 테스트 빌드 개인정보처리방침', s11: '두 번째 실행부터 기기 날짜로 하루 한 번', s12: '쓴 글씨(획)와 인식 결과는 Google이나 운영자에게 보내지 않습니다', mail: 'Cloudflare 이메일 라우팅을 거쳐 운영자의 Gmail로 전달됩니다', d30: '정식 출시 30일 뒤' },
+      en: { h1: 'Privacy Policy for the Mongmangi Test Build', s11: "once a day by your device's calendar, starting from the second launch", s12: 'Your handwriting (strokes) and the recognition result are not sent to Google or to us.', mail: 'Cloudflare Email Routing', d30: '30 days after the official launch' },
+    };
     for (const [f, lang] of [['privacy/index.html', 'ko'], ['en/privacy/index.html', 'en']]) {
       const h = read(f);
       const t = text(h);
-      expect(t).toContain(NOTICE[lang].title);
-      expect(t).toMatch(lang === 'ko' ? /운영자의 Gmail로 전달돼요/ : /forwarded to the operator’s Gmail/);
-      expect(t).toMatch(lang === 'ko' ? /정식 출시 30일 뒤/ : /30 days after the official launch/);
-      expect(t).toMatch(lang === 'ko' ? /앱을 출시할 때 앱 전체의 개인정보처리방침/ : /When the app launches, the full Privacy Policy/);
-      expect(h).toContain(`<p class="mail">${CONTACT}</p>`);
-      expect(h).not.toMatch(/id="s-\d|https:\/\/(developers|support)\.google\.com/);
+      const w = want[lang];
+      expect(h).toContain(`<h1>${w.h1}</h1>`);
+      expect(h).toMatch(/id="s-1-1"/);
+      expect(h).toMatch(/id="s-1-2"/);
+      for (const s of [w.s11, w.s12, w.mail, w.d30, CONTACT, OFFICER]) expect(t, `${lang}: ${s}`).toContain(s);
+      // 옛 출시 전 안내의 '지금 받는 것 = 테스트 신청 메일뿐' 문장은 빌드 2가 업데이트 확인·ML Kit을 보내므로 사실이 아니다
+      expect(t).not.toMatch(/테스트 신청 메일뿐|Only email asking to join|The only personal information we receive now/);
+      expect(h).not.toMatch(/id="s-1[4-9]"|id="s-17"/);
+      const ext = [...h.matchAll(/href="(https?:\/\/[^"]+)"/g)].map((m) => m[1]).filter((u) => !u.startsWith(ORIGIN));
+      expect([...new Set(ext)].sort(), lang).toEqual(['https://developers.google.com/ml-kit/android-data-disclosure', 'https://support.google.com/policies?p=privpol_privts']);
     }
     // 정본에는 메모·기입 칸이 남아 있다 → 경고(출시 모드면 실패한다는 안내)
     expect(r.warnings.join('\n')).toMatch(/내부 메모·오너 기입 칸 \d+곳 — 출시 모드/);
   });
 
+  it('W7 출시 전 모드 + 지금 정본(보호책임자 칸 비어 있음): 테스터판 렌더 HTML의 [ … ] 때문에 빌드 실패, 오너 할 일을 알린다', () => {
+    const md = readFileSync(join(DOCS, 'privacy-policy-tester.ko.md'), 'utf8');
+    expect(md).toContain(OFFICER_SLOT.ko); // 정본이 채워지면 이 시험은 '기입한 사본' 경로만 남기고 지운다
+    const msg = fails(ENV, DOCS);
+    expect(msg).toMatch(/(^|\n)privacy\/index\.html: 내부 메모·기입 칸 1곳\(예: \[성명 또는 상호 — 오너 기입\]\)/);
+    expect(msg).toMatch(/en\/privacy\/index\.html: 내부 메모·기입 칸 1곳/);
+    expect(msg).toMatch(/PRIVACY_OFFICER/);
+  });
+
+  it('W7 PRIVACY_OFFICER 주입: 정본은 그대로 두고 배포 환경 변수로 보호책임자 칸을 채우면 통과, 형식이 틀리면 실패(값은 싣지 않음)', () => {
+    const { read } = built({ env: { ...ENV, PRIVACY_OFFICER: '행복가게' }, docsDir: DOCS });
+    expect(text(read('privacy/index.html'))).toMatch(/성명\(또는 상호\) 행복가게/);
+    expect(text(read('en/privacy/index.html'))).toContain('행복가게');
+    for (const bad of ['[상호]', 'a|b', '<b>x</b>', 'TODO']) {
+      const msg = fails({ ...ENV, PRIVACY_OFFICER: bad }, DOCS);
+      expect(msg).toMatch(/PRIVACY_OFFICER 형식/);
+      if (bad.length > 3) expect(msg).not.toContain(bad);
+    }
+  });
+
+  it('R1 PRIVACY_OFFICER: 정규화 뒤 검사 — 보이지 않는 값·자리표시자 낱말·괄호류(전각 포함)·1자·81자는 실패, 앞뒤 공백·제로폭은 걷고 통과', () => {
+    const long = '가나다라마바사아자차카타파하'.repeat(6).slice(0, 81); // 서로 다른 글자 — 자리표시자 검사가 아니라 길이로만 걸린다(리뷰 R4)
+    expect(long).toHaveLength(81);
+    const bads = ['\u200b\u200c', '\u202e\u202d', ' \u200b ', '미정', 'TBD', 'tbd', 'N/A', 'n/a', '상호', '성명', '오너 기입', 'Owner to fill', '［상호］', '【상호】', '〔상호〕', '「상호」', '가', 'A\u200b', '가.', '- 가 -', long];
+    for (const bad of bads) expect(fails({ ...ENV, PRIVACY_OFFICER: bad }, DOCS), JSON.stringify(bad)).toMatch(/PRIVACY_OFFICER 형식/);
+    expect(() => built({ env: { ...ENV, PRIVACY_OFFICER: long.slice(0, 80) }, docsDir: DOCS })).not.toThrow();
+    const { read } = built({ env: { ...ENV, PRIVACY_OFFICER: '  (주)행복\u200b가게\u202e ' }, docsDir: DOCS });
+    const h = read('privacy/index.html');
+    expect(text(h)).toContain('(주)행복가게');
+    expect(h).not.toMatch(/[\u200b\u202e]/u);
+  });
+
+  it('R1 ⑦: 전각 괄호 꼴 메모(［ … ］·【 … 】·〔 … 〕)도 렌더 HTML에 남으면 실패', () => {
+    const d = filled();
+    const p = join(d, 'privacy-policy-tester.ko.md');
+    for (const memo of ['［오너 기입］', '【확인할 것】', '〔메모〕']) {
+      writeFileSync(p, readFileSync(join(DOCS, 'privacy-policy-tester.ko.md'), 'utf8').replace(OFFICER_SLOT.ko, `시험상호 ${memo}`));
+      expect(fails(ENV, d), memo).toMatch(/privacy\/index\.html: 내부 메모·기입 칸 1곳/);
+    }
+  });
+
   it('출시 모드 + 지금 정본: 내부 메모·기입 칸·작업 메모가 렌더 HTML에 남아 빌드 실패(K32, 리뷰 B1·B2)', () => {
     const msg = fails({ ...ENV, SITE_MODE: 'launch' });
-    expect(msg).toMatch(/(^|\n)- privacy\/index\.html: 내부 메모·기입 칸 \d+곳|privacy\/index\.html: 내부 메모·기입 칸 \d+곳/);
+    expect(msg).toMatch(/(^|\n)privacy\/index\.html: 내부 메모·기입 칸 \d+곳/);
     expect(msg).toMatch(/en\/privacy\/index\.html: 내부 메모·기입 칸 \d+곳/);
     expect(msg).toMatch(/작업 메모\('초안'\)/);
   });
 
-  it('출시 모드 + 메모를 걷은 정본: 통과, 정본의 번호 절(H2)이 같은 순서, 체크리스트 0, 외부 링크는 Google 문서 두 곳만', () => {
-    const docs = cleanDocs();
-    const { read } = built({ env: { ...ENV, SITE_MODE: 'launch' }, docsDir: docs });
+  it('출시 모드 + 메모를 걷은 정본 + 서명된 원격 문서: 통과, 정본의 번호 절(H2)이 같은 순서, 체크리스트 0, 외부 링크는 Google 문서 두 곳만', () => {
+    const o = launchReady();
+    const { read } = built(o);
     for (const [f, md] of [['privacy/index.html', 'privacy-policy.ko.md'], ['en/privacy/index.html', 'privacy-policy.en.md']]) {
       const h = read(f);
-      const want = [...readFileSync(join(docs, md), 'utf8').matchAll(/^## (\d.+)$/gm)].map((m) => m[1].replace(/\*\*/g, ''));
+      const want = [...readFileSync(join(o.docsDir, md), 'utf8').matchAll(/^## (\d.+)$/gm)].map((m) => m[1].replace(/\*\*/g, ''));
       expect([...h.matchAll(/<h2 id="s-[^"]+">(.+?)<\/h2>/g)].map((m) => m[1].replace(/<[^>]+>/g, ''))).toEqual(want);
       expect(h).not.toMatch(/<td>K\d+<\/td>|metricsConsent|게시 전 삭제|Remove before publishing/);
       expect(h).toContain('id="s-17"');
@@ -206,9 +243,9 @@ describe('/privacy 두 모드(PM 11-25 웹 리뷰 결정)', () => {
   });
 
   it('변이 M4: 체크리스트 상자 안에 빈 줄이 있어도 K행이 새지 않는다(표식 기반 제외)', () => {
-    const docs = cleanDocs({ blankInBox: true });
-    expect(readFileSync(join(docs, 'privacy-policy.ko.md'), 'utf8')).toMatch(/\n\n> \| K1 \|/);
-    const { read } = built({ env: { ...ENV, SITE_MODE: 'launch' }, docsDir: docs });
+    const o = launchReady({ blankInBox: true });
+    expect(readFileSync(join(o.docsDir, 'privacy-policy.ko.md'), 'utf8')).toMatch(/\n\n> \| K1 \|/);
+    const { read } = built(o);
     for (const f of ['privacy/index.html', 'en/privacy/index.html']) expect(read(f)).not.toMatch(/<td>K\d+<\/td>|metricsConsent/);
   });
 
@@ -274,7 +311,7 @@ describe('GEO: JSON-LD · sitemap · robots · llms.txt', () => {
       for (const line of sec.split('\n').slice(1).filter((l) => l.trim())) expect(line).toMatch(/^- \[[^\]]+\]\(https:\/\/mongmang\.ink[^)]*\)(: .+)?$/);
     }
     expect(lt.split(/^## /m)[0]).toContain(`Contact: ${CONTACT}`);
-    expect(lt).toContain('[출시 전 개인정보 안내](https://mongmang.ink/privacy)');
+    expect(lt).toContain('[테스트 빌드 개인정보처리방침](https://mongmang.ink/privacy)');
   });
 
   it('색인 정책 표: /m은 정적 파일 없이 firebase.json X-Robots-Tag noindex, 나머지 페이지는 index(noindex meta 없음)', () => {
@@ -365,13 +402,25 @@ describe('check() — 출시 전 판을 고장 내면 잡는다', () => {
     expect(breaks((b) => edit(b, 'facts/index.html', '</main>', '<p>K32 빈칸</p></main>'))).toMatch(/K행/);
     expect(breaks((b) => edit(b, 'press/index.html', '</main>', '<p>게시 전 삭제 — 내부용</p></main>'))).toMatch(/표식이 남았다/);
   });
-  it('출시 전 안내에서 30일 삭제·문의처가 빠지거나, 출시 전 모드에 정본 본문이 섞이면 실패', () => {
-    expect(breaks((b) => edit(b, 'privacy/index.html', /정식 출시 30일 뒤에/, '정식 출시 뒤에'))).toMatch(/'출시 30일 뒤 삭제'가 없다/);
-    expect(breaks((b) => edit(b, 'en/privacy/index.html', '</main>', '<h2 id="s-1">1. At a glance</h2></main>'))).toMatch(/출시 전 모드인데 처리방침 정본/);
+  it('W4(법률 리뷰 L4): K33 이상·U행(개정 목록)·A행도 K행처럼 잡는다 — 표 칸과 글자 모두', () => {
+    expect(breaks((b) => edit(b, 'privacy/index.html', '</main>', '<p>K35 돌봄</p></main>'))).toMatch(/K행/);
+    expect(breaks((b) => edit(b, 'privacy/index.html', '</main>', '<p>U8 개정</p></main>'))).toMatch(/K행/);
+    expect(breaks((b) => edit(b, 'en/privacy/index.html', '</main>', '<table><tr><td>U3</td><td>x</td></tr></table></main>'))).toMatch(/K행/);
+    expect(breaks((b) => edit(b, 'en/privacy/index.html', '</main>', '<table><tr><th>A12</th></tr></table></main>'))).toMatch(/K행/);
+    expect(breaks((b) => edit(b, 'facts/index.html', '</main>', '<p>A2 항목</p></main>'))).toMatch(/K행/);
+  });
+  it('W3: 출시 전 모드 테스터판에도 작업 메모(초안·확인 필요·법률 검토·draft·To verify)가 남으면 실패', () => {
+    for (const [f, w] of [['privacy/index.html', '초안'], ['privacy/index.html', '확인 필요'], ['privacy/index.html', '법률 검토'], ['en/privacy/index.html', 'draft'], ['en/privacy/index.html', 'To verify']]) {
+      expect(breaks((b) => edit(b, f, '</article>', `<p>${w} 반영</p></article>`))).toMatch(new RegExp(`작업 메모\\('${w}'\\)`));
+    }
+  });
+  it('W2: 출시 전 모드는 테스터판 절 id(s-1~s-13)를 허용하고, 전체 정본(17절 이상)·테스터판이 아닌 방침이 렌더되면 실패. 문의처·30일 검사는 그대로', () => {
+    expect(breaks((b) => edit(b, 'privacy/index.html', /30일/g, '며칠'))).toMatch(/'출시 30일 뒤 삭제'가 없다/);
+    expect(breaks((b) => edit(b, 'en/privacy/index.html', '</article>', '<h2 id="s-17">17. Privacy officer</h2></article>'))).toMatch(/전체 처리방침 정본\(17절 이상\)/);
+    expect(breaks((b) => edit(b, 'privacy/index.html', '<h1>몽망이 키우기 테스트 빌드 개인정보처리방침</h1>', '<h1>몽망이 키우기 개인정보처리방침</h1>'))).toMatch(/테스터판 방침이 아니다/);
   });
   it('출시 모드 산출물에 작업 메모가 남거나 17절이 사라지면 실패', () => {
-    const docs = cleanDocs();
-    const b = built({ env: { ...ENV, SITE_MODE: 'launch' }, docsDir: docs });
+    const b = built(launchReady());
     const p = join(b.o, 'privacy/index.html');
     const orig = readFileSync(p, 'utf8');
     writeFileSync(p, orig.replace('</article>', '<p>독립 리뷰 반영본</p></article>'));

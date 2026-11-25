@@ -5,8 +5,9 @@
 // 규칙: 스크립트 0(JSON-LD는 실행되지 않는 데이터 블록), 외부 자원 0, 느낌표·이모지 0(몽망이 톤), 날짜 약속 0,
 // 정본(D-05)보다 강한 약속 0, 아직 구현되지 않은 동작은 '준비 중인 원칙'으로만(리뷰 2026-11-25 I2·I3).
 //
-// 모드(SITE_MODE): 'prelaunch'(기본) — /privacy = '출시 전 개인정보 안내'(지금 받는 것 = 테스터 신청 메일뿐).
-//                  'launch' — /privacy = 처리방침 정본 전체 렌더. 내부 메모가 렌더 HTML에 남으면 빌드 실패(build.mjs ⑦).
+// 모드(SITE_MODE): 'prelaunch'(기본) — /privacy = 빌드 2 테스터판 방침(docs/release/privacy-policy-tester.*.md, README W1).
+//                  'launch' — /privacy = 처리방침 정본 전체 렌더.
+// 두 모드 모두 내부 메모·기입 칸([ … ])이 렌더 HTML에 남으면 빌드 실패(build.mjs ⑦, W7·K32).
 import { readFileSync } from 'node:fs';
 import { markdownToHtml, stripInternal } from './markdown.mjs';
 
@@ -132,7 +133,7 @@ const UI = {
     tester: ['Android 비공개 테스트에 함께할 분을 찾고 있어요. 14일 동안 앱을 지우지 않고 두면 돼요. 하루 한 번 열어 주면 더 좋아요.', '만 14세 이상이고, Android 폰과 Google Play에 로그인된 Gmail 주소가 있으면 돼요.', '아래 주소로 테스트에 함께하고 싶다고 메일을 보내 주세요. 받은 주소는 테스터 등록과 연락에만 쓰고, 정식 출시 30일 뒤 지워요.'],
     iphone: 'iPhone 테스트는 아직 열지 않았어요.',
     more: '더 보기', delete: '맡겨 둔 것 지우기',
-    factsH: '몽망이 키우기에 대한 사실', checked: '마지막 확인', what: '무엇인가요', how: '하루는 이렇게 흘러요', howNote: '28밤이 지나면 그동안 쓴 말로 자란 몽망이가 남아요. 화면에 점수나 수치는 보이지 않아요. 개발 중이라 세부는 테스트로 다듬고 있어요.', basics: '기본 정보', privacyH: '개인정보', privacyNowH: '지금', privacyPlanH: '준비 중인 원칙', privacyMore: '출시 전 개인정보 안내 보기', privacyMoreLaunch: '개인정보처리방침 보기', notH: '하지 않는 것', faqH: '자주 묻는 질문', source: '이 페이지의 사실은 개발 기록에서 옮겼어요. 사실이 바뀌면 이 페이지를 먼저 고쳐요.',
+    factsH: '몽망이 키우기에 대한 사실', checked: '마지막 확인', what: '무엇인가요', how: '하루는 이렇게 흘러요', howNote: '28밤이 지나면 그동안 쓴 말로 자란 몽망이가 남아요. 화면에 점수나 수치는 보이지 않아요. 개발 중이라 세부는 테스트로 다듬고 있어요.', basics: '기본 정보', privacyH: '개인정보', privacyNowH: '지금', privacyPlanH: '준비 중인 원칙', privacyMore: '테스트 빌드 개인정보처리방침 보기', privacyMoreLaunch: '개인정보처리방침 보기', notH: '하지 않는 것', faqH: '자주 묻는 질문', source: '이 페이지의 사실은 개발 기록에서 옮겼어요. 사실이 바뀌면 이 페이지를 먼저 고쳐요.',
     pressH: '프레스킷', pressLead: '기사와 소개에 필요한 자료를 한곳에 모았어요.', shots: '스크린샷', shotsNote: '모두 실제 앱 화면이에요. 그림을 눌러 원본을 받을 수 있어요.', logoH: '로고와 아이콘', logoBody: '준비 중이에요. 아이콘은 테스트에서 고른 뒤 이곳에 올려요.', videoH: '영상', videoBody: '준비 중이에요.', makerH: '만든 사람', makerBody: '1인 개발이에요.', contactH: '연락처', contactBody: '취재와 자료 요청은 아래 주소로 보내 주세요.',
     toc: '목차',
     download: '원본 받기',
@@ -147,7 +148,7 @@ const UI = {
     tester: ['We are looking for people to join a closed test on Android. Keep the app installed for 14 days. Opening it once a day helps even more.', 'You need to be 14 or over, with an Android phone and a Gmail address signed in to Google Play.', 'Email the address below to say you would like to join. We use your address only to register you as a tester and to contact you, and delete it 30 days after the official launch.'],
     iphone: 'Testing on iPhone has not opened yet.',
     more: 'More', delete: 'Delete what you stored',
-    factsH: 'Facts about Mongmangi', checked: 'Last checked', what: 'What it is', how: 'How a day goes', howNote: 'After 28 nights, a Mongmangi grown from the words you wrote remains. No scores or numbers appear on screen. It is still in development, so the details are being refined through testing.', basics: 'Basics', privacyH: 'Privacy', privacyNowH: 'Now', privacyPlanH: 'Principles we are building to', privacyMore: 'Read the pre-launch privacy notice', privacyMoreLaunch: 'Read the Privacy Policy', notH: 'What it does not have', faqH: 'Frequently asked questions', source: 'The facts on this page come from our development records. When a fact changes, this page is updated first.',
+    factsH: 'Facts about Mongmangi', checked: 'Last checked', what: 'What it is', how: 'How a day goes', howNote: 'After 28 nights, a Mongmangi grown from the words you wrote remains. No scores or numbers appear on screen. It is still in development, so the details are being refined through testing.', basics: 'Basics', privacyH: 'Privacy', privacyNowH: 'Now', privacyPlanH: 'Principles we are building to', privacyMore: 'Read the test build privacy policy', privacyMoreLaunch: 'Read the Privacy Policy', notH: 'What it does not have', faqH: 'Frequently asked questions', source: 'The facts on this page come from our development records. When a fact changes, this page is updated first.',
     pressH: 'Press kit', pressLead: 'Materials for articles and features, in one place.', shots: 'Screenshots', shotsNote: 'All are actual app screens. Select an image to download the original.', logoH: 'Logo and icon', logoBody: 'In preparation. The icon will be posted here after it is chosen in testing.', videoH: 'Video', videoBody: 'In preparation.', makerH: 'Who makes it', makerBody: 'One independent developer.', contactH: 'Contact', contactBody: 'Send interview and material requests to the address below.',
     toc: 'Contents',
     download: 'Download original',
@@ -347,50 +348,17 @@ function press(lang) {
 <section aria-labelledby="contact"><h2 id="contact">${esc(u.contactH)}</h2><p>${esc(u.contactBody)}</p><p class="mail">${CONTACT}</p></section>`;
 }
 
+/** 출시 전 모드 /privacy 제목(llms.txt 링크 글) — 테스터판 H1과 같은 뜻 */
+export const TESTER_TITLE = { ko: '테스트 빌드 개인정보처리방침', en: 'Test build privacy policy' };
+
 /**
- * 출시 전 개인정보 안내(PM 11-25 웹 리뷰 결정). 지금 실제로 받는 것 = 테스터 신청 메일뿐.
- * 사실 출처: DECISIONS 'PM 11-25 마케팅 P0'(출시 30일 뒤 삭제), V22 ④(Cloudflare 라우팅 → 운영자 Gmail, 서버 저장 없음), tester-recruit(Play 테스터 목록)
+ * 테스터판 보호책임자 칸(README W7, DECISIONS PM 11-25: 값은 저장소에 두지 않고 게시 직전 오너가 채운다).
+ * 배포 환경 변수 PRIVACY_OFFICER가 있으면 이 칸만 그 값으로 바꾼다. 없으면 칸이 그대로 렌더되어 ⑦ 검사가 빌드를 멈춘다.
  */
-export const NOTICE = {
-  ko: {
-    title: '출시 전 개인정보 안내',
-    lead: '몽망이 키우기는 아직 출시 전이에요. 지금 이 사이트와 테스트 신청에서 다루는 개인정보를 적었어요.',
-    sections: [
-      ['지금 받는 것', ['Android 비공개 테스트 신청 메일뿐이에요. 보내 주신 메일 주소와 메일 내용을 받아요.']],
-      ['쓰는 곳', ['Google Play 비공개 테스트의 테스터 목록에 메일 주소를 등록하고, 테스트 안내를 보내는 데만 써요.']],
-      ['받는 길', [`${CONTACT}로 보낸 메일은 운영자의 Gmail로 전달돼요. 우리 서버에는 저장하지 않아요.`]],
-      ['지우는 때', ['정식 출시 30일 뒤에 받은 메일과 테스터 목록의 주소를 지워요. 그 전에 지워 달라고 하시면 바로 지워요.']],
-      ['이 사이트', ['쿠키, 분석 도구, 광고 추적을 쓰지 않아요. 페이지에는 실행되는 스크립트가 없어요.']],
-      ['문의', [`${CONTACT}`]],
-      ['앞으로', ['앱을 출시할 때 앱 전체의 개인정보처리방침을 이 주소에 올려요.']],
-    ],
-  },
-  en: {
-    title: 'Pre-launch privacy notice',
-    lead: 'Mongmangi has not launched yet. This notice covers the personal information this site and the test sign-up handle right now.',
-    sections: [
-      ['What we receive now', ['Only email asking to join the closed test on Android. We receive your email address and what you write.']],
-      ['What it is used for', ['Only to add your address to the tester list of the Google Play closed test and to send you test information.']],
-      ['How it reaches us', [`Email sent to ${CONTACT} is forwarded to the operator’s Gmail. It is not stored on our servers.`]],
-      ['When it is deleted', ['30 days after the official launch, we delete the email we received and your address in the tester list. If you ask earlier, we delete it right away.']],
-      ['This site', ['It uses no cookies, analytics tools or ad tracking. The pages run no scripts.']],
-      ['Contact', [`${CONTACT}`]],
-      ['Next', ['When the app launches, the full Privacy Policy for the app will be posted at this address.']],
-    ],
-  },
-};
+export const OFFICER_SLOT_RE = /\[(?:성명 또는 상호 — 오너 기입|Name or business name — owner to fill)\]/g;
+export const fillOfficer = (md, officer) => (officer ? md.replace(OFFICER_SLOT_RE, () => officer) : md);
 
-function notice(lang) {
-  const n = NOTICE[lang];
-  return {
-    title: n.title,
-    body: `<h1>${esc(n.title)}</h1>
-<p>${esc(n.lead)}</p>
-${n.sections.map(([h, ps], i) => `<section aria-labelledby="n-${i + 1}"><h2 id="n-${i + 1}">${esc(h)}</h2>${ps.map((t) => (t === CONTACT ? `<p class="mail">${t}</p>` : `<p>${esc(t)}</p>`)).join('')}</section>`).join('\n')}`,
-  };
-}
-
-/** 출시 모드: 처리방침 정본 전체(체크리스트 상자 제외). 내부 메모 검사는 build.mjs ⑦이 렌더 HTML에서 */
+/** 처리방침 렌더(출시 모드 = 정본 전체에서 체크리스트 상자 제외, 출시 전 모드 = 테스터판). 내부 메모 검사는 build.mjs ⑦이 렌더 HTML에서 */
 function privacy(lang, md) {
   // 정본의 H1은 맨 위에 따로 두고(제목 → 안내 → 목차 → 본문 순서), 목차는 H2만
   const src = stripInternal(md);
@@ -410,7 +378,7 @@ ${html}
 
 /**
  * 생성 페이지 전부. @returns {Record<string,string>} public/ 상대 경로 → 내용
- * @param {{ origin: string, privacyMd: { ko: string, en: string }, mode?: 'prelaunch'|'launch' }} o
+ * @param {{ origin: string, privacyMd: { ko: string, en: string, tester: { ko: string, en: string } }, mode?: 'prelaunch'|'launch' }} o
  */
 export function renderSite({ origin, privacyMd, mode = 'prelaunch' }) {
   if (!MODES.includes(mode)) throw new Error(`SITE_MODE는 ${MODES.join('·')} 중 하나`);
@@ -434,9 +402,11 @@ export function renderSite({ origin, privacyMd, mode = 'prelaunch' }) {
       body = press(lang);
       ld = jsonLd('press', lang, origin);
     } else if (page.path.endsWith('/privacy')) {
-      const r = mode === 'launch' ? privacy(lang, privacyMd[lang]) : notice(lang);
+      const md = mode === 'launch' ? privacyMd[lang] : privacyMd.tester?.[lang];
+      if (typeof md !== 'string') throw new Error(`${mode === 'launch' ? '처리방침 정본' : '테스터판 방침'}(${lang})이 없다`);
+      const r = privacy(lang, md);
       title = `${r.title} · ${f.name}`;
-      description = mode === 'launch' ? r.title : NOTICE[lang].lead;
+      description = r.title;
       body = r.body;
     } else {
       title = `${f.name} · ${f.tagline}`;
@@ -471,7 +441,7 @@ export function llms(origin, mode = 'prelaunch') {
   const ko = FACTS.ko;
   const en = FACTS.en;
   const list = (rows) => rows.map(([k, v]) => `- ${k}: ${v}`).join('\n');
-  const pv = mode === 'launch' ? ['Privacy Policy', '개인정보처리방침'] : [NOTICE.en.title, NOTICE.ko.title];
+  const pv = mode === 'launch' ? ['Privacy Policy', '개인정보처리방침'] : [TESTER_TITLE.en, TESTER_TITLE.ko];
   return `# ${ko.name} (${en.name})
 
 > ${en.summary} Korean title: ${ko.name}. ${en.tagline}
@@ -496,8 +466,8 @@ ${list(ko.rows)}
 - [사실](${origin}/facts): 한국어 사실 페이지와 자주 묻는 질문
 - [Press kit](${origin}/en/press): one-line description, facts, actual screenshots, contact
 - [프레스킷](${origin}/press): 한국어 프레스킷
-- [${pv[0]}](${origin}/en/privacy): ${mode === 'launch' ? 'privacy policy for the app' : 'what is handled before launch'}
-- [${pv[1]}](${origin}/privacy): ${mode === 'launch' ? '앱 개인정보처리방침' : '출시 전에 다루는 개인정보'}
+- [${pv[0]}](${origin}/en/privacy): ${mode === 'launch' ? 'privacy policy for the app' : 'privacy policy for the Android closed test build and test sign-up email'}
+- [${pv[1]}](${origin}/privacy): ${mode === 'launch' ? '앱 개인정보처리방침' : 'Android 비공개 테스트 빌드와 테스트 신청 메일의 개인정보처리방침'}
 - [Delete your data](${origin}/delete): how to delete what you stored on the server
 
 ## Optional
@@ -507,7 +477,12 @@ ${list(ko.rows)}
 `;
 }
 
-export const readPrivacy = (docsDir) => ({
+/** 처리방침 정본(출시 모드)과 빌드 2 테스터판(출시 전 모드). officer = PRIVACY_OFFICER(테스터판 보호책임자 칸만 채움) */
+export const readPrivacy = (docsDir, { officer = '' } = {}) => ({
   ko: readFileSync(`${docsDir}/privacy-policy.ko.md`, 'utf8'),
   en: readFileSync(`${docsDir}/privacy-policy.en.md`, 'utf8'),
+  tester: {
+    ko: fillOfficer(readFileSync(`${docsDir}/privacy-policy-tester.ko.md`, 'utf8'), officer),
+    en: fillOfficer(readFileSync(`${docsDir}/privacy-policy-tester.en.md`, 'utf8'), officer),
+  },
 });

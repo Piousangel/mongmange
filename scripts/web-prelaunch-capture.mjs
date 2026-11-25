@@ -3,21 +3,30 @@
 // Playwright로 / · /press · /facts · /privacy 한·영을 320·430 폭, 그리고 320 폭 200% 글자로 찍는다. 끝나면 서버·브라우저를 끈다.
 // 함께 재는 것: 가로 넘침, 자기 도메인 밖 요청 수, 콘솔 오류, 그림 alt, 제목 순서, 접근성 트리(ARIA 스냅숏).
 // 사용: node scripts/web-prelaunch-capture.mjs [출력 폴더 = docs/app/web-prelaunch]
+//       node scripts/web-prelaunch-capture.mjs --build-only  — 빌드만 하고 끝(브라우저·서버 없음, web-static 시험이 회귀를 본다)
 import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { chromium } from 'playwright';
 import { build } from '../apps/web-static/scripts/build.mjs';
 
 const PORT = 4517; // 8081은 앱 개발 서버 자리 — 쓰지 않는다
-const OUT = path.resolve(process.argv[2] ?? 'docs/app/web-prelaunch');
+const BUILD_ONLY = process.argv.includes('--build-only');
+const OUT = path.resolve(process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'docs/app/web-prelaunch');
 const FP = Array.from({ length: 32 }, (_, i) => (i * 7 + 16).toString(16).toUpperCase().padStart(2, '0')).join(':');
-const ENV = { APPLE_TEAM_ID: 'A1B2C3D4E5', ANDROID_CERT_SHA256: FP, APP_STORE_ID: '6739012345', API_ORIGIN: 'https://mong-api-abc123-du.a.run.app', SITE_ORIGIN: 'https://mongmang.ink' };
+const ENV = { APPLE_TEAM_ID: 'A1B2C3D4E5', ANDROID_CERT_SHA256: FP, APP_STORE_ID: '6739012345', API_ORIGIN: 'https://mong-api-abc123-du.a.run.app', SITE_ORIGIN: 'https://mongmang.ink',
+  // 테스터판 보호책임자 칸(W7) — 캡처용 가짜 값. 실제 배포 값은 오너가 배포 환경에 넣는다
+  PRIVACY_OFFICER: '캡처용 상호' };
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'web-prelaunch-'));
 const pub = path.join(tmp, 'public');
 const { warnings } = build({ env: ENV, outDir: pub });
+if (BUILD_ONLY) {
+  rmSync(tmp, { recursive: true, force: true });
+  console.log('캡처용 빌드 통과(--build-only)');
+  process.exit(0);
+}
+const { chromium } = await import('playwright');
 const fb = JSON.parse(readFileSync('apps/web-static/firebase.json', 'utf8')).hosting;
 const routes = new Map(fb.rewrites.filter((r) => r.destination).map((r) => [r.source, r.destination]));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.jpg': 'image/jpeg', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml', '.json': 'application/json' };
@@ -41,7 +50,7 @@ const PAGES = [
   ['home', '/', '/en'],
   ['press', '/press', '/en/press'],
   ['facts', '/facts', '/en/facts'],
-  ['privacy', '/privacy', '/en/privacy'], // 출시 전 개인정보 안내(SITE_MODE 기본 prelaunch)
+  ['privacy', '/privacy', '/en/privacy'], // 빌드 2 테스터판 방침(SITE_MODE 기본 prelaunch)
 ];
 const SHOTS = [
   { w: 320, fs: 100 },

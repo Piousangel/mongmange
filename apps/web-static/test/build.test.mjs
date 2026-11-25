@@ -9,7 +9,8 @@ import { build, BuildError, check, CK_VERSION, LIVE_GZIP_BUDGET, readFirebaseJso
 const FP1 = Array.from({ length: 32 }, (_, i) => (i * 7 + 16).toString(16).toUpperCase().padStart(2, '0')).join(':');
 const FP2 = Array.from({ length: 32 }, (_, i) => (255 - i * 3).toString(16).toUpperCase().padStart(2, '0')).join(':');
 const API = 'https://mong-api-abc123-du.a.run.app';
-const ENV = { APPLE_TEAM_ID: 'A1B2C3D4E5', ANDROID_CERT_SHA256: `${FP1}, ${FP2.toLowerCase()}`, APP_STORE_ID: '6739012345', API_ORIGIN: API };
+// PRIVACY_OFFICER: 테스터판 보호책임자 칸(W7) — 비면 출시 전 모드도 빌드 실패라 정상 빌드 시험은 시험용 상호를 넣는다
+const ENV = { APPLE_TEAM_ID: 'A1B2C3D4E5', ANDROID_CERT_SHA256: `${FP1}, ${FP2.toLowerCase()}`, APP_STORE_ID: '6739012345', API_ORIGIN: API, PRIVACY_OFFICER: '시험상호' };
 
 const dirs = [];
 function tmp() {

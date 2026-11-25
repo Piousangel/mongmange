@@ -132,6 +132,7 @@
 - [ ] C10 빌드 2 네이티브 묶음 한 번: `expo-updates`(채널·롤백 규칙), `associatedDomains`, `intentFilters`(EAS 서명 키 + Play 앱 서명 키), 위젯 타깃(`@bacons/apple-targets`·App Group·로컬 Expo 모듈), `react-native-android-widget` → ~~12-05 전후~~ EAS 리허설 빌드 — 진행: 인코더 모듈 1dd856c(EAS 리허설·expo-updates·딥링크·위젯 남음) — **[D-26: + V2 필기 인식 모듈. 리허설 12-12, 동결 = 빌드 2 12-19]**
 - [ ] C11 앱 net 모듈: 집계 핑 + 아웃박스, 플래그 로더(크래시 루프 탈출), 딥링크 수신 시트, 14세 확인, OG 1200×630 렌더·8초 루프 업로드(이름 공개 설정 반영) — [D-26: OG·루프에 유저 획(V13), 쓴 말 기본 숨김(V15)]
   - [B4 리뷰 11-25] 완료 조건: 원격 문서는 `verifyRemoteDocStrict`(서명 필수·만료·바닥 판)만으로 받고, 탈출 중 값은 `escapeFlags`·`escapeThresholds`, 팩은 `sha256Hex`·`lexImmutableViolations`로 검사 — `verifyRemoteDoc`·`unsigned`를 앱에서 직접 다루지 않는다(B4-report 3절)
+  - [web-static 리뷰 R3 11-25] 완료 조건: 앱 번들 공개키 목록을 `apps/mobile/src/net/remote-public-keys.json`({keys:[{kid,n,e}]})에 두고, `apps/web-static/remote-public-keys.json`과 같은지 보는 **두 목록 대조 시험**을 둔다(정적 빌드는 이미 이 경로가 있으면 대조해 다르면 실패)
 - [ ] C12 맡겨 두기 UI: 켜기·되찾기 글귀 표시·입력·충돌 시 나란히 고르기·복원 화면·지우기(다국어·200% 글자) — [D-26: 켜기 화면에 '쓴 글씨 획 좌표' 고지 한 줄(V15)]
 - [ ] C13 자동 테스트: 기기 이동·충돌 시나리오 iOS·Android 각 20회+, 오프라인 7일, 느린 서버(Q5·Q9) — [D-26: + 세이브 v3·화첩 시나리오(V18)]
 - [ ] C14 아트·카피 레인 5.0일: 웹 페이지·OG 틀·위젯 세 구도·틴트 윤곽·보름 모티프 3·14세 확인·맡겨 두기 문구·정 자막 4줄 × 2언어 — [D-26: 문구는 V14와 한 번에 검수]
