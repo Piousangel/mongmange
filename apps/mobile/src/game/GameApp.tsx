@@ -29,10 +29,12 @@ import { useLater } from '../lib/useLater';
 import { DevPanel } from './DevPanel';
 import { INTERNAL_TEST, devMenuMode } from '../buildKind';
 import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
-import { boot, dispatch, getSnapshot, getV3, goBackground, goForeground, install, isV3Mode, now, onEffects, setMeta, tickNow, tzOffsetNow, useGame } from './store';
+import { boot, dispatch, getSnapshot, getV3, goBackground, goForeground, install, isV3Mode, now, onEffects, setMeta, takeBootGreeting, tickNow, tzOffsetNow, useGame } from './store';
 import { InkstoneSheet, WordSheet, type WordPick } from '../screens/V3Sheets';
 import { CUE } from '../render/answer';
 import type { V3Home } from '../screens/GameHome';
+import { CAPTION_FADE_MS, CAPTION_HOLD_MS, JEONG_CAPTION_KEYS, captionShown, greetPlan, leanIntensity, type GreetCue } from './v3Flow';
+import { GREET_MS } from '../render/answer';
 import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, sheetGrindMode, sheetGrindOn, sheetGrindStep, wordSheetClose, wordSheetOnAppState, type SheetGrindEvent, type V3Cue } from './v3Flow';
 import { rejectText } from './text';
 import { requestReview } from './review';
@@ -112,6 +114,15 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const pendingWord = useRef<WordPick | null>(null);
   const [cue, setCue] = useState<V3Cue | null>(null);
   const cueSeq = useRef(0);
+  // ── M4 반김·정 자막(플래그 jeong, v3만) ──
+  /** 정 자막 띠 한 줄(key가 바뀔 때마다 한 번). 메모리에만 — 보인 횟수는 core captionsShown(세이브) */
+  const [caption, setCaption] = useState<{ text: string; key: number } | null>(null);
+  const captionBusyUntil = useRef(0);
+  /** 72h 이상·기다림: 첫 터치에 이어질 몸짓(메모리에만 — 앱을 닫으면 다음 돌아옴이 새로 정한다) */
+  const firstTouch = useRef<{ cue: GreetCue; intensity: number; notBefore: number } | null>(null);
+  /** 낮 홈이 아닐 때(아침 카드·인트로) 난 반김은 낮 홈에 들어갈 때 보인다 */
+  const greetQueue = useRef<(() => void)[]>([]);
+  const kindRef = useRef<string>('intro');
   const [introPlaying, setIntroPlaying] = useState(false);
   const [developed, setDeveloped] = useState<{ card: sim.DreamCard; line: sim.MorningLine } | null>(null);
   const [line, setLine] = useState('');
@@ -202,12 +213,55 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   }, [sheetGrind]);
 
   // ── sim 효과 → 소리·문구·알림 ──
-  useEffect(
-    () =>
-      onEffects((effects, ev, st) => {
+  useEffect(() => {
+    /** 반김 몸짓 하나(마시기 없음). 강도 칸 = closeness 구간 */
+    const greetCue = (g: GreetCue, intensity: number, spot = 0) => {
+      const kind = { glance: CUE.greetGlance, joy: CUE.greetJoy, wait: CUE.greetWait, big: CUE.greetBig, hesitate: CUE.hesitate }[g];
+      setCue({ kind, intensity, net: false, fromX: spot, fromY: 0, key: ++cueSeq.current });
+    };
+    /** 낮 홈에서만 몸짓·자막을 보인다(아침 카드 위에 겹치지 않게) */
+    const onDay = (f: () => void) => (kindRef.current === 'day' ? f() : greetQueue.current.push(f));
+    /** 정 자막: 한 번에 한 줄, 앞 줄이 흐려진 뒤 다음 줄. 보인 순간 core에 알린다(처음 세 번만 — captionsShown) */
+    const showCaption = (signal: v3.JeongSignal) => {
+      const wait = Math.max(0, captionBusyUntil.current - Date.now());
+      captionBusyUntil.current = Date.now() + wait + CAPTION_HOLD_MS + CAPTION_FADE_MS + 200;
+      later(() => {
+        const st = getSnapshot().state;
+        if (!st) return;
+        setCaption({ text: t(JEONG_CAPTION_KEYS[signal], { name: displayName(st) ?? t('name.default') }), key: ++cueSeq.current });
+        dispatch({ type: 'jeongCaption', signal });
+      }, wait);
+    };
+    const handle = (effects: v3.V3Effect[], ev: Parameters<Parameters<typeof onEffects>[0]>[1], st: sim.State) => {
         setNowT(now());
+        const jeongOn = isV3Mode() && isOn('jeong');
         for (const e of effects) {
           switch (e.type) {
+            case 'greeted': {
+              if (!jeongOn) break;
+              const plan = greetPlan(e, { hesitation: isOn('hesitation') });
+              const intensity = leanIntensity(e.lean);
+              onDay(() => {
+                greetCue(plan.open, intensity);
+                // 머뭇거림과 물방울(첫 터치)은 같은 프레임에 겹치지 않는다 — 큰 반김은 머뭇거림이 끝난 뒤에
+                firstTouch.current = plan.firstTouch ? { cue: plan.firstTouch, intensity, notBefore: Date.now() + (plan.open === 'hesitate' ? GREET_MS[CUE.hesitate]! : 0) } : null;
+              });
+              break;
+            }
+            case 'jeongSignal': {
+              if (!jeongOn) break;
+              if (e.signal === 'offer' && e.spot !== undefined) {
+                const spot = e.spot;
+                // 첫 터치 큰 반김이 있으면 그 뒤에 내민다
+                const after = firstTouch.current ? GREET_MS[CUE.greetBig]! : 0;
+                later(() => setCue({ kind: CUE.offerSpot, intensity: 2, net: false, fromX: spot, fromY: 0, key: ++cueSeq.current }), after);
+              }
+              if (captionShown(e, { jeong: jeongOn, jeongCaptions: isOn('jeongCaptions') })) onDay(() => showCaption(e.signal));
+              break;
+            }
+            case 'called':
+              if (jeongOn && e.near !== null) later(() => setCue({ kind: e.near ? CUE.replyNear : CUE.replyFar, intensity: 2, net: false, fromX: 0, fromY: 0, key: ++cueSeq.current }), 600);
+              break;
             case 'wordAccepted': {
               // 한 마디 + 붓 한 획이 몸에 붙음 → 홈으로 돌아가 마시고 대답(먹 방울은 붓 쪽에서)
               const pick = pendingWord.current;
@@ -296,9 +350,32 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               break;
           }
         }
-      }),
-    [flash, later, width, height],
-  );
+        // 72h 이상·기다림 뒤 첫 터치(몸): 큰 반김 또는 그 단계의 기쁨(머뭇거림이 끝난 뒤)
+        if (jeongOn && ev?.type === 'tap' && ev.target === 'body' && firstTouch.current) {
+          const f = firstTouch.current;
+          firstTouch.current = null;
+          later(() => {
+            greetCue(f.cue, f.intensity);
+            if (f.cue === 'big') {
+              // 큰 반김 = 기쁨 1.5배 + 이름 가락 2회(가락이 꺼져 있으면 기쁨 소리 한 번)
+              const s2 = getSnapshot().state;
+              if (s2 && isOn('nameMelody')) {
+                const m = sim.melodyOfState(s2);
+                sound.playMelody(nameMelodySound(m.id), m.rate);
+                later(() => sound.playMelody(nameMelodySound(m.id), m.rate), 1200);
+              } else sound.play('mongJoy');
+            }
+          }, Math.max(0, f.notBefore - Date.now()));
+        }
+    };
+    const off = onEffects(handle);
+    // 콜드 스타트의 반김은 구독 전에 났다 — 한 번 꺼내 같은 길로 보낸다
+    const booted = takeBootGreeting();
+    const st0 = getSnapshot().state;
+    if (booted.length > 0 && st0) handle(booted, null, st0);
+    return off;
+  }, [flash, later, width, height]);
+
 
   /** 재우기 직후: 권한이 있으면 바로 예약. 처음이면 조수·안심 문구 뒤 앱 안 사전 문구 → (동의하면) OS 권한 창 */
   const onPutToSleep = (st: sim.State) => {
@@ -361,7 +438,9 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const callName = (): 'turn' | 'melody' => {
     const st = getSnapshot().state;
     if (!st) return 'turn';
-    const reply = sim.callReply(st, { melody: isOn('nameMelody') });
+    // v3: 부르기도 정 한 칸 — 대답은 core가 공방과 같은 정 값으로 정한다(called 효과). v2는 그대로 sim.callReply
+    const called = isV3Mode() ? dispatch({ type: 'call', melody: isOn('nameMelody') }).find((e) => e.type === 'called') : undefined;
+    const reply = called && called.type === 'called' ? called.reply : sim.callReply(st, { melody: isOn('nameMelody') });
     const who = displayName(st) ?? t('name.default');
     if (reply === 'melody') {
       const m = sim.melodyOfState(st);
@@ -383,6 +462,15 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         : mode === 'stroke'
           ? 'stroke'
           : 'day';
+
+  // 낮 홈에 들어가면 미뤄 둔 반김·정 자막을 보인다(아침 카드를 닫은 뒤 등)
+  kindRef.current = kind;
+  useEffect(() => {
+    if (kind !== 'day' || greetQueue.current.length === 0) return;
+    const q = greetQueue.current;
+    greetQueue.current = [];
+    later(() => q.forEach((f) => f()), 600);
+  }, [kind, later]);
 
   // ── 환경음: 낮 = 종이 공기, 밤·아침 물 = 밤 물소리(조수가 다 찬 2400ms 뒤). 엔진이 원하는 환경음을 기억한다 ──
   const prevKind = useRef<Kind>('intro');
@@ -476,6 +564,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         cue,
         onInkstoneTap: () => setInkSheetOpen(true),
         onGrindA11y: () => grindForA11y(),
+        caption,
       }
     : null;
 

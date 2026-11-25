@@ -165,7 +165,13 @@ describe('시험판에서만 새 컨셉 v3·v3 개발 메뉴 켜짐(운영·prev
     expect(devMenuMode({ dev: false, internalTest: true })).toBe('v3');
     expect(devMenuMode({ dev: true, internalTest: true })).toBe('full');
   });
-  it('시험판에서 켜는 플래그는 conceptV3 하나 — dreamContent 등 다른 시험 플래그 기본값은 그대로 꺼짐', () => {
+  it('M4 jeong·hesitation·jeongCaptions도 conceptV3와 같은 규칙(운영 꺼짐, 개발·시험판 켜짐) — 소스로 고정', () => {
+    const src = readFileSync(join(root, 'src/features.ts'), 'utf8');
+    for (const id of ['conceptV3', 'jeong', 'hesitation', 'jeongCaptions'])
+      expect(src, id).toMatch(new RegExp(`\\n  ${id}: conceptV3Default\\(\\{ dev: typeof __DEV__ !== 'undefined' && __DEV__ === true, internalTest: INTERNAL_TEST \\}\\),`));
+    expect(FEATURE_DEFAULTS.jeong).toBe(false); // 시험 환경(Node) = 운영과 같은 값
+  });
+  it('시험판에서 켜는 플래그는 conceptV3(+ M4 jeong 묶음) — dreamContent 등 다른 시험 플래그 기본값은 그대로 꺼짐', () => {
     expect(INTERNAL_TEST).toBe(false); // 시험 환경(Node)은 시험판이 아니다
     const { conceptV3: _v3, share: _s, review: _r, ...rest } = FEATURE_DEFAULTS;
     for (const [id, on] of Object.entries(rest)) expect(on, id).toBe(false);

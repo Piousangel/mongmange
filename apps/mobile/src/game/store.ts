@@ -203,7 +203,18 @@ function bootV3() {
     return;
   }
   emit({ restoredFrom: r.source, lostSave: false, futureSave: false });
-  applyV3(v3.reduceV3(r.state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow(), ...nightFields() }), null, true);
+  const step = v3.reduceV3(r.state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow(), ...nightFields() });
+  // 콜드 스타트의 반김(M4)은 화면이 효과를 듣기 전에 난다 — 한 번 꺼내 쓰도록 남겨 둔다(takeBootGreeting)
+  bootGreeting = step.effects.filter((e) => e.type === 'greeted' || e.type === 'jeongSignal');
+  applyV3(step, null, true);
+}
+
+let bootGreeting: Effect[] = [];
+/** 콜드 스타트 때 난 반김·정 신호(한 번만 돌려주고 비운다). 화면이 효과 구독을 건 직후 부른다 */
+export function takeBootGreeting(): Effect[] {
+  const out = bootGreeting;
+  bootGreeting = [];
+  return out;
 }
 
 /** 설치(첫 탭 순간). 깨어 있고 앱이 앞에 있다. 첫 탭 좌표(W, 핵 원점)는 타고남 씨앗 재료(C-integrated 2-1) */
@@ -261,7 +272,7 @@ export function dispatch(input: EventInput): Effect[] {
     applyV3(step, ev, true);
     return step.effects;
   }
-  if (ev.type === 'write' || ev.type === 'offer' || ev.type === 'mealNudge') return [];
+  if (ev.type === 'write' || ev.type === 'offer' || ev.type === 'mealNudge' || ev.type === 'call' || ev.type === 'jeongCaption') return [];
   const step = sim.reduce(s, ev);
   apply(step, ev, true);
   return step.effects;
@@ -317,6 +328,14 @@ export function useGame(): Snapshot {
 export function devAdvance(ms: number) {
   setMeta({ devOffsetMs: snap.meta.devOffsetMs + ms });
   tickNow();
+}
+
+/** 개발 메뉴 M4 반김 확인: 앱을 닫은 것으로 보고(appBackground) 시계를 ms만큼 당긴 뒤 돌아온다(appForeground) */
+export function devAway(ms: number) {
+  if (!snap.state) return;
+  if (snap.state.backgroundSince === null) goBackground();
+  setMeta({ devOffsetMs: snap.meta.devOffsetMs + ms });
+  goForeground();
 }
 
 /**

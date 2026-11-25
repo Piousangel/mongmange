@@ -8,9 +8,11 @@
 //   ④ 28밤: 이레(7·14·21·28)마다 스냅숏 자리, 28번째 아침에 완성 → 곁에 남음(성장 = 새 말·새 획만 멈춤)
 //   ⑤ 밥 한 숟갈(깸마다 최대 2, 먹을 한 칸 이상 갈았을 때)·작은 것(깸마다 최대 3). 시각·횟수 기록 0(D-27).
 //      V27 정식판: 공방 pantry 열림(이레 아침·정, 깸 경계)·좋아하는 것(씨앗)·밥 알림 데이터(nudgeOptIn)·업로드 허용 목록 — 규칙은 meal.ts·nudge.ts
+//   ⑥ M4 정·반김·머뭇거림: 정 = sim relation.jeongDays 하나(몸 탭·부르기·한 마디가 그 깸에 한 번 올림), 반김·정 신호는 효과로만 — 규칙은 jeong.ts
 // 세이브 = 기존 봉투(schemaVersion 2 + sim 2) + `v3` 블록. 저장 키는 따로라 옛 세이브(v2)는 손대지 않고 보관된다.
 import { parseState, serializeState } from '../sim/save';
 import { reduce as simReduce, tick as simTick, strokeBlock, SIM_SCHEMA_VERSION } from '../sim/reduce';
+import { callReply as simCallReply } from '../sim/naming';
 import { createInitial, type InitialOptions } from '../sim/reduce';
 import type { Effect as SimEffect, Event as SimEvent, Millis, State as SimState } from '../sim/types';
 import { FutureSaveError, isFutureSaveError, SCHEMA_VERSION } from '../save/envelope';
@@ -31,6 +33,8 @@ import {
   type TreatItem,
 } from './meal';
 import type { MealNudgeInput } from './nudge';
+import { markJeong } from '../sim/pillars';
+import { CAPTION_MAX, JEONG_SIGNALS, emptyCaptionsShown, favoriteSpotOf, greetingOf, jeongStageOf, type GreetTier, type JeongSignal, type JeongStage, type Lean } from './jeong';
 
 export const V3_VERSION = 3;
 export const LIFE_NIGHTS = 28;
@@ -83,6 +87,11 @@ export interface V3Block {
   pantry: Pantry;
   /** 지금 자는 잠이 연적으로 재워 센 밤인가(깨면 false). 시각은 저장하지 않는다 */
   tonightCounted: boolean;
+  /**
+   * M4 정 자막을 보인 횟수(JEONG_SIGNALS 순서: 알아봄·기다림·내밂·이름 대답), 각 0~3에서 멈춘다(처음 세 번만).
+   * 시각·날짜·연속은 저장하지 않는다. 기기 전용(업로드 안 함 — 되찾은 기기에서 자막이 다시 세 번 나와도 해가 없다)
+   */
+  captionsShown: number[];
 }
 
 export interface V3State {
@@ -105,7 +114,11 @@ export type V3Event =
   | { type: 'offer'; at: Millis; kind: 'meal'; item: MealItem }
   | { type: 'offer'; at: Millis; kind: 'treat'; item: TreatItem }
   /** 밥 알림 받기 켜고 끄기(D-15 첫 재우기 밤 화면·공방 노트, V29). 자는 동안도 받는다 */
-  | { type: 'mealNudge'; at: Millis; on: boolean };
+  | { type: 'mealNudge'; at: Millis; on: boolean }
+  /** M4 부르기(세로 이름 탭). melody = 이름 가락 플래그(nameMelody) 값을 이벤트가 싣는다(같은 이벤트 열 = 같은 대답) */
+  | { type: 'call'; at: Millis; melody: boolean }
+  /** M4 정 자막을 화면에 보였다(앱이 플래그 jeong·jeongCaptions가 켜져 있을 때만 보낸다) — 그 신호의 횟수 +1(3에서 멈춤) */
+  | { type: 'jeongCaption'; at: Millis; signal: JeongSignal };
 
 export type WriteBlock = 'asleep' | 'done' | 'used' | 'noInk';
 
@@ -126,7 +139,16 @@ export type V3Effect =
   | { type: 'received'; kind: 'meal' | 'treat'; item: PantryItem; bow: boolean; liked: boolean }
   | { type: 'offerRejected'; reason: 'asleep' | 'noInk' | 'cap' | 'locked' }
   /** 깸 경계에서 공방에 새 종류가 열렸다(이레 아침·정) */
-  | { type: 'pantryOpened'; kind: 'meal' | 'treat'; item: PantryItem };
+  | { type: 'pantryOpened'; kind: 'meal' | 'treat'; item: PantryItem }
+  /**
+   * M4 돌아온 순간의 반김(깨어 있을 때만, 1분 넘게 비웠을 때). tier long = 72h 이상(머뭇거림 자리 — 플래그 hesitation이 꺼져 있으면 앱이 기다림 자세로).
+   * 비운 시간 숫자는 싣지 않는다(화면·문구가 '며칠 만'을 말하지 않게)
+   */
+  | { type: 'greeted'; tier: GreetTier; lean: Lean; stage: JeongStage; recognize: boolean; waiting: boolean }
+  /** M4 정 신호. caption = 아직 세 번을 다 보이지 않았다(앱이 자막을 보이면 jeongCaption을 보낸다). spot = 내밂의 좋아하는 자리 0..5 */
+  | { type: 'jeongSignal'; signal: JeongSignal; caption: boolean; spot?: number }
+  /** M4 부르기 대답: turn = 고개 돌림 '응?', melody = 가락 + 빗 튕김. near = 정 7부터(closeness ≥ 0이면 다가옴 true, 아니면 빗만 크게 false), 그 전 null */
+  | { type: 'called'; reply: 'turn' | 'melody'; near: boolean | null };
 
 export interface V3Step {
   state: V3State;
@@ -141,6 +163,7 @@ export function emptyV3Block(): V3Block {
     meal: { spoons: 0, treats: 0, nudgeOptIn: false },
     pantry: startPantry(),
     tonightCounted: false,
+    captionsShown: emptyCaptionsShown(),
   };
 }
 
@@ -261,6 +284,19 @@ export function boundaryProgress(b: Pick<V3Block, 'life' | 'tonightCounted'>, si
 }
 
 /**
+ * M4가 읽는 정 = 공방(V27)과 **같은 값**(마지막 깸 경계 시점). 이번 깸에 만져 오른 몫은 다음 아침부터 보인다 —
+ * 그래서 정 2 아침에 늘인 먹 한 가락과 '알아봄'이 함께 열린다. 정을 따로 세는 곳은 없다(sim relation.jeongDays 하나)
+ */
+export function jeongOf(s: V3State): number {
+  return boundaryProgress(s.v3, s.sim).jeong;
+}
+
+/** 이 신호의 정 자막을 아직 보일 수 있는가(처음 세 번만) */
+export function captionDue(s: V3State, signal: JeongSignal): boolean {
+  return (s.v3.captionsShown[JEONG_SIGNALS.indexOf(signal)] ?? CAPTION_MAX) < CAPTION_MAX;
+}
+
+/**
  * sim 효과를 보고 v3 블록을 고친다: 깸 = 밥 칸 비움·28번째 아침 완성, 잠 = 밤 세기.
  * 밤 세기(PM 11-25 M6 판정): ① 연적으로 재운 잠은 바로 센다 ② 연적을 잊고 앱을 떠나 저절로 잔 잠도 **그 깸에 한 마디를 썼으면** 센다
  * ③ 말도 연적도 없던 깸의 잠은 세지 않는다(하루 걸러도 생애가 줄지 않음) ④ 깸 하나에 밤은 최대 1.
@@ -341,9 +377,64 @@ export function reduceV3(s: V3State, e: V3Event): V3Step {
         return { state: { ...st, sim: r.state }, effects: out };
       }
       out.push(...r.effects);
+      // 한 마디의 붓 획도 '만짐'이다(시스템 3.8 정 정의: 탭·길게 누르기·부르기·획) — 그 깸에 한 번
+      const simAfter: SimState = { ...r.state, relation: markJeong(r.state.relation, r.state.dayIndex) };
       const word: Word = { night, sense: e.word.sense, intensity: e.word.intensity, lexVer: e.word.lexVer, source: e.word.source, strokeId: acc.strokeId };
-      st = { sim: r.state, v3: { ...st.v3, words: [...st.v3.words, word] } };
+      st = { sim: simAfter, v3: { ...st.v3, words: [...st.v3.words, word] } };
       out.push({ type: 'wordAccepted', night, sense: word.sense, strokeId: word.strokeId });
+      return { state: st, effects: out };
+    }
+    case 'call': {
+      // 부르기: 대답은 sim callReply 규칙(M2) 그대로, 정은 공방과 같은 경계 값으로 본다. 부르기도 그 깸의 정 한 칸
+      const t = tickV3(s, e.at);
+      let st = t.state;
+      out.push(...t.effects);
+      if (st.sim.phase === 'asleep') return { state: st, effects: out };
+      const jeong = jeongOf(st);
+      const reply = simCallReply({ ...st.sim, relation: { ...st.sim.relation, jeongDays: jeong } }, { melody: e.melody });
+      const near = jeongStageOf(jeong) >= 7 ? st.sim.temperament.closeness >= 0 : null;
+      st = { ...st, sim: { ...st.sim, relation: markJeong(st.sim.relation, st.sim.dayIndex) } };
+      out.push({ type: 'called', reply, near });
+      if (reply === 'melody') out.push({ type: 'jeongSignal', signal: 'reply', caption: captionDue(st, 'reply') });
+      return { state: st, effects: out };
+    }
+    case 'jeongCaption': {
+      const t = tickV3(s, e.at);
+      const i = JEONG_SIGNALS.indexOf(e.signal);
+      const cur = t.state.v3.captionsShown;
+      if (i < 0 || (cur[i] ?? CAPTION_MAX) >= CAPTION_MAX) return t;
+      const captionsShown = cur.map((n, k) => (k === i ? n + 1 : n));
+      return { state: { ...t.state, v3: { ...t.state.v3, captionsShown } }, effects: t.effects };
+    }
+    case 'tap': {
+      // 몸을 이 깸에 처음 만지는 순간, 정 4부터 좋아하는 자리를 손가락 쪽으로 내민다(내밂)
+      if (e.target !== 'body') return { state: applySim(s, e, out), effects: out };
+      const t = tickV3(s, e.at);
+      out.push(...t.effects);
+      const before = t.state;
+      const firstTouch = before.sim.phase === 'awake' && before.sim.relation.todaySpotMs.every((x) => x === 0);
+      const spot = favoriteSpotOf(before.sim.relation.spot);
+      const st = applySim(before, e, out);
+      if (firstTouch && spot !== null && jeongStageOf(jeongOf(before)) >= 4) out.push({ type: 'jeongSignal', signal: 'offer', caption: captionDue(st, 'offer'), spot });
+      return { state: st, effects: out };
+    }
+    case 'appForeground': {
+      // 돌아옴: 비운 시간 × closeness → 반김 4단계(72h 이상 = 머뭇거림 자리). 깨어 있을 때만, 1분 넘게 비웠을 때만
+      const away = s.sim.backgroundSince;
+      const st = applySim(s, e, out);
+      if (away === null || st.sim.phase !== 'awake') return { state: st, effects: out };
+      const g = greetingOf({
+        awayMs: st.sim.relation.lastAbsenceMs,
+        closeness: st.sim.temperament.closeness,
+        jeong: jeongOf(st),
+        hour: st.sim.relation.hour,
+        at: st.sim.clock.lastSimAt,
+        tzOffsetMin: e.tzOffsetMin,
+      });
+      if (!g) return { state: st, effects: out };
+      out.push({ type: 'greeted', ...g });
+      if (g.recognize) out.push({ type: 'jeongSignal', signal: 'recognize', caption: captionDue(st, 'recognize') });
+      if (g.waiting) out.push({ type: 'jeongSignal', signal: 'wait', caption: captionDue(st, 'wait') });
       return { state: st, effects: out };
     }
     case 'mealNudge': {
@@ -420,7 +511,7 @@ export function uploadWords(s: V3State): UploadWord[] {
  */
 export const V3_UPLOAD_FIELDS = ['words', 'life', 'meal', 'pantry', 'tonightCounted'] as const;
 /** 기기에만 두는 v3 칸(블록에 생겨도 업로드에 들어가지 않는다) */
-export const V3_DEVICE_ONLY_FIELDS = ['walk'] as const;
+export const V3_DEVICE_ONLY_FIELDS = ['walk', 'captionsShown'] as const;
 
 export interface V3Upload {
   words: UploadWord[];
@@ -477,6 +568,9 @@ function validateV3(b: unknown, sim: SimState): V3Block {
   if (!(pantry!.meal as unknown[]).every((x) => isPantryItem('meal', x)) || !(pantry!.treat as unknown[]).every((x) => isPantryItem('treat', x))) bad('pantry');
   if (!Array.isArray(v.words)) bad('words');
   if (typeof v.tonightCounted !== 'boolean') bad('tonightCounted');
+  // M4 이행: 칸이 없는 세이브(세로 조각·V27)는 0 넷으로 채운다. 있으면 모양만 본다(다시 적용해도 그대로 — 멱등)
+  if (v.captionsShown !== undefined && !(Array.isArray(v.captionsShown) && v.captionsShown.length === JEONG_SIGNALS.length && v.captionsShown.every((n) => isInt(n, 0, CAPTION_MAX))))
+    bad('captionsShown');
   const ids = new Set(sim.strokes.map((x) => x.id));
   for (const w of v.words as Record<string, unknown>[]) {
     if (!w || !isInt(w.night, 1, LIFE_NIGHTS) || !STORED_SENSES.includes(w.sense as string) || !isInt(w.intensity, 1, 3)) bad('word');
@@ -484,7 +578,7 @@ function validateV3(b: unknown, sim: SimState): V3Block {
   }
   const block = v as unknown as V3Block;
   const { pantry: opened } = openPantry(block.pantry, boundaryProgress(block, sim));
-  return { ...block, pantry: opened };
+  return { ...block, pantry: opened, captionsShown: v.captionsShown === undefined ? emptyCaptionsShown() : [...block.captionsShown] };
 }
 
 export function parseV3(json: string): V3State {

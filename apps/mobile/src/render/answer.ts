@@ -31,6 +31,22 @@ export const CUE = {
   /** 그 깸의 마지막 숟갈 뒤 꾸벅(만족, 배와 무관) */
   mealBow: 13,
   treat: 14,
+  // ── M4 반김·정 몸짓(마시기 없음 — 먹 방울이 날아가지 않는다). 강도 칸 = closeness 구간(3 다가옴 · 2 가운데 · 1 혼자) ──
+  /** 6h 미만: 고개 돌림(+ 다가옴은 빗 한 번, 혼자는 시선만) */
+  greetGlance: 15,
+  /** 6~30h: 기쁨(다가옴 = 좌우로 비빔, 혼자 = 제자리 기쁨 + 빗 크게) */
+  greetJoy: 16,
+  /** 기다림 자세: 유저 쪽을 보고 빗을 세운 채 고요히(30~72h, 정 4 익숙한 시각, 머뭇거림을 끈 72h) */
+  greetWait: 17,
+  /** 72h 이상 첫 터치 뒤 큰 반김: 기쁨 1.5배 + 빗 두 번(이름 가락 2회는 소리) */
+  greetBig: 18,
+  /** 머뭇거림 0.8초: 제자리에서 고개를 한 번 갸웃, 시선은 유저 쪽. 비켜 앉기·몸 돌리기·크기 줄이기·빗 납작 없음 */
+  hesitate: 19,
+  /** 정 4 내밂: 좋아하는 자리 쪽으로 몸을 기울여 내민다(fromX = 자리 0..5) */
+  offerSpot: 20,
+  /** 정 7 이름 대답: closeness ≥ 0 = 유저 쪽으로 다가오듯 기울임(이동 0 — 몸 자리 그대로), < 0 = 제자리에서 빗만 크게 두 번 */
+  replyNear: 21,
+  replyFar: 22,
 } as const;
 export type CueKind = (typeof CUE)[keyof typeof CUE];
 
@@ -53,9 +69,28 @@ export const DRINK_MS = 1200;
 export const ECHO_MS = 1500;
 export const BACK_MS = 1500;
 
+/** 반김·정 몸짓 길이(ms) */
+export const GREET_MS: Record<number, number> = {
+  [CUE.greetGlance]: 1400,
+  [CUE.greetJoy]: 2200,
+  [CUE.greetWait]: 2400,
+  [CUE.greetBig]: 3000,
+  [CUE.hesitate]: 800,
+  [CUE.offerSpot]: 1800,
+  [CUE.replyNear]: 1600,
+  [CUE.replyFar]: 1600,
+};
+
+/** 마시기(먹 방울)가 있는 대답인가 — 반김·정 몸짓은 마시지 않는다 */
+export function drinks(kind: number): boolean {
+  'worklet';
+  return kind >= CUE.bright && kind <= CUE.treat;
+}
+
 export function cueLength(kind: number): number {
   'worklet';
   if (kind === CUE.none) return 0;
+  if (!drinks(kind)) return GREET_MS[kind] ?? 0;
   return DRINK_MS + ECHO_MS + BACK_MS;
 }
 
@@ -79,11 +114,66 @@ export interface AnswerPose {
 
 const REST: AnswerPose = { tilt: 0, hop: 0, gx: 0, gy: 0, settle: 0, eyeB: 'open', eyeMix: 0, combAngle: 0, combWobble: 0, bleed: 1, breathMs: 0, drop: -1 };
 
+/**
+ * M4 반김·정 몸짓(시스템 3.8, 아트 8절 — 모션 확정은 DS-2 임시판). 기존 재료(고개·뜀·눈·시선·빗·번짐)만 쓰고 몸 크기·비율·자리는 건드리지 않는다.
+ * 모든 반김은 유저 쪽(화면 앞, gy +)을 본다 — 등 돌림·시선 피하기 없음. 머뭇거림은 빗을 내리지 않고(납작 금지) 내려앉지도 않는다.
+ */
+export function greetPose(c: CueValue, dt: number, rm: boolean): AnswerPose {
+  'worklet';
+  const total = GREET_MS[c.kind] ?? 0;
+  if (dt < 0 || dt > total || total === 0) return REST;
+  const u = dt / total;
+  const env = Math.sin(Math.PI * u);
+  const lean = c.intensity >= 3 ? 'near' : c.intensity <= 1 ? 'alone' : 'mid';
+  // 유저 쪽 = 정면(시선 0). gy를 아래로 주면 웹·기기 캡처에서 눈이 내리깐 모양(졸림·풀 죽음)으로 읽혀 반김에는 쓰지 않는다(M4 캡처 판정)
+  const front = 0;
+  if (rm) {
+    // 모션 줄이기: 눈·빗만(0.4초 들고 나기)
+    const k = clamp01(dt / 400) * clamp01((total - dt) / 400);
+    const joy = c.kind === CUE.greetJoy || c.kind === CUE.greetBig || c.kind === CUE.offerSpot || c.kind === CUE.replyNear || (c.kind === CUE.greetGlance && lean === 'near');
+    const ang = c.kind === CUE.greetWait ? 8 : c.kind === CUE.greetBig || c.kind === CUE.replyFar ? 12 : 0;
+    return { ...REST, eyeB: joy ? 'joy' : 'open', eyeMix: joy ? 0.8 * k : 0, combAngle: ang * k };
+  }
+  switch (c.kind) {
+    case CUE.greetGlance:
+      // 고개를 유저 쪽으로 돌림. 다가옴 = 빗 한 번, 혼자 = 시선만(고개 그대로)
+      return { ...REST, gy: front, tilt: lean === 'alone' ? 0 : 0.05 * env, combWobble: lean === 'near' ? 6 * wobble(dt, 3, 2) : 0, eyeB: 'joy', eyeMix: lean === 'near' ? 0.6 * env : 0 };
+    case CUE.greetJoy: {
+      // 기쁨: 다가옴 = 좌우로 천천히 비빔, 가운데 = 작게 뜀, 혼자 = 제자리 기쁨 + 빗 크게
+      const rub = lean === 'near' ? 0.06 * Math.sin(4 * Math.PI * u) * env : 0;
+      const hop = lean === 'mid' ? 0.07 * Math.abs(Math.sin(2 * Math.PI * u)) * env : 0;
+      return { ...REST, gy: front, tilt: rub, hop, eyeB: 'joy', eyeMix: env, combAngle: (lean === 'alone' ? 22 : 12) * env, combWobble: 6 * wobble(dt, 3, 2) * env };
+    }
+    case CUE.greetWait:
+      // 기다림 자세: 유저 쪽을 보고 빗을 조금 세운 채 고요히(혼자 = 멀찍이 — 시선만 조금 덜)
+      return { ...REST, combAngle: (lean === 'alone' ? 5 : 8) * clamp01(u * 4), breathMs: 4400 };
+    case CUE.greetBig:
+      // 큰 반김: 기쁨 1.5배 — 통통 두 번 + 빗 두 번 크게 + 기쁨 눈
+      return { ...REST, gy: front, hop: 0.15 * Math.abs(Math.sin(2 * Math.PI * u)) * env, eyeB: 'joy', eyeMix: 1, combAngle: 30 * env, combWobble: 9 * wobble(dt, 3, 2), bleed: 1 + 0.1 * env };
+    case CUE.hesitate:
+      // 머뭇거림: 제자리에서 고개를 한 번 갸웃, 시선은 처음부터 끝까지 유저 쪽. 눈은 뜬 그대로(슬픈 눈·감은 눈 없음)
+      return { ...REST, tilt: 0.09 * env, eyeB: 'open', eyeMix: 0 };
+    case CUE.offerSpot: {
+      // 내밂: 좋아하는 자리(0..5, 위 = 0 시계 방향) 쪽으로 기울여 내민다. 시선은 유저 쪽
+      const spot = Math.max(0, Math.min(5, Math.round(c.fromX)));
+      const side = spot <= 2 ? 1 : -1; // 앞쪽 자리 = 화면 오른쪽
+      return { ...REST, gy: front, tilt: 0.1 * side * env, eyeB: 'joy', eyeMix: 0.7 * env, combWobble: 4 * wobble(dt, 2.5, 2) * env };
+    }
+    case CUE.replyNear:
+      return { ...REST, tilt: 0.04 * env, eyeB: 'joy', eyeMix: env, combAngle: 10 * env };
+    case CUE.replyFar:
+      return { ...REST, gy: front, combAngle: 24 * Math.abs(Math.sin(2 * Math.PI * u)) * env, combWobble: 8 * wobble(dt, 3, 2) * env };
+    default:
+      return REST;
+  }
+}
+
 /** dt = 시작 뒤 ms. rm = 모션 줄이기(눈·빗만, 0.4초) */
 export function answerPose(c: CueValue, dt: number, rm: boolean): AnswerPose {
   'worklet';
   const total = cueLength(c.kind);
   if (c.kind === CUE.none || dt < 0 || dt > total) return REST;
+  if (!drinks(c.kind)) return greetPose(c, dt, rm);
   const drop = dt < DRINK_MS ? dt / DRINK_MS : -1;
   if (dt < DRINK_MS) return { ...REST, drop, gx: 0, gy: 0.15 * (1 - dt / DRINK_MS) };
   const A = c.intensity <= 1 ? 0.6 : c.intensity >= 3 ? 1 : 0.8;
@@ -165,3 +255,4 @@ export function answerPose(c: CueValue, dt: number, rm: boolean): AnswerPose {
   }
   return p;
 }
+

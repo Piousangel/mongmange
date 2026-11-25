@@ -16,8 +16,8 @@ import { ObjectIcons, Paper, SANS, SERIF, VerticalTitle, inkPool, layout, styles
 import { InkList, InkSticks, KeptStick } from './InkSticks';
 import { NameTitle } from './NameTitle';
 import { inkPickerOpen } from '../game/look';
-import { DRINK_MS, NO_CUE, answerPose, type CueValue } from '../render/answer';
-import { inkstoneA11yActions } from '../game/v3Flow';
+import { DRINK_MS, NO_CUE, answerPose, drinks, type CueValue } from '../render/answer';
+import { CAPTION_FADE_MS, CAPTION_HOLD_MS, inkstoneA11yActions } from '../game/v3Flow';
 
 const RM = PARAMS.rm;
 const TIDE_MS = RM ? 400 : 2400;
@@ -56,6 +56,8 @@ export interface V3Home {
   onInkstoneTap: () => void;
   /** 스크린리더 두 번 탭·목록 보기 = 먹 갈기(길게 누르기 대신, 리뷰 H1) */
   onGrindA11y: () => void;
+  /** M4 정 자막 한 줄(관찰자 3인칭, 화면 아래 자막 띠 — 1.6초 뒤 흐려짐). key가 바뀔 때마다 한 번. null = 없음 */
+  caption?: { text: string; key: number } | null;
 }
 /** 벼루 탭 판정(care-rituals 2-1: 300ms 미만) */
 const INKSTONE_TAP_MS = 300;
@@ -284,6 +286,8 @@ export function GameHome({
   const [ireH, setIreH] = useState(0);
   const below = titleBottom > 0 ? titleBottom + 16 + (showIre ? ireH + 6 : 0) : height * 0.3;
   const lineTop = below;
+  // 정 자막 띠: 몸 받침(바닥)과 사물 줄(아이콘 위 끝 = objectsY − 44) 사이 가운데
+  const captionTop = Math.round((L.groundY + L.objectsY - 44) / 2 - 10);
   // 이름을 지은 순간: 몽망이가 세로 이름 쪽으로 고개를 돌려 바라본다(2-2 '부르기와 발견')
   const namedKey = naming?.name ? `${naming.name}|${state.name?.at ?? 0}` : '';
   const prevNamed = useRef(namedKey);
@@ -381,7 +385,7 @@ export function GameHome({
     const c = cue.value;
     const dt = clock.value - c.at;
     // 모션 줄이기면 먹 방울이 날아가지 않는다(리뷰 L7)
-    if (RM || c.kind === 0 || dt < 0 || dt >= DRINK_MS) return { x: -99, y: -99, r: 0, o: 0 };
+    if (RM || !drinks(c.kind) || dt < 0 || dt >= DRINK_MS) return { x: -99, y: -99, r: 0, o: 0 };
     const e = ease(dt / DRINK_MS);
     return { x: c.fromX + (ox - c.fromX) * e, y: c.fromY + (oy - c.fromY) * e - Math.sin(Math.PI * e) * L.wpx * 0.6, r: 9 * (1 - 0.65 * e), o: 0.85 * (1 - 0.3 * e) };
   });
@@ -573,12 +577,33 @@ export function GameHome({
           </Animated.View>
         </>
       )}
+      {!asleep && v3?.caption && <CaptionBand key={v3.caption.key} text={v3.caption.text} top={captionTop} />}
       {line !== '' && (
         <KText style={[ui.line, { top: asleep ? height * 0.3 : lineTop, color: asleep ? PALETTE.night.textSub : PALETTE.day.textSub }]} accessibilityLiveRegion="polite" testID="home-line">
           {line}
         </KText>
       )}
     </View>
+  );
+}
+
+/**
+ * M4 정 자막 띠(시스템 3.8, D-20 개정 줄): 화면 아래(몸 받침과 사물 줄 사이) 가운데 한 줄, text-sub 색.
+ * 1.6초 머문 뒤 0.6초에 걸쳐 흐려진다(모션 줄이기면 들고 나는 페이드 없이 같은 시간만 보인다). 말풍선·꼬리 없음 — 몽망이가 하는 말이 아니다
+ */
+function CaptionBand({ text, top }: { text: string; top: number }) {
+  const at = useSharedValue(clock.value);
+  const st = useAnimatedStyle(() => {
+    const dt = clock.value - at.value;
+    const k = dt < 0 ? 0 : RM ? (dt < CAPTION_HOLD_MS + CAPTION_FADE_MS ? 1 : 0) : dt < 240 ? dt / 240 : dt < CAPTION_HOLD_MS ? 1 : 1 - clamp01((dt - CAPTION_HOLD_MS) / CAPTION_FADE_MS);
+    return { opacity: k };
+  });
+  return (
+    <Animated.View style={[styles.caption, { top }, st]} pointerEvents="none" testID="jeong-caption">
+      <KText style={[styles.captionText, { color: PALETTE.day.textSub }]} accessibilityLiveRegion="polite" maxFontSizeMultiplier={1.6}>
+        {text}
+      </KText>
+    </Animated.View>
   );
 }
 
@@ -618,5 +643,7 @@ const styles = StyleSheet.create({
   seal: { position: 'absolute', right: 22, width: 30, height: 30, backgroundColor: PALETTE.day.accent, borderRadius: 3 },
   sealHit: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   nightLine: { position: 'absolute', left: 0, right: 0, top: '21%' },
+  caption: { position: 'absolute', left: 24, right: 24, alignItems: 'center' },
+  captionText: { fontFamily: SERIF, fontSize: 14, lineHeight: 20, letterSpacing: track.serif(14), textAlign: 'center' },
   nightText: { position: 'relative', color: PALETTE.night.textSub, fontFamily: SERIF },
 });

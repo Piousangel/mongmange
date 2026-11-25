@@ -29,8 +29,8 @@ describe('원격 층', () => {
     expect(isOn('naming')).toBe(false);
     expect(asked).toEqual([]);
   });
-  it('탈출 계산에 넘기는 번들 값 = FEATURE_DEFAULTS 중 원격 키와 이름이 같은 것(cloud·moonNight·hesitation)', () => {
-    expect(remoteBundled()).toEqual({ cloud: FEATURE_DEFAULTS.cloud, moonNight: FEATURE_DEFAULTS.moonNight, hesitation: FEATURE_DEFAULTS.hesitation });
+  it('탈출 계산에 넘기는 번들 값 = FEATURE_DEFAULTS 중 원격 키와 이름이 같은 것(cloud·moonNight·hesitation·jeongCaptions — M4)', () => {
+    expect(remoteBundled()).toEqual({ cloud: FEATURE_DEFAULTS.cloud, moonNight: FEATURE_DEFAULTS.moonNight, hesitation: FEATURE_DEFAULTS.hesitation, jeongCaptions: FEATURE_DEFAULTS.jeongCaptions });
   });
 });
 

@@ -286,8 +286,13 @@ export function touchRelation(r: Relation, dayIndex: number, x: number, y: numbe
   const i = spotOf(x, y);
   const todaySpotMs = r.todaySpotMs.slice();
   todaySpotMs[i] = todaySpotMs[i]! + Math.max(holdMs, RELATION.tapContactMs);
-  const first = r.jeongDay !== dayIndex;
-  return { ...r, todaySpotMs, jeongDays: r.jeongDays + (first ? 1 : 0), jeongDay: dayIndex };
+  return markJeong({ ...r, todaySpotMs }, dayIndex);
+}
+
+/** 정 한 칸: 이 깸(dayIndex)에 처음 만졌으면 +1, 이미 셌으면 그대로. 줄이는 길은 없다(2-4). 몸 탭·v3 부르기·v3 한 마디가 같은 함수를 쓴다 */
+export function markJeong(r: Relation, dayIndex: number): Relation {
+  if (r.jeongDay === dayIndex) return r;
+  return { ...r, jeongDays: r.jeongDays + 1, jeongDay: dayIndex };
 }
 
 /** 앱을 엶(설치 포함): 그 시각 칸에 방문 표시 */

@@ -22,10 +22,18 @@ export const FEATURE_DEFAULTS = {
   nameMelody: false,
   /** M3 결 이름 + 공유 꼬리표 */
   temperamentLabel: false,
-  /** M4 정·손 기억·반김 */
+  /** M4 정·손 기억·반김(v2 경로 자리 — 쓰는 곳 없음. v3는 아래 `jeong`) */
   relation: false,
-  /** M4 서운 = 머뭇거림(비네트 테스트에 따라 끌 수 있음) */
-  hesitation: false,
+  /**
+   * M4 서운 = 머뭇거림(원격 플래그와 같은 이름 — 비네트 '찔렸다' 통과선 미달이면 원격으로 끈다 → 72h 이상은 기다림 자세만).
+   * `jeong`이 켜져 있을 때만 의미가 있다. 기본값은 `jeong`과 같다(개발·내부 시험판 켜짐, 운영 꺼짐)
+   */
+  hesitation: conceptV3Default({ dev: typeof __DEV__ !== 'undefined' && __DEV__ === true, internalTest: INTERNAL_TEST }),
+  /**
+   * M4 정 자막(D-20 개정 줄 — 출시 기본값 켬, 원격 플래그와 같은 이름). 정 신호마다 처음 세 번만 화면 아래 자막 띠에 관찰자 3인칭 한 줄.
+   * `jeong`이 꺼져 있으면 보이지 않는다. 기본값은 `jeong`과 같게 둔다(출시 때 `jeong`과 함께 켬 = D-20 '기본값 켬', 원격으로 끌 수 있음)
+   */
+  jeongCaptions: conceptV3Default({ dev: typeof __DEV__ !== 'undefined' && __DEV__ === true, internalTest: INTERNAL_TEST }),
   /**
    * D-24 썸네일 LOD(몸 폭 48pt 이하에서 획 틈·폭·먹 채도·눈·빗 키움). 블라인드(12-05) 판정 뒤 켠다.
    * 켜기 전 관문: S25 실기기 22·36pt 캡처, 꿈 카드 화면 ↔ 공유 PNG LOD 일치 확인(아트 1-5).
@@ -65,6 +73,11 @@ export const FEATURE_DEFAULTS = {
    * **개발 빌드·내부 시험판(eas internal-test, buildKind.ts)에서는 기본 켜짐, 운영·preview 기본은 꺼짐.** 옛 세이브(v2)는 그대로 두고 보관 키에 한 번 복사한다
    */
   conceptV3: conceptV3Default({ dev: typeof __DEV__ !== 'undefined' && __DEV__ === true, internalTest: INTERNAL_TEST }),
+  /**
+   * M4 정·손 기억·반김·머뭇거림 — v3(conceptV3) 위에서만(v2 경로에는 없음). 반김 4단계·머뭇거림·정 2·4·7 몸짓·정 자막을 보인다.
+   * 정 값 자체(sim relation.jeongDays)는 플래그와 상관없이 쌓인다(공방 V27이 같은 값을 읽음). **개발·내부 시험판 켜짐, 운영·preview 꺼짐**(buildKind 규칙)
+   */
+  jeong: conceptV3Default({ dev: typeof __DEV__ !== 'undefined' && __DEV__ === true, internalTest: INTERNAL_TEST }),
   // ── 빌드 3(12-19) ──
   /** M5 함께 숨 쉬기 */
   breathe: false,

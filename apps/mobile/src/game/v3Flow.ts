@@ -98,3 +98,50 @@ export function wordSheetOnAppState(cur: WordSheetState, appState: string): Word
 export function wordSheetClose(cur: WordSheetState): WordSheetState {
   return { ...cur, open: false, key: cur.key + 1 };
 }
+
+// ── M4 정·반김·머뭇거림(시스템 3.6·3.8, C-integrated 2-4) ──
+
+/** 반김 몸짓 종류(answer.ts CUE의 반김 칸) */
+export type GreetCue = 'glance' | 'joy' | 'wait' | 'big' | 'hesitate';
+
+export interface GreetPlan {
+  /** 돌아온 순간의 몸짓 */
+  open: GreetCue;
+  /** 첫 터치에 이어지는 몸짓(null = 없음). 72h 이상은 큰 반김(기쁨 1.5배 + 이름 가락 2회) */
+  firstTouch: GreetCue | null;
+}
+
+/**
+ * core `greeted` → 화면 몸짓 계획(결정적). 72h 이상(long): 머뭇거림 0.8초 → 첫 터치 → 물 한 방울(sim rehydrated) → 큰 반김.
+ * 플래그 hesitation이 꺼져 있으면(비네트 '찔렸다' 미달 때 끄는 스위치) 머뭇거림 대신 기다림 자세만(C 2-4).
+ * 정 4 기다림(익숙한 시각)은 72h 미만일 때 여는 몸짓을 기다림 자세로 바꾸고, 첫 터치에 그 단계의 기쁨으로 잇는다.
+ * 어떤 단계에도 글·알림·비켜 앉기·몸 돌리기·크기 줄이기가 없다(그 몸짓은 answer.ts가 만들지 않는다).
+ */
+export function greetPlan(g: { tier: v3.GreetTier; waiting: boolean }, o: { hesitation: boolean }): GreetPlan {
+  if (g.tier === 'long') return { open: o.hesitation ? 'hesitate' : 'wait', firstTouch: 'big' };
+  if (g.tier === 'wait') return { open: 'wait', firstTouch: 'joy' };
+  if (g.waiting) return { open: 'wait', firstTouch: g.tier === 'joy' ? 'joy' : 'glance' };
+  return { open: g.tier === 'joy' ? 'joy' : 'glance', firstTouch: null };
+}
+
+/** closeness 구간 → 대답 강도 칸(near 3 · mid 2 · alone 1). 반김 몸짓은 강도 칸으로 구간 버릇을 받는다 */
+export function leanIntensity(lean: v3.Lean): 1 | 2 | 3 {
+  return lean === 'near' ? 3 : lean === 'alone' ? 1 : 2;
+}
+
+/** 정 자막 문구 키(관찰자 3인칭 한 줄, 시스템 3.8). 머뭇거림에는 문구가 없다 */
+export const JEONG_CAPTION_KEYS = {
+  recognize: 'v3.jeong.recognize',
+  wait: 'v3.jeong.wait',
+  offer: 'v3.jeong.offer',
+  reply: 'v3.jeong.reply',
+} as const satisfies Record<v3.JeongSignal, string>;
+
+/** 정 자막을 보일까: 플래그 jeong·jeongCaptions 둘 다 켜짐 + core가 아직 세 번을 다 보이지 않았다고 함 */
+export function captionShown(sig: { caption: boolean }, flags: { jeong: boolean; jeongCaptions: boolean }): boolean {
+  return flags.jeong && flags.jeongCaptions && sig.caption;
+}
+
+/** 정 자막 띠: 1.6초 뒤 흐려지기 시작해 0.6초에 걸쳐 사라진다(아트 7-5 '흐려짐') */
+export const CAPTION_HOLD_MS = 1600;
+export const CAPTION_FADE_MS = 600;

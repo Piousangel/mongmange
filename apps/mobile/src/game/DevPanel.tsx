@@ -5,7 +5,7 @@ import { sim, v3 } from '@mong/core';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HOUR_MS, devAdvance, devNextMorning, devReboot, devReset, devRestartV3, devSleepCycle, now, setMeta, useGame } from './store';
+import { HOUR_MS, devAdvance, devAway, devNextMorning, devReboot, devReset, devRestartV3, devSleepCycle, now, setMeta, useGame } from './store';
 import { setFeature, useFeature } from '../features';
 import { measureIreLoop } from '../share/ireVideoDev';
 
@@ -79,6 +79,9 @@ export function DevPanel({ onSpike, onReset, v3Only = false }: { onSpike: (q: st
                     for (let i = 0; i < 7; i++) devSleepCycle();
                   }}
                 />
+                {/* M4 반김 확인: 앱을 닫고 그만큼 비운 뒤 돌아옴(깨어 있으면 반김, 72h = 머뭇거림, 같은 시각이라 깨어 있으면 그대로 깸) */}
+                <Btn label="비움 24h" id="dev-away-24" onPress={() => devAway(24 * HOUR_MS)} />
+                <Btn label="비움 72h" id="dev-away-72" onPress={() => devAway(72 * HOUR_MS)} />
               </>
             )}
           </View>
