@@ -23,22 +23,26 @@
 ## 3. 답장 견본 (진단·약속·명령 금지, '비밀 보장' 약속 금지)
 
 **ko**
-> 이야기해 주셔서 고마워요. 많이 힘드셨겠어요. 지금 마음을 사람과 나눌 수 있는 곳이 있어요. 무료이고, 이름을 말하지 않아도 되고, 문자로도 할 수 있어요.
-> · 자살예방상담 109(전화, 문자는 마들랜 문자 상담, 24시간) · 카카오톡에서 '마들랜' 검색
-> · 청소년(24세까지) 1388(문자 수신번호 1388, 카카오톡 '청소년상담1388')
+> 이야기해 주셔서 고마워요. 많이 힘드셨겠어요. 지금 마음을 사람과 나눌 수 있는 곳이 있어요. 전화는 무료이고, 전화나 문자, 카카오톡으로도 할 수 있어요.
+> · 자살예방상담 109(전화, 문자는 109로 보내면 마들랜 문자 상담, 24시간) · 카카오톡에서 '마들랜' 검색(데이터 요금이 붙을 수 있어요)
+> · 청소년(9~24세) 1388(문자 1388, 카카오톡 '청소년상담1388')
+> · 전화가 연결되지 않으면 문자나 카카오톡으로도 할 수 있어요.
 > · 지금 위험하다면 112나 119에 바로 연락할 수 있어요.
-> 몽망이 팀은 상담을 할 수 없지만, 이 연락처들은 지금 바로 이야기를 들어 줄 수 있어요.
+> 몽망이 팀은 상담을 할 수 없지만, 이 연락처들은 하루 중 언제든 이야기를 들어 주는 곳이에요.
 
 **en**
-> Thank you for telling us. It sounds really hard right now. There are people you can talk to — it's free, you don't have to give your name, and you can text.
-> · Canada: call or text 988 · Kids Help Phone: text CONNECT to 686868
-> · New Zealand: call or text 1737 · Youthline 0800 37 66 33
-> · Philippines: NCMH Crisis Hotline 0919-057-1553 (Smart/TNT) · 0917-899-8727 (Globe/TM) · 1553 (landline)
+> Thank you for telling us. It sounds really hard right now. There are people you can talk to:
+> · Canada: call or text 988 (calling is free) · Kids Help Phone: call 1-800-668-6868 or text CONNECT to 686868
+> · Québec: call 1 866 APPELLE (1-866-277-3553) or text 535353
+> · New Zealand: call or text 1737 (free) · Youthline: call 0800 376 633 or text 234
+> · Philippines: call the NCMH Crisis Hotline at 0917-899-8727 or 1553 (24/7)
 > · Elsewhere: findahelpline.com
-> · If you're in danger right now, please call your local emergency number (911, or 111 in New Zealand).
-> The Mongmangi team can't provide counselling, but these services can listen right now.
+> · If a call doesn't connect, you can try another number or texting where it's offered.
+> · If you're in danger right now, please call your local emergency number (911 in Canada and the Philippines, 111 in New Zealand, 112 or 119 in Korea).
+> The Mongmangi team can't provide counselling, but these services are there to listen, any time of day.
 
-- 연락처는 `heart-grain-48.md` 8-6(원격 매니페스트 초기값)과 같게 유지한다. 매니페스트를 고치면 이 견본도 같은 날 고친다.
+- 연락처는 `docs/ops/crisis-resources.md`(정본)와 같게 유지한다. 정본을 고치면 이 견본도 같은 날 고친다(6절).
+- 견본에는 정본에서 확인된 사실만 쓴다: ko '이름을 말하지 않아도'는 KR 익명 [확인 필요]라 뺐고, en의 'free'·'text'는 나라별로 확인된 곳에만 붙였다(필리핀 NCMH는 전화만·무료 미확인). 필리핀 0919-057-1553(Smart/TNT)은 정본에 들어가는 날 `· 0919-057-1553 (Smart/TNT)`로 함께 넣는다.
 - 공개 리뷰 답변은 첫 문장 + 연락처 두 줄 + 긴급 줄만 쓴다.
 
 ## 4. 하지 않는 것
@@ -52,7 +56,7 @@
 
 - 문의 메일 서비스 제공자의 보관·삭제 설정(처리방침 6절 표의 빈칸).
 - 스토어 개발자 답변의 글자 수 제한 안에 견본이 들어가는지.
-- 1388 문자 수신번호(`1388`/`#1388`)는 실기기 확인 뒤 이 견본도 함께 고친다.
+- 1388 문자는 공식 안내대로 `1388`(복지로). 실기기 발송 확인만 남음.
 
 ## 6. 연락처 정본의 분기 확인과 갱신 경로 (2026-11-25 추가)
 
@@ -63,5 +67,5 @@
   1. **원격 사전 팩**(설정 파일 요청으로 내려받는 데이터): 연락처 JSON만 새 `dataVersion`으로 올린다. 앱 코드·문자열 변경 없이 다음 실행에 반영된다. 번호·채널·시간·무료 값 변경은 이 경로가 기본이다.
   2. **OTA 업데이트**(자체 호스팅 업데이트): 문장 틀(8-4-1)이나 조합 규칙이 바뀔 때, 또는 원격 팩을 못 받는 앱의 내장 기본값을 고칠 때.
   3. **스토어 빌드**: 위 두 경로로 안 되는 경우(네이티브 변경)만.
-- **안전 바닥**: 앱은 원격 팩을 못 받아도 **내장 기본값**(배포 시점 정본)으로 보여 준다. 받은 팩이 스키마 검사에 실패하면 버리고 내장값을 쓴다. 어떤 경우에도 긴급 줄은 사라지지 않는다(값이 없으면 '지금 있는 곳의 긴급 번호').
-- **같은 날 고칠 것**: 정본이 바뀌면 이 문서 3절 견본(특히 en 견본의 'you can text' — 필리핀 NCMH·NZ 0508은 문자 없음)과 공개 리뷰 답변 문구를 같은 날 맞춘다.
+- **안전 바닥**: 앱은 원격 팩을 못 받아도 **내장 기본값**(배포 시점 정본)으로 보여 준다. 받은 팩이 스키마 검사(`docs/ops/crisis-resources.schema.json` — 나라마다 긴급 1개·첫 줄 1개, 링크 없는 채널엔 안내 문장)에 실패하면 버리고 내장값을 쓴다. 정본을 고칠 때도 같은 스키마로 검사한 뒤 올린다. 어떤 경우에도 긴급 줄은 사라지지 않는다(값이 없으면 '지금 있는 곳의 긴급 번호').
+- **같은 날 고칠 것**: 정본이 바뀌면 이 문서 3절 견본, `heart-grain-48.md` 8-6 요약 표, 공개 리뷰 답변 문구를 같은 날 맞춘다.

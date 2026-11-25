@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mongmange.crisis-resources.v1",
+  "title": "몽망이 나라별 위기 연락처 v1",
+  "description": "docs/ops/crisis-resources.v1.json의 구조. 원격 사전 팩으로 받은 데이터도 이 스키마를 통과해야 쓰고, 실패하면 내장 기본값을 쓴다(crisis-disclosure.md 6절).",
+  "type": "object",
+  "required": ["schema", "schemaVersion", "dataVersion", "verifiedAt", "nextCheckDue", "regionRule", "resources"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema": { "const": "mongmange.crisis-resources" },
+    "schemaVersion": { "const": 1 },
+    "dataVersion": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}\\.\\d+$" },
+    "verifiedAt": { "$ref": "#/$defs/date" },
+    "nextCheckDue": { "$ref": "#/$defs/date" },
+    "humanDoc": { "type": "string" },
+    "regionRule": {
+      "type": "object",
+      "required": ["input", "neverUse", "whenUnknownOrNotListed"],
+      "properties": {
+        "input": { "const": "device-region-setting-only" },
+        "neverUse": { "type": "array", "items": { "type": "string" } },
+        "whenUnknownOrNotListed": { "const": "_default" },
+        "note": { "type": "string" }
+      }
+    },
+    "fieldNotes": { "type": "object" },
+    "resources": {
+      "type": "object",
+      "required": ["_default"],
+      "propertyNames": { "pattern": "^([A-Z]{2}|_default)$" },
+      "additionalProperties": { "$ref": "#/$defs/countryResources" }
+    }
+  },
+  "$defs": {
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "text": {
+      "type": "object",
+      "required": ["ko", "en"],
+      "properties": { "ko": { "type": "string", "minLength": 1 }, "en": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "freeFlag": { "enum": [true, "conditional", null] },
+    "free": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["call", "text", "chat", "note"],
+          "properties": {
+            "call": { "$ref": "#/$defs/freeFlag" },
+            "text": { "$ref": "#/$defs/freeFlag" },
+            "chat": { "$ref": "#/$defs/freeFlag" },
+            "note": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "channel": {
+      "type": "object",
+      "required": ["type", "value", "dial", "url", "body", "displayHint"],
+      "properties": {
+        "type": { "enum": ["call", "text", "chat"] },
+        "value": { "type": "string", "minLength": 1 },
+        "dial": { "type": ["string", "null"], "pattern": "^\\+?[0-9]+$" },
+        "url": { "type": ["string", "null"], "pattern": "^https://" },
+        "body": { "type": ["string", "null"] },
+        "displayHint": { "oneOf": [ { "type": "null" }, { "$ref": "#/$defs/text" } ] }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "chat" } } }, "then": { "properties": { "dial": { "type": "null" } } } },
+        { "if": { "properties": { "type": { "enum": ["call", "text"] } } }, "then": { "properties": { "url": { "type": "null" } } } },
+        {
+          "description": "링크(dial·url)가 없으면 버튼 대신 보여 줄 displayHint가 있어야 한다",
+          "if": { "properties": { "dial": { "type": "null" }, "url": { "type": "null" } } },
+          "then": { "properties": { "displayHint": { "$ref": "#/$defs/text" } } }
+        }
+      ]
+    },
+    "resource": {
+      "type": "object",
+      "required": ["id", "kind", "primary", "name", "channels", "hours", "free", "languages", "anonymousOk", "sources", "verifiedAt", "unverified"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "kind": { "enum": ["emergency", "crisis_line", "youth_line", "directory"] },
+        "primary": { "type": "boolean" },
+        "name": { "$ref": "#/$defs/text" },
+        "emergencyPhrase": { "$ref": "#/$defs/text" },
+        "audience": { "$ref": "#/$defs/text" },
+        "region": { "type": "string" },
+        "channels": { "type": "array", "items": { "$ref": "#/$defs/channel" } },
+        "hours": { "enum": ["24/7", null] },
+        "hoursNote": { "type": "string" },
+        "free": { "$ref": "#/$defs/free" },
+        "languages": { "oneOf": [ { "type": "null" }, { "type": "array", "items": { "type": "string", "pattern": "^[a-z]{2}$" }, "minItems": 1 } ] },
+        "languageNote": { "$ref": "#/$defs/text" },
+        "anonymousOk": { "enum": [true, null] },
+        "anonymousNote": { "type": "string" },
+        "regionalRouting": { "type": "object", "additionalProperties": { "type": "string" } },
+        "availability": { "type": "string" },
+        "about": { "type": "string" },
+        "pendingCheck": { "type": "string" },
+        "sources": { "type": "array", "items": { "type": "string", "pattern": "^https://" } },
+        "verifiedAt": { "$ref": "#/$defs/date" },
+        "unverified": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "emergency" } } }, "then": { "required": ["emergencyPhrase"], "properties": { "primary": { "const": false } } } },
+        {
+          "description": "긴급 자원이 아니면 공식 출처와 채널이 최소 하나 있어야 한다",
+          "if": { "properties": { "kind": { "not": { "const": "emergency" } } } },
+          "then": { "properties": { "sources": { "minItems": 1 }, "channels": { "minItems": 1 } } }
+        }
+      ]
+    },
+    "countryResources": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/resource" },
+      "allOf": [
+        { "description": "emergency 정확히 1개", "contains": { "properties": { "kind": { "const": "emergency" } }, "required": ["kind"] }, "minContains": 1, "maxContains": 1 },
+        { "description": "primary 정확히 1개", "contains": { "properties": { "primary": { "const": true } }, "required": ["primary"] }, "minContains": 1, "maxContains": 1 }
+      ]
+    }
+  }
+}
