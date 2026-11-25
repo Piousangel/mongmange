@@ -1,6 +1,6 @@
-# B6 배포 — 오너 단계별 안내서 (처음이면 75~120분, DNS 대기 제외 — 두 번에 나눠도 됨)
+# B6 배포 — 오너 단계별 안내서 (처음이면 85~135분, DNS 대기 제외 — 두 번에 나눠도 됨)
 
-- 작성: DV-3(서버·배포), 2026-11-25. 독립 리뷰 반영(`docs/team/reviews/2026-11-25-b6-prep-review.md`, 조건부 통과 → 높음 2·중간 11·낮음 10 반영).
+- 작성: DV-3(서버·배포), 2026-11-25. 독립 리뷰 반영(`docs/team/reviews/2026-11-25-b6-prep-review.md`, 조건부 통과 → 높음 2·중간 11·낮음 10 반영). B6a 반영(비밀 5개·DB CA·Storage 버킷·CDN 기본 꺼짐 — `apps/server/deploy/README.md` 10절).
 - 대상: 오너(계정·결제·도메인·키를 가진 사람). 팀은 원격 자원을 만들지 않았다 — 아래 명령은 **오너 노트북에서 오너가** 실행한다.
 - 근거: architecture.md v2.2(2-3·2-4·5-2·6-4·8·9-3), B7-report 5·6절, B4-report 3절 10·12, ota-self-host.md 6절, DECISIONS(D-21·D-26·V21·PM 11-25·B6 배포 준비), roadmap B6(소프트런칭 01-12 전, Supabase Pro 01-08 전), 처리방침 K6·K21, apps/web-static/README.md(PRIVACY_OFFICER).
 - 팀이 미리 만든 설정: `apps/server/deploy/`(서비스 YAML·Scheduler 잡 3개·정리 정책·`deploy.sh`, 팀용 README). `deploy.sh`는 **기본이 미리 보기**이고 `--apply`를 붙여야 실행된다. `--apply`는 자리표시자 값(`000000000000`·`REPLACE`)을 거부하고 프로젝트 번호를 gcloud로 대조한다.
@@ -15,15 +15,15 @@
 | 2 | 결제 연결 | 3분 | — |
 | 3 | API 켜기 + 예산 알림 + 로그 설정 | 5분 | 결제가 안 붙어 있으면 실패 |
 | 4 | Artifact Registry | 2분 | — |
-| 5 | 서비스 계정·최소 권한 + 비밀 자리 | 3분 | — |
-| 6 | Supabase 프로젝트(서울, Pro는 01-08 전) | 10~15분(생성 대기 포함) | — |
+| 5 | 서비스 계정·최소 권한 + 비밀 자리(5개) | 3분 | — |
+| 6 | Supabase 프로젝트(서울, Pro는 01-08 전) + Storage 버킷 4개 | 15~22분(생성 대기 포함) | 정책 확인이 0행이 아님 → 팀에 알림 |
 | 7 | DB 롤·마이그레이션·pg_cron | 10분 | 7-4 권한 오류 → 팀에 알림 |
-| 8 | 비밀값 넣기(Secret Manager) + 키 보관함 만들기 | 10분 | — |
+| 8 | 비밀값 5개 넣기(Secret Manager) + 키 보관함 만들기 | 12분 | — |
 | — | **여기서 끊어도 된다(중단점)** | | 다음 날 9단계부터 |
 | 9 | Cloud Run 첫 배포 | 15~25분(Apple Silicon에서 amd64 빌드) | B7a 커밋 전이면 `build`가 멈춤 — 팀에 알림 |
 | 10 | Scheduler + 스모크 | 3분 | `smoke`가 까닭을 찍고 멈춤 → 팀에 알림 |
 | 11 | 로그 규칙 확인(K6 증거) | 3분 | — |
-| 12 | Firebase Hosting 연결·도메인 | 10분 + DNS 대기 | 인증서 발급은 최대 24시간 |
+| 12 | Firebase Hosting 연결·도메인(CDN 무효화는 켜지 않음 — 12-1) | 10분 + DNS 대기 | 인증서 발급은 최대 24시간 |
 | 13 | 원격 설정 서명 키·OTA 서명 키(오프라인) | 10분 | — |
 | 14 | `PRIVACY_OFFICER` 상호 입력 + 첫 정적 배포 | 5분 | 스토어 값이 없으면 막힌다 — 14-1 |
 
@@ -73,7 +73,7 @@ cd ~/Developer/mongmange && git pull && pnpm install
 | Cloud Run(min 0, 요청 기반 과금) | 0 | 0 | 널리 알려진 무료 한도는 월 180,000 vCPU초·360,000 GiB초·200만 요청. 우리 고정 부하는 Scheduler 호출 약 5.2만 건/월 ≈ 수천 vCPU초 → 한도 안으로 본다. **[확인 필요: 서울(Tier 2)에도 같은 무료 한도가 적용되는지 — 공식 가격 페이지 원문을 받지 못함. 오너 실행 전 팀이 가격 계산기로 확인]** |
 | Cloud Run 인터넷 송신(앱 API 응답·Cloud Run → Firebase rewrite 구간) | 0 | 소액 | **[확인 필요: 서울 송신 단가·무료분]**. 링크 HTML·JSON은 작다 |
 | Artifact Registry | 0 | 0 | 0.5GB 무료. 이미지 약 150MB(압축) × 최근 5개 보존(정리 정책) — 한도 근처. 넘어도 GB당 월 0.1달러 수준 |
-| Secret Manager | 0 | 0 | 활성 비밀 판 6개·접근 1만 회 무료. 우리는 4개(교체 직후 잠시 옛 판까지 8개 — 옛 판은 하루 뒤 끈다) |
+| Secret Manager | 0 | 0 | 활성 비밀 판 6개·접근 1만 회 무료. 우리는 5개(B6a `DATABASE_CA_CERT` 포함. 교체 직후 잠시 옛 판까지 늘어나 6개를 넘으면 판당 월 0.06달러 — 옛 판은 하루 뒤 끈다) |
 | Cloud Scheduler | 0 | 0 | **결제 계정당** 잡 3개 무료. 우리는 정확히 3개. 같은 결제 계정의 다른 프로젝트에 잡이 있으면 잡당 월 0.1달러 |
 | Cloud Logging | 0 | 0 | 수집 50GiB/월 무료, 7일 보존 무료. 플랫폼 요청 로그는 받지 않는다 |
 | Cloud Monitoring(업타임·알림, B7 6절 — 팀이 나중에) | 0 | **[확인 필요]** | 업타임 체크·알림 정책 요금은 설정할 때 확인 |
@@ -112,13 +112,13 @@ apps/server/deploy/deploy.sh --apply accounts secrets
 
 | 계정 | 하는 일 | 받는 권한(그 자원 하나에만, 프로젝트 전체 역할 없음) |
 |---|---|---|
-| `mong-api-run@<프로젝트 ID>.iam.gserviceaccount.com` | Cloud Run `mong-api`가 이 계정으로 돈다 | 비밀 4개 각각 `secretAccessor`(읽기만) |
+| `mong-api-run@<프로젝트 ID>.iam.gserviceaccount.com` | Cloud Run `mong-api`가 이 계정으로 돈다 | 비밀 5개 각각 `secretAccessor`(읽기만) |
 | `mong-scheduler@<프로젝트 ID>.iam.gserviceaccount.com` | Scheduler가 이 계정의 OIDC 토큰으로 `/internal/cron/*`을 부른다 | `mong-api` 서비스 하나에 `run.invoker`(10단계에서) |
 
-- 비밀 4개(`DATABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`·`RECOVERY_PEPPER`·`READY_TOKEN`)는 **빈 자리만** 만들고 서울에만 보관한다. 값은 8단계에서 오너가 넣는다.
+- 비밀 5개(`DATABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`·`RECOVERY_PEPPER`·`READY_TOKEN`·`DATABASE_CA_CERT`)는 **빈 자리만** 만들고 서울에만 보관한다. 값은 8단계에서 오너가 넣는다. `DATABASE_CA_CERT`(Supabase CA, B6a)가 없으면 운영 서버가 부팅을 거부한다.
 - 기본 Compute 서비스 계정(`<번호>-compute@developer…`)은 쓰지 않는다. 결제를 붙이면 자동으로 받는 **Editor 역할을 이 단계가 회수**한다(없으면 건너뜀).
 - Firebase를 붙이면(12단계) `firebase-adminsdk-…` 계정이 생긴다 — 쓰지 않지만 Firebase가 관리하므로 지우지 않는다.
-- **확인**: `gcloud iam service-accounts list` 에 두 계정, `gcloud secrets list` 에 4개, `gcloud secrets get-iam-policy READY_TOKEN` 에 `mong-api-run`만.
+- **확인**: `gcloud iam service-accounts list` 에 두 계정, `gcloud secrets list` 에 5개, `gcloud secrets get-iam-policy READY_TOKEN` 에 `mong-api-run`만.
 
 ## 6. Supabase 프로젝트(서울)
 
@@ -135,8 +135,20 @@ apps/server/deploy/deploy.sh --apply accounts secrets
    - Project URL `https://<ref>.supabase.co` → 비밀이 아니다. `deploy.env`의 `SUPABASE_URL`에 적는다.
    - **Project Settings → API Keys → Secret key**(`sb_secret_…`) → 비밀번호 관리자에 저장 → 8단계 `SUPABASE_SERVICE_ROLE_KEY`. (첫 배포 뒤 팀이 Auth Admin 호출을 확인한다. 안 되면 *Legacy API keys* 탭의 `service_role` 키로 바꾼다 [확인 필요].)
    - **Connect** 단추 → *Transaction pooler*(6543)·*Session pooler*(5432)의 **호스트**(`aws-…-ap-northeast-2.pooler.supabase.com`)만 메모.
+4. **Storage 버킷 4개**(B6a, deploy/README 10-2): **SQL Editor** → 새 쿼리 → 붙여 실행(대시보드에서 하나씩 만들어도 같다 — 이름·공개·상한을 아래와 똑같이):
+   ```sql
+   insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
+     ('page-staging', 'page-staging', false, 614400, array['image/jpeg','video/mp4','application/json']),
+     ('public-pages', 'public-pages', true,  null,   null),
+     ('quarantine',   'quarantine',   false, null,   null),
+     ('ota-assets',   'ota-assets',   false, null,   null);
+   ```
+   - 공개는 `public-pages` **하나뿐**이다. Storage 정책(Policies)은 **하나도 만들지 않는다** — 앱은 서버가 준 서명 URL로만 올리고, 정책이 하나라도 생기면 사용자가 서명 없이 직접 쓸 수 있다.
+   - 서버의 저장소 연결(`STORAGE_DRIVER=supabase`)은 **지금 켜지 않는다.** 팀이 B6 첫날 실측(체크리스트 O3 — 5항목)을 통과한 뒤 바꾼다. 그 전까지 링크 기능은 503(설계대로).
 - 스테이징 `mong-staging`(Free, 서울)은 B7 계획에 있지만 이번에는 넣지 않는다. 팀이 요청할 때 같은 방법으로.
-- **확인**: 대시보드 홈에 Region `ap-northeast-2`, 위 다섯 설정이 저장됨, `ls ~/.config/mong/supabase-ca.crt` 있음.
+- **확인**: 대시보드 홈에 Region `ap-northeast-2`, 위 다섯 설정이 저장됨, `ls ~/.config/mong/supabase-ca.crt` 있음. SQL Editor에서
+  `select id, public, file_size_limit, allowed_mime_types from storage.buckets order by id;` 가 4줄(공개는 `public-pages`만 `true`),
+  `select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects';` 가 **0**. 0이 아니면 멈추고 팀에 알린다.
 
 ## 7. DB 롤·마이그레이션·pg_cron
 
@@ -169,12 +181,15 @@ docker run --rm -it -v ~/.config/mong/supabase-ca.crt:/ca.crt:ro postgres:17-alp
 ```sh
 cd ~/Developer/mongmange
 printf '세션 풀러 주소: '; read -rs DIRECT_URL; export DIRECT_URL; echo
-#   붙여 넣을 꼴: postgresql://prisma.<ref>:<prisma 비밀번호>@<세션 풀러 호스트>:5432/postgres?sslmode=require
+#   붙여 넣을 꼴(인증서 검증 — verify-full과 같은 검사): 
+#   postgresql://prisma.<ref>:<prisma 비밀번호>@<세션 풀러 호스트>:5432/postgres?sslmode=require&sslcert=/Users/<나>/.config/mong/supabase-ca.crt&sslaccept=strict
+#   Prisma CLI는 `sslmode=verify-full&sslrootcert=`를 알아듣지 못하고 **검증 없이** 붙는다(팀 실측 11-25). 위 꼴(절대 경로 + strict)만 CA·호스트 이름을 검사한다
 pnpm --filter server exec prisma migrate deploy
 pnpm --filter server exec prisma migrate status
 unset DIRECT_URL
 ```
 - **확인**: `migrate status`가 `Database schema is up to date!`. SQL Editor에서 `select count(*) from pg_tables where schemaname = 'app';` 가 0보다 크다.
+- `P1011 … certificate was not trusted`가 나오면 `sslcert` 경로(절대 경로인지)·6단계에서 받은 파일인지 본다. 그래도 안 되면 멈추고 팀에 알린다(`sslaccept`를 빼거나 낮추지 않는다).
 
 ### 7-4. pg_cron 예약(매일 04:00 KST = 19:00 UTC)
 SQL Editor에서:
@@ -212,8 +227,11 @@ gcloud secrets versions add RECOVERY_PEPPER --data-file=/Volumes/mong-keys/recov
 #    비밀번호 관리자에 파일 첨부로 저장('mong RECOVERY_PEPPER v1') — 13단계 USB 사본에도 이 파일이 함께 들어간다
 # ④ READY_TOKEN — /readyz 내부 토큰(잃어도 새로 만들면 됨)
 openssl rand -base64 32 | tr -d '\n' | gcloud secrets versions add READY_TOKEN --data-file=- --project=$P
+# ⑤ DATABASE_CA_CERT — 6단계에서 받은 Supabase CA(공개 인증서, B6a). 서버가 이 CA로만 DB 인증서를 믿는다(verify-full)
+openssl x509 -in ~/.config/mong/supabase-ca.crt -noout -subject -enddate      # 인증서가 맞는지·만료일 먼저 본다
+gcloud secrets versions add DATABASE_CA_CERT --data-file="$HOME/.config/mong/supabase-ca.crt" --project=$P
 ```
-- **확인**: `gcloud secrets versions list DATABASE_URL --project=$P` 처럼 4개 모두 `enabled` 판 1개. 값을 화면에 꺼내 보지 않는다.
+- **확인**: `gcloud secrets versions list DATABASE_URL --project=$P` 처럼 5개 모두 `enabled` 판 1개. 값을 화면에 꺼내 보지 않는다.
 - **판 번호 고정(리뷰 H2)**: Cloud Run은 비밀을 `latest`가 아니라 **판 번호**로 읽는다(`deploy`가 그때의 최신 enabled 판 번호를 채운다). `latest`로 두면 인스턴스가 뜰 때마다 해석되어 같은 리비전 안에서 옛 값·새 값이 섞인다.
 - **값을 바꿀 때**: 위 방식으로 새 판 추가 → `apps/server/deploy/deploy.sh --apply --digest current deploy`(같은 이미지, 새 판 번호로 새 리비전) → `smoke` → 하루 뒤 옛 판 `gcloud secrets versions disable <번호> --secret=<이름>`. 배포하기 전에는 운영이 옛 판을 그대로 쓴다.
 - **`RECOVERY_PEPPER`는 이렇게 바꾸지 않는다** — 기존 되찾기 글귀가 모두 무효가 된다. 회전은 `RECOVERY_PEPPER_V`·`RECOVERY_PEPPERS_PREVIOUS` 절차로만(팀이 준비, deploy/README 6절).
@@ -270,6 +288,12 @@ apps/server/deploy/deploy.sh --apply k6
    - 루트(`@`)에 이미 있는 **A·AAAA·CNAME**만 지운다. **MX·TXT(SPF 등)는 그대로 둔다**(테스트 신청 메일 Cloudflare → Gmail).
 4. 같은 방법으로 `ota.mongmang.ink`도 추가(자체 OTA 주소, V21). `/api/v1/ota/**` rewrite는 web-static 담당이 넣는다.
 - **확인**: Firebase Hosting 도메인 목록에 두 도메인 '연결됨'(인증서 발급까지 수 분~최대 24시간). `dig +short mongmang.ink` 가 Firebase IP. 첫 정적 배포(14단계) 전에는 'Site Not Found'가 정상.
+
+### 12-1. CDN 무효화 — 켜지 않는다(오너 결정 대기)
+- 서버는 링크 끄기·숨김·삭제 때 Firebase CDN을 비우는 기능(`CDN_DRIVER=firebase`)이 있지만 **기본 꺼짐**이다. 켜려면 실행 계정에 `firebasehosting.sites.update`를 줘야 하는데, 이 권한은 **같은 프로젝트의 모든 사이트를 새로 배포할 수 있는 권한**이다(처리방침·AASA·원격 설정 파일까지). `deploy.sh check`가 켜진 설정을 막는다.
+- 꺼져 있어도 처리방침 '웹 캐시 최대 1시간'은 지켜진다: `/m` 페이지는 최대 약 6분, 공개 파일은 최대 1시간.
+- 선택지(deploy/README 10-3): ① 위험을 받아들이고 맞춤 역할(`firebasehosting.sites.get`·`firebasehosting.sites.update`)을 준다 ② `/m`을 별도 Firebase 프로젝트의 사이트로 나눠 위험을 그 사이트로 줄인다 ③ 켜지 않는다(**지금**). 고르면 팀에 알린다 — 켜기 전 확인(N1)은 팀이 한다.
+- **확인**: `gcloud run services describe mong-api --region=asia-northeast3 --format=json | grep -c CDN_DRIVER` 가 `0`.
 
 ## 13. 원격 설정 서명 키·OTA 서명 키(오프라인)
 
@@ -331,7 +355,7 @@ cd apps/web-static && set -a && . ~/.config/mong/hosting.env && set +a && fireba
 ## 끝난 뒤 팀에 보낼 것(슬랙 한 줄씩, 비밀값 없이)
 1. 프로젝트 ID·프로젝트 번호 2. Supabase 프로젝트 ref 3. 10단계 `smoke` 출력 4. 11단계 K6 출력·캡처 5. 2단계 인증 캡처 3장 6. `prod-1.public.json` 내용 7. 14단계 완료 여부(또는 14-1로 미룸).
 
-팀이 이어서 하는 일(오너 몫 아님): XFF 실측 → `HOPS_*` 고정·`REPORT_AUTO_HIDE` 판단(요청 로그가 필요하면 오너에게 `logs-on` 요청), 업타임 U1~U6·알림, Firebase `/m` 캐시 머리글 보존 실측, Supabase Storage 연결(서버 코드), 스테이징, Cloud Run 서울 무료 한도 확인.
+팀이 이어서 하는 일(오너 몫 아님): B6 첫날 실측(`docs/ops/b6-day1-checklist.md` — Storage 5항목 통과 뒤 `STORAGE_DRIVER=supabase`), XFF 실측 → `HOPS_*` 고정·`REPORT_AUTO_HIDE` 판단(요청 로그가 필요하면 오너에게 `logs-on` 요청), 업타임 U1~U6·알림, Firebase `/m` 캐시 머리글 보존 실측, Supabase Storage 연결(서버 코드), 스테이징, Cloud Run 서울 무료 한도 확인.
 
 ## 부록. 대조표 — 안내서 ↔ 실제 설정 파일 ↔ 근거
 
@@ -343,7 +367,7 @@ cd apps/web-static && set -a && . ~/.config/mong/hosting.env && set +a && fireba
 | 실행 계정 `mong-api-run@…` | 5단계 | YAML `serviceAccountName`, `deploy.sh` `RUN_SA` | DECISIONS B6 준비 |
 | 호출 계정 `mong-scheduler@…` | 5·10단계 | YAML `CRON_SA_EMAIL`, 잡 3개 `--oidc-service-account-email` | env.ts `CRON_SA_EMAIL`, cron.controller.ts |
 | 서비스 주소 `https://mong-api-<번호>.asia-northeast3.run.app` | 9·14단계 | YAML `CRON_AUDIENCE`, 잡 3개 `--oidc-token-audience`·`--uri` | env.ts `CRON_AUDIENCE`, architecture 0-3 B6 행 |
-| 비밀 4개, **판 번호 고정** | 5·8단계 | YAML `secretKeyRef.name`·`key: ${VER_…}`, `deploy.sh` `SECRETS`·`resolve_versions` | env.ts 운영 필수값, 리뷰 H2 |
+| 비밀 5개(`DATABASE_CA_CERT` 포함), **판 번호 고정** | 5·8단계 | YAML `secretKeyRef.name`·`key: ${VER_…}`, `deploy.sh` `SECRETS`·`resolve_versions` | env.ts 운영 필수값, 리뷰 H2 |
 | 동시성 40·최소 0(출시 주 1)·최대 3 | 9단계 | YAML `containerConcurrency`·`minScale`·`maxScale` | B7-report 5절 |
 | 요청 제한 300초(잠정) | 9단계 | YAML `timeoutSeconds` | architecture 2-4, deploy/README 3절 |
 | 메모리 1GiB | 9단계 | YAML `memory: 1Gi` | B7-report 5절 |
@@ -354,9 +378,12 @@ cd apps/web-static && set -a && . ~/.config/mong/hosting.env && set +a && fireba
 | Supabase 서울·Pro 01-08 전 | 6단계 | `deploy.env` `SUPABASE_URL` | roadmap B6(D-26) |
 | 롤 `prisma`·`metrics_reader`·`ota_publisher` | 7-1단계 | — | prisma/local/00-roles.sql, 마이그레이션 `IF EXISTS … GRANT` |
 | 마이그레이션 = 세션 풀러 5432 / 런타임 = 트랜잭션 풀러 6543 | 7-3·8단계 | — | prisma.config.ts, architecture 2-5 |
+| DB CA(verify-full): 런타임 = `DATABASE_CA_CERT`, 마이그레이션 = `sslcert`+`sslaccept=strict` | 6·7-3·8단계 | YAML `DATABASE_CA_CERT` | env.ts·db-ssl.ts, deploy/README 10-1 |
+| Storage 버킷 4개·정책 0개, `STORAGE_DRIVER=none`(첫날 실측 뒤 supabase) | 6단계 | YAML `STORAGE_DRIVER`, `deploy.sh check` | object-store.ts `BUCKET_POLICY`, deploy/README 10-2 |
+| CDN 무효화 꺼짐 | 12-1단계 | `deploy.sh check`(CDN_DRIVER가 none 아니면 실패) | deploy/README 10-3 |
 | pg_cron 함수 4개 | 7-4단계 | — | 마이그레이션 함수 정의 |
 | 원격 설정 키 `remote-cli keygen --kid prod-1` | 13-2단계 | — | apps/server/src/remote/remote-cli.ts |
 | OTA 키 `codesigning:generate`, `certs/ota-<채널>.pem` | 13-3단계 | `apps/mobile/.gitignore` 예외 2줄 | ota-self-host.md 6절 |
 | `PRIVACY_OFFICER` + 정적 빌드 값 4개 | 14단계 | — | apps/web-static/README.md·scripts/build.mjs |
 
-`apps/server/deploy/deploy.sh check`가 설정 파일 쪽 값(동시성·최대·timeout·메모리·인그레스·비밀 4개는 이름 + 판 번호·audience = `CRON_AUDIENCE`·잡 3개 시간·제한·재시도·정리 정책 5개)을 자동으로 검사한다.
+`apps/server/deploy/deploy.sh check`가 설정 파일 쪽 값(동시성·최대·timeout·메모리·인그레스·비밀 5개는 이름 + 판 번호·audience = `CRON_AUDIENCE`·잡 3개 시간·제한·재시도·정리 정책 5개)을 자동으로 검사한다.

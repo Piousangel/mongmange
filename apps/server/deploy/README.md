@@ -140,7 +140,7 @@ gcloud logging read 'log_id("run.googleapis.com/requests")' --freshness=1d --lim
 - 운영 이미지는 `DATABASE_CA_CERT`(PEM 본문) 또는 `DATABASE_CA_FILE`(Secret 볼륨 경로) 중 하나가 없으면 **부팅을 거부**한다. `DATABASE_URL`에 `sslmode=disable·allow·prefer·no-verify`가 있어도 거부.
 - CA가 있으면 URL의 ssl 값(`sslmode`·`sslrootcert`·`uselibpqcompat` 등)은 지우고 그 CA만 믿는다(사슬 + 호스트 이름 = verify-full). pg는 URL의 ssl 값이 코드의 설정을 덮어쓰므로 URL은 `?sslmode=require` 그대로 둬도 된다.
 - Secret `DATABASE_CA_CERT` = Supabase 대시보드 → Project Settings → Database → **SSL Configuration → Download certificate**(`prod-ca-2021.crt` 등) 파일 내용. 실행 계정 `mong-api-run`에 이 비밀 하나 `secretAccessor`(`deploy.sh secrets`가 함께 준다).
-- 마이그레이션(`DIRECT_URL`, prisma CLI)·`ota-cli`는 이 경로를 타지 않는다 — 오너 노트북에서 `sslmode=verify-full&sslrootcert=<다운로드한 파일>`을 URL에 붙인다.
+- 마이그레이션(`DIRECT_URL`, prisma CLI)·`ota-cli`는 이 경로를 타지 않는다. **Prisma CLI**는 `sslmode=verify-full&sslrootcert=`를 알아듣지 못해 **검증 없이** 붙는다(팀 실측 11-25: 다른 CA로 서명한 서버에도 손잡기 성공) → `?sslmode=require&sslcert=<CA 절대 경로>&sslaccept=strict`를 쓴다(맞는 CA만 통과, 다른 CA·호스트 이름 불일치 거부를 같은 실측으로 확인). `ota-cli`(node-pg)는 `?sslmode=verify-full&sslrootcert=<CA 경로>`를 그대로 검사한다. 안내서 7-3.
 - 로컬·CI는 CA를 두지 않는다(연결 문자열 그대로 — 바뀐 것 없음).
 
 ### 10-2. Storage(`STORAGE_DRIVER=supabase`)
