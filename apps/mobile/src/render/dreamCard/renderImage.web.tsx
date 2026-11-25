@@ -3,7 +3,7 @@ import { PALETTE } from '@mong/core';
 import { footerSpot, ireScrollLayout } from '../../share/layout';
 import { CARD_TEXT_W, DreamCardArt, cardFontFor, cardTextBoxes, defaultLabels, makeDreamArt, textOf, type DreamCardInput } from './DreamCard';
 import { ensureMotifRasters } from './motifRasters';
-import { SHARE_INK, type DreamCardImage, type DreamCardImageOptions, type IreScrollInput } from './renderImage.types';
+import { SHARE_INK, cardTextColor, type DreamCardImage, type DreamCardImageOptions, type IreScrollInput } from './renderImage.types';
 
 export type { DreamCardImage, DreamCardImageOptions, IreScrollInput } from './renderImage.types';
 
@@ -30,7 +30,7 @@ export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCar
   const width = opts.width ?? 1080;
   // 사물 한 겹 래스터 — 공유 이미지는 그 카드 판의 래스터를 기다린다(없으면 한 번 더 시도, 끝내 없으면 기록하고 코드판)
   if (!(await ensureMotifRasters(input.card))) console.warn('[dreamCard] share: motif raster missing, code fallback', input.card.motifId);
-  const art = makeDreamArt(input, opts.aspect, width, 4);
+  const art = makeDreamArt(input, opts.aspect, width, 4, { theme: opts.theme });
   const height = Math.round(art.H);
   const img = await drawAsImage(<DreamCardArt art={art} />, { width, height });
   if (!img) throw new Error('dream card offscreen render failed');
@@ -54,7 +54,7 @@ export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCar
   g.textBaseline = 'alphabetic';
   for (const { item: it, vertical, lines, x, ys, size: sz, spacing } of cardTextBoxes(art.layout.text, lb)) {
     const size = sz * width;
-    g.fillStyle = it.color;
+    g.fillStyle = cardTextColor(it.color, opts.theme);
     g.font = `400 ${size}px ${cardFontFor(it.role, true)}`;
     const gs = g as CanvasRenderingContext2D & { letterSpacing?: string };
     if (vertical) {

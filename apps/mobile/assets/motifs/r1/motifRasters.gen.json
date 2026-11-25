@@ -33,11 +33,12 @@
   },
   "far-alone.paper-boat": {
     "rev": 1,
-    "clipBottom": 0.25,
+    "clipBottom": 0.12,
+    "fadeBottom": 0.22,
     "src": "boat-o1",
     "w": 640,
-    "h": 348,
-    "aspect": 1.8391,
+    "h": 402,
+    "aspect": 1.592,
     "paper": 240,
     "ink": 86
   },
@@ -52,10 +53,11 @@
   },
   "near-with.window-hand": {
     "rev": 1,
+    "gamma": 0.6,
     "src": "window-o3",
-    "w": 633,
+    "w": 631,
     "h": 640,
-    "aspect": 0.9891,
+    "aspect": 0.9859,
     "paper": 246,
     "ink": 84
   }

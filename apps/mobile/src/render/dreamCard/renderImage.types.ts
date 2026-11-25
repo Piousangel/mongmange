@@ -7,6 +7,14 @@ export interface DreamCardImageOptions {
   width?: number;
   /** 공유 이미지 아래 띠 문구(앱 이름·스토어, i18n). 없으면 띠 없음(화면 미리보기·앨범) */
   footer?: string;
+  /** 밤 판(확인판 전용 — 지금 앱 공유는 늘 낮). 글 색도 밤 토큰으로 */
+  theme?: 'day' | 'night';
+}
+
+/** 밤 판 글 색: 낮 글 토큰 → 밤 글 토큰(아트 바이블 4절) */
+export function cardTextColor(c: string, theme: 'day' | 'night' = 'day'): string {
+  if (theme === 'day') return c;
+  return c === '#6B625A' ? '#A8A196' : '#E9E2D2';
 }
 
 export interface DreamCardImage {

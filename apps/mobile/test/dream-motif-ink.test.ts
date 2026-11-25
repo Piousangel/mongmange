@@ -5,6 +5,7 @@ import { sim } from '@mong/core';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { REMOTE_FLAG_KEYS } from '@mong/contract';
 import { DEV_BUILD_ON, FEATURE_DEFAULTS, bundledDefault, isOn, remoteBundled, setFeature } from '../src/features';
 import { en } from '../src/i18n/en';
 import { ko } from '../src/i18n/ko';
@@ -48,6 +49,16 @@ describe('dreamContent 플래그 — 운영 기본 꺼짐·개발 빌드 기본 
     for (const id of Object.keys(FEATURE_DEFAULTS) as (keyof typeof FEATURE_DEFAULTS)[]) if (id !== 'dreamContent') expect(bundledDefault(id, true), id).toBe(FEATURE_DEFAULTS[id]);
   });
 
+  it('판 고정 시점(코드 리뷰 2차 ①): 운영에서 dreamContent를 기본으로 켜는 빌드는 열린 판이 없어야 한다(OPEN_ART_REV = null)', () => {
+    if (FEATURE_DEFAULTS.dreamContent) expect(sim.OPEN_ART_REV).toBeNull();
+    // 지금(꺼짐)은 판 1이 열려 있다 — 켜는 PR이 위 단언 때문에 OPEN_ART_REV를 닫게 된다
+    expect(sim.OPEN_ART_REV === null || sim.OPEN_ART_REV === sim.DREAM_ART_REV).toBe(true);
+  });
+
+  it('dreamContent는 원격 키가 아니다 — 켜는 길은 번들 기본값(빌드)뿐이라 위 단언이 판 고정 시점을 지킨다', () => {
+    expect((REMOTE_FLAG_KEYS as readonly string[]).includes('dreamContent')).toBe(false);
+  });
+
   it('시험 환경(__DEV__ 없음) = 운영과 같이 꺼짐, 개발 메뉴로 켜고 되돌린다', () => {
     expect(isOn('dreamContent')).toBe(false);
     setFeature('dreamContent', true);
@@ -73,6 +84,14 @@ describe('앱 에셋 등록 = 판 목록(코드 리뷰 H2·M-1)', () => {
     for (const block of src.matchAll(/\n {2}(\d+): \{([\s\S]*?)\n {2}\},/g)) for (const r of block[2]!.matchAll(/motifs\/r(\d+)\//g)) expect(r[1], `판 ${block[1]}`).toBe(block[1]);
     const want = Object.fromEntries(Object.entries(sim.ART_REV_RASTERS).map(([r, ids]) => [Number(r), [...ids].sort()]));
     expect(Object.fromEntries(Object.entries(got).map(([r, ids]) => [Number(r), ids.sort()]))).toEqual(want);
+  });
+
+  it('밤 판은 실제 렌더 경로를 탄다(코드 리뷰 2차 ②): DreamCard 컴포넌트·공유 이미지가 theme을 makeDreamArt에 넘긴다', () => {
+    const dc = readFileSync(path.resolve(__dirname, '../src/render/dreamCard/DreamCard.tsx'), 'utf8');
+    expect(dc).toMatch(/makeDreamArt\(\{ card, strokes, look, sealSeed \}, aspect, width, 2, \{ lod, devicePerUnit: PixelRatio\.get\(\), theme \}\)/);
+    expect(dc).toContain('MOTIF_NIGHT_INK');
+    for (const f of ['renderImage.tsx', 'renderImage.web.tsx'])
+      expect(readFileSync(path.resolve(__dirname, `../src/render/dreamCard/${f}`), 'utf8'), f).toContain('{ theme: opts.theme }');
   });
 
   it('공유 이미지(네이티브·웹)는 그리기 전에 그 카드의 래스터를 기다린다(ensureMotifRasters → makeDreamArt 순서)', () => {

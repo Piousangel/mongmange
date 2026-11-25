@@ -47,7 +47,10 @@ import {
   sealOutlineOf,
   motifInkLayers,
   MOTIF_INK_MAX,
+  MOTIF_NIGHT_INK,
   FRIEND_ADJ,
+  COMPANION,
+  companionBlob,
   WASH_FACE,
   hexRgb,
   type MotifInkLayer,
@@ -130,7 +133,8 @@ export interface DreamArt {
   vessels: VesselArt[];
   body: BodyGeo;
   /** 곁의 다른 방울. eyes = 눈을 그리나(C14b 붓 형상 카드는 그리지 않는다 — 1-1 '다른 존재의 방울에는 눈을 넣지 않는다') */
-  friend: { t: object[]; geo: BodyGeo; eyes: boolean } | null;
+  /** blob = 판 1 곁 방울(담묵 붓 방울 — 몽망이와 재질로 가름, 7차). 있으면 몸 기하 대신 이것을 그린다 */
+  friend: { t: object[]; geo: BodyGeo; eyes: boolean; blob: SkPath | null } | null;
   ringPx: { x: number; y: number; r: number };
   seal: { plate: SkPath; figure: SkPath; combs: Verts; eyes: SkPath };
   /**
@@ -138,6 +142,7 @@ export interface DreamArt {
    * 가로 이름 = 위 띠(아래로 사라짐), 세로 이름(한국어) = 오른쪽 기둥(왼쪽으로 사라짐)
    */
   titleSafe: { x: number; y: number; width: number; height: number; fadeFrom: { x: number; y: number }; fadeTo: { x: number; y: number } } | null;
+  theme: 'day' | 'night';
   /** 낙관을 그리나(이레 영상 카드 줄은 끔 — 주사는 한 화면 한 곳) */
   showSeal: boolean;
   dots: { x: number; y: number; r: number; kind: 'past' | 'now' | 'future' }[];
@@ -196,6 +201,12 @@ export interface DreamArtOpts {
   devicePerUnit?: number;
   /** 낙관(주사) 그리기, 기본 켬. 끄는 곳: 이레 영상 카드 칸(큰 인장 하나만, C7 리뷰 M-4) */
   seal?: boolean;
+  /**
+   * 밤 판(7차 — 2차 블라인드 '실제 밤 카드로 몽망이·마블링 대비 검증'). 지금 앱 카드는 늘 한지(낮)라 화면·공유에는 쓰지 않고,
+   * 확인판(`?night=1`)·시험만 쓴다. 바탕 = 밤 물, 마블링·사물 먹 = 밝은 은회색 MOTIF_NIGHT_INK(곱하기 대신 '밝게'·'스크린'),
+   * 몽망이 = 밤 몸 + 밝은 테(아트 바이블 4절 밤 토큰), 가림 = 밤 바탕
+   */
+  theme?: 'day' | 'night';
 }
 
 const GOLD_HEX = '#C9A45C';
@@ -303,7 +314,7 @@ interface CupArt {
   handle: SkPath;
   saucer: { x: number; y: number; width: number; height: number };
   glaze: ReturnType<typeof marbleUniforms>;
-  friend: { t: { translateX: number }[] | object[]; geo: BodyGeo } | null;
+  friend: { t: { translateX: number }[] | object[]; geo: BodyGeo; blob: SkPath | null } | null;
 }
 interface WindowArt {
   kind: 'window';
@@ -430,7 +441,7 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
   let friend: CupArt['friend'] = null;
   if (v.friend) {
     const fs = 0.55 * scene.body.s;
-    friend = { t: [{ translateX: cx }, { translateY: top + u(0.005) }, { scale: wpx }] as object[], geo: bodyGeometry(0, fs, false) };
+    friend = { t: [{ translateX: cx }, { translateY: top + u(0.005) }, { scale: wpx }] as object[], geo: bodyGeometry(0, fs, false), blob: rev >= 1 ? blobPath(fs, scene.seed + 7) : null };
   }
   return {
     kind: 'cup',
@@ -481,13 +492,14 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   const lineItem = layout.text.find((t) => t.key === 'line')!;
   const yLim = u(lineItem.y - lineItem.size * 1.9);
   const uniforms = marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, [0, 0], v1 ? 1 : 0);
+  if (opts.theme === 'night') uniforms.inkC4 = [...hexRgb(MOTIF_NIGHT_INK).map((c) => c / 255), 1];
   const wpx = scene.body.w * W;
   const vessels = scene.vessels.map((v) => vesselArt(v, c0, W, scene, (sft) => marbleUniforms(scene, [c0.x, c0.y], W, aa, fade, yLim, sft, v1 ? 1 : 0), wpx, artRev));
   // 몸 폭(1W)의 pt → LOD. 문법은 카드 몸에 쓰지 않으므로(획은 마블링으로 풀림) 눈·빗 배율만 쓴다
   const L = bodyLod(wpx * (opts.ptPerUnit ?? 1), GRAMMARS.C, opts.lod ?? false);
   const body = bodyGeometry(input.strokes.length, scene.body.s, true, shape, L.eyeScale, L.combScale);
   const friend = scene.friend
-    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false), eyes: v1 ? !scene.motifInk && Math.hypot(scene.friend.x, scene.friend.y) <= FRIEND_ADJ : !scene.motifInk }
+    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false), eyes: v1 ? !scene.motifInk && Math.hypot(scene.friend.x, scene.friend.y) <= FRIEND_ADJ : !scene.motifInk, blob: v1 ? blobPath(scene.friend.r * scene.body.s, scene.seed) : null }
     : null;
   // 낙관: 주사 인면에 몽망이(빗 포함)를 양각으로 새김 — 글꼴 없이 그리는 이 앱만의 인장
   const sl = layout.seal;
@@ -513,7 +525,7 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
         yLim,
         bleed: blurFloorPt(u(mi.size) * 0.006, opts.devicePerUnit ?? 1),
         unit: u(mi.size) / 100,
-        raster: rr && mi.raster ? { image: rr.ink, mask: rr.mask, cover: mi.raster.cover, rect: fitRect(rr.ink, mi.raster.box), seed: scene.seed % 997 } : null,
+        raster: rr && mi.raster ? { image: rr.ink, mask: rr.mask, cover: mi.raster.cover, rect: mi.raster.stretch ? { x: mi.raster.box[0], y: mi.raster.box[1], width: mi.raster.box[2], height: mi.raster.box[3] } : fitRect(rr.ink, mi.raster.box), seed: scene.seed % 997 } : null,
       }
     : null;
   const night = Math.max(1, input.card.night);
@@ -540,6 +552,7 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
     ringPx: { x: c0.x + u(scene.ringC.x), y: c0.y + u(scene.ringC.y), r: u(pr.r) },
     seal: { plate, figure: fig.core, combs: fig.combs, eyes: fig.eyes },
     showSeal: opts.seal ?? true,
+    theme: opts.theme ?? 'day',
     titleSafe: v1 ? titleSafeArea(layout, input.labels ?? defaultLabels(input.card), W) : null,
     dots,
     // 블러 마스크 장치 0.5px 하한(눈 소실 결함과 같은 GPU 문턱). 큰 카드는 입력 그대로
@@ -565,17 +578,17 @@ export const INK_LAYER: Record<MotifInkLayer['layer'], { color: string; alpha: n
 /** 번짐 한 겹(폭 1.6배 리본) 불투명도 */
 export const INK_BLEED = 0.12;
 /** 흰 바탕과 섞은 불투명 색(먹 a만큼) — 모티프 층 안에서는 불투명하게 칠하고 '어둡게(darken)'로 겹쳐 겹친 곳이 짙어지지 않게 한다 */
-function pm(hex: string, a: number): string {
+function pm(hex: string, a: number, base = 255): string {
   const [r, g, b] = hexRgb(hex);
-  const m = (c: number) => Math.round(c * a + 255 * (1 - a));
+  const m = (c: number) => Math.round(c * a + base * (1 - a));
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 const blendPaints = new Map<string, ReturnType<typeof Skia.Paint>>();
-function blendPaint(mode: 'darken' | 'multiply') {
+function blendPaint(mode: 'darken' | 'multiply' | 'lighten' | 'screen') {
   let p = blendPaints.get(mode);
   if (!p) {
     p = Skia.Paint();
-    p.setBlendMode(mode === 'darken' ? BlendMode.Darken : BlendMode.Multiply);
+    p.setBlendMode(mode === 'darken' ? BlendMode.Darken : mode === 'multiply' ? BlendMode.Multiply : mode === 'lighten' ? BlendMode.Lighten : BlendMode.Screen);
     blendPaints.set(mode, p);
   }
   return p;
@@ -588,10 +601,13 @@ function blendPaint(mode: 'darken' | 'multiply') {
  * 담묵 면 = 또렷한 가장자리 + 안쪽 젖은 테 + 한쪽으로 짙은 농담 + 종이 결 + 바깥 0.5% 번짐(2차 리뷰 2-1).
  * 인화 바깥은 셰이더와 같은 원으로 지우고 글 줄 위에서 자른다
  */
-export function MotifInkArtView({ ink, W, paper = COVER_PAPER }: { ink: MotifInkArt; W: number; /** 가림 층 색(종이 토큰) */ paper?: string }) {
+export function MotifInkArtView({ ink, W, paper = COVER_PAPER, night = false }: { ink: MotifInkArt; W: number; /** 가림 층 색(종이 토큰) */ paper?: string; /** 밤 판: 밝은 먹을 '밝게'로 겹치고 '스크린'으로 얹는다(곱하기 없음) */ night?: boolean }) {
   const { fade } = ink;
   const bl = (k: number) => (ink.bleed * k) / ink.unit;
-  const dk = blendPaint('darken');
+  const dk = blendPaint(night ? 'lighten' : 'darken');
+  // 밤: 먹 색 = 밝은 은회색, 섞는 바탕 = 검정(낮의 흰 바탕과 거꾸로)
+  const col = (c: string) => (night ? MOTIF_NIGHT_INK : c);
+  const base = night ? 0 : 255;
   const fadeFill = (
     <Fill blendMode="dstIn">
       <RadialGradient c={vec(fade.cx, fade.cy)} r={fade.r} colors={['#000000', '#000000', 'rgba(0,0,0,0)']} positions={[0, 0.9 / 1.12, 1]} />
@@ -610,14 +626,14 @@ export function MotifInkArtView({ ink, W, paper = COVER_PAPER }: { ink: MotifInk
           {fadeFill}
         </Group>
       )}
-      <Group layer={blendPaint('multiply')}>
+      <Group layer={blendPaint(night ? 'screen' : 'multiply')}>
         {ink.raster && (
           <Group layer={dk}>
             <Group transform={ink.t as never}>
               {/* 손질한 먹 한 겹: 알파(≤ 0.72)에 테마 먹 색을 입힌다 + 공통 종이 결 */}
               <Group layer>
                 <SkImageNode image={ink.raster.image} rect={ink.raster.rect} fit="fill">
-                  <BlendColor color={INK_LAYER.ink.color} mode="srcIn" />
+                  <BlendColor color={night ? MOTIF_NIGHT_INK : INK_LAYER.ink.color} mode="srcIn" />
                 </SkImageNode>
                 <Fill blendMode="srcATop" opacity={WASH_FACE.grain}>
                   <FractalNoise freqX={0.9} freqY={0.6} octaves={2} seed={ink.raster.seed} />
@@ -634,17 +650,17 @@ export function MotifInkArtView({ ink, W, paper = COVER_PAPER }: { ink: MotifInk
                 <Group key={`f${k}`} layer={dk}>
                   <Group transform={ink.t as never}>
                     {/* 바깥으로 아주 조금 번짐 */}
-                    <Path path={f.path} color={pm(st.color, f.tone * 0.35)}>
+                    <Path path={f.path} color={pm(col(st.color), f.tone * 0.35, base)}>
                       <BlurMask blur={bl(0.8)} style="outer" />
                     </Path>
                     <Group clip={f.path}>
                       {/* 면: 가장자리는 또렷하게, 붓이 처음 닿은 쪽이 짙다 */}
                       <Path path={f.path}>
-                        <LinearGradient start={vec(f.from.x, f.from.y)} end={vec(f.to.x, f.to.y)} colors={[pm(st.color, f.tone), pm(st.color, f.tone * WASH_FACE.slope)]} />
+                        <LinearGradient start={vec(f.from.x, f.from.y)} end={vec(f.to.x, f.to.y)} colors={[pm(col(st.color), f.tone, base), pm(col(st.color), f.tone * WASH_FACE.slope, base)]} />
                       </Path>
                       {/* 젖은 테: 안쪽 띠가 rimDark배 */}
-                      <Path path={f.path} style="stroke" strokeWidth={f.rim * 2} strokeJoin="round" color={pm(st.color, f.tone * WASH_FACE.rimDark)} />
-                      {/* 종이 결(시드 결정) */}
+                      <Path path={f.path} style="stroke" strokeWidth={f.rim * 2} strokeJoin="round" color={pm(col(st.color), f.tone * WASH_FACE.rimDark, base)} />
+                      {/* 종이 결(시드 결정, base) */}
                       <Fill blendMode="multiply" opacity={WASH_FACE.grain}>
                         <FractalNoise freqX={0.9} freqY={0.6} octaves={2} seed={f.seed % 997} />
                       </Fill>
@@ -655,7 +671,7 @@ export function MotifInkArtView({ ink, W, paper = COVER_PAPER }: { ink: MotifInk
               {layer !== 'gold' && (
                 <Group layer={dk}>
                   <Group transform={ink.t as never}>
-                    <Vertices vertices={bleed.vertices} indices={bleed.indices} mode="triangles" color={pm(st.color, INK_BLEED)}>
+                    <Vertices vertices={bleed.vertices} indices={bleed.indices} mode="triangles" color={pm(col(st.color), INK_BLEED, base)}>
                       <BlurMask blur={bl(2)} style="normal" />
                     </Vertices>
                   </Group>
@@ -663,7 +679,7 @@ export function MotifInkArtView({ ink, W, paper = COVER_PAPER }: { ink: MotifInk
               )}
               <Group layer={dk}>
                 <Group transform={ink.t as never}>
-                  <Vertices vertices={verts.vertices} indices={verts.indices} mode="triangles" color={pm(st.color, st.alpha)}>
+                  <Vertices vertices={verts.vertices} indices={verts.indices} mode="triangles" color={pm(col(st.color), st.alpha, base)}>
                     {layer !== 'gold' && <BlurMask blur={bl(0.35)} style="normal" />}
                   </Vertices>
                 </Group>
@@ -681,7 +697,36 @@ export function MotifInkArtView({ ink, W, paper = COVER_PAPER }: { ink: MotifInk
 
 const PAPER_BASE = [0xef / 255, 0xe8 / 255, 0xda / 255];
 
-function Drop({ t, geo, color = PALETTE.day.body, eyes = true }: { t: object[]; geo: BodyGeo; color?: string; eyes?: boolean }) {
+/** 판 1 곁 방울 꼴(몸 폭 W 단위, 몸 핵 크기 s의 반경). 몸과 같은 자리 변환(t)으로 그린다 */
+function blobPath(s: number, seed: number): SkPath {
+  const r = 0.46 * s;
+  return polyPath(companionBlob(seed).map((v) => v * r));
+}
+
+/** 판 1 곁 방울: 담묵 면 + 젖은 테(합쳐 COMPANION.total 이하), 눈 없음 — 몽망이(순흑·흰 눈)와 재질로 갈린다 */
+function Companion({ t, blob, night = false }: { t: object[]; blob: SkPath; night?: boolean }) {
+  const rim = 1 - (1 - COMPANION.total) / (1 - COMPANION.fill);
+  const c = night ? MOTIF_NIGHT_INK : PALETTE.day.body;
+  return (
+    <Group transform={t as never}>
+      <Path path={blob} color={c} opacity={COMPANION.fill} />
+      <Path path={blob} style="stroke" strokeWidth={0.06} color={c} opacity={rim} />
+    </Group>
+  );
+}
+
+function Drop({ t, geo, color = PALETTE.day.body, eyes = true, night = false }: { t: object[]; geo: BodyGeo; color?: string; eyes?: boolean; night?: boolean }) {
+  if (night) {
+    // 밤 몸: 풀린 먹 + 밝은 테(아트 바이블 4절 — 밤 바탕 대비 4:1, 테 13:1), 감은 눈 = 밝은 호
+    return (
+      <Group transform={t as never}>
+        <Path path={geo.core} style="stroke" strokeWidth={0.05} color={PALETTE.night.bodyRim} />
+        <Path path={geo.core} color={PALETTE.night.body} />
+        <Vertices vertices={geo.combs.vertices} indices={geo.combs.indices} mode="triangles" color={PALETTE.night.body} />
+        {eyes && <Path path={geo.eyes} color={PALETTE.night.eye} />}
+      </Group>
+    );
+  }
   return (
     <Group transform={t as never}>
       <Path path={geo.core} color={color} />
@@ -700,7 +745,8 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
   const sl = layout.seal;
   const sealC = { x: (sl.x + sl.size / 2) * W, y: (sl.y + sl.size * 0.56) * W };
   const sealT = [{ translateX: sealC.x }, { translateY: sealC.y }, { scale: sl.size * W * 0.66 }];
-  const paperU = { res: [W, H], base: PAPER_BASE, light: 1 };
+  const nightArt = art.theme === 'night';
+  const paperU = { res: [W, H], base: nightArt ? hexRgb(PALETTE.night.bg).map((c) => c / 255) : PAPER_BASE, light: nightArt ? 0.6 : 1 };
   const lw = W * 0.0024;
   return (
     <Group>
@@ -736,13 +782,13 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
               {v.raster.mask && (
                 <Group opacity={WINDOW_COVER}>
                   <SkImageNode image={v.raster.mask} rect={v.raster.rect} fit="fill">
-                    <BlendColor color={COVER_PAPER} mode="srcIn" />
+                    <BlendColor color={nightArt ? PALETTE.night.bg : COVER_PAPER} mode="srcIn" />
                   </SkImageNode>
                 </Group>
               )}
               <Group layer>
                 <SkImageNode image={v.raster.image} rect={v.raster.rect} fit="fill">
-                  <BlendColor color={PALETTE.day.body} mode="srcIn" />
+                  <BlendColor color={nightArt ? MOTIF_NIGHT_INK : PALETTE.day.body} mode="srcIn" />
                 </SkImageNode>
               </Group>
             </Group>
@@ -757,11 +803,11 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
             </Group>
           ) : null,
         )}
-        {art.motifInk && <MotifInkArtView ink={art.motifInk} W={W} />}
-        {art.friend && <Drop t={art.friend.t} geo={art.friend.geo} eyes={art.friend.eyes} />}
-        {art.vessels.map((v, i) => (v.kind === 'cup' && v.friend ? <Drop key={`f${i}`} t={v.friend.t} geo={v.friend.geo} /> : null))}
+        {art.motifInk && <MotifInkArtView ink={art.motifInk} W={W} night={nightArt} paper={nightArt ? PALETTE.night.bg : COVER_PAPER} />}
+        {art.friend && (art.friend.blob ? <Companion t={art.friend.t} blob={art.friend.blob} night={nightArt} /> : <Drop t={art.friend.t} geo={art.friend.geo} eyes={art.friend.eyes} night={nightArt} />)}
+        {art.vessels.map((v, i) => (v.kind === 'cup' && v.friend ? v.friend.blob ? <Companion key={`f${i}`} t={v.friend.t} blob={v.friend.blob} /> : <Drop key={`f${i}`} t={v.friend.t} geo={v.friend.geo} /> : null))}
         {/* 몽망이 */}
-        <Drop t={bodyT} geo={art.body} />
+        <Drop t={bodyT} geo={art.body} night={nightArt} />
         {/* 그릇 앞쪽(사발·이불) — 몸 아래를 덮는다 */}
         {art.vessels.map((v, i) =>
           v.kind === 'cup' ? (
@@ -967,11 +1013,18 @@ export function DreamCard({
   a11yLabel,
   look,
   sealSeed,
-}: DreamCardInput & { width: number; aspect?: DreamAspect; /** 스크린리더 설명(모티프·아침 문장). 없으면 이름·문장 */ a11yLabel?: string }) {
+  theme = 'day',
+}: DreamCardInput & {
+  width: number;
+  aspect?: DreamAspect;
+  /** 스크린리더 설명(모티프·아침 문장). 없으면 이름·문장 */ a11yLabel?: string;
+  /** 밤 판(밤 화면에 카드를 얹는 곳 — 사물·마블링 먹은 MOTIF_NIGHT_INK, 곱하기 없음). 기본 낮 */
+  theme?: 'day' | 'night';
+}) {
   const lod = useFeature('thumbLod');
   const rasters = useMotifRasters();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- rasters는 래스터 사물을 불러온 뒤 다시 그리라는 신호(makeDreamArt가 캐시를 읽는다)
-  const art = useMemo(() => makeDreamArt({ card, strokes, look, sealSeed }, aspect, width, 2, { lod, devicePerUnit: PixelRatio.get() }), [card, strokes, aspect, width, look, lod, sealSeed, rasters]);
+  const art = useMemo(() => makeDreamArt({ card, strokes, look, sealSeed }, aspect, width, 2, { lod, devicePerUnit: PixelRatio.get(), theme }), [card, strokes, aspect, width, look, lod, sealSeed, rasters, theme]);
   const lb = labels ?? defaultLabels(card);
   const H = art.H;
   return (

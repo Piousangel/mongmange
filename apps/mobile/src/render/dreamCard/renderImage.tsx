@@ -5,7 +5,7 @@ import { Image } from 'react-native';
 import { FONT_FILES } from '../../ui/type';
 import { CARD_FONT, CARD_FONT_EN, CARD_FONT_EN_ITALIC, CARD_TEXT_W, DreamCardArt, cardFontFor, cardTextBoxes, defaultLabels, makeDreamArt, type DreamCardInput } from './DreamCard';
 import { ensureMotifRasters } from './motifRasters';
-import { SHARE_INK, type DreamCardImage, type DreamCardImageOptions, type IreScrollInput } from './renderImage.types';
+import { SHARE_INK, cardTextColor, type DreamCardImage, type DreamCardImageOptions, type IreScrollInput } from './renderImage.types';
 
 export type { DreamCardImage, DreamCardImageOptions, IreScrollInput } from './renderImage.types';
 
@@ -58,7 +58,7 @@ export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCar
   const width = opts.width ?? 1080;
   // 사물 한 겹 래스터 — 공유 이미지는 그 카드 판의 래스터를 기다린다(없으면 한 번 더 시도, 끝내 없으면 기록하고 코드판)
   if (!(await ensureMotifRasters(input.card))) console.warn('[dreamCard] share: motif raster missing, code fallback', input.card.motifId);
-  const art = makeDreamArt(input, opts.aspect, width, 4);
+  const art = makeDreamArt(input, opts.aspect, width, 4, { theme: opts.theme });
   const height = Math.round(art.H);
   const fonts = await cardFonts();
   const img = await drawAsImage(<DreamCardArt art={art} />, { width, height });
@@ -73,9 +73,9 @@ export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCar
     const size = sz * width;
     const family = cardFontFor(it.role, false);
     if (vertical) {
-      lines.forEach((ch, i) => drawText(canvas, fonts, family, ch, it.x * width, ys[0]! * width + size * (0.95 + i * 1.32), size, it.color, 'center', size * 2, 0));
+      lines.forEach((ch, i) => drawText(canvas, fonts, family, ch, it.x * width, ys[0]! * width + size * (0.95 + i * 1.32), size, cardTextColor(it.color, opts.theme), 'center', size * 2, 0));
     } else {
-      lines.forEach((ln, i) => drawText(canvas, fonts, family, ln, x * width, ys[i]! * width, size, it.color, it.align, width * CARD_TEXT_W, spacing * width));
+      lines.forEach((ln, i) => drawText(canvas, fonts, family, ln, x * width, ys[i]! * width, size, cardTextColor(it.color, opts.theme), it.align, width * CARD_TEXT_W, spacing * width));
     }
   }
   // 공유 띠: 앱 이름·스토어 문구(인장 코드는 넣지 않는다, C-integrated 2-2)

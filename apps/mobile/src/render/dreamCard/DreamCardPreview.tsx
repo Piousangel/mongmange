@@ -9,7 +9,7 @@ import { DreamCard, type DreamCardLabels } from './DreamCard';
 import { renderDreamCardImage } from './renderImage';
 
 /**
- * 미리보기: ?screen=card&motif=<id>&seed=<n>&t=a|b|c&aspect=45|916&comp=0|1|2&hand=base|clumsy&night=7&export=1&rev=0|1
+ * 미리보기: ?screen=card&motif=<id>&seed=<n>&t=a|b|c&aspect=45|916&comp=0|1|2&hand=base|clumsy&night=7&export=1&rev=0|1&theme=night
  * rev = 그림 판(C14b): 없으면 카드에 판 번호를 싣지 않는다(빌드 1 카드 = 판 0, 새 모티프 = 판 1)
  * export=1이면 공유 이미지 함수(renderDreamCardImage)의 결과 PNG를 그대로 보여 주고 window.__dreamPng에 base64를 둔다.
  */
@@ -23,6 +23,7 @@ export function DreamCardPreview() {
   const night = Number(q.get('night') ?? 7);
   const comp = q.get('comp');
   const rev = q.get('rev');
+  const nightTheme = q.get('theme') === 'night';
   const exportMode = q.get('export') === '1';
   const temper = DREAM_TEMPERS[t] ?? DREAM_TEMPERS.b;
   const card: sim.DreamCard = useMemo(
@@ -55,7 +56,7 @@ export function DreamCardPreview() {
       return () => clearTimeout(id);
     }
     let alive = true;
-    renderDreamCardImage({ card, strokes, labels }, { aspect, width: 1080 })
+    renderDreamCardImage({ card, strokes, labels }, { aspect, width: 1080, theme: nightTheme ? 'night' : 'day' })
       .then((r) => {
         if (!alive) return;
         (window as unknown as { __dreamPng?: string }).__dreamPng = r.base64;
@@ -66,7 +67,7 @@ export function DreamCardPreview() {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- labels는 card에서 매 렌더 새로 만드는 객체라 넣으면 매번 다시 인화한다(card가 바뀌면 labels도 바뀐다)
-  }, [fontsReady, exportMode, card, strokes, aspect]);
+  }, [fontsReady, exportMode, card, strokes, aspect, nightTheme]);
 
   return (
     <View style={styles.root}>
@@ -77,7 +78,7 @@ export function DreamCardPreview() {
           <Text style={styles.msg}>{err ?? tr('card.rendering')}</Text>
         )
       ) : !fontsReady ? null : (
-        <DreamCard card={card} strokes={strokes} labels={labels} width={width} aspect={aspect} />
+        <DreamCard card={card} strokes={strokes} labels={labels} width={width} aspect={aspect} theme={nightTheme ? 'night' : 'day'} />
       )}
     </View>
   );
