@@ -315,6 +315,13 @@
         }
       },
       {
+        "source": "/api/v1/ota/**",
+        "run": {
+          "serviceId": "mong-api",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "/delete",
         "destination": "/delete/index.html"
       },

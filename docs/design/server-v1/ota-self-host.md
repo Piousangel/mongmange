@@ -203,6 +203,18 @@ node apps/server/dist/ota-cli.js rollback --platform android --channel productio
 - 매니페스트·204: `cache-control: private, max-age=0`. 에셋: `public, max-age=31536000, immutable` + `vary: accept-encoding` + `content-length`. 오류·429: `no-store`.
 - 레이트 리밋(architecture 3-8 표에 더함): 전역 IP 카운터(분당 120)에서 빼고 **OTA 전용 카운터**(리뷰 L3 — 같은 CGNAT 뒤 다른 API 호출이 OTA를 밀어내지 않게): 매니페스트 IP 접두당 분당 60, 에셋 분당 600.
 
+### 10-1. Firebase 60초 제한과 에셋 우회 절차(B6b 판정, PM 11-25)
+- 사실: Firebase Hosting → Cloud Run rewrite는 **요청 제한 60초**(공식 문서 'Pair Cloud Run with Firebase Hosting'). Cloud Run 제한을 길게 잡아도 504. 60초가 내려보내는 시간까지 세는지는 문서에 없다 → 실측으로 정한다.
+- 판정: **지금 구조 유지**. 앱 바이너리(app.json)에 고정되는 것은 **매니페스트 URL 하나**이고 매니페스트는 작다(DB 1회). 에셋 URL은 서버(게시 CLI `--asset-base-url`)가 매니페스트에 넣으므로 빌드 2 동결(12-19) 뒤에도 서버 쪽에서 바꿀 수 있다.
+- 측정: `docs/ops/b6-day1-checklist.md` **T5b** — 가장 큰 에셋(Hermes 번들)을 gzip·br·원본 각각 1Mbps(`curl --limit-rate 125k`)로 `$OTA` 경유 다운로드. 첫 preview 게시 뒤, 리허설 R4 전.
+- 통과 기준: 세 꼴 모두 200·끝까지 받음·`time_total` **45초 이하**(60초에 여유 15초). Android(OkHttp)는 기본으로 gzip만 청하므로 **gzip 판이 기준**이다.
+- **넘으면(에셋만 Firebase를 거치지 않게)** — 순서대로, 처리방침을 먼저 고친다:
+  1. 처리방침 개정 초안: K27(정식판 3-2·7·8·14 — '업데이트 요청은 Firebase Hosting을 지나'를 '확인 요청은 Firebase Hosting을 지나고, 업데이트 파일은 Google 프런트엔드를 거쳐 서울 서버에서 직접'으로), **테스터판 1-1·6절**(위탁 표 'Firebase Hosting — 업데이트 파일' 행에서 '업데이트 파일' 제거, Cloud Run 행 '업데이트 파일 전송' 추가). 수탁자는 늘지 않는다(같은 Google, 우리 서버 — 제3자 CDN·Supabase 공개 주소는 쓰지 않는다, 5절 '우리 서버를 거친다'). release 담당 검토 → 게시 → 앱 안 알림이 먼저.
+  2. 서버(서버 담당): 에셋 경로만 직접 호출 그룹으로 — `routeGroupOf`에서 `/api/v1/ota/assets/*`를 새 그룹(예: `ota_asset`, `TRUSTED_PROXY_HOPS_OTA_ASSET` = 1, 직접 호출이라 API와 같은 길)로 나누고 e2e(XFF 위조) 고정. deploy/README 3절의 '공개 경로 30초' 제한에서 에셋 스트림은 예외(그 절 3항 확정).
+  3. 게시: 다음 게시부터 `ota-cli publish --asset-base-url https://mong-api-<번호>.asia-northeast3.run.app/api/v1/ota/assets`. 이미 나간 판은 같은 에셋으로 `republish`(새 id·새 서명)해야 새 주소가 실린다 — 롤백 지시는 에셋이 없어 그대로.
+  4. 검증: T5b를 run.app 주소로 다시(같은 기준), 실기기 받기 1회(R4).
+- 매니페스트까지 run.app 직접으로 옮기는 안(app.json `updates.url` 변경)은 바이너리에 박히므로 **12-19 동결 전에만** 가능하다. 위 우회로 충분하므로 쓰지 않는다. 쓰게 되면 `TRUSTED_PROXY_HOPS_OTA` = 1과 처리방침 같은 개정이 따른다.
+
 ## 11. 증거
 
 | 무엇 | 명령 | 결과(11-25) |

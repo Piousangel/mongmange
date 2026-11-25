@@ -644,3 +644,13 @@
   - M3: 사용자 요청(commit·끄기·삭제·격리)은 `CdnPurgeQueue.enqueue()` — 요청 시각만 기다려 적고 릴리스는 뒤에서(종료 때 `beforeApplicationShutdown`이 기다림). cron·시험은 `request()`.
   - 생존 변이 3개: 가짜 Storage가 upsert를 **발급 때 토큰에** 묶음(L2, 앱 PUT의 x-upsert는 무시 — 409 시험), '지우기 200인데 안 지워짐' 시험(L3 ①), `DATABASE_CA_FILE`도 X509 파싱 + 인증서 아님·깨진 PEM 시험(L3 ②).
   - 낮음: L1 `cdn_purge_failed`에 단계·상태, L4 RLS 0 전제(`storage.objects` anon·authenticated 정책 0, 사용자 JWT로 4버킷 쓰기·목록 거부)와 L5 copy `mimetype`을 B6 첫날 실측 목록(README 10-2)에.
+
+## 2026-11-25 B6b 판정 — OTA rewrite·Firebase 60초 제한·첫날 체크리스트 (DV-1·DV-3·QA-2, PM) [잠정 — T5b 실측 뒤 확정]
+- 근거: 독립 리뷰 `docs/team/reviews/2026-11-25-b6b-review.md`(조건부 통과), Firebase 공식 문서 'Pair Cloud Run with Firebase Hosting'(60초 요청 제한)·'Manage cache behavior', `docs/design/server-v1/ota-self-host.md` 10-1.
+- **선택**: `ota.mongmang.ink`(같은 Hosting 사이트) `/api/v1/ota/**` → Cloud Run `mong-api` 서울 rewrite를 **유지**한다. 60초 제한은 공식 사실이지만, 바이너리에 고정되는 것은 매니페스트 URL 하나이고 매니페스트는 작다. 에셋 URL은 게시 CLI `--asset-base-url`이 매니페스트에 넣으므로 빌드 2 동결(12-19) 뒤에도 서버 쪽에서 바꿀 수 있다.
+- **측정과 갈림길**: 체크리스트 T5b(가장 큰 에셋 × 1Mbps, gzip·br·원본, `$OTA` 경유)에서 45초 이하면 그대로. 넘으면 에셋만 run.app 직접으로 옮긴다 — 처리방침 K27·테스터판 1-1·6절 개정이 **먼저**, 그다음 서버(에셋 경로 별도 그룹 HOPS 1·30초 공개 경로 제한 예외)·게시 주소 변경·republish(ota-self-host 10-1). 제3자 CDN·Supabase 공개 주소는 쓰지 않는다(5절).
+- 버린 안: 매니페스트까지 run.app 직접(app.json `updates.url` 변경) — 바이너리에 박혀 12-19 전에만 가능하고, 위 우회로 충분하다.
+- 빌드 검사(web-static `check()`): OTA rewrite가 서울 `mong-api`인지, 앞선 rewrite·**redirect**가 OTA 경로를 가로채지 않는지, OTA 매니페스트·**에셋** 표본 경로에 닿는 헤더(`source` glob — 확장 glob·중괄호·`:마디` 포함, 또는 `regex` 키)에 Cache-Control이 없는지, 정적 `public/api`가 없는지. 해석 못 하는 항목은 TypeError가 아니라 BuildError 사유로 실패(넓게 보는 쪽). 리뷰 생존 변이 3개(glob 한 마디·에셋 표본·리전)를 시험으로 잡음.
+- 운영 문서: 복원 런북 4단계 = 손 호출(정기 잡 없음), `trap … EXIT` + 30분 조건부 바인딩(서비스 계정 리소스의 IAM 조건 수용은 [확인 필요] — 거절되면 trap만), 토큰 단계 IAM 전파 지연 30초 × 4 재시도. 첫날 체크리스트 `docs/ops/b6-day1-checklist.md`: 업타임·알림(D절)은 T1 콜드 스타트 10회 **뒤**, B7-report 지표·로그 알림 전부 D2~D4.
+- 정본 불일치 기록(리뷰 F8): 'B7a' L3의 `idle_in_transaction_session_timeout` 10초는 재리뷰 N1로 **40초**가 됐다(`prisma.service.ts` — 저장소를 읽고 옮기는 commit·name-mask 트랜잭션 최대 30초보다 길게). 체크리스트 O4 기대값은 40초.
+- 남은 것(서버 담당, 리뷰 F9): `/api/v1/ota/<없는 경로>` Nest 기본 404에 Cache-Control이 없어 Hosting CDN이 10분 캐시한다 — 전역 예외 필터가 OTA 경로 404·400에 `no-store`를 붙이면 닫힌다(실해 작음).

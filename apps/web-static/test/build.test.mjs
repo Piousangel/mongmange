@@ -4,7 +4,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, write
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { build, BuildError, check, CK_VERSION, LIVE_GZIP_BUDGET, readFirebaseJson, readInjected, ROOT } from '../scripts/build.mjs';
+import { build, BuildError, check, CK_VERSION, globRe, LIVE_GZIP_BUDGET, OTA_REWRITE, readFirebaseJson, readInjected, ROOT } from '../scripts/build.mjs';
 
 const FP1 = Array.from({ length: 32 }, (_, i) => (i * 7 + 16).toString(16).toUpperCase().padStart(2, '0')).join(':');
 const FP2 = Array.from({ length: 32 }, (_, i) => (255 - i * 3).toString(16).toUpperCase().padStart(2, '0')).join(':');
@@ -278,6 +278,48 @@ describe('check() — 만들어진 산출물을 고장 내면 잡는다', () => 
     const fb3 = structuredClone(v.firebaseJson);
     fb3.hosting.headers.push({ source: '/m/**', headers: [] });
     expect(() => check(o, { ...v, firebaseJson: fb3 })).toThrow(/seen/);
+  });
+  it('firebase.json(B6b): /api/v1/ota/** rewrite가 없거나 Cloud Run이 아니거나, 앞선 rewrite가 가로채거나, OTA에 닿는 헤더가 Cache-Control을 두거나, 정적 api/가 있으면 실패', () => {
+    const { o, v } = built();
+    const without = (fn) => {
+      const fb = structuredClone(v.firebaseJson);
+      fn(fb.hosting);
+      return { ...v, firebaseJson: fb };
+    };
+    expect(() => check(o, without((h) => (h.rewrites = h.rewrites.filter((r) => r.source !== OTA_REWRITE))))).toThrow(/api\/v1\/ota\/\*\*는 Cloud Run/);
+    expect(() => check(o, without((h) => (h.rewrites.find((r) => r.source === OTA_REWRITE).run.serviceId = 'other')))).toThrow(/OTA/);
+    expect(() => check(o, without((h) => (h.rewrites.find((r) => r.source === OTA_REWRITE).run.region = 'us-central1')))).toThrow(/api\/v1\/ota\/\*\*는 Cloud Run/); // 리뷰 N5
+    expect(() => check(o, without((h) => h.rewrites.splice(1, 0, { source: '/api/**', destination: '/index.html' })))).toThrow(/가로챈다/);
+    const cc = [{ key: 'Cache-Control', value: 'public, max-age=300' }];
+    for (const src of ['**', '/api/v1/ota/**', '/api/v1/ota/*']) {
+      expect(() => check(o, without((h) => h.headers.push({ source: src, headers: cc }))), src).toThrow(/OTA 매니페스트 응답의 Cache-Control/);
+    }
+    // 리뷰 N4: 에셋에만 닿는 헤더도 잡는다(에셋 404·503 no-store가 덮이면 실패 응답이 캐시된다)
+    expect(() => check(o, without((h) => h.headers.push({ source: '/api/v1/ota/assets/**', headers: cc })))).toThrow(/OTA 에셋 응답의 Cache-Control/);
+    // 리뷰 F4: 확장 glob·중괄호·regex 키·redirects도 판정한다
+    expect(() => check(o, without((h) => h.headers.push({ source: '/api/v1/ota/@(manifest|assets){,/**}', headers: cc })))).toThrow(/OTA 에셋 응답의 Cache-Control/);
+    expect(() => check(o, without((h) => h.headers.push({ regex: '^/api/v1/ota/(?P<rest>.*)$', headers: cc })))).toThrow(/regex .*OTA 매니페스트 응답의 Cache-Control/);
+    expect(() => check(o, without((h) => (h.redirects = [{ source: '/api/v1/ota/:p*', destination: '/', type: 301 }])))).toThrow(/redirect .*가로챈다/);
+    expect(() => check(o, without((h) => (h.redirects = [{ regex: '^/api/(.*)$', destination: '/', type: 301 }])))).toThrow(/redirect .*가로챈다/);
+    // 해석 못 하는 꼴은 TypeError가 아니라 BuildError 사유로
+    expect(() => check(o, without((h) => h.headers.push({ source: '/api/v1/ota/@(manifest', headers: cc })))).toThrow(/판정할 수 없다/);
+    // 리뷰 N2: OTA에 닿지 않는 헤더(한 마디 `*`)는 통과 — 넓게 맞추는 변이를 잡는 음성 시험
+    for (const src of ['/api/*', '/api/v1/*', '/api/v1/ota', '/api/v1/ota/assets', '/w/**']) {
+      expect(() => check(o, without((h) => h.headers.push({ source: src, headers: cc }))), src).not.toThrow();
+    }
+    expect(() => check(o, without((h) => h.headers.push({ regex: '^/w/(?P<f>.*)$', headers: cc })))).not.toThrow(); // regex 키도 실제로 판정(리뷰 F4)
+    expect(() => check(o, without((h) => (h.redirects = [{ source: '/api/v1/old', destination: '/', type: 301 }])))).not.toThrow();
+    mkdirSync(join(o, 'api/v1/ota'), { recursive: true });
+    writeFileSync(join(o, 'api/v1/ota/manifest'), '{}');
+    expect(() => check(o, v)).toThrow(/정적 api/);
+  });
+  it('실제 firebase.json(B6b): /api/v1/ota/** → Cloud Run mong-api 서울, OTA 경로에 닿는 헤더에 Cache-Control 없음(ota-self-host.md 3절: 서버가 정함)', () => {
+    const fb = readFirebaseJson(join(ROOT, 'firebase.json')).hosting;
+    expect(fb.rewrites.find((r) => r.source === OTA_REWRITE)).toEqual({ source: '/api/v1/ota/**', run: { serviceId: 'mong-api', region: 'asia-northeast3' } });
+    for (const p of ['/api/v1/ota/manifest', '/api/v1/ota/assets/x']) {
+      const keys = fb.headers.filter((h) => globRe(h.source).test(p)).flatMap((h) => h.headers.map((x) => x.key.toLowerCase()));
+      expect(keys, p).not.toContain('cache-control');
+    }
   });
   it('firebase.json: /m/* X-Robots-Tag가 없거나 ignore가 점 파일을 빼면 실패', () => {
     const { o, v } = built();

@@ -338,6 +338,89 @@ const read = (out, rel) => readFileSync(join(out, rel), 'utf8');
 export const readFirebaseJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
 /** 만들어진 public/ 검사. 실패하면 BuildError */
+/** OTA 경로(rewrite 원천과 검사 표본 — ota-self-host.md 3절: 매니페스트·에셋) */
+export const OTA_REWRITE = '/api/v1/ota/**';
+export const OTA_PATHS = ['/api/v1/ota/manifest', '/api/v1/ota/assets/' + 'A'.repeat(43)];
+const OTA_SAMPLE_LABEL = ['매니페스트', '에셋'];
+
+/**
+ * Firebase Hosting glob → 정규식. 헤더·rewrite·redirect가 어떤 경로에 닿는지 보는 데만 쓴다.
+ * `**` = 모든 깊이, `*` = 한 마디, `?` = 한 글자, `:name`·`:name*`(redirect 마디 잡기), `[…]`, 중괄호 `{a,b}`, 확장 glob `@(a|b)`·`?(…)`·`+(…)`·`*(…)`.
+ * `!(…)`(부정)은 정확히 옮기지 않고 '한 마디 아무것'으로 넓게 본다 — 넓게 보면 거짓 실패는 있어도 거짓 통과는 없다(B6b 리뷰 F4).
+ */
+export function globRe(glob) {
+  const SUFFIX = { '@': '', '?': '?', '+': '+', '*': '*' };
+  const stack = [];
+  let out = '';
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    const next = glob[i + 1];
+    if (c === '!' && next === '(') {
+      let depth = 0;
+      let k = i + 1;
+      for (; k < glob.length; k++) {
+        if (glob[k] === '(') depth++;
+        else if (glob[k] === ')' && --depth === 0) break;
+      }
+      out += '[^/]*';
+      i = k;
+    } else if ('@?+*'.includes(c) && next === '(') {
+      stack.push(c);
+      out += '(?:';
+      i++;
+    } else if (c === ')' && stack.length && stack.at(-1) !== '{') {
+      out += ')' + SUFFIX[stack.pop()];
+    } else if (c === '|' && stack.length && stack.at(-1) !== '{') {
+      out += '|';
+    } else if (c === '{') {
+      stack.push('{');
+      out += '(?:';
+    } else if (c === ',' && stack.at(-1) === '{') {
+      out += '|';
+    } else if (c === '}' && stack.at(-1) === '{') {
+      stack.pop();
+      out += ')';
+    } else if (c === ':' && /[A-Za-z_]/.test(next ?? '')) {
+      // redirect·rewrite 마디 잡기(`:name` = 한 마디, `:name*` = 나머지 전부 — Firebase redirects 문서)
+      const m = /^:[A-Za-z_]\w*(\*)?/.exec(glob.slice(i));
+      out += m[1] ? '.*' : '[^/]+';
+      i += m[0].length - 1;
+    } else if (c === '*' && next === '*') {
+      out += '.*';
+      i++;
+    } else if (c === '*') {
+      out += '[^/]*';
+    } else if (c === '?') {
+      out += '[^/]';
+    } else if (c === '[' && glob.indexOf(']', i + 2) > 0) {
+      const end = glob.indexOf(']', i + 2);
+      const body = glob.slice(i + 1, end).replace(/^!/, '^').replace(/\\/g, '\\\\');
+      out += `[${body}]`;
+      i = end;
+    } else {
+      out += c.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
+    }
+  }
+  if (stack.length) throw new Error(`닫히지 않은 glob: ${glob}`);
+  return new RegExp(`^${out}$`);
+}
+
+/**
+ * firebase.json 항목(`source` glob 또는 `regex` RE2)이 경로에 닿는가. 판정할 수 없으면 problems에 사유를 넣고 '닿음'으로 본다
+ * (모르는 꼴로 검사를 건너뛰지 않는다 — 리뷰 F4 `regex` 키 TypeError)
+ */
+function entryHits(entry, path, what, problems) {
+  try {
+    if (typeof entry?.source === 'string') return globRe(entry.source).test(path);
+    if (typeof entry?.regex === 'string') return new RegExp(entry.regex.replace(/\(\?P</g, '(?<')).test(path);
+    problems.push(`firebase.json: ${what} 항목에 source·regex가 없다`);
+  } catch {
+    problems.push(`firebase.json: ${what} ${entry?.source ?? entry?.regex}를 해석하지 못해 OTA 경로에 닿는지 판정할 수 없다`);
+  }
+  return true;
+}
+const nameOf = (e) => e?.source ?? `regex ${e?.regex}`;
+
 export function check(out, v) {
   const problems = [];
   const json = (rel) => {
@@ -444,6 +527,8 @@ export function check(out, v) {
   // ⑤ 검색(리뷰 I6): robots.txt가 /m/를 막으면 noindex를 못 읽는다. /m/** 응답에 X-Robots-Tag noindex 헤더가 있어야 한다
   const robots = existsSync(join(out, 'robots.txt')) ? read(out, 'robots.txt') : '';
   if (/^\s*Disallow:\s*\/m(\/|\s*$)/im.test(robots)) problems.push('robots.txt가 /m/를 막는다(noindex를 못 읽게 됨)');
+  // Hosting은 정적 파일을 rewrite보다 먼저 내보낸다 — public/api가 있으면 OTA·API rewrite를 가린다
+  if (existsSync(join(out, 'api'))) problems.push('api/: /api/v1/ota/**는 Cloud Run(mong-api)이 답한다 — 정적 api 파일을 두지 않는다(V21)');
   if (existsSync(join(out, 'm'))) problems.push('m/: /m/**는 Cloud Run(mong-api)이 답한다 — 정적 /m 파일을 두지 않는다(B3)');
   if (v.firebaseJson) {
     const fb = v.firebaseJson.hosting ?? {};
@@ -457,6 +542,24 @@ export function check(out, v) {
     // 429·503이 5분 캐시되어 한 IP가 링크를 모두에게 막을 수 있다 → firebase.json `/m/*`에는 Cache-Control을 두지 않는다
     if (mh.some((h) => /^cache-control$/i.test(h.key))) problems.push('firebase.json: /m/*에 Cache-Control을 두지 않는다(서버가 상태별로 정한다)');
     if ((fb.headers ?? []).some((h) => h.source === '/m/**')) problems.push('firebase.json: /m/** 헤더는 /m/{code}/get·seen(no-store)까지 덮는다 — /m/*만');
+    // V21·B6b: 자체 OTA(`ota.mongmang.ink` = 같은 Hosting 사이트의 사용자 도메인) → Cloud Run 서울 mong-api(ota-self-host.md 1절).
+    // 캐시의 정본은 서버(같은 문서 3절): 매니페스트·204 private max-age=0, 에셋 immutable, 오류·429 no-store.
+    // Hosting 헤더가 Cache-Control을 덮으면 매니페스트가 CDN에 캐시되어 롤백이 늦게 닿거나 429가 모두에게 퍼진다 → OTA 경로에 닿는 헤더에 Cache-Control 금지
+    const rws = fb.rewrites ?? [];
+    const oi = rws.findIndex((r) => r.source === OTA_REWRITE);
+    const or = rws[oi];
+    if (or?.run?.serviceId !== 'mong-api' || or?.run?.region !== 'asia-northeast3') problems.push(`firebase.json: ${OTA_REWRITE}는 Cloud Run mong-api(asia-northeast3)로 rewrite해야 한다(V21 OTA)`);
+    else if (rws.slice(0, oi).some((r) => OTA_PATHS.some((p) => entryHits(r, p, 'rewrite', problems)))) problems.push(`firebase.json: ${OTA_REWRITE}보다 앞선 rewrite가 OTA 경로를 가로챈다`);
+    // Hosting은 redirects를 rewrites보다 먼저 적용한다 — OTA 경로에 닿는 redirect가 있으면 앱이 서버에 닿지 못한다(리뷰 F4)
+    for (const r of fb.redirects ?? []) {
+      if (OTA_PATHS.some((p) => entryHits(r, p, 'redirect', problems))) problems.push(`firebase.json: redirect ${nameOf(r)}가 OTA 경로를 가로챈다(redirects는 rewrites보다 먼저)`);
+    }
+    for (const h of fb.headers ?? []) {
+      if (!(h.headers ?? []).some((x) => /^cache-control$/i.test(x.key))) continue;
+      OTA_PATHS.forEach((p, n) => {
+        if (entryHits(h, p, 'headers', problems)) problems.push(`firebase.json: ${nameOf(h)} 헤더가 OTA ${OTA_SAMPLE_LABEL[n]} 응답의 Cache-Control을 덮는다(서버가 정한다)`);
+      });
+    }
     // ignore에 점 파일 패턴이 있으면 .well-known(AASA·assetlinks)이 배포에서 조용히 빠진다(리뷰 m6)
     const hidesDot = (g) => /(^|\/)\.\*|(^|\/)\.well-known|^\*\*$|^\*$/.test(g);
     if ((fb.ignore ?? []).some(hidesDot)) problems.push('firebase.json: ignore가 점 파일(.well-known)을 뺄 수 있다');

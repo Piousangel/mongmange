@@ -29,6 +29,7 @@ Firebase Hosting 공개 폴더 원본. `node scripts/build.mjs`가 `src/` → `p
 
 ## 원격 문서 서명·캐시(B4 후속)
 
+- `firebase.json` OTA(B6b, V21): `/api/v1/ota/**` → Cloud Run `mong-api`(서울) rewrite. `ota.mongmang.ink`는 같은 사이트의 사용자 도메인이다. OTA 응답의 Cache-Control은 서버가 정하므로(매니페스트 `private, max-age=0`·에셋 immutable·오류 no-store, `docs/design/server-v1/ota-self-host.md` 3절) **OTA 경로에 닿는 헤더 규칙(`**` 포함)에 Cache-Control을 두면 빌드가 실패**한다. 앞선 rewrite·redirect(redirects는 rewrites보다 먼저 적용)가 OTA 경로를 가로채거나 정적 `public/api`가 생겨도 실패. 판정 표본은 매니페스트·에셋 경로 둘이고, `source` glob(확장 glob·중괄호·`:마디` 포함)과 `regex` 키를 모두 해석한다 — 해석 못 하면 빌드 실패. Hosting → Cloud Run은 60초 요청 제한이 있다(`ota-self-host.md` 10-1, 체크리스트 T5b). 첫날 실측은 `docs/ops/b6-day1-checklist.md` T5.
 - `firebase.json` 캐시: `/config/v1.json`·`/content/v1.json` `public, max-age=300`, `/content/lex/**`·`/content/motifs/**` `public, max-age=31536000, immutable`(빌드가 값까지 검사).
 - 공개키 자리: `remote-public-keys.json`의 `keys`(앱 번들 공개키 목록과 같은 `{kid, n, e}` — C11). 지금은 비어 있다.
 - 앱 번들 키 대조 자리: `apps/mobile/src/net/remote-public-keys.json`(C11이 만든다)이 있으면 두 목록의 kid·n·e가 같아야 통과. 없으면 대조를 건너뛰고, 이쪽에만 키가 있으면 경고.
