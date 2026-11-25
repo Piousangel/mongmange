@@ -182,3 +182,34 @@ describe('시뮬(dreams-sim.mjs pick)도 같은 풀 규칙', () => {
     }
   });
 });
+
+describe('본 꿈 = 현상한 카드(history)만, 원격 앞당기기 철회(리뷰 I1·L1)', () => {
+  const v = { curiosity: -0.6, closeness: -0.5, boldness: 0.1, tempo: 0.2 } as sim.AxisRecord;
+  const twelve = sim.MOTIFS.find((m) => m.zone === 'near-alone' && m.unlockAtCards === 12)!.id;
+  const card = (id: string, i: number): sim.DreamCard => ({ night: i + 1, motifId: id, composition: (i % 3) as 0 | 1 | 2, inkTone: 0.5, flow: 0, flowSeed: i, strokeRef: null, nightsMerged: 1 });
+  it('긴 잠으로 아직 현상하지 않은 대기 카드(used에만 있음)의 모티프는 본 꿈이 아니다', () => {
+    const hist = ['near-alone.quilt', 'center.moon', 'near-alone.teacup'].map(card);
+    const used = [...hist, card(twelve, 3)]; // 대기 카드 = 해금 12 모티프
+    for (let rng = 1; rng <= 300; rng++) {
+      const got = sim.pickNightCard({ v, used, rng, night: 5, strokeRef: null, nightDate: null, tzOffsetMin: KST, developedCards: 3, dream: { enabled: true }, history: hist });
+      expect(got.card.motifId).not.toBe(twelve);
+    }
+  });
+  it('원격 앞당기기로 본 모티프는 앞당기기가 거둬져도(값 삭제·크래시 탈출) 풀에 남고, 안 본 것은 다시 번들 값을 따른다', () => {
+    const fifteen = sim.MOTIFS.find((m) => m.zone === 'center' && m.unlockAtCards === 15)!.id;
+    const early = { [twelve]: 0, [fifteen]: 0 };
+    // 앞당긴 동안: 둘 다 풀에 있음. 그중 twelve만 봤다
+    expect(ids(sim.dreamPool('near-alone', 4, { unlock: early }))).toEqual(expect.arrayContaining([twelve, fifteen]));
+    const hist = ['near-alone.quilt', twelve, 'center.moon', 'near-alone.teacup'].map(card);
+    // 거둔 뒤(unlock 없음): 본 twelve는 남고 안 본 fifteen은 빠진다
+    const after = ids(sim.dreamPool('near-alone', 4, { seen: hist.map((h) => h.motifId) }));
+    expect(after).toContain(twelve);
+    expect(after).not.toContain(fifteen);
+    // pickNightCard도 거둔 뒤 twelve를 고를 수 있다(풀에 남음)
+    const picks = new Set<string>();
+    for (let rng = 1; rng <= 400; rng++)
+      picks.add(sim.pickNightCard({ v, used: hist, rng, night: 5, strokeRef: null, nightDate: null, tzOffsetMin: KST, developedCards: 4, dream: { enabled: true }, history: hist }).card.motifId);
+    expect(picks.has(twelve)).toBe(true);
+    expect(picks.has(fifteen)).toBe(false);
+  });
+});

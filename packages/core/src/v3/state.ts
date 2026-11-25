@@ -320,6 +320,8 @@ function follow(s: V3State, simEffects: SimEffect[], ev: V3Event, out: V3Effect[
   simEffects.forEach((e, i) => {
     if (e.type === 'woke') {
       // 깸 경계: 이번 깸 칸만 비운다(nudgeOptIn·pantry는 그대로). 공방 열림은 이 순간에만 본다(진행 = 밤·정, 밥과 무관)
+      // 좋아하는 것 예외(V9b)는 처음 블록(emptyV3Block)과 읽기 이행(validateV3)이 이미 채운다 — 여기서는 효과 없이 더해질 뿐이고
+      // 아래 `o.opened.length ? …` 때문에 예외만으로는 공방을 바꾸지 않는다(불변식: 예외 종류는 경계 전에 이미 들어 있다)
       const o = openPantry(v3.pantry, boundaryProgress({ life: v3.life, tonightCounted: false }, s.sim), likedItemOf(s.sim.birth.seed)); // 깸 = 경계: 셌던 밤은 이제 지난 몫
       v3 = { ...v3, meal: { ...v3.meal, spoons: 0, treats: 0 }, pantry: o.opened.length ? o.pantry : v3.pantry, tonightCounted: false };
       for (const x of o.opened) out.push({ type: 'pantryOpened', kind: x.kind, item: x.item });
