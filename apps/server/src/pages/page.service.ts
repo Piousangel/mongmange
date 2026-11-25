@@ -53,6 +53,8 @@ export const UNCOMMITTED_MS = 6 * HOUR;
 export const OLD_VERSION_GRACE_MS = 2 * HOUR;
 /** 서명 업로드 URL 최대 수명 — Supabase createSignedUploadUrl 기본 약 2시간으로 알려짐 [확인 필요 — B6 실측]. commit 뒤 staging 청소 시점 */
 export const SIGNED_UPLOAD_MAX_LIFE_MS = 2 * HOUR;
+/** 서명 업로드 꼬리 행(B6a 리뷰 H1): 발급 + 최대 수명 + 여유 15분(시계 차·늦게 끝나는 업로드) 뒤 staging 판 폴더를 한 번 더 지운다 */
+export const SIGNED_UPLOAD_TAIL_MS = SIGNED_UPLOAD_MAX_LIFE_MS + HOUR / 4;
 /** commit 트랜잭션(검사·이동을 행 잠금 안에서): 파일 넷 이동 + 64KB 읽기 셋 — 넉넉히 30초 */
 const COMMIT_TX = { timeout: 30_000, maxWait: 5_000 } as const;
 
@@ -216,7 +218,11 @@ export class PageService {
       // 의도 기록(B3 리뷰 I1): 이 판 폴더를 staging·public **두 버킷 모두** 6시간 대기열에 먼저 적는다.
       // commit이 끝까지 성공해야 public 행이 지워진다 — 이동이 일부만 되거나 중간에 죽어도 공개 쪽 파일은 대기열이 지운다
       await tx.storageGc.createMany({
-        data: [BUCKETS.staging, BUCKETS.public].map((bucket) => ({ bucket, prefix: dir, creatureId: row.creature_id, reason: 'uncommitted' as const, notBefore: new Date(now + UNCOMMITTED_MS) })),
+        data: [
+          ...[BUCKETS.staging, BUCKETS.public].map((bucket) => ({ bucket, prefix: dir, creatureId: row.creature_id, reason: 'uncommitted' as const, notBefore: new Date(now + UNCOMMITTED_MS) })),
+          // B6a 리뷰 H1: 이 판의 서명 URL은 2시간 살아 있다 — 계정 삭제·끄기·새 PUT 뒤 늦게 올라온 파일도 지우는 꼬리 행(creature_id 없음 → 연쇄가 당기지 않음)
+          { bucket: BUCKETS.staging, prefix: dir, creatureId: null, reason: 'upload_tail' as const, notBefore: new Date(now + SIGNED_UPLOAD_TAIL_MS) },
+        ],
       });
       return { ver, code: row.code, dir, dropped };
     });
@@ -372,7 +378,7 @@ export class PageService {
 
   private async purgeQuietly(why: 'remake' | 'first' | 'off' | 'quarantine'): Promise<void> {
     try {
-      await this.cdn.request();
+      await this.cdn.enqueue(); // 릴리스는 기다리지 않는다(B6a 리뷰 M3)
     } catch (e) {
       this.log.warn({ code: 'cdn_purge_request_failed', why, type: e instanceof Error ? e.name : 'unknown' }, 'CDN 무효화 요청 실패(바닥 s-maxage 5분)');
     }

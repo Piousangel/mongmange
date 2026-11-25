@@ -23,7 +23,8 @@ export interface FakeSupabase {
   close(): Promise<void>;
 }
 
-export async function startFakeSupabase(): Promise<FakeSupabase> {
+/** port 0 = 아무 빈 포트(기존 시험), B6a 시험은 8180~8189 안의 고정 포트 */
+export async function startFakeSupabase(port = 0): Promise<FakeSupabase> {
   const { privateKey, publicKey } = await generateKeyPair('ES256', { extractable: true });
   const jwk: JWK = { ...(await exportJWK(publicKey)), kid: 'test-key-1', alg: 'ES256', use: 'sig' };
   const state = { users: new Set<string>(), failDeletes: false, jwksHits: 0, jwksStatus: 200 as number | 'garbage' };
@@ -65,7 +66,7 @@ export async function startFakeSupabase(): Promise<FakeSupabase> {
     }
     res.writeHead(404).end();
   });
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  await new Promise<void>((r) => server.listen(port, '127.0.0.1', r));
   const addr = server.address();
   const url = `http://127.0.0.1:${typeof addr === 'object' && addr ? addr.port : 0}`;
 

@@ -104,6 +104,12 @@ spec:
                 secretKeyRef:
                   name: READY_TOKEN
                   key: '${VER_READY_TOKEN}'
+            # B6a DB TLS: Supabase CA(PEM, 비밀은 아니지만 값 교체를 이미지 밖에서 하려고 Secret). 없으면 운영 부팅 거부(env.ts)
+            - name: DATABASE_CA_CERT
+              valueFrom:
+                secretKeyRef:
+                  name: DATABASE_CA_CERT
+                  key: '${VER_DATABASE_CA_CERT}'
           # DB를 보지 않는 /healthz만(B7 5절 '프로브'). 콜드 스타트 로컬 1.6초 → 여유 30초
           startupProbe:
             httpGet:

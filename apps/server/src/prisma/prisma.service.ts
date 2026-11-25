@@ -11,6 +11,7 @@ import pg from 'pg';
 import { ShutdownBudget, within } from '../common/shutdown-budget';
 import { PrismaClient } from '../generated/prisma/client';
 import type { Env } from '../config/env';
+import { pgConnection } from './db-ssl';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnApplicationShutdown {
@@ -20,7 +21,8 @@ export class PrismaService extends PrismaClient implements OnApplicationShutdown
   ) {
     super({
       adapter: new PrismaPg({
-        connectionString: config.get('DATABASE_URL', { infer: true }),
+        // B6a: 운영은 Supabase CA로 verify-full(db-ssl.ts). CA가 없으면(로컬·CI) 연결 문자열 그대로
+        ...pgConnection({ DATABASE_URL: config.get('DATABASE_URL', { infer: true }), DATABASE_CA_CERT: config.get('DATABASE_CA_CERT', { infer: true }), DATABASE_CA_FILE: config.get('DATABASE_CA_FILE', { infer: true }) }),
         max: config.get('DB_POOL_MAX', { infer: true }),
         connectionTimeoutMillis: config.get('DB_CONNECT_TIMEOUT_MS', { infer: true }),
         statement_timeout: config.get('DB_STATEMENT_TIMEOUT_MS', { infer: true }),

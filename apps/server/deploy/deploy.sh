@@ -11,7 +11,7 @@
 #   logging    서울 로그 버킷 mong-logs 7일 + _Default 싱크 전환 + Cloud Run 플랫폼 요청 로그 제외(첫 배포 **전에**)
 #   registry   Artifact Registry 저장소 mong(서울) + 정리 정책(최근 5개 보존)
 #   accounts   서비스 계정 2개(mong-api-run: 실행, mong-scheduler: 호출) + 쓰지 않는 기본 Compute 계정의 Editor 회수
-#   secrets    비밀 4개의 **빈 자리**(서울 보관) + 실행 계정에 그 4개만 읽기 권한. 값은 넣지 않는다
+#   secrets    비밀 5개의 **빈 자리**(서울 보관) + 실행 계정에 그 5개만 읽기 권한. 값은 넣지 않는다(B6a: DATABASE_CA_CERT)
 #   build      linux/amd64 이미지 빌드 + 푸시(태그 = git 커밋) → 다이제스트를 찍는다. B7a가 커밋된 HEAD에서만
 #   deploy     비밀 판 번호를 고정해 서비스 YAML을 채워 올리고 공개 호출(allUsers invoker)을 연다
 #              --digest 필수(--apply일 때). 비밀만 바꿀 때는 --digest current(지금 이미지 그대로 새 판 번호로 새 리비전)
@@ -30,11 +30,11 @@ REPO_ROOT="$(cd "$DEPLOY_DIR/../../.." && pwd)"
 REGION=asia-northeast3
 REPO=mong
 SERVICE=mong-api
-SECRETS=(DATABASE_URL SUPABASE_SERVICE_ROLE_KEY RECOVERY_PEPPER READY_TOKEN)
+SECRETS=(DATABASE_URL SUPABASE_SERVICE_ROLE_KEY RECOVERY_PEPPER READY_TOKEN DATABASE_CA_CERT)
 JOBS=(storage-gc moderation cdn-purge)
 # 템플릿에서 채우는 자리 — 이 밖의 ${…}가 남으면 check가 실패한다
 VARS=(PROJECT_ID PROJECT_NUMBER SUPABASE_URL HOPS_API HOPS_WEB HOPS_OTA METRIC_APP_VERSIONS MIN_INSTANCES IMAGE_DIGEST APP_VERSION
-  VER_DATABASE_URL VER_SUPABASE_SERVICE_ROLE_KEY VER_RECOVERY_PEPPER VER_READY_TOKEN)
+  VER_DATABASE_URL VER_SUPABASE_SERVICE_ROLE_KEY VER_RECOVERY_PEPPER VER_READY_TOKEN VER_DATABASE_CA_CERT)
 
 APPLY=0
 ENV_FILE="${HOME}/.config/mong/deploy.env"
@@ -176,7 +176,7 @@ step_check() {
     if (!/^asia-northeast3-docker\.pkg\.dev\/[^/]+\/mong\/mong-api@sha256:[0-9a-f]{64}$/.test(c.image)) fail("이미지는 서울 AR + 다이제스트 고정: " + c.image);
     eq(c.startupProbe.httpGet.path, "/healthz", "startup 프로브"); eq(c.livenessProbe.httpGet.path, "/healthz", "liveness 프로브");
     const env = Object.fromEntries(c.env.map((e) => [e.name, e]));
-    for (const s of ["DATABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "RECOVERY_PEPPER", "READY_TOKEN"]) {
+    for (const s of ["DATABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "RECOVERY_PEPPER", "READY_TOKEN", "DATABASE_CA_CERT"]) {
       if (!env[s] || !env[s].valueFrom || env[s].value !== undefined) fail(s + "는 Secret Manager 참조여야 한다(값 금지)");
       eq(env[s].valueFrom.secretKeyRef.name, s, s + " 비밀 이름");
       if (!/^[1-9][0-9]*$/.test(String(env[s].valueFrom.secretKeyRef.key))) fail(s + " 비밀은 판 번호로 고정해야 한다(latest 금지 — 리뷰 H2): " + env[s].valueFrom.secretKeyRef.key);
@@ -186,6 +186,7 @@ step_check() {
     eq(env.CRON_AUDIENCE.value, process.env.SERVICE_URL, "CRON_AUDIENCE");
     eq(env.CRON_SA_EMAIL.value, process.env.SCHED_SA, "CRON_SA_EMAIL");
     eq(env.STORAGE_DRIVER.value, "none", "STORAGE_DRIVER");
+    if (env.CDN_DRIVER && env.CDN_DRIVER.value !== "none") fail("CDN_DRIVER는 오너 결정 전까지 none(README 10-3 — sites.update = 사이트 전체 배포 권한)");
     eq(env.REPORT_AUTO_HIDE.value, "false", "REPORT_AUTO_HIDE(XFF 실측 전 끔)");
     for (const h of ["TRUSTED_PROXY_HOPS_API", "TRUSTED_PROXY_HOPS_WEB", "TRUSTED_PROXY_HOPS_OTA"]) if (!/^[1-5]$/.test(env[h].value)) fail(h + "는 운영에서 1~5");
     if (!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(env.SUPABASE_URL.value) && !/REPLACE/.test(env.SUPABASE_URL.value)) fail("SUPABASE_URL 형식");
@@ -209,7 +210,7 @@ step_check() {
     }
     const pol = JSON.parse(fs.readFileSync(out + "/cleanup-policy.json", "utf8"));
     if (!pol.some((p) => p.action.type === "Keep" && p.mostRecentVersions && p.mostRecentVersions.keepCount >= 5)) fail("정리 정책에 최근 5개 보존(Keep)이 없다");
-    console.log("check 통과: 서비스 YAML 1·Scheduler 3·정리 정책 1 (동시성 40·max 3·timeout 300·1Gi·ingress all·비밀 4개는 이름 + 판 번호만)");
+    console.log("check 통과: 서비스 YAML 1·Scheduler 3·정리 정책 1 (동시성 40·max 3·timeout 300·1Gi·ingress all·비밀 5개는 이름 + 판 번호만)");
   ')
   echo "채운 사본: $OUT (스크립트가 끝나면 지워짐)"
 }

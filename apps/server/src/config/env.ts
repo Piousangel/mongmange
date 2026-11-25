@@ -1,6 +1,7 @@
 // 환경 변수 검증(zod). 잘못된 값이면 시작하지 않는다 — Cloud Run 리비전이 뜨지 않아 이전 리비전이 그대로 남는다.
 // 비밀값의 실제 값은 Secret Manager·GitHub Secrets에만 둔다(.env.example에는 이름과 로컬 기본값만).
 // 운영(NODE_ENV=production)에서만 필수인 값은 아래 superRefine이 막는다 — 설정 한 줄 빠뜨려 조용히 뜨는 일을 없앤다(B1 리뷰 I1·I2).
+import { X509Certificate } from 'node:crypto';
 import { z } from 'zod';
 
 const bool = z
@@ -132,14 +133,28 @@ export const envSchema = z
     /** 웹 `/delete` 페이지 출처(CORS 허용 하나, 3-8 ②) */
     WEB_ORIGIN: z.url({ protocol: /^https?$/ }).default('https://mongmang.ink'),
     /**
-     * B3 파일 저장소. `none` = 설정 안 됨(링크 API 503, 삭제 대기열은 다음 시도로 — 운영 기본, 실제 Supabase Storage는 B6),
-     * `local` = 파일 시스템(개발·시험 전용 — 운영에서는 부팅 거부: Cloud Run 디스크는 인스턴스와 함께 사라진다)
+     * B3 파일 저장소. `none` = 설정 안 됨(링크 API 503, 삭제 대기열은 다음 시도로),
+     * `local` = 파일 시스템(개발·시험 전용 — 운영에서는 부팅 거부: Cloud Run 디스크는 인스턴스와 함께 사라진다),
+     * `supabase` = Supabase Storage(B6a, SUPABASE_URL + 서비스 롤 키 필수 — 버킷 4개는 오너가 먼저 만든다)
      */
-    STORAGE_DRIVER: z.enum(['none', 'local']).default('none'),
+    STORAGE_DRIVER: z.enum(['none', 'local', 'supabase']).default('none'),
     /** local 드라이버 루트 폴더 */
     STORAGE_LOCAL_DIR: z.string().min(1).default('.storage-local'),
     /** local 드라이버의 바깥 주소(서명 업로드·공개 파일 주소의 앞). 비우면 http://localhost:{PORT} */
     STORAGE_LOCAL_BASE_URL: z.url({ protocol: /^https?$/ }).optional(),
+    /**
+     * DB TLS 검증(B6a): Supabase CA(PEM). 있으면 sslmode=verify-full과 같은 검사(사슬 + 호스트 이름)로 붙고 URL의 ssl 설정은 무시한다.
+     * 본문(Secret Manager → env) 또는 파일 경로(Secret 볼륨) 하나. 운영 필수 — 없으면 부팅 거부. 로컬·CI는 비워 둔다(지금과 같음)
+     */
+    DATABASE_CA_CERT: z
+      .string()
+      .optional()
+      .refine((v) => v === undefined || isPemCert(v), 'PEM 인증서(-----BEGIN CERTIFICATE-----)여야 합니다'),
+    DATABASE_CA_FILE: z.string().min(1).optional(),
+    /** CDN 무효화(B6a): `none` = 횟수만(바닥 s-maxage 5분), `firebase` = Firebase Hosting 새 릴리스(FIREBASE_HOSTING_SITE 필수) */
+    CDN_DRIVER: z.enum(['none', 'firebase']).default('none'),
+    /** Firebase Hosting 사이트 id(보통 프로젝트 id). 비밀 아님 */
+    FIREBASE_HOSTING_SITE: z.string().regex(/^[a-z0-9][a-z0-9-]{2,62}$/).optional(),
     /** 사이트 출처(/m 페이지의 live.js·config 경로, 링크 주소). 경로 없이 */
     SITE_ORIGIN: z.url({ protocol: /^https?$/ }).default('https://mongmang.ink'),
     /** App Store 앱 id(숫자) — /m 스토어 버튼. 없으면 App Store 첫 화면으로 */
@@ -169,6 +184,12 @@ export const envSchema = z
     if (e.DB_QUERY_TIMEOUT_MS <= e.DB_STATEMENT_TIMEOUT_MS) {
       ctx.addIssue({ code: 'custom', path: ['DB_QUERY_TIMEOUT_MS'], message: 'DB_STATEMENT_TIMEOUT_MS보다 길어야 합니다' });
     }
+    // B6a: Storage·CDN 드라이버가 쓰는 값(개발에서도 — 켜 놓고 값이 없으면 조용히 실패하는 일을 막는다)
+    if (e.STORAGE_DRIVER === 'supabase' && (!e.SUPABASE_URL || !e.SUPABASE_SERVICE_ROLE_KEY)) {
+      ctx.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: 'supabase 저장소에는 SUPABASE_URL과 SUPABASE_SERVICE_ROLE_KEY가 필요합니다' });
+    }
+    if (e.CDN_DRIVER === 'firebase' && !e.FIREBASE_HOSTING_SITE) ctx.addIssue({ code: 'custom', path: ['FIREBASE_HOSTING_SITE'], message: 'CDN_DRIVER=firebase에는 사이트 id가 필요합니다' });
+    if (e.DATABASE_CA_CERT && e.DATABASE_CA_FILE) ctx.addIssue({ code: 'custom', path: ['DATABASE_CA_FILE'], message: 'DATABASE_CA_CERT와 둘 중 하나만' });
     if (e.DB_CONNECT_TIMEOUT_MS >= e.READY_TIMEOUT_MS) {
       ctx.addIssue({ code: 'custom', path: ['DB_CONNECT_TIMEOUT_MS'], message: 'READY_TIMEOUT_MS보다 짧아야 합니다' });
     }
@@ -183,7 +204,10 @@ export const envSchema = z
     if (!e.SUPABASE_SERVICE_ROLE_KEY) ctx.addIssue({ code: 'custom', path: ['SUPABASE_SERVICE_ROLE_KEY'], message: '운영에서는 필수입니다(Auth Admin)' });
     if (!e.RECOVERY_PEPPER) ctx.addIssue({ code: 'custom', path: ['RECOVERY_PEPPER'], message: '운영에서는 필수입니다(32자 이상)' });
     if (!e.CRON_AUDIENCE?.startsWith('https://')) ctx.addIssue({ code: 'custom', path: ['CRON_AUDIENCE'], message: '운영에서는 서비스 URL(https, 경로 없음)이 필수입니다' });
-    if (e.STORAGE_DRIVER === 'local') ctx.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: '운영에서는 local 저장소를 쓸 수 없습니다(B6 전까지 none)' });
+    if (e.STORAGE_DRIVER === 'local') ctx.addIssue({ code: 'custom', path: ['STORAGE_DRIVER'], message: '운영에서는 local 저장소를 쓸 수 없습니다(none 또는 supabase)' });
+    // B6a DB TLS: 운영은 Supabase CA로 검증한 연결만. 검사를 끄는 sslmode가 URL에 있으면 설정 실수로 보고 멈춘다
+    if (!e.DATABASE_CA_CERT && !e.DATABASE_CA_FILE) ctx.addIssue({ code: 'custom', path: ['DATABASE_CA_CERT'], message: '운영에서는 DB CA(DATABASE_CA_CERT 또는 DATABASE_CA_FILE)가 필수입니다(verify-full)' });
+    if (/[?&]sslmode=(disable|allow|prefer|no-verify)(&|$)/.test(e.DATABASE_URL)) ctx.addIssue({ code: 'custom', path: ['DATABASE_URL'], message: '운영에서는 TLS 검증을 끄는 sslmode를 쓸 수 없습니다' });
     if (e.OTA_ALLOW_UNSIGNED) ctx.addIssue({ code: 'custom', path: ['OTA_ALLOW_UNSIGNED'], message: '운영에서는 서명 없는 OTA를 내보낼 수 없습니다' });
     if (!e.CRON_SA_EMAIL) ctx.addIssue({ code: 'custom', path: ['CRON_SA_EMAIL'], message: '운영에서는 Scheduler 서비스 계정 이메일이 필수입니다' });
   })
@@ -196,6 +220,17 @@ export const envSchema = z
   }));
 
 export type Env = z.infer<typeof envSchema>;
+
+/** PEM 인증서 하나 이상인가(파싱까지 — 깨진 Secret 값으로 뜨지 않게) */
+function isPemCert(v: string): boolean {
+  if (!v.includes('-----BEGIN CERTIFICATE-----')) return false;
+  try {
+    new X509Certificate(v);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** ConfigModule.validate용. 실패하면 어떤 키가 왜 틀렸는지만 말한다(값은 찍지 않는다 — 비밀값 유출 방지) */
 export function validateEnv(raw: Record<string, unknown>): Env {

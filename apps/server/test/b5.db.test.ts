@@ -173,6 +173,7 @@ async function readPublic(key: string): Promise<Buffer | null> {
   return r.status === 200 ? (r.body as Buffer) : null;
 }
 async function resetPurge() {
+  await purge.settle(); // 뒤에서 돌던 무효화가 끝난 뒤 센다(B6a 리뷰 M3)
   await prisma.cdnPurge.update({ where: { id: 1 }, data: { requestedAt: null, releasedAt: null, attempts: 0 } });
   cdn.calls = 0;
 }
@@ -183,7 +184,9 @@ async function traces(needles: string[]): Promise<Record<string, number>> {
   const out: Record<string, number> = {};
   for (const { t } of rows) {
     for (const n of needles) {
-      const [r] = await prisma.$queryRawUnsafe<{ n: number }[]>(`select count(*)::int as n from app."${t}" x where x::text ilike $1`, `%${n}%`);
+      // 서명 업로드 꼬리 행(B6a 리뷰 H1)은 뺀다: 사람과 이어지지 않는 staging 판 폴더(무작위 키)만, 2시간 15분 뒤 스스로 지워진다 — b6a 시험이 따로 고정
+      const tail = t === 'storage_gc' ? ` and not (x.reason = 'upload_tail' and x.creature_id is null and x.deletion_id is null)` : '';
+      const [r] = await prisma.$queryRawUnsafe<{ n: number }[]>(`select count(*)::int as n from app."${t}" x where x::text ilike $1${tail}`, `%${n}%`);
       if (r!.n) out[`${t}:${n}`] = r!.n;
     }
   }
@@ -427,6 +430,7 @@ describe('자동 숨김 — 서로 다른 3명이면 즉시 격리 + CDN 무효�
     expect(after.text).not.toContain(dir!.split('/')[1]!);
     expect(metaContent(after.text, 'og:image')).toBeUndefined();
     expect(after.text).not.toContain('<form');
+    await purge.settle(); // 무효화는 응답 뒤에서 낸다(B6a 리뷰 M3)
     expect(cdn.calls).toBe(1);
     expect(logs.slice(from).some((l) => l.includes('report_auto_hidden'))).toBe(true);
     expect(logs.filter((l) => l.includes(u.code))).toEqual([]);
@@ -486,6 +490,7 @@ describe('운영 스니펫 docs/ops/moderation — 대기 목록·복원·확정
     expect(await readPublic(`${dir}/poster.jpg`)).not.toBeNull();
     const html1 = (await viaWeb(http().get(`/m/${u.code}`), freshIp()).expect(200)).text;
     expect(html1).toBe(html0);
+    await purge.settle(); // 무효화는 응답 뒤에서 낸다(B6a 리뷰 M3)
     expect(cdn.calls).toBe(1);
     expect((await reportsOf(u.code)).map((r) => r.status)).toEqual(['restored']);
     const [log] = await prisma.adminAction.findMany({ where: { targetRef: u.code }, orderBy: { id: 'desc' }, take: 1 });

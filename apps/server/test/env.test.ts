@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { validateEnv } from '../src/config/env';
+
+/** 시험 전용 공개 인증서(키는 버림 — B6a DB TLS 운영 필수값 자리) */
+const TEST_CA = readFileSync(new URL('./fixtures/tls/test-ca.pem', import.meta.url), 'utf8');
 
 const base = { DATABASE_URL: 'postgresql://u:secret-pw@db:5432/mong' };
 const prod = {
@@ -13,6 +17,7 @@ const prod = {
   RECOVERY_PEPPER: 'p'.repeat(40),
   CRON_AUDIENCE: 'https://mong-api-abc-du.a.run.app',
   CRON_SA_EMAIL: 'scheduler@mong-prod.iam.gserviceaccount.com',
+  DATABASE_CA_CERT: TEST_CA,
 };
 
 describe('환경 변수 검증(zod)', () => {
@@ -96,6 +101,23 @@ describe('환경 변수 검증(zod)', () => {
       expect(() => validateEnv({ ...prod, RECOVERY_PEPPER_V: '2', RECOVERY_PEPPERS_PREVIOUS: `2:${old}` })).toThrow(/RECOVERY_PEPPERS_PREVIOUS/);
       expect(() => validateEnv({ ...prod, RECOVERY_PEPPER_V: '3', RECOVERY_PEPPERS_PREVIOUS: `1:${old},1:${old}` })).toThrow(/RECOVERY_PEPPERS_PREVIOUS/);
       expect(() => validateEnv({ ...prod, RECOVERY_PEPPER_V: '2', RECOVERY_PEPPERS_PREVIOUS: '1:short' })).toThrow(/RECOVERY_PEPPERS_PREVIOUS/);
+    });
+    it('B6a: DB CA(본문·파일 중 하나)가 없으면 부팅 거부, 검증을 끄는 sslmode도 거부', () => {
+      const { DATABASE_CA_CERT: _c, ...rest } = prod;
+      expect(() => validateEnv(rest)).toThrow(/DATABASE_CA_CERT/);
+      expect(validateEnv({ ...rest, DATABASE_CA_FILE: '/secrets/db-ca/ca.pem' }).DATABASE_CA_FILE).toBe('/secrets/db-ca/ca.pem');
+      expect(() => validateEnv({ ...prod, DATABASE_CA_FILE: '/x.pem' })).toThrow(/둘 중 하나만/);
+      for (const m of ['disable', 'no-verify', 'prefer']) expect(() => validateEnv({ ...prod, DATABASE_URL: `${base.DATABASE_URL}?sslmode=${m}` })).toThrow(/DATABASE_URL/);
+      expect(() => validateEnv({ ...prod, DATABASE_URL: `${base.DATABASE_URL}?sslmode=require` })).not.toThrow();
+      expect(() => validateEnv({ ...prod, DATABASE_CA_CERT: '-----BEGIN CERTIFICATE-----\nnope\n-----END CERTIFICATE-----' })).toThrow(/DATABASE_CA_CERT/);
+    });
+    it('B6a: 운영 저장소는 none·supabase만(local 거부), supabase·firebase는 필요한 값이 있어야', () => {
+      expect(validateEnv({ ...prod, STORAGE_DRIVER: 'supabase' }).STORAGE_DRIVER).toBe('supabase');
+      expect(() => validateEnv({ ...prod, STORAGE_DRIVER: 'local' })).toThrow(/STORAGE_DRIVER/);
+      expect(() => validateEnv({ ...base, STORAGE_DRIVER: 'supabase' })).toThrow(/SUPABASE_URL과/);
+      expect(() => validateEnv({ ...base, CDN_DRIVER: 'firebase' })).toThrow(/FIREBASE_HOSTING_SITE/);
+      expect(validateEnv({ ...prod, CDN_DRIVER: 'firebase', FIREBASE_HOSTING_SITE: 'mongmange' }).CDN_DRIVER).toBe('firebase');
+      expect(validateEnv(base)).toMatchObject({ STORAGE_DRIVER: 'none', CDN_DRIVER: 'none' });
     });
     it('개발에서는 hops 0·토큰 없음 허용', () => {
       expect(() => validateEnv({ ...base, NODE_ENV: 'development' })).not.toThrow();

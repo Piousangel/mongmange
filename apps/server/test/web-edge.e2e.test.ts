@@ -6,6 +6,7 @@
 //  - 앱 API(api 그룹, 앱이 *.run.app을 직접 부름)가 막히면 실패
 //  - 막힌 요청이 레이트 리밋 저장소에 키를 남기면 실패(홍수가 메모리로 번짐)
 import 'reflect-metadata';
+import { readFileSync } from 'node:fs';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import request from 'supertest';
@@ -69,6 +70,8 @@ describe('대역 판정', () => {
       RECOVERY_PEPPER: 'p'.repeat(32),
       CRON_AUDIENCE: 'https://mong-api.example.run.app',
       CRON_SA_EMAIL: 'sched@example.iam.gserviceaccount.com',
+      // B6a: 운영은 DB CA 필수(시험 전용 공개 인증서)
+      DATABASE_CA_CERT: readFileSync(new URL('./fixtures/tls/test-ca.pem', import.meta.url), 'utf8'),
     };
     expect(envSchema.parse(prod).WEB_EDGE_CHECK).toBe('log');
     expect(envSchema.parse({ ...base, WEB_EDGE_CHECK: 'enforce' }).WEB_EDGE_CHECK).toBe('enforce');

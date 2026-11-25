@@ -167,7 +167,9 @@ async function traces(needles: string[]): Promise<Record<string, number>> {
   const out: Record<string, number> = {};
   for (const t of await appTables()) {
     for (const n of needles) {
-      const [r] = await prisma.$queryRawUnsafe<{ n: number }[]>(`select count(*)::int as n from app."${t}" x where x::text ilike $1`, `%${n}%`);
+      // 서명 업로드 꼬리 행(B6a 리뷰 H1)은 뺀다: 사람과 이어지지 않는 staging 판 폴더(무작위 키)만, 2시간 15분 뒤 스스로 지워진다 — b6a 시험이 따로 고정
+      const tail = t === 'storage_gc' ? ` and not (x.reason = 'upload_tail' and x.creature_id is null and x.deletion_id is null)` : '';
+      const [r] = await prisma.$queryRawUnsafe<{ n: number }[]>(`select count(*)::int as n from app."${t}" x where x::text ilike $1${tail}`, `%${n}%`);
       if (r!.n) out[`${t}:${n}`] = r!.n;
     }
   }
@@ -185,6 +187,7 @@ async function readPublicUrl(u: string): Promise<Buffer | null> {
 const metaContent = (html: string, prop: string) => new RegExp(`<meta property="${prop}" content="([^"]*)">`).exec(html)?.[1];
 /** 1분 묶음을 비우고 횟수를 0부터 세게 */
 async function resetPurge() {
+  await purge.settle(); // 뒤에서 돌던 무효화가 끝난 뒤 센다(B6a 리뷰 M3)
   await prisma.cdnPurge.update({ where: { id: 1 }, data: { requestedAt: null, releasedAt: null, attempts: 0 } });
   cdn.calls = 0;
   cdn.fail = false;
@@ -311,6 +314,7 @@ describe('이름 공개 nameVisibility — 켤 때만, normalizeName, 가리면 
     expect(await traces([NAME])).toEqual({});
     // 캐시 키(공개 URL·페이지 주소)에 이름 없음
     expect(`${keyOff}/m/${u.code}`).not.toContain(NAME);
+    await purge.settle(); // 무효화는 응답 뒤에서 낸다(B6a 리뷰 M3)
     expect(cdn.calls).toBe(1);
   });
 
@@ -384,6 +388,7 @@ describe('링크 끄기·권한·격리(3-9)', () => {
     await as(u.d, http().delete('/api/v1/creature/page')).expect(204);
     expect(await store.list('public-pages', key)).toEqual([]);
     expect((await page(u.code).expect(200)).text).toContain('data-state="gone"');
+    await purge.settle(); // 무효화는 응답 뒤에서 낸다(B6a 리뷰 M3)
     expect(cdn.calls).toBe(1);
     expect((await as(u.d, http().get('/api/v1/creature')).expect(200)).body).toMatchObject({ linkEnabled: false, page: { state: 'off' } });
     // 다시 켜면 같은 코드로 새 판
@@ -412,6 +417,7 @@ describe('링크 끄기·권한·격리(3-9)', () => {
     expect(await store.list('public-pages', p.pathPrefix!)).toEqual([]);
     expect((await store.list('quarantine', p.pathPrefix!)).length).toBe(4);
     expect((await page(u.code).expect(200)).text).toContain('data-state="gone"');
+    await purge.settle(); // 무효화는 응답 뒤에서 낸다(B6a 리뷰 M3)
     expect(cdn.calls).toBe(1);
     expect((await putPage(u.d).expect(409)).body.error.code).toBe('page_blocked');
     await as(u.d, http().delete('/api/v1/creature/page')).expect(204);
@@ -434,7 +440,8 @@ describe('CDN 무효화 — 1분 묶음, 실패하면 되돌림', () => {
       expect(await purge.request()).toBe('waiting');
       clock.now = () => t0 + 20_000;
       expect(await purge.request()).toBe('waiting');
-      expect(cdn.calls).toBe(1);
+      await purge.settle(); // 무효화는 응답 뒤에서 낸다(B6a 리뷰 M3)
+    expect(cdn.calls).toBe(1);
       clock.now = () => t0 + 61_000;
       expect(await purge.flush()).toBe('released');
       expect(cdn.calls).toBe(2);
@@ -521,6 +528,7 @@ describe('계정 삭제 — 공개·커밋 전·지난 판·격리 파일과 lin
     }
     expect((await http().get(`/api/v1/deletion/${r.body.receipt}`).set('x-forwarded-for', u.d.ip).expect(200)).body).toEqual({ state: 'done' });
     expect((await page(u.code).expect(200)).text).toContain('data-state="gone"');
+    await purge.settle(); // 무효화는 응답 뒤에서 낸다(B6a 리뷰 M3)
     expect(cdn.calls).toBe(1);
   });
 

@@ -125,7 +125,7 @@ export class DeletionService {
     }
     if (hadPage) {
       try {
-        await this.cdn.request();
+        await this.cdn.enqueue(); // 릴리스는 기다리지 않는다(B6a 리뷰 M3)
       } catch (e) {
         this.log.warn({ code: 'deletion_purge_failed', type: e instanceof Error ? e.name : 'unknown' }, 'CDN 무효화 지연(바닥 5분)');
       }

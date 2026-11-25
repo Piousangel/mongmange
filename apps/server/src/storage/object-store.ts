@@ -4,7 +4,7 @@
 //  - quarantine(비공개): 신고 격리(B5).
 //  - ota-assets(비공개, 서버가 읽어 내보냄): 자체 OTA 에셋(V21, docs/design/server-v1/ota-self-host.md). 키 = 내용 해시(SHA-256 base64url 43자)
 //    + 선택 접미 `.br`·`.gz`(미리 압축한 판). 내용 주소라 한 번 쓰면 바뀌지 않는다. 사용자와 무관 — 링크 코드·pageKey 규칙 밖.
-// 구현: LocalObjectStore(파일 시스템, 개발·시험·compose) / NoStore(설정 안 됨 — 운영 기본, 링크 기능 503). 실제 Supabase Storage는 B6.
+// 구현: LocalObjectStore(파일 시스템, 개발·시험·compose) / NoStore(설정 안 됨 — 링크 기능 503) / SupabaseObjectStore(운영, B6a supabase-store.ts).
 // 키에 링크 코드를 넣지 않는다 — 경로는 pageKey(서버 난수 128비트)뿐이라 파일 주소로 코드를 거꾸로 찾을 수 없다.
 import { randomBytes } from 'node:crypto';
 import type { Readable } from 'node:stream';
@@ -131,3 +131,17 @@ export function pageDir(storeKey: string, pageKey: string): string {
  * 보여 줄 일은 없고, 끄기·이름 가리기·삭제 뒤 브라우저·CDN에 남는 시간이 1시간을 넘지 않게 한다. Supabase 쪽 값은 B6에서 같은 값으로
  */
 export const PUBLIC_FILE_CACHE = 'public, max-age=3600';
+
+/**
+ * 버킷 권한(정본 architecture 2-4 Storage 행, B6a): 공개 읽기는 public-pages 하나. 나머지는 비공개(서버의 서비스 롤만 읽고 쓴다).
+ * 상한은 page-staging만(앱이 서명 URL로 직접 올리는 유일한 버킷). Supabase 드라이버의 checkBuckets()가 이 표와 실제 설정을 대조한다.
+ * page-staging의 MIME에 application/json이 더 있는 까닭: Supabase 버킷 상한은 서비스 롤 업로드에도 걸려, 서버가 쓰는 snap.json이 막힌다
+ * (정본 2-4 'JSON 없음'과 다름 — DECISIONS B6a). 앱 쪽은 그대로 막힌다: 서명은 키(og.jpg 등) 하나에 묶이고 snap.json 서명은 없으며,
+ * commit이 유형 머리글·크기·JPEG/MP4 내용을 다시 본다(local 드라이버의 서명 업로드는 STAGING_LIMITS 그대로 json을 거부).
+ */
+export const BUCKET_POLICY: Readonly<Record<Bucket, { public: boolean; fileSizeLimit: number | null; allowedMimeTypes: readonly string[] | null }>> = {
+  'page-staging': { public: false, fileSizeLimit: STAGING_LIMITS.fileSizeLimit, allowedMimeTypes: [...STAGING_LIMITS.allowedMimeTypes, 'application/json'] },
+  'public-pages': { public: true, fileSizeLimit: null, allowedMimeTypes: null },
+  quarantine: { public: false, fileSizeLimit: null, allowedMimeTypes: null },
+  'ota-assets': { public: false, fileSizeLimit: null, allowedMimeTypes: null },
+};

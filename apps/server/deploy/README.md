@@ -38,10 +38,10 @@ apps/server/deploy/deploy.sh --apply k6                                 # 처리
 | 프로브 | startup·liveness = `/healthz`(DB 안 봄) — DB가 죽어도 리비전은 Ready가 되어 트래픽을 받는다. DB는 `smoke`의 `/readyz`로 본다 | B7 5절 |
 | 인그레스 | `all` | 4절 |
 | 이미지 | `asia-northeast3-docker.pkg.dev/<P>/mong/mong-api@sha256:…`(다이제스트 고정), linux/amd64, provenance·SBOM 끔 | architecture 6-4, 리뷰 L6 |
-| 비밀 | `DATABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`·`RECOVERY_PEPPER`·`READY_TOKEN` — Secret Manager(서울만 복제), **판 번호 고정** | env.ts 운영 필수값, 리뷰 H2(6절) |
+| 비밀 | `DATABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`·`RECOVERY_PEPPER`·`READY_TOKEN`·`DATABASE_CA_CERT`(B6a, Supabase CA PEM) — Secret Manager(서울만 복제), **판 번호 고정** | env.ts 운영 필수값, 리뷰 H2(6절), B6a 10절 |
 | 운영 필수 env(비밀 아님) | `TRUSTED_PROXY_HOPS_API/WEB/OTA`(시작값 1/2/2, 실측 전), `CRON_AUDIENCE`(= 서비스 주소, 경로 없음), `CRON_SA_EMAIL`, `SUPABASE_URL`, `STORAGE_DRIVER=none`, `REPORT_AUTO_HIDE=false` | env.ts superRefine, architecture 0-3 B5·B6 행 |
 | DB 시간 | 풀 5 · 연결 1.5초 · statement 5초 · query 6초(B7a) | B7 5절, env.ts 교차 검사 |
-| 서비스 계정 | `mong-api-run`(비밀 4개 각각 `secretAccessor`만), `mong-scheduler`(`mong-api`에 `run.invoker`만). 프로젝트 수준 역할 없음. 기본 Compute 계정의 자동 Editor는 회수 | 최소 권한, 리뷰 L7 |
+| 서비스 계정 | `mong-api-run`(비밀 5개 각각 `secretAccessor`만, CDN을 켜면 10-3 맞춤 역할 하나 더), `mong-scheduler`(`mong-api`에 `run.invoker`만). 프로젝트 수준 역할 없음. 기본 Compute 계정의 자동 Editor는 회수 | 최소 권한, 리뷰 L7 |
 | Scheduler | `storage-gc` 매일 04:30 KST, 300초, retry 2, 600→1200초, maxDoublings 1 / `moderation` 5분, 180초, retry 0 / `cdn-purge` 1분, 60초, retry 0. OIDC audience = `CRON_AUDIENCE` | architecture 2-4·0-3 B5 행, DECISIONS B3 |
 | 로그 | 서울 버킷 `mong-logs` 7일, `_Default` 싱크 전환, **Cloud Run 플랫폼 요청 로그 제외**(조사 때만 시한부 수집 — 7절), 옛 `_Default` 버킷 1일. 첫 배포 **전에** | 처리방침 K6, architecture 5-2, 리뷰 M1 |
 | 예산 | 결제 계정 통화로 120달러 상당, 25·50·100% + 예측 100%, 프로젝트 번호로 거름. 알림은 결제 관리자 메일로 | B7 6절 |
@@ -116,9 +116,9 @@ gcloud logging read 'log_id("run.googleapis.com/requests")' --freshness=1d --lim
 ## 8. 서버·다른 담당에게 넘길 것(이 폴더에서 고치지 않음)
 | # | 무엇 | 담당 |
 |---|---|---|
-| 1 | **Supabase Storage 어댑터 없음**: `STORAGE_DRIVER`가 `none`·`local`뿐 → 링크 API·OTA 에셋은 운영에서 503(설계대로). 켜기 전에 어댑터 + 버킷 필요 | 서버 |
-| 2 | **DB TLS**: pg 8.x는 `sslmode=require`를 verify-full로 다룬다. 첫 배포 `smoke`의 `/readyz`로 확인, 실패하면 Supabase CA(안내서 6단계에서 받는 것과 같은 파일)를 이미지에 넣고 `ssl.ca`로 검증(평문·검증 끄기 금지) | 서버 |
-| 3 | CDN 무효화 실제 호출과 그 권한(사이트 하나로 좁힌 역할 — 그때 이 폴더에 추가) | 서버 |
+| 1 | ~~Supabase Storage 어댑터 없음~~ → **B6a에서 구현**(`STORAGE_DRIVER=supabase`). 켜는 순서·버킷은 10절 | 서버 — 완료 |
+| 2 | ~~DB TLS~~ → **B6a에서 구현**: 운영은 `DATABASE_CA_CERT`(Secret) 필수, Supabase CA로 verify-full(사슬 + 호스트 이름). 10절 | 서버 — 완료 |
+| 3 | ~~CDN 무효화 실제 호출~~ → **B6a에서 구현**(`CDN_DRIVER=firebase`). 필요한 권한·기본 꺼짐은 10-3 | 서버 — 완료 |
 | 4 | firebase.json `/api/v1/ota/**` rewrite 없음 | web-static |
 | 5 | `run.app` 직접 호출 차단(4절 1안), 공개 경로 30초 제한(3절) | 서버(B7a) |
 | 6 | 정적 빌드 `API_ORIGIN` = 결정적 주소 | web-static·오너 |
@@ -132,3 +132,47 @@ gcloud logging read 'log_id("run.googleapis.com/requests")' --freshness=1d --lim
 4. Scheduler 세 잡 OIDC 통과, `gc_stuck` 등 error 로그 알림 연결.
 5. 업타임 U1~U6·알림(B7-report 6절) — Monitoring 설정은 그때 이 폴더에 더한다(비용 [확인 필요]).
 6. 7-3 K6 증거. Cloud Run 서울(Tier 2) 무료 한도 공식 확인(가격 계산기).
+
+## 10. B6a — Supabase Storage·DB TLS·CDN 무효화를 켜는 법과 권한
+코드: `src/storage/supabase-store.ts`·`src/prisma/db-ssl.ts`·`src/cdn/firebase-invalidator.ts`·`src/storage/store-factory.ts`. 결정은 DECISIONS 'B6a'.
+
+### 10-1. DB TLS(첫 배포부터 필수)
+- 운영 이미지는 `DATABASE_CA_CERT`(PEM 본문) 또는 `DATABASE_CA_FILE`(Secret 볼륨 경로) 중 하나가 없으면 **부팅을 거부**한다. `DATABASE_URL`에 `sslmode=disable·allow·prefer·no-verify`가 있어도 거부.
+- CA가 있으면 URL의 ssl 값(`sslmode`·`sslrootcert`·`uselibpqcompat` 등)은 지우고 그 CA만 믿는다(사슬 + 호스트 이름 = verify-full). pg는 URL의 ssl 값이 코드의 설정을 덮어쓰므로 URL은 `?sslmode=require` 그대로 둬도 된다.
+- Secret `DATABASE_CA_CERT` = Supabase 대시보드 → Project Settings → Database → **SSL Configuration → Download certificate**(`prod-ca-2021.crt` 등) 파일 내용. 실행 계정 `mong-api-run`에 이 비밀 하나 `secretAccessor`(`deploy.sh secrets`가 함께 준다).
+- 마이그레이션(`DIRECT_URL`, prisma CLI)·`ota-cli`는 이 경로를 타지 않는다 — 오너 노트북에서 `sslmode=verify-full&sslrootcert=<다운로드한 파일>`을 URL에 붙인다.
+- 로컬·CI는 CA를 두지 않는다(연결 문자열 그대로 — 바뀐 것 없음).
+
+### 10-2. Storage(`STORAGE_DRIVER=supabase`)
+- 서버가 쓰는 비밀은 이미 있는 `SUPABASE_SERVICE_ROLE_KEY`(이름만, 새 비밀 없음). 주소는 `SUPABASE_URL`.
+- 버킷 4개는 **오너가 먼저** 만든다(정본 `BUCKET_POLICY`, `src/storage/object-store.ts`). 서버는 기동 때 설정을 대조해 다르면 error 로그 `storage_bucket_mismatch`(부팅은 막지 않음):
+
+| 버킷 | public | file_size_limit | allowed_mime_types |
+|---|---|---|---|
+| `page-staging` | false | 614400(600KB) | `image/jpeg`, `video/mp4`, `application/json` |
+| `public-pages` | **true** | 없음 | 없음 |
+| `quarantine` | false | 없음 | 없음 |
+| `ota-assets` | false | 없음 | 없음 |
+
+- 켜기: 버킷을 만든 뒤 서비스 YAML의 `STORAGE_DRIVER`를 `supabase`로, `deploy.sh check`의 기대값(`STORAGE_DRIVER` 줄)도 같은 커밋에서 바꾼다. 그 전까지 `none`(링크 API 503, 설계대로).
+- 공개 파일 Cache-Control은 서버가 옮길 때 `public, max-age=3600`으로 다시 정한다(앱이 붙인 머리글을 믿지 않는다). Smart CDN 무효화(Pro, 약 60초)는 [확인 필요 — 운영 첫날 실측].
+- 실측할 것(B6 첫날, 하나라도 다르면 링크 기능을 켜지 않고 팀에 알린다): ① 서명 업로드에 버킷 상한이 걸리는지(가짜는 걸린다고 가정) ② 서명 업로드 URL 만료가 2시간인지(`uploadSignedUrlExpirationTime` — 더 길면 꼬리 행 `SIGNED_UPLOAD_TAIL_MS`를 같이 늘린다) ③ `list-v2`(`with_delimiter:false`)가 접두 아래를 재귀로 돌려주는지 ④ copy의 `metadata.cacheControl`과 `metadata.mimetype`이 공개 응답의 Cache-Control·Content-Type으로 나오는지 ⑤ **RLS 0 전제**: `storage.objects`에 anon·authenticated 정책이 0개이고, 앱 사용자 JWT(익명 로그인)로 4개 버킷 쓰기·목록이 모두 거부되는지(page-staging JSON 허용의 전제 — 정책이 하나라도 생기면 서명 없이 직접 쓸 수 있다).
+- 서명 업로드 꼬리 행(리뷰 H1): PUT page가 서명 URL을 줄 때 그 판 폴더를 `발급 + 2시간 15분` 뒤 staging에서 한 번 더 지우는 대기 행(`upload_tail`, creature_id 없음)을 남긴다. 계정 삭제·끄기·새 PUT 뒤 옛 URL로 늦게 올라온 파일까지 지운다. 그때 아직 커밋 대기 중인 판이면 지우지 않는다(URL은 이미 만료, 6시간 행이 맡음).
+
+### 10-3. CDN 무효화(`CDN_DRIVER=firebase`) — **기본 꺼짐, 오너 결정 대기**(리뷰 M1)
+- 호출: `GET sites/{site}/channels/live` → `POST sites/{site}/releases?versionName=<지금 버전>`(Hosting REST v1beta1) → `GET sites/{site}/releases?pageSize=2`로 되감기 확인. 지금 버전을 다시 내서 사이트 전체 CDN 캐시만 비운다. 사용자 요청은 '요청 있음'만 적고 기다리지 않는다(리뷰 M3 — 뒤에서 한 번, 남으면 Scheduler `cdn-purge`).
+- 인증: Cloud Run 메타데이터 서버의 `mong-api-run` 접근 토큰(키 파일 없음).
+- **권한(IAM 공식 문서 'Firebase Hosting roles and permissions' 확인, 2026-11-25)**: Hosting 권한은 `firebasehosting.sites.{create,delete,get,list,update}`뿐이고 릴리스·채널 단위 권한은 없다(앞 판의 `releases.list`·`releases.create`는 없는 이름이었다). 무효화에 필요한 것은 `firebasehosting.sites.get` + **`firebasehosting.sites.update`**.
+  - **위험**: `sites.update`는 프로젝트 수준이라 같은 프로젝트의 **모든 사이트에 새 버전을 만들어 배포하는 권한**이다 — `mongmang.ink` 정적 사이트 전체(처리방침·AASA·assetlinks·원격 설정 파일)를 바꿀 수 있다. Cloud Run 인스턴스가 뚫리면 사이트 변조로 번진다. 정본 0-3의 '릴리스 권한만 가진 계정'은 이 세분성으로 만들 수 없다.
+  - 그래서 **켜지 않는다**(`CDN_DRIVER` 기본 `none`, YAML에 없음). 꺼져 있어도 처리방침은 지켜진다: `/m` HTML은 CDN `s-maxage=300` + 브라우저 `max-age=60`이라 끄기·숨김·삭제 뒤 최대 약 6분, 공개 파일은 Supabase에서 즉시 지워지고 캐시는 `max-age=3600`(Smart CDN 무효화는 약 60초) → 처리방침 5·6절 '웹 캐시 최대 1시간'(K29) 안.
+  - 오너 선택지: ① 위험을 받아들이고 `mong-api-run`에 맞춤 역할(`sites.get`·`sites.update`) ② `/m`을 별도 Firebase 프로젝트의 사이트로 나눠 폭발 반경을 그 사이트로 줄인다 ③ 켜지 않는다(지금).
+  - ①을 고르면:
+  ```sh
+  gcloud iam roles create mongCdnPurge --project=<P> --title="mong CDN purge" \
+    --permissions=firebasehosting.sites.get,firebasehosting.sites.update
+  gcloud projects add-iam-policy-binding <P> --member=serviceAccount:mong-api-run@<P>.iam.gserviceaccount.com \
+    --role=projects/<P>/roles/mongCdnPurge --condition=None
+  ```
+- **정적 배포와의 경합(리뷰 M2)**: ①채널 읽기와 ②릴리스 사이에 web-static `firebase deploy`가 새 버전을 내면 ②가 사이트를 옛 판으로 되감는다. 서버는 ③에서 바로 앞 릴리스의 버전이 ①과 다르면 그 새 버전을 **한 번 더 내서 되돌리고** error 로그 `cdn_release_race`를 남긴다(다시 내기도 실패하면 `cdn_purge_failed` 단계 `repair`). 켠 뒤에는 정적 배포 절차 끝에 'Hosting 콘솔 → 릴리스 기록에서 live가 방금 낸 버전인지 확인'을 둔다.
+- 실패 로그 `cdn_purge_failed`에는 단계(`token`·`channel`·`release`·`verify`·`repair`)와 HTTP 상태가 실린다(리뷰 L1 — 403 `release`면 권한 부족). 주소·토큰·사이트 id는 없다.
+- 켜기(오너가 ①을 고른 뒤): Firebase Hosting 첫 배포(안내서 14단계) **뒤에** 서비스 YAML에 `CDN_DRIVER=firebase`·`FIREBASE_HOSTING_SITE`를 더한다. 그 전까지 운영 기동 로그에 `cdn_purge_noop` 경고.

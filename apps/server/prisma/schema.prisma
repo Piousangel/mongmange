@@ -184,6 +184,8 @@ enum StorageGcReason {
   restore_move
   /// 이름 뺀 판 다시 쓰기(B5 운영자 이름 가리기 — 새 pageKey에 포스터·루프·이름 없는 snap.json, 옛 경로 삭제)
   name_mask
+  /// 서명 업로드 URL 꼬리(B6a 리뷰 H1) — 발급 + 2시간 + 여유 뒤 staging 판 폴더를 한 번 더 지움. creature_id 없음(삭제 연쇄가 당기지 않음)
+  upload_tail
 
   @@map("storage_gc_reason")
   @@schema("app")

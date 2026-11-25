@@ -189,7 +189,9 @@ async function traces(needles: string[]): Promise<Record<string, number>> {
   const out: Record<string, number> = {};
   for (const { t } of tables) {
     for (const n of needles) {
-      const [r] = await prisma.$queryRawUnsafe<{ n: number }[]>(`select count(*)::int as n from app."${t}" x where x::text ilike $1`, `%${n}%`);
+      // 서명 업로드 꼬리 행(B6a 리뷰 H1)은 뺀다: 사람과 이어지지 않는 staging 판 폴더(무작위 키)만, 2시간 15분 뒤 스스로 지워진다 — b6a 시험이 따로 고정
+      const tail = t === 'storage_gc' ? ` and not (x.reason = 'upload_tail' and x.creature_id is null and x.deletion_id is null)` : '';
+      const [r] = await prisma.$queryRawUnsafe<{ n: number }[]>(`select count(*)::int as n from app."${t}" x where x::text ilike $1${tail}`, `%${n}%`);
       if (r!.n) out[`${t}:${n}`] = r!.n;
     }
   }

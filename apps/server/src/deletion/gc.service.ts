@@ -120,6 +120,12 @@ export class GcService {
             await this.processStorage({ ids: [m.drain] }, now);
             purge ||= m.live;
           }
+        } else if (r.reason === 'upload_tail') {
+          // B6a 리뷰 H1: 서명 URL이 다 만료된 뒤의 마지막 청소. 아직 커밋 대기 중인 판이면 지우지 않는다(그 판의 6시간 행이 맡는다 —
+          // URL은 이미 만료라 더 올라올 것이 없다). 그 밖(커밋됨·버림·끔·계정 삭제)이면 staging 판 폴더를 지운다
+          const [pending] = await this.prisma.$queryRaw<{ n: number }[]>`
+            SELECT count(*)::int AS n FROM app.public_pages WHERE pending_prefix IS NOT NULL AND store_key || '/' || pending_prefix = ${r.prefix}`;
+          if (!pending?.n) await this.storage.removePrefix(BUCKETS.staging, r.prefix);
         } else {
           await this.storage.removePrefix(r.bucket as Bucket, r.prefix);
         }

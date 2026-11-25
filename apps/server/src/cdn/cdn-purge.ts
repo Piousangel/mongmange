@@ -3,9 +3,12 @@
 // - 그래서 대기열에는 '무엇을'이 없다: DB 한 행(cdn_purge)에 '요청 있음' 시각만. 코드·경로를 담지 않으니 계정 삭제 뒤 흔적도 0.
 // - **1분 묶음**: 마지막 릴리스 뒤 1분이 지나지 않았으면 기다린다. 남은 요청은 다음 요청이나 Scheduler `cdn-purge`(1분마다, B6 등록)가 낸다.
 // - 실패하면 요청을 되돌려 놓는다. 끝내 실패해도 바닥은 `s-maxage` 5분(3-9).
+// - 사용자 요청(commit·끄기·삭제·격리)은 enqueue()로 '요청 있음'만 적고 릴리스를 **기다리지 않는다**(B6a 리뷰 M3 — Firebase가 느려도
+//   응답이 늦지 않게). 낼 차례면 뒤에서 한 번 내고, 아니면 Scheduler가 낸다. request()는 기다리는 판(cron·시험).
 // - 릴리스 호출 중에는 DB 잠금을 쥐지 않는다: 먼저 '이번 차례'를 커밋으로 잡고(released_at = 지금, requested_at = NULL) 바깥에서 부른다.
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, type BeforeApplicationShutdown } from '@nestjs/common';
 import { Clock } from '../common/clock';
+import { ShutdownBudget, within } from '../common/shutdown-budget';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** 묶음 간격(3-9 '1분에 한 번') */
@@ -23,7 +26,10 @@ export class CountingInvalidator implements CdnInvalidator {
   readonly kind = 'none' as const;
   calls = 0;
   fail = false;
+  /** 느린 Firebase 흉내(시험 — 요청이 기다리지 않는지, 리뷰 M3) */
+  delayMs = 0;
   async purgeSite(): Promise<void> {
+    if (this.delayMs) await new Promise((r) => setTimeout(r, this.delayMs));
     if (this.fail) throw new Error('purge 실패(시험)');
     this.calls++;
   }
@@ -32,22 +38,53 @@ export class CountingInvalidator implements CdnInvalidator {
 export type FlushResult = 'idle' | 'waiting' | 'released' | 'failed';
 
 @Injectable()
-export class CdnPurgeQueue {
+export class CdnPurgeQueue implements BeforeApplicationShutdown {
   private readonly log = new Logger('CdnPurge');
+  /** enqueue가 뒤에서 돌린 flush(종료·시험이 기다린다) */
+  private inflight: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
     @Inject(CDN_INVALIDATOR) private readonly cdn: CdnInvalidator,
+    private readonly budget: ShutdownBudget,
   ) {}
 
   /** 무효화가 필요하다고 적고(이미 대기 중이면 그대로), 1분 묶음이 허락하면 바로 낸다. 실패해도 던지지 않는다 */
   async request(): Promise<FlushResult> {
+    await this.mark();
+    return this.flush();
+  }
+
+  /**
+   * 사용자 요청 경로(B6a 리뷰 M3): 요청 시각은 기다려 적고(실패하면 던짐 — 부르는 쪽이 경고 로그), 릴리스는 뒤에서. 응답은 Firebase를 기다리지 않는다
+   */
+  async enqueue(): Promise<void> {
+    await this.mark();
+    const run = this.flush().catch((e: unknown) => {
+      this.log.warn({ code: 'cdn_purge_failed', type: e instanceof Error ? e.name : 'unknown' }, 'CDN 무효화 뒤 처리 실패 — Scheduler가 다시');
+    });
+    this.inflight = Promise.all([this.inflight, run]);
+  }
+
+  /** '요청 있음' 적기(이미 대기 중이면 그대로) */
+  private async mark(): Promise<void> {
     const now = new Date(this.clock.now());
     await this.prisma.$executeRaw`
       INSERT INTO app.cdn_purge (id, requested_at) VALUES (1, ${now})
       ON CONFLICT (id) DO UPDATE SET requested_at = coalesce(app.cdn_purge.requested_at, EXCLUDED.requested_at)`;
-    return this.flush();
+  }
+
+  /** 뒤에서 돌던 flush가 끝날 때까지(시험·종료) */
+  async settle(): Promise<void> {
+    await this.inflight;
+  }
+
+  /** 종료: 뒤에서 돌던 무효화를 B7a 공유 마감(8초) 안에서만 기다린다 — 못 끝낸 요청은 DB에 남아 Scheduler가 낸다 */
+  beforeApplicationShutdown(): void {
+    this.budget.run(async () => {
+      await within(this.settle(), this.budget.remaining());
+    });
   }
 
   /** 대기 중이면 한 번 낸다(Scheduler·요청 뒤). 1분 안이면 waiting */
@@ -72,7 +109,9 @@ export class CdnPurgeQueue {
       // 되돌려 놓는다: 요청 시각은 원래 값, 다음 시도는 1분 뒤(released_at은 잡은 시각 그대로 — 폭주 방지)
       await this.prisma.$executeRaw`
         UPDATE app.cdn_purge SET requested_at = coalesce(requested_at, ${claimed[0]!.requested_at}), attempts = attempts + 1 WHERE id = 1`;
-      this.log.warn({ code: 'cdn_purge_failed', type: e instanceof Error ? e.name : 'unknown' }, 'CDN 무효화 실패 — 다음 차례에 다시');
+      // 단계·상태는 비밀이 아니다(B6a 리뷰 L1 — 403 'release'로 권한 부족을 가려낸다). 주소·토큰·사이트는 오류에 없다
+      const d = e as { name?: string; step?: string; status?: number };
+      this.log.warn({ code: 'cdn_purge_failed', type: d.name ?? 'unknown', step: d.step, status: d.status }, 'CDN 무효화 실패 — 다음 차례에 다시');
       return 'failed';
     }
   }
