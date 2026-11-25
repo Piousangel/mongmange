@@ -1,5 +1,6 @@
 // i18n-ignore-file: 개발 빌드 전용 메뉴(__DEV__에서만 그린다) — 사용자 문구가 아니다
 // 개발 메뉴(개발 빌드에서만, __DEV__): 시간 가속 · 세이브 초기화 · 스파이크 화면 바로가기.
+// 내부 시험판(eas internal-test, buildKind.ts devMenuMode = 'v3')에서는 v3Only — 새 컨셉 v3 정보 줄과 '처음부터 다시'·'밤 넘기기'·'밤 ×7'만.
 import { sim, v3 } from '@mong/core';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -15,7 +16,7 @@ const SPIKES = [
   ['night', 'screen=night'],
 ] as const;
 
-export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; onReset: () => void }) {
+export function DevPanel({ onSpike, onReset, v3Only = false }: { onSpike: (q: string) => void; onReset: () => void; v3Only?: boolean }) {
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const { state, meta, restoredFrom, v3: block } = useGame();
@@ -34,7 +35,8 @@ export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; o
       <Pressable style={styles.pill} onPress={() => setOpen((o) => !o)} accessibilityRole="button" accessibilityLabel="개발 메뉴" testID="dev-toggle">
         <Text style={styles.pillText}>DEV</Text>
       </Pressable>
-      {open && state && (
+      {open && v3Only && <V3Panel onReset={onReset} close={() => setOpen(false)} />}
+      {open && !v3Only && state && (
         <View style={styles.panel}>
           <Text style={styles.info}>
             {fmt(now())} (+{(meta.devOffsetMs / HOUR_MS).toFixed(1)}h) · {state.phase} · day {state.dayIndex} · 획 {state.strokesTotal} · 카드 {state.cards.length}
@@ -127,6 +129,40 @@ export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; o
           </View>
         </View>
       )}
+    </View>
+  );
+}
+
+/** 내부 시험판 메뉴: 새 컨셉 v3 정보 + 처음부터 다시·밤 넘기기·밤 ×7(개발 빌드 메뉴와 같은 단추·id) */
+function V3Panel({ onReset, close }: { onReset: () => void; close: () => void }) {
+  const { state, v3: block } = useGame();
+  const full = state && block ? { sim: state, v3: block } : null;
+  if (!full) return null;
+  return (
+    <View style={styles.panel}>
+      <Text style={styles.info} testID="dev-v3-info">
+        새 컨셉 v3 · {v3.nightOf(full)}번째 밤(잔 밤 {block!.life.slept}) · 이레 {v3.ireOf(full)} · 먹 {v3.inkCells(full)}칸 · 말 {block!.words.length}
+        {v3.isComplete(full) ? ' · 완성(곁에 남음)' : ''}
+      </Text>
+      <View style={styles.row}>
+        <Btn
+          label="처음부터 다시"
+          id="dev-v3-restart"
+          onPress={() => {
+            onReset();
+            devRestartV3();
+            close();
+          }}
+        />
+        <Btn label="밤 넘기기" id="dev-v3-night" onPress={devSleepCycle} />
+        <Btn
+          label="밤 ×7"
+          id="dev-v3-night7"
+          onPress={() => {
+            for (let i = 0; i < 7; i++) devSleepCycle();
+          }}
+        />
+      </View>
     </View>
   );
 }

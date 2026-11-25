@@ -3,6 +3,7 @@
 // 네이티브 모듈이 필요한 기능(공유·평점)은 플래그가 켜져 있어도 모듈이 없는 옛 빌드에서는 각 모듈이 스스로 꺼진다.
 import { REMOTE_FLAG_KEYS, type RemoteFlagKey } from '@mong/contract';
 import { useSyncExternalStore } from 'react';
+import { INTERNAL_TEST, conceptV3Default } from './buildKind';
 
 export const FEATURE_DEFAULTS = {
   // ── 빌드 1(11-29) ──
@@ -60,9 +61,9 @@ export const FEATURE_DEFAULTS = {
   /**
    * 새 컨셉 v3 세로 조각(D-26 '먹으로 쓴 한 마디 × 스물여덟 밤' + D-27 밥 한 숟갈, DECISIONS 11-25 '새 컨셉 공통 부분 지금 착수').
    * 켜면 세이브 v3(따로 쓰는 키, 1일차부터)로 돈다: 벼루 = 먹 양 → 붓 = 한 마디(키보드 임시) + 붓 한 획 → 마시고 대답 → 연적 = 밤 세기 → 28밤.
-   * **개발 빌드에서는 기본 켜짐, 운영 기본은 꺼짐.** 옛 세이브(v2)는 그대로 두고 보관 키에 한 번 복사한다
+   * **개발 빌드·내부 시험판(eas internal-test, buildKind.ts)에서는 기본 켜짐, 운영·preview 기본은 꺼짐.** 옛 세이브(v2)는 그대로 두고 보관 키에 한 번 복사한다
    */
-  conceptV3: typeof __DEV__ !== 'undefined' && __DEV__ === true,
+  conceptV3: conceptV3Default({ dev: typeof __DEV__ !== 'undefined' && __DEV__ === true, internalTest: INTERNAL_TEST }),
   // ── 빌드 3(12-19) ──
   /** M5 함께 숨 쉬기 */
   breathe: false,

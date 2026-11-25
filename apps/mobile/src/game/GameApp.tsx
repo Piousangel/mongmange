@@ -26,6 +26,7 @@ import { KText, track } from '../ui/type';
 import { PARAMS } from '../render/clock';
 import { useLater } from '../lib/useLater';
 import { DevPanel } from './DevPanel';
+import { INTERNAL_TEST, devMenuMode } from '../buildKind';
 import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
 import { boot, dispatch, getSnapshot, getV3, goBackground, goForeground, install, isV3Mode, now, onEffects, setMeta, tickNow, tzOffsetNow, useGame } from './store';
 import { InkstoneSheet, WordSheet, type WordPick } from '../screens/V3Sheets';
@@ -81,6 +82,9 @@ type Kind = 'intro' | 'morning' | 'stroke' | 'day' | 'night';
 function wakeAtReal(st: sim.State) {
   return sim.wakeableAt(st) - getSnapshot().meta.devOffsetMs;
 }
+
+/** 개발 메뉴: 개발 빌드 = 전부, 내부 시험판 = 새 컨셉 v3 단추만(buildKind.ts), 운영·preview = 없음 */
+const DEV_MENU = devMenuMode({ dev: __DEV__, internalTest: INTERNAL_TEST });
 
 export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   ensureBoot();
@@ -749,8 +753,9 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           onClose={closeName}
         />
       )}
-      {__DEV__ && (
+      {DEV_MENU && (
         <DevPanel
+          v3Only={DEV_MENU === 'v3'}
           onSpike={onSpike}
           onReset={() => {
             setDeveloped(null);

@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { INTERNAL_TEST, conceptV3Default, devMenuMode, readInternalTest } from '../src/buildKind';
+import { FEATURE_DEFAULTS, isOn, setFeature } from '../src/features';
 
 type IntentFilter = { action?: string; autoVerify?: boolean; data?: Array<Record<string, string>>; category?: string[] };
 type Config = {
@@ -54,14 +56,14 @@ const resolve = (env: Env) =>
 
 describe('eas.json internal-test 프로필', () => {
   const p = eas.build['internal-test']!;
-  it('internal 배포·APK·개발 클라이언트 아님·OTA 채널 없음·자동 번호 없음', () => {
+  it('internal 배포·APK·개발 클라이언트 아님·OTA 채널 없음·빌드마다 versionCode 올림(기존 시험판 위에 덮어 설치)', () => {
     expect(p.distribution).toBe('internal');
     expect(p.android?.buildType).toBe('apk');
     expect(p.developmentClient).toBe(false);
     expect(p.channel).toBeUndefined();
     expect(p.env?.MONG_OTA_CHANNEL).toBeUndefined();
     expect(p.env?.MONG_INTERNAL_TEST).toBe('1');
-    expect(p.autoIncrement).toBeUndefined();
+    expect(p.autoIncrement).toBe(true);
   });
   it('플래그는 internal-test에만, 제출 프로필은 production뿐', () => {
     for (const [name, b] of Object.entries(eas.build)) if (name !== 'internal-test') expect(b.env?.MONG_INTERNAL_TEST, name).toBeUndefined();
@@ -139,5 +141,46 @@ describe('다른 프로필 가드는 그대로', () => {
   });
   it('내부 시험 모드에서 앱 링크가 남아 있으면(withInternalTest가 빠지면) withAppLinks가 멈춘다', () => {
     expect(() => withAppLinks(app, { env: profileEnv('internal-test') })).toThrow(/남아 있다/);
+  });
+});
+
+describe('시험판에서만 새 컨셉 v3·v3 개발 메뉴 켜짐(운영·preview 꺼짐)', () => {
+  const extraOf = (env: Env) => resolve(env).extra;
+  it('config extra.internalTest: internal-test만 true, production·preview·development·로컬은 없음', () => {
+    expect(readInternalTest(extraOf(profileEnv('internal-test')))).toBe(true);
+    // production·preview는 OTA·키 가드로 멈추므로 시험판 플러그인만 돌려 본다(가드는 위에서 고정)
+    for (const profile of ['production', 'preview', 'development']) expect(readInternalTest(withInternalTest(app, { env: profileEnv(profile) }).extra), profile).toBe(false);
+    expect(readInternalTest(extraOf({}))).toBe(false);
+  });
+  it('readInternalTest는 정확히 true만', () => {
+    for (const extra of [undefined, null, {}, { internalTest: 'true' }, { internalTest: 1 }, { internalTest: { buildId: 'x' } }]) expect(readInternalTest(extra)).toBe(false);
+  });
+  it('conceptV3 기본값: 운영·preview(개발 아님·시험판 아님) 꺼짐, 시험판·개발 켜짐', () => {
+    expect(conceptV3Default({ dev: false, internalTest: false })).toBe(false);
+    expect(conceptV3Default({ dev: false, internalTest: true })).toBe(true);
+    expect(conceptV3Default({ dev: true, internalTest: false })).toBe(true);
+  });
+  it('개발 메뉴: 운영·preview 없음, 시험판 v3 단추만, 개발 빌드 전부', () => {
+    expect(devMenuMode({ dev: false, internalTest: false })).toBeNull();
+    expect(devMenuMode({ dev: false, internalTest: true })).toBe('v3');
+    expect(devMenuMode({ dev: true, internalTest: true })).toBe('full');
+  });
+  it('시험판에서 켜는 플래그는 conceptV3 하나 — dreamContent 등 다른 시험 플래그 기본값은 그대로 꺼짐', () => {
+    expect(INTERNAL_TEST).toBe(false); // 시험 환경(Node)은 시험판이 아니다
+    const { conceptV3: _v3, share: _s, review: _r, ...rest } = FEATURE_DEFAULTS;
+    for (const [id, on] of Object.entries(rest)) expect(on, id).toBe(false);
+  });
+  it('v3가 켜지면 맡겨 두기(cloud)는 꺼진 채(기존 규칙 그대로)', () => {
+    setFeature('conceptV3', true);
+    setFeature('cloud', true);
+    expect(isOn('cloud')).toBe(false);
+    setFeature('cloud', null);
+    setFeature('conceptV3', null);
+  });
+  it('GameApp은 개발 메뉴를 devMenuMode로만 연다(__DEV__ 직접 분기 없음), 시험판은 v3Only', () => {
+    const src = readFileSync(join(root, 'src/game/GameApp.tsx'), 'utf8');
+    expect(src).toMatch(/const DEV_MENU = devMenuMode\(\{ dev: __DEV__, internalTest: INTERNAL_TEST \}\)/);
+    expect(src).toMatch(/\{DEV_MENU && \(\s*<DevPanel\s+v3Only=\{DEV_MENU === 'v3'\}/);
+    expect(src).not.toMatch(/\{__DEV__ && \(\s*<DevPanel/);
   });
 });
