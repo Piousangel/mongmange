@@ -167,6 +167,17 @@ describe('꿈 콘텐츠 켜짐(dreamContent)', () => {
     }
   });
 
+  it('그림 판(artRev, C14b 5차): 꿈 콘텐츠 카드는 지금 판을 싣고, 세이브를 다시 읽어도 같다(이행 멱등)', () => {
+    const { s } = scenario(77, dev);
+    expect(s.cards.every((c) => c.artRev === sim.DREAM_ART_REV)).toBe(true);
+    const saved = sim.serializeState(s, kst(12, 31, 9));
+    const back = sim.parseState(saved);
+    expect(back.cards).toEqual(s.cards);
+    expect(sim.parseState(sim.serializeState(back, kst(12, 31, 9))).cards).toEqual(back.cards);
+    // 꿈 콘텐츠가 꺼진 밤(빌드 1)의 카드에는 판 번호가 없다
+    expect(scenario(77, {}).s.cards.some((c) => 'artRev' in c)).toBe(false);
+  });
+
   it('긴 잠 카드(4밤)는 한 장 — 마지막 밤에 고른 장면', () => {
     const { s } = scenario(77, dev);
     expect(s.cards.filter((c) => c.nightsMerged > 1).map((c) => c.nightsMerged)).toEqual([4]);

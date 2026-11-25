@@ -4,7 +4,7 @@
 // - 켜짐(C6): `pickNightCard({ dream })` — 25개·점적 해금·2-5 규칙·캡션 원인.
 import { moonNightOf, type MoonNight, type MoonNightPhase } from '../moon/phase';
 import { isMoonMotifId, moonMotifUsable, resolveMoonMotifId } from '../moon/motifs';
-import { chooseScene, dreamPool, motifUsable, MOTIFS, pickCause, quadrantOf, type MotifZone } from './dreamMotifs';
+import { chooseScene, DREAM_ART_REV, dreamPool, motifUsable, MOTIFS, pickCause, quadrantOf, type MotifZone } from './dreamMotifs';
 import { rngInt, rngNext } from './rng';
 import type { AxisRecord, DreamCard, DreamContext, MoonContext } from './types';
 
@@ -138,7 +138,7 @@ export function pickNightCard(input: NightCardInput): { card: DreamCard; rng: nu
       const r = styledCard(input.v, u.seed, input.night, got.scene.motifId, got.scene.composition, input.strokeRef);
       const prev = input.history && input.history.length > 0 ? input.history[input.history.length - 1]! : null;
       const cause = pickCause(input.v, zoneOf(input.v), prev, r.card.flowSeed);
-      return { card: { ...r.card, cause }, rng: r.rng, moon: null };
+      return { card: { ...r.card, cause, artRev: DREAM_ART_REV }, rng: r.rng, moon: null };
     }
   }
   const r = pickCard(input.v, input.used, input.rng, input.night, input.strokeRef, { moonWindow: moon !== null });

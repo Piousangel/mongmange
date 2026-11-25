@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const OUT = path.resolve(process.argv[2] ?? 'docs/app/c14b');
-const RAS = path.resolve('apps/mobile/assets/motifs');
+const RAS = path.resolve('apps/mobile/assets/motifs/r1');
 const IDS = ['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand'];
 const TOKENS = { dayBg: '#EFE8DA', dayInk: '#1B1A18', nightBg: '#141A2C', nightInk: '#7E7973' }; // core PALETTE.day/night bg·body
 const uri = (id) => `data:image/webp;base64,${readFileSync(path.join(RAS, `${id}.webp`)).toString('base64')}`;

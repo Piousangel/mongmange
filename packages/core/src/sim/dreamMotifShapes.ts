@@ -20,9 +20,11 @@ export interface MotifShape {
   /**
    * C14b 4차 혼합안(C): '사물 한 겹'을 손질한 래스터로 그린다(앱 에셋 `assets/motifs/<id>.webp`). box = 그림 좌표 [x, y, 폭, 높이] —
    * 래스터를 이 상자 안에 가운데 맞춰 넣는다. keep = 래스터가 있어도 코드로 그리는 경로 번호(문틈·연줄 같은 장 쪽 획).
-   * 래스터를 못 불러오면 경로 전부를 코드로 그린다(같은 형상의 대체). 장 조작(field)은 늘 코드다
+   * 래스터를 못 불러오면 경로 전부를 코드로 그린다(같은 형상의 대체). 장 조작(field)은 늘 코드다.
+   * cover = 가림 마스크 농도(5차, 4차 아트 리뷰): 사물 실루엣을 종이색 토큰으로 이만큼 덮어 띠가 비치지 않게 — 불투명한 종이·창호지·돛 0.85,
+   * 기름종이 우산·연 0.3~0.5, 손 그림자 0.3
    */
-  raster?: { box: readonly [number, number, number, number]; keep: readonly number[] };
+  raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number };
 }
 
 const f1 = (v: number) => Math.round(v * 10) / 10;
@@ -133,7 +135,7 @@ export const MOTIF_SHAPES: Readonly<Record<string, MotifShape>> = {
     ],
     field: [tine(56, 22, 0, 10, 20, { gauss: true }), tine(56, 70, 0, 7, 16, { gauss: true })],
     seat: [20, 84],
-    raster: { box: [24, 26, 62, 50], keep: [0] },
+    raster: { box: [28, 22, 46, 50], keep: [0], cover: 0.85 },
   },
   // 빨랫줄(3차): 줄 = 비백 한 획. 한지 한 장 — 윗변이 줄의 휨을 따라 붙고 아랫변은 찢긴 결. 띠는 줄에 걸려 아래로 처진다
   'near-alone.washing-line': {
@@ -156,7 +158,7 @@ export const MOTIF_SHAPES: Readonly<Record<string, MotifShape>> = {
     paths: [P(face([[50, 12], [64, 37], [36, 37]], 0.8), 1.3, 'wash'), P(face([[24, 38.5], [76, 38.5], [65, 47], [35, 47]], 0.9), 3, 'wash')],
     field: [tine(50, 50, 0, 8, 14, { gauss: true }), tine(18, 52, -14, 1, 3, { len: 24 }), tine(84, 52, 12, 1, 3, { len: 18 })],
     seat: [50, 82],
-    raster: { box: [20, 4, 60, 50], keep: [] },
+    raster: { box: [20, 4, 60, 50], keep: [], cover: 0.85 },
   },
   // 높이 뜬 연: 가오리연 = 담묵 마름모 면(외곽선 없음, 위쪽만 겹쳐 짙게 고임). 꼬리 = 연에서 풀려 나오는 마블링 띠 한 가닥.
   // 연줄 = 몸에서 시작하는 아주 가는 비백 한 획. 방패연 구멍 없음
@@ -165,7 +167,7 @@ export const MOTIF_SHAPES: Readonly<Record<string, MotifShape>> = {
     paths: [P(face([[71, 3], [95, 29], [71, 56], [47, 29]], 1.2), 4, 'wash'), P('M40 80 C52 74 64 66 71 57', 1.1)],
     field: [tine(71, 72, 0, -16, 9, { gauss: true }), tine(75, 62, 6, 16, 3, { len: 22 }), tine(81, 72, 8, 8, 2.5, { len: 14 }), tine(69, 66, -4, 14, 2.5, { len: 18 })],
     seat: [32, 90],
-    raster: { box: [44, 0, 56, 78], keep: [1] },
+    raster: { box: [44, 0, 56, 78], keep: [1], cover: 0.4 },
   },
   // 징검다리(3차): 납작 타원 디딤돌(담묵 면, 아래 가장자리에서 칠을 시작해 아래만 짙게 — 물에 잠김), 멀수록 작고 옅게.
   // 돌 자리에 맑은 방울을 먼저 떨궈 띠가 돌 사이로 갈라져 흐른다(돌을 관통하지 않음). 끝에 다른 방울
@@ -198,7 +200,7 @@ export const MOTIF_SHAPES: Readonly<Record<string, MotifShape>> = {
     // 4차: 먹못은 래스터 손바닥이 가진다 — 장은 들어올림만(먹 방울을 겹치면 쿠션·과녁으로 읽혔다, 3차 리뷰)
     field: [tine(50, 96, 0, -14, 18, { gauss: true }), tine(14, 72, 0, -20, 8, { gauss: true }), tine(86, 72, 0, -20, 8, { gauss: true })],
     seat: [44, 60],
-    raster: { box: [4, 52, 92, 46], keep: [] },
+    raster: { box: [4, 52, 92, 46], keep: [], cover: 0.3 },
   },
   // 우산 하나에 둘(3차): 덮개 = 담묵 반달 면 한 장(아래 가장자리 젖은 테가 고임, 하이라이트 선 없음), 막대 = 비백 한 획(먹 상한 안).
   // 덮개 두 끝에서 띠가 빗물처럼 흘러내린다. 다른 방울은 덮개 안에 몽망이와 맞붙는다
@@ -207,7 +209,7 @@ export const MOTIF_SHAPES: Readonly<Record<string, MotifShape>> = {
     field: [tine(10, 54, 0, 16, 3, { len: 26 }), tine(90, 54, 0, 16, 3, { len: 26 }), tine(24, 52, 0, 9, 2.5, { len: 16 }), tine(76, 52, 0, 9, 2.5, { len: 16 })],
     seat: [36, 70],
     friend: [58, 73, 0.55],
-    raster: { box: [4, 0, 92, 62], keep: [] },
+    raster: { box: [14, 0, 78, 86], keep: [], cover: 0.45 },
   },
   // 은하수 다리: 마블링 띠를 들어올려 두 방울 사이에 다리(아치)를 세우고, 그 띠를 따라 옅은 담묵 띠 + 금가루(크기·간격 불규칙, 가운데 성김)
   'far-with.star-bridge': {

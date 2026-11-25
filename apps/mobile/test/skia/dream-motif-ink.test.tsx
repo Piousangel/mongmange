@@ -5,7 +5,7 @@
 // RENDER_HEAVY=1: 카드 전체(마블링·몽망이·글 제외)를 64pt로 그려, 마블링 결(flowSeed)만 바꾼 같은 꿈이 기존 10 + 새 15 = 25장 중
 // 자기 꿈에 가장 가까운지(정답률) 본다 — 한 화면에 섞인 썸네일에서 새 꿈이 기존 꿈·서로와 갈리는지의 회귀 가드(사람 3명 시험이 관문).
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 vi.mock('react-native-reanimated', async () => (await import('./mocks')).reanimatedMock());
@@ -25,7 +25,7 @@ type Core = typeof import('@mong/core');
 let core: Core;
 let DC: typeof import('../../src/render/dreamCard/DreamCard');
 let MR: typeof import('../../src/render/dreamCard/motifRasters');
-const ASSETS = path.resolve(__dirname, '../../assets/motifs');
+const ASSETS = path.resolve(__dirname, '../../assets/motifs/r1');
 /** 래스터 에셋을 파일 바이트로 디코드해 앱과 같은 캐시에 넣는다(헤드리스에는 번들 로더가 없다) */
 function loadRasters(on = true) {
   for (const id of MR.MOTIF_RASTER_IDS) {
@@ -33,8 +33,8 @@ function loadRasters(on = true) {
       MR.setMotifRaster(id, null);
       continue;
     }
-    const img = Sk.Skia.Image.MakeImageFromEncoded(Sk.Skia.Data.fromBytes(new Uint8Array(readFileSync(path.join(ASSETS, `${id}.webp`)))));
-    MR.setMotifRaster(id, img);
+    const dec = (f: string) => Sk.Skia.Image.MakeImageFromEncoded(Sk.Skia.Data.fromBytes(new Uint8Array(readFileSync(path.join(ASSETS, f)))));
+    MR.setMotifRaster(id, { ink: dec(`${id}.webp`)!, mask: dec(`${id}.mask.webp`) });
   }
 }
 let Sk: typeof import('@shopify/react-native-skia');
@@ -177,29 +177,78 @@ describe('우산 막대 농도(2차 아트 리뷰 6 — 눈으로는 몸과 같�
 });
 
 describe('4차 혼합안 — 사물 한 겹 래스터 에셋(번들 예산·먹 상한·결정성)', () => {
-  it('6장: 장당 ≤ 200KB·합계 ≤ 700KB, 긴 변 ≤ 640px, 검정 + 알파이고 알파 최대 ≤ 0.72(먹 상한)', () => {
-    let total = 0;
-    for (const id of MR.MOTIF_RASTER_IDS) {
-      const f = path.join(ASSETS, `${id}.webp`);
-      const bytes = statSync(f).size;
-      total += bytes;
-      expect(bytes, id).toBeLessThanOrEqual(200 * 1024);
-      const img = Sk.Skia.Image.MakeImageFromEncoded(Sk.Skia.Data.fromBytes(new Uint8Array(readFileSync(f))))!;
-      expect(img, id).not.toBeNull();
-      expect(Math.max(img.width(), img.height()), id).toBeLessThanOrEqual(640);
-      const px = img.readPixels(0, 0, { width: img.width(), height: img.height(), colorType: 4, alphaType: 3 }) as Uint8Array;
-      let maxA = 0;
-      let maxRgb = 0;
-      for (let p = 0; p < px.length; p += 4) {
-        maxA = Math.max(maxA, px[p + 3]!);
-        if (px[p + 3]! > 32) maxRgb = Math.max(maxRgb, (px[p]! * 255) / px[p + 3]!);
-      }
-      expect(maxA / 255, id).toBeLessThanOrEqual(core.MOTIF_INK_MAX + 1 / 255);
-      expect(maxA / 255, id).toBeGreaterThan(0.5);
-      expect(maxRgb, id).toBeLessThan(24); // 먹 한 색(검정) — 색은 그릴 때 토큰으로
+  const decodeFile = (f: string) => Sk.Skia.Image.MakeImageFromEncoded(Sk.Skia.Data.fromBytes(new Uint8Array(readFileSync(f))))!;
+  const pixels = (img: ReturnType<typeof decodeFile>) => img.readPixels(0, 0, { width: img.width(), height: img.height(), colorType: 4, alphaType: 3 }) as Uint8Array;
+  const ROOT = path.resolve(__dirname, '../../assets/motifs');
+
+  it('판(artRev) 규칙: 지금 판까지 모든 판의 폴더가 남아 있고, 폴더 파일 = 그 판 목록(먹 + 가림 + 손질 기록)', () => {
+    for (let rev = 1; rev <= core.sim.DREAM_ART_REV; rev++) {
+      const ids = core.sim.ART_REV_RASTERS[rev]!;
+      const want = [...ids.flatMap((id) => [`${id}.webp`, `${id}.mask.webp`]), 'motifRasters.gen.json'].sort();
+      expect(readdirSync(path.join(ROOT, `r${rev}`)).sort(), `r${rev}`).toEqual(want);
     }
-    expect(total).toBeLessThanOrEqual(700 * 1024);
   });
+
+  it('번들 예산: 먹 장당 ≤ 200KB·가림 장당 ≤ 24KB·판당 합계 ≤ 760KB·모든 판 합계 ≤ 2MB, 긴 변 ≤ 640px, 먹 = 검정 + 알파 최대 ≤ 0.72', () => {
+    let all = 0;
+    for (let rev = 1; rev <= core.sim.DREAM_ART_REV; rev++) {
+      let total = 0;
+      for (const id of core.sim.ART_REV_RASTERS[rev]!) {
+        const f = path.join(ROOT, `r${rev}`, `${id}.webp`);
+        const m = path.join(ROOT, `r${rev}`, `${id}.mask.webp`);
+        const bytes = statSync(f).size;
+        total += bytes + statSync(m).size;
+        expect(bytes, id).toBeLessThanOrEqual(200 * 1024);
+        expect(statSync(m).size, id).toBeLessThanOrEqual(24 * 1024);
+        const img = decodeFile(f);
+        expect(Math.max(img.width(), img.height()), id).toBeLessThanOrEqual(640);
+        const mask = decodeFile(m);
+        expect([mask.width(), mask.height()], id).toEqual([img.width(), img.height()]);
+        const px = pixels(img);
+        let maxA = 0;
+        let maxRgb = 0;
+        for (let p = 0; p < px.length; p += 4) {
+          maxA = Math.max(maxA, px[p + 3]!);
+          if (px[p + 3]! > 32) maxRgb = Math.max(maxRgb, (px[p]! * 255) / px[p + 3]!);
+        }
+        expect(maxA / 255, id).toBeLessThanOrEqual(core.MOTIF_INK_MAX + 1 / 255);
+        expect(maxA / 255, id).toBeGreaterThan(0.5);
+        expect(maxRgb, id).toBeLessThan(24); // 먹 한 색(검정) — 색은 그릴 때 토큰으로
+        // 가림 마스크는 먹이 짙은 곳(알파 ≥ 0.3)을 98% 넘게 덮는다(실루엣 속까지 채움)
+        const mp = pixels(mask);
+        let ink = 0;
+        let covered = 0;
+        for (let p = 0; p < px.length; p += 4)
+          if (px[p + 3]! >= 0.3 * 255) {
+            ink++;
+            if (mp[p + 3]! >= 128) covered++;
+          }
+        expect(covered / ink, id).toBeGreaterThan(0.98);
+      }
+      expect(total, `r${rev}`).toBeLessThanOrEqual(760 * 1024);
+      all += total;
+    }
+    expect(all).toBeLessThanOrEqual(2 * 1024 * 1024);
+  });
+
+  it('가림 농도: 불투명 사물(편지·종이배·창) 0.85, 비치는 사물(연·우산) 0.3~0.5, 손 그림자 0.3', () => {
+    const cover = Object.fromEntries(core.sim.MOTIFS.filter((m) => m.raster).map((m) => [m.id, m.raster!.cover]));
+    expect(cover).toEqual({ 'near-with.letter': 0.85, 'near-with.palm': 0.3, 'near-with.umbrella': 0.45, 'far-alone.paper-boat': 0.85, 'far-alone.kite': 0.4 });
+    expect(DC.WINDOW_COVER).toBe(0.85);
+    expect(DC.COVER_PAPER).toBe(core.PALETTE.day.bg);
+  });
+
+  it('카드는 받은 판으로 그린다: 판 2 래스터만 바꿔 넣어도 판 1 카드(artRev 없음·1)는 그대로', async () => {
+    loadRasters(true);
+    const id = 'far-alone.kite';
+    const before = hashRgba((await shootCard(card(id))).rgba);
+    // 가짜 판 2(편지 그림)를 넣는다 — 판 1 카드는 영향 없음, 판 2 카드는 그 그림
+    MR.setMotifRaster(id, MR.motifRaster('near-with.letter'), 2);
+    expect(hashRgba((await shootCard(card(id))).rgba)).toBe(before);
+    expect(hashRgba((await shootCard(card(id, { artRev: 1 }))).rgba)).toBe(before);
+    expect(hashRgba((await shootCard(card(id, { artRev: 2 }))).rgba)).not.toBe(before);
+    MR.setMotifRaster(id, null, 2);
+  }, 120000);
 
   it('래스터가 있으면 카드가 그것으로 그려지고(코드판과 픽셀이 다름), 같은 입력 = 같은 픽셀', async () => {
     for (const id of MR.MOTIF_RASTER_IDS) {

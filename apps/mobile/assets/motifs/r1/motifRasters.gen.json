@@ -1,13 +1,16 @@
 {
   "near-with.letter": {
+    "rev": 1,
+    "rotate": -28,
     "src": "letter-o2",
     "w": 640,
-    "h": 568,
-    "aspect": 1.1268,
-    "paper": 250,
-    "ink": 107
+    "h": 637,
+    "aspect": 1.0047,
+    "paper": 247,
+    "ink": 109
   },
   "far-alone.kite": {
+    "rev": 1,
     "src": "kite-o3",
     "w": 494,
     "h": 640,
@@ -16,6 +19,7 @@
     "ink": 34
   },
   "near-with.umbrella": {
+    "rev": 1,
     "src": "umbrella-o1",
     "w": 586,
     "h": 640,
@@ -24,14 +28,17 @@
     "ink": 29
   },
   "far-alone.paper-boat": {
+    "rev": 1,
+    "clipBottom": 0.25,
     "src": "boat-o1",
     "w": 640,
-    "h": 451,
-    "aspect": 1.4191,
+    "h": 348,
+    "aspect": 1.8391,
     "paper": 240,
     "ink": 86
   },
   "near-with.palm": {
+    "rev": 1,
     "src": "palm-o3",
     "w": 640,
     "h": 421,
@@ -40,6 +47,7 @@
     "ink": 35
   },
   "near-with.window-hand": {
+    "rev": 1,
     "src": "window-o3",
     "w": 633,
     "h": 640,

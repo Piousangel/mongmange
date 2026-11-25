@@ -36,7 +36,7 @@ export interface Motif {
   /** 곁의 다른 방울 [x, y, 몸 배율](그림 좌표). 눈 없는 방울 — '함께'는 나란함·맞댐으로만 */
   friend?: readonly [number, number, number];
   /** C14b 4차: 사물 한 겹 래스터 자리(`dreamMotifShapes.ts` MotifShape.raster) */
-  raster?: { box: readonly [number, number, number, number]; keep: readonly number[] };
+  raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number };
   /** 'clear' = 경로를 먹으로 그리지 않는다(소리 없는 눈 — 그림은 `field`의 맑은 방울) */
   water?: 'clear';
   /** 정본에 없어 개발이 쓴 초안 문구 슬롯(i18n 키 기준). 검수로 확정되면 지운다 — `motifBlockers`가 제품 출시를 막는다 */
@@ -288,4 +288,27 @@ export function pickCause(v: AxisRecord, zone: MotifZone, prev: Pick<DreamCard, 
   const ok = causeVariants(v, zone).filter((n) => `${zone}.${n}` !== prevCause);
   if (ok.length === 0) return null;
   return `${zone}.${ok[Math.abs(flowSeed) % ok.length]!}`;
+}
+
+// ── 그림 판(artRev, C14b 5차) ─────────────────────────────
+
+/**
+ * 지금 그림 판. 새 꿈 카드는 이 번호를 싣는다. **그림(래스터 에셋·형상 데이터)을 바꾸면 판을 올리고, 이전 판의 래스터 폴더
+ * (`apps/mobile/assets/motifs/r<판>`)는 지우지 않는다** — 이미 받은 카드가 그 판으로 그려져야 한다(시험이 판마다 에셋·예산을 고정).
+ */
+export const DREAM_ART_REV = 1;
+/** 판마다 래스터 사물을 쓰는 모티프(앱 에셋 `r<판>/<id>.webp` + `.mask.webp`) */
+export const ART_REV_RASTERS: Readonly<Record<number, readonly string[]>> = {
+  1: ['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand'],
+};
+/** 카드의 그림 판(없으면 1판 — 판 번호가 생기기 전 카드) */
+export function cardArtRev(c: Pick<DreamCard, 'artRev'>): number {
+  return typeof c.artRev === 'number' && c.artRev >= 1 ? c.artRev : 1;
+}
+/**
+ * 세이브 이행(멱등): 판 번호가 없는 C6 새 모티프 카드에 1을 적는다. 빌드 1 모티프·보름 카드는 건드리지 않아 세이브 문자열이 같고,
+ * 두 번 돌려도 결과가 같다
+ */
+export function withArtRev(cards: readonly DreamCard[]): DreamCard[] {
+  return cards.map((c) => (c.artRev === undefined && (motifById(c.motifId)?.unlockAtCards ?? 0) > 0 ? { ...c, artRev: 1 } : c));
 }

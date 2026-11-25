@@ -4,6 +4,7 @@ import { FutureSaveError, SCHEMA_VERSION, encodeRaw, parseSave } from '../save/e
 import { capRaw } from '../geometry/simplify';
 import { createInitial, SIM_SCHEMA_VERSION } from './reduce';
 import { styleFor } from './temperament';
+import { withArtRev } from './dreamMotifs';
 import { initRelation, invalidPillarField, labelOf, makeBirth, migratedBirthSeed, seededInk } from './pillars';
 import { AXES, type Millis, type State, type Stroke } from './types';
 
@@ -96,7 +97,8 @@ export function parseState(json: string, legacy?: LegacyContext): State {
   validateState(sim);
   if (sim.strokeMeta.length !== env.strokes.length) throw new Error('세이브 손상: 획 수가 맞지 않는다');
   const strokes: Stroke[] = env.strokes.map((rec, i) => ({ ...rec, ...sim.strokeMeta[i]! }));
-  const st: State = { ...sim.state, strokes };
+  // 그림 판 이행(C14b 5차, 멱등): 판 번호 없는 새 모티프 카드 = 1판
+  const st: State = { ...sim.state, strokes, cards: withArtRev(sim.state.cards) };
   // 콜드 스타트(리뷰 1-2): 앱이 앞에 있던 채로 끝났으면(강제 종료·OS 회수) 저장 시각에 백그라운드로 간 것으로 본다
   return st.backgroundSince === null ? { ...st, backgroundSince: Math.max(sim.savedAt, st.clock.lastSimAt) } : st;
 }

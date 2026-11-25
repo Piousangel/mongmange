@@ -4,6 +4,7 @@
 //  - sheet-mixed.png 기존 10 + 새 15 = 25장(5×5) — 한 화면에 섞였을 때
 //  - sheet-64pt.png  같은 25장을 카드 폭 64pt(2x)로 줄인 판독 시트(아트 바이블 7-6 ⑦)
 //  - sheet-dark.png  는 서버 없이 scripts/c14b-dark-sheet.mjs가 만든다
+//  - blind/sheet-25.png 라벨 없는 25장(번호만, 순서는 고정 시드로 섞음 — 래스터·코드 표시 없음) + 정답표 docs/team/reviews/2026-11-25-c14b-blind-key.md(리뷰어에게 주지 않는다)
 //  - compare-ref.png 3차 대상 7장: Gemini 레퍼런스(docs/creative/c14b-ref, ★ = 고른 안)와 결과 카드를 한 줄에 나란히
 // 사용: node scripts/c14b-capture.mjs [baseUrl=http://localhost:8147] [outDir=docs/app/c14b]
 // 개발 서버(expo start --web)는 metro 감시가 멈추는 일이 있어 캡처 전에 `-c`로 새로 띄운다(11-25 확인: 고친 파일이 번들에 안 들어감).
@@ -81,6 +82,28 @@ for (const m of OLD) olds.push([await grab(m, 'b', 0), `${m} (기존)`]);
 const news = [...a];
 const mixed = Array.from({ length: 25 }, (_, i) => ((i + Math.floor(i / 5) * 2) % 5 < 2 ? olds : news).shift());
 await sheet('sheet-mixed', mixed, 5, 220);
+// 블라인드 시트(5차, 오너 조건 ② — 새 리뷰어가 '다른 손으로 그린 장'을 고른다)
+{
+  const RASTER = new Set(['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand']);
+  // mixed = 기존 10 + 새 15(위에서 olds·news를 꺼내 썼으므로 mixed에서 가져온다)
+  const all = mixed.map(([f, l]) => [f, l.replace(' (기존)', '')]);
+  let seed = 20261125;
+  const rnd = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  await mkdir(path.join(OUT, 'blind'), { recursive: true });
+  const BOUT = path.join(OUT, 'blind');
+  await sheet('blind-tmp', all.map(([f], i) => [f, String(i + 1)]), 5, 220);
+  const { rename } = await import('node:fs/promises');
+  await rename(path.join(OUT, 'blind-tmp.png'), path.join(BOUT, 'sheet-25.png'));
+  const key = all.map(([, id], i) => `| ${i + 1} | ${id} | ${RASTER.has(id) ? '래스터 사물' : '코드'} |`).join('\n');
+  await writeFile(
+    path.resolve('docs/team/reviews/2026-11-25-c14b-blind-key.md'),
+    `# C14b 블라인드 시트 정답표 (리뷰어에게 주지 않는다)\n\n- 시트: \`docs/app/c14b/blind/sheet-25.png\`(번호만, 고정 시드 20261125로 섞음). 판정 뒤에 이 표와 맞춘다.\n\n| 번호 | 모티프 | 그린 방법 |\n|---|---|---|\n${key}\n`,
+  );
+}
 await sheet('sheet-64pt', mixed.map(([f, l]) => [f, l.replace(/^[a-z-]+\./, '').replace(' (기존)', '*')]), 5, 64, 2);
 
 // 레퍼런스 ↔ 결과 비교(3차 아트 리뷰용)

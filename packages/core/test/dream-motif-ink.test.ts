@@ -109,6 +109,25 @@ describe('4차 혼합안 — 사물 한 겹 래스터 자리', () => {
   });
 });
 
+describe('그림 판(artRev, 5차)', () => {
+  it('지금 판의 장면 해시가 기록돼 있고, 판마다 래스터 목록이 있다(지금 판 = 래스터 사물 5장 + 창가 손)', () => {
+    expect(Object.keys(SCENE_SNAPSHOT_BY_REV).map(Number)).toContain(sim.DREAM_ART_REV);
+    for (let r = 1; r <= sim.DREAM_ART_REV; r++) expect(sim.ART_REV_RASTERS[r], `판 ${r}`).toBeDefined();
+    const now = NEW.filter((m) => m.raster).map((m) => m.id);
+    expect([...sim.ART_REV_RASTERS[sim.DREAM_ART_REV]!].sort()).toEqual([...now, 'near-with.window-hand'].sort());
+  });
+
+  it('카드 판: 없으면 1판, 이행은 새 모티프 카드에만 1을 적고(빌드 1·보름 카드 그대로) 두 번 돌려도 같다', () => {
+    expect(sim.cardArtRev({})).toBe(1);
+    expect(sim.cardArtRev({ artRev: 3 })).toBe(3);
+    const cards = [card('center.moon'), card('near-with.letter'), card('moon-12'), card('far-alone.kite', { artRev: 2 })];
+    const once = sim.withArtRev(cards);
+    expect(once.map((c) => c.artRev)).toEqual([undefined, 1, undefined, 2]);
+    expect('artRev' in once[0]!).toBe(false);
+    expect(sim.withArtRev(once)).toEqual(once);
+  });
+});
+
 describe('붓 리본 — 결정성(D-13)', () => {
   it('같은 경로 → 같은 리본(두 번·깊은 복제 입력), 15개 리본 해시 고정', () => {
     const got: Record<string, string> = {};
@@ -304,4 +323,6 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
 });
 
 const RIBBON_SNAPSHOT = 'e5cdfc8f';
-const SCENE_SNAPSHOT = 'ba890627';
+/** 판(artRev)마다 장면 해시 — 형상을 바꾸면 판을 올리고 이전 판 값은 남긴다(이전 판 형상 데이터도 함께 남겨야 한다) */
+const SCENE_SNAPSHOT_BY_REV: Record<number, string> = { 1: 'b2a4bb72' };
+const SCENE_SNAPSHOT = SCENE_SNAPSHOT_BY_REV[sim.DREAM_ART_REV]!;
