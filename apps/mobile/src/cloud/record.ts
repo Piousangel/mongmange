@@ -212,7 +212,9 @@ export function setParked(kv: KV, id: string, raw: string | null, at: number): b
 // 새 컨셉(v3)으로 도는 기기가 서버에서 옛 세이브(v2) 본을 만나면 그 본은 이어 갈 수 없다(새 컨셉은 1일차부터 — 이 기기의 옛 세이브도
 // mong.v3.archive.v2에 보관만 한다). 사용자가 '이 기기' 몽망이를 맡기기로 고르면, 서버 본을 덮기 **전에** 그 원문을 이 보관함에 둔다.
 // 보관함은 **덮지 않고 자동으로 지우지 않는다**(만료 표시도 없음 — 옛 판 보관이지 다시 고를 칸이 아니다). 같은 원문은 한 번만.
-// 칸은 CLOUD_V2_ARCHIVE_SLOTS개, 다 차면 'full'(아무것도 쓰지 않음 → 고르기를 멈춘다). 서버로 보내지 않는다.
+// 칸은 CLOUD_V2_ARCHIVE_SLOTS개(각 512KB 이하), 다 차면 'full'(아무것도 쓰지 않음 → 고르기를 멈추고 '보관함이 가득' 화면).
+// 비우는 길(리뷰 M-2): 가득 참 화면과 맡겨 두기 시트의 '예전 판 보관본 비우기'(가장 오래된 것부터, 확인 한 번) — 영구히 막히는 경우 0.
+// 처리방침 2절 기기 칸 사본 줄·K36. 서버로 보내지 않는다.
 export const CLOUD_V2_ARCHIVE_KEY = 'mong.v3.archive.cloudV2';
 export const CLOUD_V2_ARCHIVE_SLOTS = 3;
 
@@ -242,6 +244,20 @@ export function archiveCloudV2(kv: KV, raw: string, at: number, alsoKeys: readon
     return kv.getString(CLOUD_V2_ARCHIVE_KEY) === v ? 'ok' : 'io';
   } catch {
     return 'io';
+  }
+}
+
+/** 가장 오래된 보관본 하나를 비운다(사용자가 확인했을 때만). 비울 것이 없거나 쓰기 실패면 false */
+export function dropOldestCloudV2(kv: KV): boolean {
+  const all = readCloudV2Archive(kv);
+  if (all.length === 0) return false;
+  const rest = [...all].sort((a, b) => a.at - b.at).slice(1);
+  try {
+    if (rest.length === 0) kv.remove(CLOUD_V2_ARCHIVE_KEY);
+    else kv.set(CLOUD_V2_ARCHIVE_KEY, JSON.stringify(rest));
+    return readCloudV2Archive(kv).length === rest.length;
+  } catch {
+    return false;
   }
 }
 

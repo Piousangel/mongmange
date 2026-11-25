@@ -45,10 +45,10 @@ describe('올리는 본문 = sim 봉투 + v3 허용 목록(V27b, R7)', () => {
     expect(Object.keys(o).sort()).toEqual(['schemaVersion', 'sim', 'strokes', 'v3']);
     expect(Object.keys(o.v3).sort()).toEqual(['version', ...v3.V3_UPLOAD_FIELDS].sort());
     expect(o.v3.words).toHaveLength(4);
-    for (const w of o.v3.words) {
+    o.v3.words.forEach((w, i) => {
       expect(Object.keys(w).sort()).toEqual(['attachStroke', 'sense']);
-      expect(Object.keys(w.attachStroke as object).sort()).toEqual([...v3.V3_WIRE_STROKE_KEYS]);
-    }
+      expect(w.attachStroke).toBe(i); // 봉투 i번째 획 = 이 말의 붙은 획(한 벌만)
+    });
     expect(v3.checkUploadBodyV3(body(s))).toEqual({ kind: 'ok' });
   });
   it('기기 전용 칸(walk·captionsShown)과 말의 세기·사전 판·입력 방식·strokeId는 본문 바이트에 0', () => {
@@ -66,13 +66,16 @@ describe('올리는 본문 = sim 봉투 + v3 허용 목록(V27b, R7)', () => {
     const run = (text: string) => body(day(a, 2, { text }));
     expect(run('죽고싶어')).toBe(run('고요'));
   });
-  it('붙은 획은 봉투 획과 같은 글자다(같은 획 = 같은 인코딩)', () => {
-    const o = JSON.parse(body(days(3))) as { strokes: unknown[]; v3: { words: { attachStroke: Record<string, unknown> }[] } };
-    o.v3.words.forEach((w, i) => {
-      const e = o.strokes[i] as Record<string, unknown>;
-      expect(w.attachStroke.raw).toBe(e.raw);
-      expect(w.attachStroke.attach).toEqual(e.attach);
-    });
+  it('붙은 획은 봉투에 한 벌만(리뷰 M-1): 봉투 획 수 = 말 수, 봉투 획 = sim 붙은 획 그대로', () => {
+    const s = days(3);
+    const o = JSON.parse(body(s)) as { strokes: { raw: string }[]; v3: { words: { attachStroke: number }[] } };
+    expect(o.strokes).toHaveLength(o.v3.words.length);
+    expect(JSON.parse(sim.serializeState(s.sim, SAVED)).strokes).toEqual(o.strokes);
+  });
+  it('봉투 획 순서와 말 순서가 다르면 만들지 않는다(닫힌 쪽 실패)', () => {
+    const s = days(2);
+    const swapped = { ...s, v3: { ...s.v3, words: [s.v3.words[1]!, s.v3.words[0]!] } };
+    expect(() => body(swapped)).toThrow(v3.UploadShapeError);
   });
   it('말 없는 획이 봉투에 있으면 만들지 않는다(닫힌 쪽 실패 — 나머지 글씨 점열 0)', () => {
     const s = days(2);
@@ -102,10 +105,31 @@ describe('본문 검사(서버·가짜 서버·앱 마지막 문이 같이 씀)'
     ['밥 칸에 시각', (o: Record<string, any>) => (o.v3.meal.lastAt = 1), 'v3_meal'],
     ['이레 표지에 다른 칸', (o: Record<string, any>) => (o.v3.life.snapshots[0] = { night: 7, at: 1, word: 'x' }), 'v3_life'],
     ['말 없는 봉투 획', (o: Record<string, any>) => o.strokes.push(o.strokes[0]), 'v3_strokes'],
-    ['붙은 획 ≠ 봉투 획', (o: Record<string, any>) => (o.v3.words[0].attachStroke.raw = o.v3.words[1].attachStroke.raw), 'v3_strokes'],
+    ['붙은 획 번호가 순서와 다름', (o: Record<string, any>) => (o.v3.words[0].attachStroke = 1), 'v3_word'],
+    ['맨 위에 낯선 칸(리뷰 M-3)', (o: Record<string, any>) => (o.extra = { text: '행복해' }), 'v3_top'],
+    ['sim 블록에 낯선 칸', (o: Record<string, any>) => (o.sim.note = 'x'), 'v3_sim'],
+    ['sim.state에 낯선 칸', (o: Record<string, any>) => (o.sim.state.secret = 'x'), 'v3_state'],
+    ['sim.state에서 칸 빠짐', (o: Record<string, any>) => delete o.sim.state.relation, 'v3_state'],
+    ['획 메타에 낯선 칸', (o: Record<string, any>) => (o.sim.strokeMeta[0].text = 'x'), 'v3_strokes'],
+    ['봉투 획에 낯선 칸', (o: Record<string, any>) => (o.strokes[0].word = 'x'), 'v3_strokes'],
+    ['정이 상식 상한 밖(1e12)', (o: Record<string, any>) => (o.sim.state.relation.jeongDays = 1e12), 'v3_jeong'],
+    ['정이 깸 수 + 1 + 여유를 넘음', (o: Record<string, any>) => (o.sim.state.relation.jeongDays = o.sim.state.dayIndex + 2 + v3.JEONG_SLACK), 'v3_jeong'],
+    ['완성 표지 밤이 범위 밖(리뷰 L-4)', (o: Record<string, any>) => (o.v3.life.final = { night: 29, at: 1 }), 'v3_life'],
+    ['완성 표지에 다른 칸', (o: Record<string, any>) => (o.v3.life.final = { night: 28, at: 1, word: 'x' }), 'v3_life'],
     ['모르는 공방 종류', (o: Record<string, any>) => o.v3.pantry.meal.push('cake'), 'v3_pantry'],
   ])('%s → invalid', (_n, f, reason) => {
     expect(mutate(f)).toEqual({ kind: 'invalid', reason });
+  });
+  it('sim.state 키 목록 고정(새 칸은 이 목록·처리방침 3-5 대조를 함께 고쳐야 올라간다), nightCtx만 선택', () => {
+    const o = JSON.parse(body(days(2))) as { sim: { state: Record<string, unknown> } };
+    expect(Object.keys(o.sim.state).sort()).toEqual([...v3.V3_SIM_STATE_KEYS].filter((k) => k !== 'nightCtx').sort());
+    expect(v3.checkUploadBodyV3(JSON.stringify({ ...o, sim: { ...o.sim, state: { ...o.sim.state, nightCtx: { moon: null } } } })).kind).not.toBe('invalid');
+  });
+  it('정이 상한 끝값(dayIndex + 1 + 여유)이면 받고, 완성 표지가 맞으면(28밤) 받는다', () => {
+    const o = JSON.parse(body(days(3))) as Record<string, any>;
+    o.sim.state.relation.jeongDays = o.sim.state.dayIndex + 1 + v3.JEONG_SLACK;
+    o.v3.life.final = { night: 28, at: 5 };
+    expect(v3.checkUploadBodyV3(JSON.stringify(o))).toEqual({ kind: 'ok' });
   });
   it('블록 판이 더 크면 future, v3 블록 없는 옛 본(v2)은 이 검사의 대상이 아님(ok)', () => {
     expect(mutate((o) => (o.v3.version = v3.V3_VERSION + 1))).toEqual({ kind: 'future' });
@@ -194,6 +218,11 @@ describe("'쌓이기만' 병합 — 공방 합집합·정 최댓값(V27b)", () =
     const server = withJeong(withPantry(base, ['clear'], ['pattern', 'ribbon']), 3);
     const m = v3.stackV3(server, local);
     expect(m.sim.relation.jeongDays).toBe(5);
+    // 상한: 다른 갈래 정이 아무리 커도 받는 쪽 jeongCapOf에서 멈춘다(받는 쪽 자기 값 아래로는 내려가지 않음)
+    const huge = v3.stackV3(server, withJeong(local, 1e9));
+    expect(huge.sim.relation.jeongDays).toBe(v3.jeongCapOf(server.sim));
+    expect(v3.checkUploadBodyV3(v3.uploadBodyV3(huge, SAVED))).toEqual({ kind: 'ok' });
+    expect(v3.stackV3(withJeong(server, 3), withJeong(server, 0)).sim.relation.jeongDays).toBe(3);
     expect(m.v3.pantry).toEqual({ meal: ['clear', 'pine'], treat: ['pattern', 'ribbon', 'dewdrop'] }); // 정 5 경계 → 이슬 한 방울도 열림
     const other = withJeong(withPantry(days(2, {}, fresh(0x9999)), ['clear'], ['pattern']), 1);
     expect(v3.sameCreatureV3(other, local)).toBe(false);

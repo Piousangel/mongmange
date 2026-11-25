@@ -25,6 +25,11 @@ export interface SaveSide {
    * '이 기기'를 고르면 그 본을 기기 보관함에 둔 뒤 맡긴다(덮기 전에 보관 — 옛 v2는 보관만 한다)
    */
   old?: boolean;
+  /**
+   * 옛 세이브(v2) 기기가 만난 서버의 새 판(v3) 본(V27b 리뷰 L-2). 앱을 업데이트해도 이 기기 판은 바뀌지 않으므로(빌드 종류가 정함)
+   * '업데이트하세요'가 아니라 '그 몽망이는 그 기기에서, 이 기기 몽망이는 여기서 계속'을 안내한다. 고르기는 여전히 막는다(덮지 않음)
+   */
+  otherConcept?: boolean;
 }
 
 /** 서버 본을 고를 때 '고른 그 본'인지 다시 확인하는 값 */
@@ -60,6 +65,8 @@ export type Task =
   | { t: 'dropParked'; slot: string }
   /** 바꾸기 전 몽망이 칸 비우기(사용자가 직접) */
   | { t: 'dropPre' }
+  /** 서버에서 만난 예전 판(v2) 보관함에서 가장 오래된 것 하나 비우기(사용자가 직접, V27b 리뷰 M-2) */
+  | { t: 'dropArchive' }
   /** 서버 본으로 이어 간다(이 기기 본은 서버 conflict 칸 30일 + 기기 preRestore 칸) */
   | { t: 'takeServer'; server: ServerPick }
   | { t: 'sync' }
@@ -92,6 +99,8 @@ export type TaskResult =
   | { r: 'forgotten' }
   /** parked 칸이 다 차 '이 기기'를 고를 수 없다(앞선 칸을 덮지 않는다 — 재리뷰 3 Q1) */
   | { r: 'parkFull' }
+  /** 예전 판(v2) 보관함이 가득이라 '이 기기'를 고를 수 없다(덮지 않음 — 비우면 이어서 고를 수 있다, V27b 리뷰 M-2) */
+  | { r: 'archiveFull' }
   | { r: 'abandoned' }
   /** 서버에 이 로그인의 맡겨 두기가 없다(기록의 sub와 같음) → 기록을 비웠다 */
   | { r: 'ended' }
@@ -117,6 +126,8 @@ export type View =
   | { v: 'deleteCheck'; tries: number }
   | { v: 'forgotten' }
   | { v: 'parkFull' }
+  | { v: 'archiveFull' }
+  | { v: 'dropArchiveConfirm'; back: 'archiveFull' | 'on' }
   | { v: 'ended' }
   | { v: 'orphaned' }
   | { v: 'dismissOldConfirm'; back: 'intro' | 'on' }
@@ -139,6 +150,8 @@ export type CloudEvent =
   | { e: 'confirmDismissOld' }
   | { e: 'askDropParked'; slot: string }
   | { e: 'askDropPre' }
+  | { e: 'askDropArchive' }
+  | { e: 'confirmDropArchive' }
   | { e: 'confirmDropPre' }
   | { e: 'confirmDropParked' }
   | { e: 'skipOld' }
@@ -253,6 +266,8 @@ function onResult(view: Extract<View, { v: 'busy' }>, res: TaskResult): View {
       return view.task.t === 'retryForgotten' && view.task.then ? { v: 'oldCleared', purpose: view.task.then } : { v: 'deleted' };
     case 'parkFull':
       return { v: 'parkFull' };
+    case 'archiveFull':
+      return { v: 'archiveFull' };
     case 'abandoned':
     case 'parkedDropped':
       return { v: 'on' };
@@ -292,6 +307,10 @@ export function reduce(view: View, ev: CloudEvent): View {
       return view;
     case 'askDropPre':
       return view.v === 'revertConfirm' ? { v: 'dropPreConfirm', back: view.back } : view;
+    case 'askDropArchive':
+      return view.v === 'archiveFull' || view.v === 'on' ? { v: 'dropArchiveConfirm', back: view.v } : view;
+    case 'confirmDropArchive':
+      return view.v === 'dropArchiveConfirm' ? busy({ t: 'dropArchive' }) : view;
     case 'confirmDropPre':
       return view.v === 'dropPreConfirm' ? busy({ t: 'dropPre' }) : view;
     case 'confirmDropParked':
@@ -345,6 +364,8 @@ export function reduce(view: View, ev: CloudEvent): View {
           return { v: view.back };
         case 'dropPreConfirm':
           return { v: view.back };
+        case 'dropArchiveConfirm':
+          return { v: view.back };
         case 'revertConfirm':
           return { v: view.back };
         default:
@@ -397,7 +418,7 @@ export function reduce(view: View, ev: CloudEvent): View {
       return view.v === 'revertConfirm' ? busy({ t: 'revert' }) : view;
     case 'continue':
       if (view.v === 'forgotten' || view.v === 'ended' || view.v === 'orphaned') return { v: 'intro' };
-      if (view.v === 'parkFull') return { v: 'on' };
+      if (view.v === 'parkFull' || view.v === 'archiveFull') return { v: 'on' };
       return view.v === 'already' || view.v === 'reverted' ? { v: 'on' } : view;
     case 'restart':
       return view.v === 'moved' || view.v === 'deleted' ? { v: 'intro' } : view;

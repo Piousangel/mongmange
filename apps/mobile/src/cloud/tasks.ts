@@ -17,7 +17,7 @@ import { passGate } from './ageGate';
 import { readToken, subOf, type ApiResult, type CloudApi, type CloudAuth, type Failure } from './api';
 import type { LocalSave } from './localSave';
 import type { ChooseNote, SaveSide, ServerPick, Task, TaskResult, Why } from './model';
-import { archiveCloudV2, clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, PARKED_SLOTS, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
+import { archiveCloudV2, dropOldestCloudV2, clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, PARKED_SLOTS, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
 
 export type { LocalSave } from './localSave';
 
@@ -369,6 +369,7 @@ async function keepLocal(d: TaskDeps, pick: ServerPick, park: boolean): Promise<
     if (v3Mode && form === 'v2') {
       // 옛 세이브(v2)는 보관만 한다: 덮기 전에 기기 보관함에(이 기기 옛 세이브 보관 키와 같은 원문이면 그대로)
       const kept = archiveCloudV2(d.kv, r.value.body, d.now(), [v3.V3_KEYS.archiveV2]);
+      if (kept === 'full') return { r: 'archiveFull' }; // 덮지 않고 멈춤 — 화면이 비우는 길을 연다(리뷰 M-2)
       if (kept !== 'ok') return fail('device');
     } else if (park) {
       // 앞선 칸을 덮지 않는다: 다 찼으면 고르기를 멈춘다(재리뷰 3 Q1). 같은 본이 이미 있으면 그대로
@@ -584,6 +585,8 @@ export async function runTask(task: Task, d: TaskDeps): Promise<TaskResult> {
         return { r: 'abandoned' };
       case 'dropPre':
         return dropPreRestore(d.kv) ? { r: 'parkedDropped' } : fail('device');
+      case 'dropArchive':
+        return dropOldestCloudV2(d.kv) ? { r: 'parkedDropped' } : fail('device');
       case 'dropParked':
         return setParked(d.kv, task.slot, null, d.now()) ? { r: 'parkedDropped' } : fail('device');
       case 'takeParked':

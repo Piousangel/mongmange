@@ -95,6 +95,9 @@ describe('세이브 v3 본문(V27b) — 서버 검사 = core checkUploadBodyV3, 
     ['기기 전용 칸(captionsShown)', (s: v3.V3State) => withV3(s, (b) => (b.captionsShown = [1, 0, 0, 0])), 'v3_keys'],
     ['마실 날(walk)', (s: v3.V3State) => withV3(s, (b) => (b.walk = { day: true })), 'v3_keys'],
     ['말 없는 봉투 획', (s: v3.V3State) => withTop(s, (o) => (o.strokes as unknown[]).push((o.strokes as unknown[])[0])), 'v3_strokes'],
+    ['맨 위 낯선 칸(리뷰 M-3)', (s: v3.V3State) => withTop(s, (o) => (o.extra = { text: '비' })), 'v3_top'],
+    ['sim.state 낯선 칸', (s: v3.V3State) => withTop(s, (o) => ((o.sim as { state: Record<string, unknown> }).state.secret = 'x')), 'v3_state'],
+    ['정 부풀림(1e12)', (s: v3.V3State) => withTop(s, (o) => ((o.sim as { state: { relation: Record<string, unknown> } }).state.relation.jeongDays = 1e12)), 'v3_jeong'],
   ])('%s → invalid(422 save_invalid)', (_n, make, reason) => {
     expect(inspectSave(make(lived(2)))).toEqual({ kind: 'invalid', reason });
   });

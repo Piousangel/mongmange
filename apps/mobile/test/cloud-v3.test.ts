@@ -12,7 +12,7 @@ import { createFakeServer } from '../src/cloud/fakeServer';
 import type { FetchLike } from '../src/net/http';
 import { createLocalV2, createLocalV3 } from '../src/cloud/localSave';
 import { reduce, type View } from '../src/cloud/model';
-import { CLOUD_KEY, CLOUD_V2_ARCHIVE_KEY, PRE_RESTORE_KEY, readCloudV2Archive, readParkedList, readPreRestore, readRecord } from '../src/cloud/record';
+import { CLOUD_KEY, CLOUD_V2_ARCHIVE_KEY, CLOUD_V2_ARCHIVE_SLOTS, PRE_RESTORE_KEY, readCloudV2Archive, readParkedList, readPreRestore, readRecord } from '../src/cloud/record';
 import { runTask, type TaskDeps } from '../src/cloud/tasks';
 import { isOn, setFeature } from '../src/features';
 import { __configureForTest, adoptStateV3, boot, dispatch, getSnapshot, getV3, install } from '../src/game/store';
@@ -162,20 +162,39 @@ describe('맡기기 = uploadV3 본문뿐(R7·허용 목록)', () => {
     expect(core).toMatch(/const up = uploadV3\(s\)/);
     expect(core).not.toMatch(/serializeV3\(/);
   });
-  it('크기 상한: 28밤 × 512점(필압 포함) 거친 획에서도 본문 ≤ SAVE_MAX_BYTES, gzip ≤ SAVE_MAX_GZIP_BYTES', () => {
+  it('크기(리뷰 M-1): 최악 — 28밤 × 최대 점(512)·필압·좌표 ±2·t 간격 무작위·최대 공방·정 상한·이레·완성 — 에서도 본문·gzip이 상한의 85% 이하', () => {
     let x = 12345;
     const r = () => ((x = (x * 1103515245 + 12345) >>> 0) / 4294967296);
     let s = fresh();
     for (let d = 0; d < 28; d++) {
-      const raw: RawPoint[] = Array.from({ length: 512 }, (_, i) => ({ x: r() * 1.6 - 0.8, y: r() * 1.6 - 0.8, t: i * 11, p: r() }));
-      s = day(s, d, { raw });
+      let t = 0;
+      // 6초 안 700점 → capRaw가 512점으로 솎음(상한), t 간격 0~15ms 무작위 — 압축이 가장 덜 되는 꼴
+      const raw: RawPoint[] = Array.from({ length: 700 }, () => ({ x: r() * 4 - 2, y: r() * 4 - 2, t: (t += Math.floor(r() * 16)), p: r() }));
+      s = day(s, d, { raw, touch: true });
     }
     expect(s.v3.words).toHaveLength(28);
+    expect(Math.min(...s.sim.strokes.map((st) => st.raw.length))).toBeGreaterThan(450); // capRaw 상한 512 근처(같은 시각 점은 솎임)
+    s = withJeong(withPantry(s, ['clear', 'pine', 'dew'], ['pattern', 'ribbon', 'dewdrop']), v3.jeongCapOf(s.sim));
     const b = v3.uploadBodyV3(s, clock);
+    expect(v3.checkUploadBodyV3(b)).toEqual({ kind: 'ok' });
     const bytes = Buffer.byteLength(b, 'utf8');
-    const gz = gzipSync(Buffer.from(b, 'utf8')).length;
-    expect(bytes).toBeLessThanOrEqual(SAVE_MAX_BYTES);
-    expect(gz).toBeLessThanOrEqual(SAVE_MAX_GZIP_BYTES);
+    const gz = gzipSync(Buffer.from(b, 'utf8')).length; // 서버와 같은 node 기본 gzip(수준 6)
+    if (process.env.SIZE_PRINT) console.log({ bytes, gz, bytesRatio: bytes / SAVE_MAX_BYTES, gzRatio: gz / SAVE_MAX_GZIP_BYTES });
+    expect(bytes).toBeLessThanOrEqual(0.85 * SAVE_MAX_BYTES);
+    expect(gz).toBeLessThanOrEqual(0.85 * SAVE_MAX_GZIP_BYTES);
+  });
+  it('크기 상한을 넘으면(413) 맡기기를 멈추고 알리며(held tooLarge) 기기 본은 그대로', async () => {
+    const srv = createFakeServer(sha);
+    const a = v3Device(srv, 'A', lived(2));
+    await runTask({ t: 'enable' }, a.deps);
+    const first = srv.peek('A')!.save!.body;
+    a.kv.set(v3.V3_KEYS.main, v3.serializeV3(day(a.current()!, 2), ++clock));
+    const before = a.kv.getString(v3.V3_KEYS.main);
+    srv.faults.failNext = { status: 413, code: 'save_too_large' };
+    expect(await runTask({ t: 'sync' }, a.deps)).toEqual({ r: 'synced' });
+    expect(readRecord(a.kv)?.held).toBe('tooLarge'); // 시트가 '맡기기를 잠시 멈췄어요'를 보이는 기록
+    expect(a.kv.getString(v3.V3_KEYS.main)).toBe(before); // 기기 본 그대로
+    expect(srv.peek('A')!.save!.body).toBe(first);
   });
   it('가짜 서버도 실서버처럼 허용 목록 밖 v3 본문(기기 형태)을 422로 받지 않는다', async () => {
     const srv = createFakeServer(sha);
@@ -346,8 +365,19 @@ describe('한쪽 v2, 한쪽 v3', () => {
     await enableThenRecover(srv2, c, d);
     const cmp2 = (await runTask({ t: 'fetch', why: 'restore' }, d.deps)) as { pick: { rev: number; sha: string } };
     const v2Body = srv2.peek('D')!.save!.body;
-    expect(await runTask({ t: 'keepLocal', server: cmp2.pick, why: 'restore', park: true }, d.deps)).toEqual({ r: 'failed', failure: 'device' });
-    expect(srv2.peek('D')!.save!.body).toBe(v2Body); // 서버 v2 그대로
+    expect(await runTask({ t: 'keepLocal', server: cmp2.pick, why: 'restore', park: true }, d.deps)).toEqual({ r: 'archiveFull' });
+    expect(srv2.peek('D')!.save!.body).toBe(v2Body); // 서버 v2 그대로(덮지 않음)
+    // 영구히 막히지 않는다(리뷰 M-2): 화면 '가장 오래된 보관본 비우기'(확인 한 번) → 이어서 고르기
+    let view: View = reduce({ v: 'busy', task: { t: 'keepLocal', server: cmp2.pick, why: 'restore', park: true }, slow: false }, { e: 'done', result: { r: 'archiveFull' } });
+    expect(view).toEqual({ v: 'archiveFull' });
+    view = reduce(reduce(view, { e: 'askDropArchive' }), { e: 'confirmDropArchive' });
+    expect(view).toMatchObject({ v: 'busy', task: { t: 'dropArchive' } });
+    expect(await runTask({ t: 'dropArchive' }, d.deps)).toEqual({ r: 'parkedDropped' });
+    expect(readCloudV2Archive(d.kv).map((x) => x.at)).toEqual([2, 3]); // 가장 오래된 것(at 1)만
+    expect(await runTask({ t: 'keepLocal', server: cmp2.pick, why: 'restore', park: true }, d.deps)).toEqual({ r: 'synced' });
+    expect(readCloudV2Archive(d.kv).map((x) => x.raw)).toContain(v2Body);
+    // 맡겨 두기 켜짐 화면에서도 비울 수 있다(공방 노트 '맡겨 두기' 시트)
+    expect(reduce({ v: 'on' }, { e: 'askDropArchive' })).toEqual({ v: 'dropArchiveConfirm', back: 'on' });
   });
   it('v3 기기의 기록이 옛 v2 동기화(form 없음)면 If-Match로 덮지 않고 충돌로 멈춘다', async () => {
     const srv = createFakeServer(sha);
@@ -370,6 +400,14 @@ describe('한쪽 v2, 한쪽 v3', () => {
     const cmp = (await runTask({ t: "fetch", why: "restore" }, b.deps)) as unknown as { local: never; server: { state: unknown; old?: boolean }; pick: { rev: number; sha: string } };
     expect(cmp.server.state).toBeNull();
     expect(cmp.server.old).toBeUndefined();
+    // 막다른 길 아님(리뷰 L-2): '앱을 업데이트'가 아니라 '그 기기에서 / 이 기기 몽망이는 여기서 계속' 안내
+    expect((cmp.server as { otherConcept?: boolean }).otherConcept).toBe(true);
+    const sheet = readFileSync(path.join(ROOT, 'apps/mobile/src/screens/CloudSheet.tsx'), 'utf8');
+    expect(sheet).toMatch(/view\.server\.otherConcept \? 'cloud\.choose\.otherConcept'/);
+    const ko18 = readFileSync(path.join(ROOT, 'apps/mobile/src/i18n/ko.ts'), 'utf8').split('\n').find((l) => l.includes("'cloud.choose.otherConcept'"))!;
+    const en18 = readFileSync(path.join(ROOT, 'apps/mobile/src/i18n/en.ts'), 'utf8').split('\n').find((l) => l.includes("'cloud.choose.otherConcept'"))!;
+    expect(ko18).not.toMatch(/업데이트/);
+    expect(en18).not.toMatch(/update/i);
     const view: View = { v: 'choose', why: 'restore', local: cmp.local, server: cmp.server as never, pick: cmp.pick, picked: null, confirming: false, note: null };
     expect(reduce(view, { e: 'pick', side: 'local' })).toBe(view);
     expect(reduce(view, { e: 'pick', side: 'server' })).toBe(view);
@@ -438,6 +476,25 @@ describe('처리방침 3-5·2절 ↔ 실제 올리는 칸(K11·K33·K35, V27b)',
       for (const w of FIELD_WORDS[f]![0]) expect(ko35, `${f} ko`).toContain(w);
       for (const w of FIELD_WORDS[f]![1]) expect(en35, `${f} en`).toContain(w);
     }
+  });
+  it('3-5 한 마디 줄 = 실제(리뷰 M-4): 본문에 말마다 쓴 날·시각(strokeMeta day·createdAt)이 있고, 방침도 그렇게 적는다(ko·en)', () => {
+    const o = JSON.parse(v3.uploadBodyV3(lived(3), clock)) as { sim: { strokeMeta: Record<string, unknown>[] }; v3: { words: unknown[] } };
+    expect(o.sim.strokeMeta).toHaveLength(o.v3.words.length);
+    for (const m of o.sim.strokeMeta) expect(Object.keys(m)).toEqual(expect.arrayContaining(['day', 'createdAt']));
+    expect(ko35).toContain('말마다 쓴 날(몇 번째 날·쓴 시각)은 함께 보관되지만');
+    expect(en35).toContain('The day each word was written (which day and when) is kept with it');
+    expect(ko35).not.toContain('어떤 날의 말이었는지는 구별되지 않습니다');
+    expect(en35).not.toContain('no day can be told apart');
+  });
+  it('예전 판 보관본(mong.v3.archive.cloudV2)은 2절 표(ko·en)와 K36에 있고, 상한·비우는 길이 문구와 코드가 같다(리뷰 M-2)', () => {
+    const ko2 = sec(ko, /\n## 2\. /);
+    const en2 = sec(en, /\n## 2\. /);
+    expect(ko2).toContain('예전 판 몽망이 보관본');
+    expect(ko2).toContain(`최대 ${CLOUD_V2_ARCHIVE_SLOTS}벌`);
+    expect(ko2).toContain('가장 오래된 것부터 비우거나');
+    expect(en2).toContain('Stored earlier-version Mongmangi');
+    expect(en2).toContain(`up to ${CLOUD_V2_ARCHIVE_SLOTS} copies`);
+    expect(ko).toMatch(/\| K36 \|[^\n]*예전 판 몽망이 보관본\(V27b\)/);
   });
   it('기기 전용(마실 날)은 3-5에 "올리지 않습니다", 2절 한 마디 줄은 "나머지 글씨는 기기에만"', () => {
     expect(ko35).toContain('마실 날 표시는 올리지 않습니다');

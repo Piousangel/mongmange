@@ -2,8 +2,8 @@
 // 원칙
 //  - 올리는 본문은 uploadV3(허용 목록 V3_UPLOAD_FIELDS)로만 만든다. 기기 세이브(serializeV3)를 펼쳐 넣지 않는다.
 //    본문 = sim 봉투(serializeState, B2 정본 그대로 — 정 값 relation.jeongDays도 여기) + `v3` 블록(version + 허용 목록).
-//    말(words)은 날마다 {attachStroke, sense} 두 필드(heart-grain 9-2 R7). attachStroke는 봉투 획과 같은 인코딩(int16 base64)이라
-//    같은 획이면 글자까지 같다(크기: 28밤 × 512점에서도 SAVE_MAX_BYTES·gzip 상한 안 — 앱 시험 cloud-v3).
+//    말(words)은 날마다 {attachStroke, sense} 두 필드(heart-grain 9-2 R7). attachStroke = 봉투 strokes에서의 번호(그 말의 붙은 획 —
+//    봉투 획이 곧 붙은 획이라 같은 획을 두 벌 싣지 않는다, 리뷰 M-1. 최악 크기에서도 상한의 85% 아래 — 앱 시험 cloud-v3).
 //  - 봉투의 획은 모두 어떤 말의 붙은 획이어야 한다(v3는 말 없는 획을 받지 않는다). 아니면 올리지 않는다(닫힌 쪽으로 실패).
 //  - 되찾은 본문(서버 본·기기 칸)은 결정적으로 읽는다: 같은 본문 = 같은 상태. 말의 night·intensity·lexVer·source는 올리지 않았으므로
 //    고정값(RESTORED_*)으로 채운다 — 화면·sim이 이 셋을 읽지 않고(마음 벡터·꿈·결은 sense만, R5) 같은 상태를 다시 올리면 본문이 같다.
@@ -12,7 +12,7 @@ import { capRaw } from '../geometry/simplify';
 import { encodeRaw, isFutureSaveError, SCHEMA_VERSION } from '../save/envelope';
 import { parseState, serializeState } from '../sim/save';
 import { SIM_SCHEMA_VERSION } from '../sim/reduce';
-import type { Millis } from '../sim/types';
+import type { Millis, State as SimState } from '../sim/types';
 import { STORED_SENSES } from './lexicon';
 import { MEAL_KINDS, TREAT_KINDS, isPantryItem, openPantry, type Pantry } from './meal';
 import { boundaryProgress, parseV3, uploadV3, LIFE_NIGHTS, V3_UPLOAD_FIELDS, V3_VERSION, type V3Block, type V3State, type Word } from './state';
@@ -21,8 +21,36 @@ import { boundaryProgress, parseV3, uploadV3, LIFE_NIGHTS, V3_UPLOAD_FIELDS, V3_
 export const V3_WIRE_KEYS: readonly string[] = ['version', ...V3_UPLOAD_FIELDS];
 /** 올리는 말 하나의 키(R7) */
 export const V3_WIRE_WORD_KEYS: readonly string[] = ['attachStroke', 'sense'];
-/** 올리는 붙은 획의 키(봉투 획과 같은 모양) */
+/** v3 본문의 맨 위 키(리뷰 M-3: 봉투 + v3 블록 밖의 칸은 받지 않는다) */
+export const V3_WIRE_TOP_KEYS: readonly string[] = ['schemaVersion', 'sim', 'strokes', 'v3'];
+/** v3 본문 sim 블록의 키 */
+export const V3_WIRE_SIM_KEYS: readonly string[] = ['savedAt', 'state', 'strokeMeta', 'version'];
+/** 봉투 획 하나의 키(D-13 봉투 그대로 — 붙은 획) */
 export const V3_WIRE_STROKE_KEYS: readonly string[] = ['attach', 'drawnAtCoreScale', 'hasP', 'meshVersion', 'raw'];
+/** 획 메타 하나의 키(sim strokeMeta) */
+export const V3_WIRE_STROKE_META_KEYS: readonly string[] = ['createdAt', 'day', 'grind', 'id', 'pinned', 'style'];
+/**
+ * v3 본문 sim.state가 가질 수 있는 키(리뷰 M-3). sim State에 칸이 늘면 이 목록·처리방침 3-5 대조를 함께 고쳐야 시험(타입 검사 포함)이 통과한다 —
+ * 새 칸이 말없이 서버로 올라가지 않게. nightCtx는 보름·꿈 플래그를 켠 이벤트가 있을 때만 생긴다.
+ */
+export const V3_SIM_STATE_KEYS = [
+  'schemaVersion', 'rng', 'createdAt', 'clock', 'phase', 'sleepAt', 'lastWakeAt', 'backgroundSince', 'dayIndex', 'bedtimeLocalMin', 'morningLocalMin',
+  'born', 'temperament', 'bornTemperament', 'habit', 'focusHistory', 'strokesTotal', 'peakStrokes', 'ledger', 'lastCareAt', 'pendingCard', 'pendingLine',
+  'cards', 'recentChannels', 'ire7LineShown', 'birth', 'ink', 'name', 'temperamentLabel', 'relation', 'nightCtx',
+] as const satisfies readonly Exclude<keyof SimState, 'strokes'>[];
+// 거꾸로(State의 모든 칸이 목록에 있는가)도 타입으로 고정: 빠진 칸이 있으면 아래 줄이 타입 오류
+const _allStateKeys: [Exclude<Exclude<keyof SimState, 'strokes'>, (typeof V3_SIM_STATE_KEYS)[number]>] extends [never] ? true : never = true;
+void _allStateKeys;
+/** v3 본문이 반드시 가지는 sim.state 키(nightCtx만 선택) */
+const SIM_STATE_OPTIONAL = new Set<string>(['nightCtx']);
+/**
+ * 정(relation.jeongDays)의 상식 상한 = 깸 수(dayIndex) + 1 + 이만큼(리뷰 L-3·M-3). 정은 깸마다 최대 1이라 한 갈래에서는 dayIndex + 1을 넘지 않는다.
+ * 두 갈래를 모을 때(stackV3) 다른 갈래가 날 수가 더 많을 수 있어 여유를 둔다. 병합은 이 상한에서 멈추므로 앱이 만든 본문은 늘 통과한다.
+ */
+export const JEONG_SLACK = 7;
+export function jeongCapOf(sim: Pick<SimState, 'dayIndex'>): number {
+  return sim.dayIndex + 1 + JEONG_SLACK;
+}
 const LIFE_KEYS = ['final', 'slept', 'snapshots'];
 const MEAL_KEYS = ['nudgeOptIn', 'spoons', 'treats'];
 const PANTRY_KEYS = ['meal', 'treat'];
@@ -35,28 +63,17 @@ export const RESTORED_INTENSITY = 2;
 
 export class UploadShapeError extends Error {}
 
-interface WireStroke {
-  raw: string;
-  hasP: boolean;
-  attach: unknown;
-  drawnAtCoreScale: number;
-  meshVersion: number;
-}
-
 /**
  * 맡겨 두기 본문(PUT /saves/main·conflicts). savedAt = 그 기기 세이브의 저장 시각(같은 상태 = 같은 본문 = 같은 sha).
- * 붙은 획이 아닌 획이 봉투에 있으면 UploadShapeError(올리지 않음).
+ * 말의 attachStroke = 그 말의 붙은 획이 봉투 strokes에서 몇 번째인가(리뷰 M-1: 같은 획을 두 벌 싣지 않는다 — 봉투가 곧 붙은 획이고,
+ * i번째 말 = i번째 획만 허용). 붙은 획이 아닌 획이 봉투에 있거나 순서가 다르면 UploadShapeError(올리지 않음).
  */
 export function uploadBodyV3(s: V3State, savedAt: Millis): string {
   const up = uploadV3(s);
-  const ids = new Set(s.v3.words.map((w) => w.strokeId));
-  if (s.sim.strokes.some((x) => !ids.has(x.id)) || up.words.length !== s.sim.strokes.length) throw new UploadShapeError('말 없는 획');
+  const index = new Map(s.sim.strokes.map((x, i) => [x.id, i]));
+  if (s.v3.words.length !== s.sim.strokes.length || s.v3.words.some((w, i) => index.get(w.strokeId) !== i) || up.words.length !== s.v3.words.length) throw new UploadShapeError('말 없는 획·순서');
   const env = JSON.parse(serializeState(s.sim, savedAt)) as Record<string, unknown>;
-  const words = up.words.map((w) => {
-    const { data, hasP } = encodeRaw(capRaw(w.attachStroke.raw)) // 봉투(serializeState)와 같은 인코딩 → 같은 획 = 같은 글자;
-    const st: WireStroke = { raw: data, hasP, attach: w.attachStroke.attach, drawnAtCoreScale: w.attachStroke.drawnAtCoreScale, meshVersion: w.attachStroke.meshVersion };
-    return { attachStroke: st, sense: w.sense };
-  });
+  const words = up.words.map((w, i) => ({ attachStroke: i, sense: w.sense }));
   return JSON.stringify({ ...env, v3: { version: V3_VERSION, words, life: up.life, meal: up.meal, pantry: up.pantry, tonightCounted: up.tonightCounted } });
 }
 
@@ -68,11 +85,11 @@ const sameKeys = (o: Record<string, unknown>, keys: readonly string[]) => {
   return k.length === keys.length && [...keys].sort().every((x, i) => x === k[i]);
 };
 const isInt = (x: unknown, lo: number, hi: number) => typeof x === 'number' && Number.isInteger(x) && x >= lo && x <= hi;
-const strokeKey = (s: Record<string, unknown>) => JSON.stringify([s.raw, s.hasP, s.attach, s.drawnAtCoreScale, s.meshVersion]);
 
 /**
- * 올린 본문의 v3 블록 검사(서버 inspectSave·가짜 서버·앱 마지막 문이 같이 쓴다). `v3`가 없으면 ok(옛 세이브 v2 — 이 검사의 대상 아님).
- * 허용 목록 밖 키·기기 형태 말(strokeId·세기·사전 판)·말 없는 봉투 획·모르는 말결은 invalid. 블록 판이 더 크면 future.
+ * 올린 본문 검사(서버 inspectSave·가짜 서버·앱 마지막 문이 같이 쓴다). `v3`가 없으면 ok(옛 세이브 v2 — 이 검사의 대상 아님).
+ * v3 본문이면 맨 위·sim 블록·sim.state·봉투 획·획 메타의 키가 정해진 목록과 같아야 하고(리뷰 M-3), v3 블록은 허용 목록·기기 형태 말 0·
+ * 말 = 봉투 획 하나씩·모르는 말결 0, 정은 상식 상한(jeongCapOf) 안. 블록 판이 더 크면 future(판이 다르면 칸 목록도 다를 수 있어 블록 판만 본다).
  */
 export function checkUploadBodyV3(json: string): UploadCheck {
   let o: unknown;
@@ -88,6 +105,15 @@ export function checkUploadBodyV3(json: string): UploadCheck {
   if (b.version > V3_VERSION) return { kind: 'future' };
   if (b.version !== V3_VERSION) return { kind: 'invalid', reason: 'v3_version' };
   if (!sameKeys(b, V3_WIRE_KEYS)) return { kind: 'invalid', reason: 'v3_keys' };
+  // 맨 위·sim 블록·sim.state(리뷰 M-3)
+  if (!sameKeys(o, V3_WIRE_TOP_KEYS)) return { kind: 'invalid', reason: 'v3_top' };
+  const simB = o.sim;
+  if (!isObj(simB) || !sameKeys(simB, V3_WIRE_SIM_KEYS) || !isObj(simB.state) || !Array.isArray(simB.strokeMeta)) return { kind: 'invalid', reason: 'v3_sim' };
+  const st = simB.state;
+  const allowed = new Set<string>(V3_SIM_STATE_KEYS);
+  if (Object.keys(st).some((k) => !allowed.has(k)) || V3_SIM_STATE_KEYS.some((k) => !SIM_STATE_OPTIONAL.has(k) && !(k in st))) return { kind: 'invalid', reason: 'v3_state' };
+  const rel = st.relation;
+  if (!isInt(st.dayIndex, 0, 1_000_000) || !isObj(rel) || !isInt(rel.jeongDays, 0, jeongCapOf({ dayIndex: st.dayIndex as number }))) return { kind: 'invalid', reason: 'v3_jeong' };
   const life = b.life;
   if (!isObj(life) || !sameKeys(life, LIFE_KEYS) || !isInt(life.slept, 0, LIFE_NIGHTS) || !Array.isArray(life.snapshots) || life.snapshots.length !== 4) return { kind: 'invalid', reason: 'v3_life' };
   const markOk = (m: unknown) => m === null || (isObj(m) && sameKeys(m, MARK_KEYS) && isInt(m.night, 1, LIFE_NIGHTS) && typeof m.at === 'number' && Number.isFinite(m.at));
@@ -99,18 +125,17 @@ export function checkUploadBodyV3(json: string): UploadCheck {
   if (!pantry.meal.every((x) => isPantryItem('meal', x)) || !pantry.treat.every((x) => isPantryItem('treat', x))) return { kind: 'invalid', reason: 'v3_pantry' };
   if (typeof b.tonightCounted !== 'boolean') return { kind: 'invalid', reason: 'v3_tonight' };
   if (!Array.isArray(b.words) || b.words.length > LIFE_NIGHTS) return { kind: 'invalid', reason: 'v3_words' };
-  for (const w of b.words) {
+  for (let i = 0; i < b.words.length; i++) {
+    const w = b.words[i] as unknown;
     if (!isObj(w) || !sameKeys(w, V3_WIRE_WORD_KEYS) || typeof w.sense !== 'string' || !STORED_SENSES.includes(w.sense)) return { kind: 'invalid', reason: 'v3_word' };
-    const st = w.attachStroke;
-    if (!isObj(st) || !sameKeys(st, V3_WIRE_STROKE_KEYS) || typeof st.raw !== 'string' || typeof st.hasP !== 'boolean') return { kind: 'invalid', reason: 'v3_word' };
+    // i번째 말 = 봉투 i번째 획(한 획에 한 말)
+    if (w.attachStroke !== i) return { kind: 'invalid', reason: 'v3_word' };
   }
-  // 봉투의 획 = 말의 붙은 획(순서대로 하나씩). 남는 획(말 없는 글씨)이 있으면 받지 않는다(R7 '나머지 글씨 점열은 올리지 않는다')
+  // 봉투의 획 = 말의 붙은 획(하나씩). 남는 획(말 없는 글씨)이 있으면 받지 않는다(R7 '나머지 글씨 점열은 올리지 않는다')
   const env = Array.isArray(o.strokes) ? (o.strokes as unknown[]) : null;
-  if (!env || env.length !== b.words.length) return { kind: 'invalid', reason: 'v3_strokes' };
-  for (let i = 0; i < env.length; i++) {
-    const e = env[i];
-    if (!isObj(e) || strokeKey(e) !== strokeKey((b.words[i] as Record<string, unknown>).attachStroke as Record<string, unknown>)) return { kind: 'invalid', reason: 'v3_strokes' };
-  }
+  if (!env || env.length !== b.words.length || simB.strokeMeta.length !== env.length) return { kind: 'invalid', reason: 'v3_strokes' };
+  if (!env.every((e) => isObj(e) && sameKeys(e, V3_WIRE_STROKE_KEYS) && typeof e.raw === 'string' && typeof e.hasP === 'boolean')) return { kind: 'invalid', reason: 'v3_strokes' };
+  if (!simB.strokeMeta.every((m) => isObj(m) && sameKeys(m, V3_WIRE_STROKE_META_KEYS))) return { kind: 'invalid', reason: 'v3_strokes' };
   return { kind: 'ok' };
 }
 
@@ -195,7 +220,8 @@ export function stackV3(target: V3State, other: V3State | null): V3State {
   if (!other) return target;
   const same = sameCreatureV3(target, other);
   const r = target.sim.relation;
-  const jeongDays = same ? Math.max(r.jeongDays, other.sim.relation.jeongDays) : r.jeongDays;
+  // 같은 몽망이면 큰 쪽, 단 받는 쪽 상식 상한(jeongCapOf)에서 멈춘다 — 받는 쪽 자기 값보다 내려가지는 않는다
+  const jeongDays = same ? Math.max(r.jeongDays, Math.min(other.sim.relation.jeongDays, jeongCapOf(target.sim))) : r.jeongDays;
   const sim = jeongDays === r.jeongDays ? target.sim : { ...target.sim, relation: { ...r, jeongDays } };
   const united = unionPantry(target.v3.pantry, other.v3.pantry);
   const pantry = openPantry(united, boundaryProgress(target.v3, sim)).pantry;

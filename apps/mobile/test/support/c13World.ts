@@ -645,6 +645,10 @@ function uiOptions(w: World, d: Dev): Array<() => void> {
       return [s({ e: 'retry' }), s({ e: 'retry' }), s({ e: 'back' })];
     case 'deleteCheck':
       return [s({ e: 'retry' }), s({ e: 'forget' })];
+    case 'archiveFull':
+      return [s({ e: 'askDropArchive' }), s({ e: 'continue' })];
+    case 'dropArchiveConfirm':
+      return [s({ e: 'confirmDropArchive' }), s({ e: 'back' })];
     case 'parkFull':
       return [...parked.map((p) => s({ e: 'askDropParked', slot: p.id })), s({ e: 'continue' })];
     case 'oldAccount':
@@ -693,6 +697,7 @@ export async function apply(w: World, act: Act): Promise<void> {
       // 사용자가 직접 비우는 확인(칸·서버 지우기)은 그 자리를 ①에서 뺀다
       if (d.view.v === 'dropParkedConfirm') w.excused.add(`dev:${d.name}:parked:${d.view.slot}`);
       if (d.view.v === 'dropPreConfirm') w.excused.add(`dev:${d.name}:pre`);
+      if (d.view.v === 'dropArchiveConfirm') for (let i = 0; i < 3; i++) w.excused.add(`dev:${d.name}:archive:${i}`);
       f?.();
       break;
     }
@@ -784,6 +789,7 @@ export async function apply(w: World, act: Act): Promise<void> {
     if (p?.settled && p.result?.r === 'parkedDropped') {
       if (p.task.t === 'dropParked') w.excused.add(`dev:${d.name}:parked:${p.task.slot}`);
       if (p.task.t === 'dropPre') w.excused.add(`dev:${d.name}:pre`);
+      if (p.task.t === 'dropArchive') for (let i = 0; i < 3; i++) w.excused.add(`dev:${d.name}:archive:${i}`);
     }
   }
   settle(w);

@@ -38,7 +38,7 @@ export function createLocalV2(o: { kv: KV; adopt: (st: sim.State) => boolean }):
       }
     },
     body: (raw) => raw,
-    side: (raw, meta) => (raw !== null && v3.saveFormOf(raw) === 'v3' ? sideOf(null, meta) : sideOf(raw, meta)),
+    side: (raw, meta) => (raw !== null && v3.saveFormOf(raw) === 'v3' ? { ...sideOf(null, meta), savedAt: savedAtOf(raw), otherConcept: true } : sideOf(raw, meta)),
     adopt: (raw) => {
       if (v3.saveFormOf(raw) !== 'v2') return false;
       let st: sim.State;

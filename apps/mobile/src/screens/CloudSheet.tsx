@@ -11,7 +11,7 @@ import { CAN_COPY, copyText } from '../cloud/clipboard';
 import { CONFIRM_TAIL, type SaveSide, type Task, type View as CloudView } from '../cloud/model';
 import type { CloudRecord } from '../cloud/record';
 import { useCloud, type CloudController, type CloudEntry } from '../cloud/useCloud';
-import { DELETE_TRIES_BEFORE_EXIT, PARKED_DAYS, readParkedList, readRecord, readUnconfirmedDelete } from '../cloud/record';
+import { DELETE_TRIES_BEFORE_EXIT, PARKED_DAYS, readCloudV2Archive, readParkedList, readRecord, readUnconfirmedDelete } from '../cloud/record';
 import type { TaskDeps } from '../cloud/tasks';
 import type { AgeInputError } from '../cloud/ageGate';
 import { useMongLook, useStrokeInks } from '../game/look';
@@ -23,8 +23,9 @@ import { Portrait } from './NameTag';
 const C = PALETTE.day;
 
 /** 기록 밖의 기기 칸 상태(그릴 때마다 읽는다): parked = 다시 고를 수 있는 본들(칸 id·기한), unconfirmed = 확인하지 못한 지우기(인장 코드) */
-export type CloudExtra = { parked: { id: string; until: number; expired: boolean }[]; unconfirmed: { creature: string | null; abandoned: boolean; reason: 'delete' | 'orphan' } | null };
-const NO_EXTRA: CloudExtra = { parked: [], unconfirmed: null };
+/** archive = 서버에서 만난 예전 판(v2) 보관본 수(V27b — 맡겨 두기 시트에서 비우는 길) */
+export type CloudExtra = { parked: { id: string; until: number; expired: boolean }[]; unconfirmed: { creature: string | null; abandoned: boolean; reason: 'delete' | 'orphan' } | null; archive?: number };
+const NO_EXTRA: CloudExtra = { parked: [], unconfirmed: null, archive: 0 };
 
 export function CloudSheet({ visible, onClose, cloud, record, entry, extra = NO_EXTRA }: { visible: boolean; onClose: () => void; cloud: CloudController; record: CloudRecord | null; entry?: CloudEntry; extra?: CloudExtra }) {
   const { view } = cloud;
@@ -50,6 +51,7 @@ export function CloudSheetHost({ visible, onClose, deps, initial, entry, tzOffse
   const record = readRecord(deps.kv);
   const extra: CloudExtra = {
     parked: readParkedList(deps.kv, deps.now()).map((p) => ({ id: p.id, until: p.at + PARKED_DAYS * 86_400_000, expired: p.expired })),
+    archive: readCloudV2Archive(deps.kv).length,
     unconfirmed: readUnconfirmedDelete(deps.kv),
   };
   return <CloudSheet visible={visible} onClose={onClose} cloud={cloud} record={record} entry={entry} extra={extra} />;
@@ -142,6 +144,7 @@ export function busyKey(task: Task): BusyKey {
     case 'abandonOld':
     case 'dropParked':
     case 'dropPre':
+    case 'dropArchive':
       return 'cloud.busy.forget';
     case 'revert':
       return 'cloud.busy.revert';
@@ -285,6 +288,26 @@ function Body({ cloud, record, onClose, extra }: { cloud: CloudController; recor
           ))}
           <Actions>
             <Btn primary label={t('cloud.later')} onPress={() => send({ e: 'continue' })} testID="cloud-park-full-ok" />
+          </Actions>
+        </>
+      );
+    case 'archiveFull':
+      return (
+        <>
+          <P testID="cloud-archive-full">{t('cloud.archive.full')}</P>
+          <Actions>
+            <Btn label={t('cloud.archive.drop')} onPress={() => send({ e: 'askDropArchive' })} testID="cloud-archive-drop" />
+            <Btn primary label={t('cloud.later')} onPress={() => send({ e: 'continue' })} testID="cloud-archive-full-ok" />
+          </Actions>
+        </>
+      );
+    case 'dropArchiveConfirm':
+      return (
+        <>
+          <P testID="cloud-archive-drop-confirm">{t('cloud.archive.dropConfirm')}</P>
+          <Actions>
+            <Btn primary danger label={t('cloud.parkFull.dropYes')} onPress={() => send({ e: 'confirmDropArchive' })} testID="cloud-archive-drop-yes" />
+            <Btn label={t('cloud.cancel')} onPress={() => send({ e: 'back' })} />
           </Actions>
         </>
       );
@@ -647,7 +670,7 @@ function Choose({ view, cloud }: { view: Extract<CloudView, { v: 'choose' }>; cl
       </View>
       {unreadable && (
         <KText style={styles.note} testID="cloud-unreadable">
-          {t(old ? 'cloud.choose.old' : 'cloud.choose.unreadable')}
+          {t(old ? 'cloud.choose.old' : view.server.otherConcept ? 'cloud.choose.otherConcept' : 'cloud.choose.unreadable')}
         </KText>
       )}
       {view.confirming ? (
@@ -715,6 +738,7 @@ function OnView({ record, cloud, extra }: { record: CloudRecord | null; cloud: C
       {held && <P sub testID="cloud-held">{t(held === 'tooLarge' ? 'cloud.on.held.tooLarge' : held === 'quota' ? 'cloud.on.held.quota' : 'cloud.on.held.shape')}</P>}
       {record?.conflict && <Row label={t('cloud.on.conflict')} onPress={() => send({ e: 'resolve' })} strong testID="cloud-resolve" />}
       <ParkedRows rows={extra.parked} cloud={cloud} testID="cloud-parked" />
+      {(extra.archive ?? 0) > 0 && <Row label={t('cloud.archive.row', { n: extra.archive ?? 0 })} onPress={() => send({ e: 'askDropArchive' })} testID="cloud-archive-row" />}
       {extra.unconfirmed && <UnconfirmedNote cloud={cloud} code={extra.unconfirmed.creature} canRetry={false} orphan={extra.unconfirmed.reason === 'orphan'} />}
       {record && !record.codeConfirmed && <Row label={t('cloud.on.codePending')} onPress={() => send({ e: 'reissue' })} strong testID="cloud-code-pending" />}
       {!record?.conflict && <Row label={t('cloud.on.sync')} onPress={() => send({ e: 'syncNow' })} testID="cloud-sync" />}
