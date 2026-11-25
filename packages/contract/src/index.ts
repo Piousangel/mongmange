@@ -838,8 +838,18 @@ export const isoDateTime = str(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1
 );
 
 /**
+ * 세이브 v3 본문(V27b): body = sim 봉투(core `serializeState`) + `v3` 블록(core `uploadBodyV3` — 앱 기기 세이브가 아니라 허용 목록으로 만든 것).
+ * 블록 키는 정확히 SAVE_V3_KEYS, 말 하나는 SAVE_V3_WORD_KEYS뿐(heart-grain 9-2 R7 — 세기·사전 판·기기 전용 칸 없음), 봉투 획 = 말의 붙은 획.
+ * 검사 구현은 core `v3.checkUploadBodyV3`(앱 마지막 문·서버 inspectSave·가짜 서버가 같은 코드). 어긋나면 422 save_invalid(details.reason `v3_*`).
+ * 블록 판이 서버보다 1 크면 validated=false로 원문 보관, 2 이상이면 422 future_too_far(봉투·sim 판과 같은 규칙). 크기 상한은 v2와 같다.
+ */
+export const SAVE_V3_BLOCK_VERSION = 3;
+export const SAVE_V3_KEYS = ['version', 'words', 'life', 'meal', 'pantry', 'tonightCounted'] as const;
+export const SAVE_V3_WORD_KEYS = ['attachStroke', 'sense'] as const;
+
+/**
  * `PUT /saves/main`(헤더 `If-Match: <rev>` 또는 처음은 `If-None-Match: *`).
- * body = core `serializeState` 문자열 그대로. 크기는 스키마가 아니라 서버가 바이트로 재서 413을 낸다.
+ * body = core `serializeState` 문자열 그대로(옛 세이브 v2) 또는 위 세이브 v3 본문. 크기는 스키마가 아니라 서버가 바이트로 재서 413을 낸다.
  * resolve `keep_mine` = 409 뒤 '이 기기 몽망이'를 골랐을 때 — 덮이는 서버 본은 conflict 칸(30일)으로 간다.
  */
 export const saveUploadSchema = z.strictObject({

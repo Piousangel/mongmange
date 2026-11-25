@@ -152,8 +152,7 @@ export function resolveFeature(dev: boolean | undefined, remote: boolean | undef
 }
 
 export function isOn(id: FeatureId): boolean {
-  // 새 컨셉 v3 세로 조각은 맡겨 두기와 아직 잇지 않았다: 둘이 함께 켜지면 옛 v2 본이 올라가므로 v3가 켜져 있으면 맡겨 두기를 끈다(리뷰 M5)
-  if (id === 'cloud' && isOn('conceptV3')) return false;
+  // (리뷰 M5의 'v3가 켜지면 맡겨 두기 끔'은 V27b에서 풀었다 — v3 본은 uploadV3 본문으로 맡기고 되찾는다. 시험 cloud-v3·c13 v3 시나리오)
   return resolveFeature(overrides[id], isRemoteFeature(id) ? remoteLayer?.(id) : undefined, bundledDefault(id));
 }
 

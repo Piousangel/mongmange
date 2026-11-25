@@ -5,7 +5,7 @@
 import { SAVE_KEYS } from '@mong/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { CloudEvent } from '../src/cloud/model';
-import { PARKED_KEY, PRE_RESTORE_KEY, readRecord } from '../src/cloud/record';
+import { CLOUD_V2_ARCHIVE_KEY, PARKED_KEY, PRE_RESTORE_KEY, readRecord } from '../src/cloud/record';
 import { apply, createWorld, disposeWorld, genActs, keyOf, runActs, shrink, splitKnown, type Act, type Violation, type World } from './support/c13World';
 
 const RUNS = Number(process.env.C13_RUNS ?? 500);
@@ -45,6 +45,42 @@ describe('C13 무작위 사건 열 — 불변식 ①~⑤', () => {
       expect(pings, '닿은 핑').toBeGreaterThan(0);
     }
   }, 120_000);
+});
+
+describe('C13 무작위 — 세이브 v3(V27b): 두 기기 모두 새 컨셉 · 한쪽 v2 한쪽 v3, 불변식 ①~⑥', () => {
+  const N3 = Number(process.env.C13_V3_RUNS ?? 150); // 긴 반복: C13_V3_RUNS=2000
+  for (const [label, forms] of [
+    ['v3 + v3', ['v3', 'v3']],
+    ['v2 + v3(섞임)', ['v2', 'v3']],
+    ['v3 + v2(섞임)', ['v3', 'v2']],
+  ] as const) {
+    it(`${label}: 시드 ${BASE}~${BASE + N3 - 1}, 사건 ${LEN}개씩`, async () => {
+      const results: Record<string, number> = {};
+      const tasks: Record<string, number> = {};
+      let archived = 0;
+      for (let seed = BASE; seed < BASE + N3; seed++) {
+        const acts = genActs(seed, LEN);
+        const { violations, world } = await runActs(seed, acts, forms);
+        if (world.devs.some((d) => d.kv.getString(CLOUD_V2_ARCHIVE_KEY) !== undefined)) archived++;
+        for (const [k, n] of Object.entries(world.stats.results)) results[k] = (results[k] ?? 0) + n;
+        for (const [k, n] of Object.entries(world.stats.tasks)) tasks[k] = (tasks[k] ?? 0) + n;
+        if (violations.length) {
+          const v = violations[0]!;
+          const min = await shrink(seed, acts, v.rule, forms);
+          const again = await runActs(seed, min, forms);
+          throw new Error(`${label} 시드 ${seed}: ${v.rule} ${v.msg}\n줄인 사건 열(${min.length}개):\n${JSON.stringify(min)}\n줄인 열의 위반: ${again.violations[0]?.msg}`);
+        }
+      }
+      if (process.env.C13_STATS) console.log(label, JSON.stringify({ archived, results, tasks }));
+      // 헛돌지 않았다: 고르기·되찾기·서버 본 고르기·이 기기 고르기를 실제로 지났다. 같은 판끼리는 되돌리기까지, 섞이면 옛 v2 보관함까지
+      if (N3 >= 150) {
+        const mixed = forms[0] !== forms[1];
+        for (const r of ['compare', 'synced', 'recovered', 'conflict', ...(mixed ? [] : ['reverted'])]) expect(results[r] ?? 0, `${label} 결과 ${r}`).toBeGreaterThan(0);
+        for (const t of ['keepLocal', 'takeServer', ...(mixed ? [] : ['revert', 'takeParked'])]) expect(tasks[t] ?? 0, `${label} 작업 ${t}`).toBeGreaterThan(0);
+        if (mixed) expect(archived, `${label} 옛 v2 보관함을 지난 세계`).toBeGreaterThan(0);
+      }
+    }, 120_000);
+  }
 });
 
 describe('C13 무작위 — 통계 전용(④ 끈 뒤 요청 0, ⑤ 핑 식별자 0)', () => {

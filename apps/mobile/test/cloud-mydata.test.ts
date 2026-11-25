@@ -16,6 +16,7 @@ import { initialView, reduce } from '../src/cloud/model';
 import { canDelete, formatBytes, loadMyData, myDataEntry, myDataRows, type MyDataView } from '../src/cloud/myData';
 import { runTask, type TaskDeps } from '../src/cloud/tasks';
 import { messages, tIn, type MessageKey } from '../src/i18n';
+import { createLocalV2 } from '../src/cloud/localSave';
 
 const sha = async (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 const T = Date.UTC(2026, 10, 25, 3, 0);
@@ -39,7 +40,7 @@ function device(server: ReturnType<typeof createFakeServer>, name: string, raw: 
     kv,
     sha256: sha,
     now: () => T,
-    local: { raw: () => kv.getString(SAVE_KEYS.main) ?? null, adopt: () => true },
+    local: createLocalV2({ kv, adopt: () => true }),
   };
   return { kv, deps };
 }

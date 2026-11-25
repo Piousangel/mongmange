@@ -5,3 +5,4 @@ export * from './nudge';
 export * from './state';
 export { sha256Hex } from './sha256';
 export * from './jeong';
+export * from './cloud';

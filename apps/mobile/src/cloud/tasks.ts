@@ -10,18 +10,16 @@
 //    이 기기 본과 같으면 '이미 되찾음', 다르면 나란히 고르기(리뷰 C1). DELETE /me는 지우기 작업 하나에서만 부른다.
 //  - 지우기: 요청 전에 기록을 'deleting'으로 남기고, 끊김·401·404면 서버에 다시 물어 지워졌는지 확인한다(리뷰 H2).
 //  - 410(다른 기기로 옮겨 감)이면 세션을 비우고 로컬 게임은 그대로 이어 간다.
-import { isFuture, sim, type KV } from '@mong/core';
+//  - 세이브 v3(V27b): 올리는 본문은 LocalSave.body(v3 = core uploadBodyV3), 기기 칸에는 기기 원문(raw). 판이 다른 본은 서로 이어 가지 않고,
+//    기록의 form이 이 기기 판과 다르면 If-Match로 덮지 않는다. v3 기기가 서버의 옛 v2 본을 덮을 때는 먼저 기기 보관함에 둔다.
+import { isFuture, sim, v3, type KV } from '@mong/core';
 import { passGate } from './ageGate';
 import { readToken, subOf, type ApiResult, type CloudApi, type CloudAuth, type Failure } from './api';
+import type { LocalSave } from './localSave';
 import type { ChooseNote, SaveSide, ServerPick, Task, TaskResult, Why } from './model';
-import { clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, PARKED_SLOTS, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
+import { archiveCloudV2, clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, PARKED_SLOTS, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
 
-export interface LocalSave {
-  /** 기기에 저장된 본 원문(core SAVE_KEYS.main 그대로 — 같은 본이면 같은 sha). 없으면 null */
-  raw(): string | null;
-  /** 서버 본으로 이어 간다: 기기 본 교체 + 홈 다시 그리기. 실패하면 false(기기 본은 그대로) */
-  adopt(state: sim.State): boolean;
-}
+export type { LocalSave } from './localSave';
 
 export interface TaskDeps {
   api: CloudApi;
@@ -35,7 +33,10 @@ export interface TaskDeps {
 
 const fail = (failure: Failure): TaskResult => ({ r: 'failed', failure });
 
-/** 업로드 모양 검사(DECISIONS V22 ①·heart-grain 9-2 R7): 세이브 안의 `word`는 날마다 {attachStroke, sense}만. 어긋나면 올리지 않는다(닫힌 쪽으로 실패) */
+/**
+ * 업로드 모양 검사(DECISIONS V22 ①·heart-grain 9-2 R7): 세이브 안의 `word`는 날마다 {attachStroke, sense}만. 어긋나면 올리지 않는다(닫힌 쪽으로 실패).
+ * v3 블록이 있으면 서버와 같은 검사(core checkUploadBodyV3 — 허용 목록 V3_UPLOAD_FIELDS, 말 {attachStroke, sense}, 말 없는 획 0)도 통과해야 한다.
+ */
 export const WORD_FIELDS: readonly string[] = ['attachStroke', 'sense'];
 export function uploadShapeOk(body: string): boolean {
   let root: unknown;
@@ -44,6 +45,7 @@ export function uploadShapeOk(body: string): boolean {
   } catch {
     return false;
   }
+  if (v3.checkUploadBodyV3(body).kind !== 'ok') return false;
   const okWord = (w: unknown) => typeof w === 'object' && w !== null && !Array.isArray(w) && Object.keys(w).every((k) => WORD_FIELDS.includes(k));
   const walk = (x: unknown): boolean => {
     if (Array.isArray(x)) return x.every(walk);
@@ -189,21 +191,28 @@ async function upload(d: TaskDeps, keepMine?: ServerPick): Promise<TaskResult> {
   if (rec.conflict && !keepMine) return { r: 'conflict' };
   const raw = d.local.raw();
   if (raw === null) return { r: 'synced' };
-  if (!uploadShapeOk(raw)) {
+  const body = d.local.body(raw);
+  if (body === null || !uploadShapeOk(body)) {
     save(d, { ...rec, held: 'shape' });
     return { r: 'synced' };
   }
-  const sha = await d.sha256(raw);
+  // 마지막으로 맞춘 서버 본이 다른 판이면(옛 v2 ↔ v3) If-Match로 덮지 않는다 — 나란히 고르기를 거친다(V27b)
+  if (!keepMine && rec.rev !== null && (rec.form ?? 'v2') !== d.local.form()) {
+    save(d, { ...rec, conflict: true });
+    return { r: 'conflict' };
+  }
+  const form = d.local.form();
+  const sha = await d.sha256(body);
   if (!keepMine && rec.sha === sha && rec.rev !== null) {
-    save(d, { ...rec, held: null });
+    save(d, { ...rec, held: null, form });
     return { r: 'synced' };
   }
   const at = iso(savedAtOf(raw) ?? d.now());
   let pre: { ifMatch: number } | { ifNoneMatch: true } = keepMine ? { ifMatch: keepMine.rev } : rec.rev === null ? { ifNoneMatch: true } : { ifMatch: rec.rev };
   for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await d.api.putSave(raw, at, pre, keepMine !== undefined);
+    const r = await d.api.putSave(body, at, pre, keepMine !== undefined);
     if (r.kind === 'ok') {
-      save(d, { ...rec, rev: r.value.rev, sha: r.value.sha, syncedAt: d.now(), conflict: false, held: null });
+      save(d, { ...rec, rev: r.value.rev, sha: r.value.sha, syncedAt: d.now(), conflict: false, held: null, form });
       return { r: 'synced' };
     }
     if (r.kind === 'conflict') {
@@ -214,7 +223,7 @@ async function upload(d: TaskDeps, keepMine?: ServerPick): Promise<TaskResult> {
       }
       // 반쯤 성공: 서버 본이 바로 내 본이면 충돌이 아니다
       if (r.server !== null && r.server.sha === sha) {
-        save(d, { ...rec, rev: r.server.rev, sha, syncedAt: d.now(), conflict: false, held: null });
+        save(d, { ...rec, rev: r.server.rev, sha, syncedAt: d.now(), conflict: false, held: null, form });
         return { r: 'synced' };
       }
       if (keepMine) return { r: 'serverChanged', why: 'conflict' };
@@ -248,9 +257,10 @@ async function fetchCompare(d: TaskDeps, why: Why, opts: { note?: ChooseNote; ke
   if (r.kind !== 'ok') return (await common(d, r)) ?? fail('server');
   const s = r.value;
   const localRaw = d.local.raw();
-  if (note === null && localRaw !== null && (await d.sha256(localRaw)) === s.sha) {
+  const localBody = localRaw === null ? null : d.local.body(localRaw);
+  if (note === null && localBody !== null && (await d.sha256(localBody)) === s.sha) {
     const rec = readRecord(d.kv) ?? FRESH_RECORD;
-    save(d, { ...rec, rev: s.rev, sha: s.sha, syncedAt: d.now(), conflict: false });
+    save(d, { ...rec, rev: s.rev, sha: s.sha, syncedAt: d.now(), conflict: false, form: d.local.form() });
     return { r: 'synced' };
   }
   if (!opts.keepRecord) {
@@ -260,8 +270,8 @@ async function fetchCompare(d: TaskDeps, why: Why, opts: { note?: ChooseNote; ke
   return {
     r: 'compare',
     why,
-    local: sideOf(localRaw),
-    server: s.validated ? sideOf(s.body, s) : sideOf(null, s),
+    local: d.local.side(localRaw),
+    server: s.validated ? d.local.side(s.body, s) : sideOf(null, s),
     pick: { rev: s.rev, sha: s.sha },
     ...(note ? { note } : {}),
   };
@@ -271,7 +281,7 @@ async function fetchCompare(d: TaskDeps, why: Why, opts: { note?: ChooseNote; ke
 async function fetchParked(d: TaskDeps, slot: string | undefined): Promise<TaskResult> {
   const p = slot ? readParkedOne(d.kv, slot, d.now()) : (readParkedList(d.kv, d.now())[0] ?? null);
   if (!p) return { r: 'synced' };
-  return { r: 'compare', why: 'parked', local: sideOf(d.local.raw()), server: sideOf(p.raw), pick: { rev: 0, sha: await d.sha256(p.raw), slot: p.id } };
+  return { r: 'compare', why: 'parked', local: d.local.side(d.local.raw()), server: d.local.side(p.raw), pick: { rev: 0, sha: await d.sha256(p.raw), slot: p.id } };
 }
 
 /**
@@ -281,15 +291,11 @@ async function fetchParked(d: TaskDeps, slot: string | undefined): Promise<TaskR
 async function takeParked(d: TaskDeps, slot: string): Promise<TaskResult> {
   const p = readParkedOne(d.kv, slot, d.now());
   if (!p) return fail('device');
-  let next: sim.State;
-  try {
-    next = sim.parseState(p.raw);
-  } catch {
-    return fail('device');
-  }
+  // 이 판이 이어 갈 수 없는 본(판이 다름·손상)이면 맞바꾸지 않는다
+  if (d.local.side(p.raw).state === null) return fail('device');
   const cur = d.local.raw();
   if (!setParked(d.kv, slot, cur, d.now())) return fail('device');
-  if (!d.local.adopt(next)) {
+  if (!d.local.adopt(p.raw)) {
     setParked(d.kv, slot, p.raw, p.at);
     return fail('device');
   }
@@ -324,26 +330,26 @@ async function takeServer(d: TaskDeps, pick: ServerPick): Promise<TaskResult> {
   if (r.kind === 'notFound') return { r: 'serverChanged', why: 'conflict' };
   if (r.kind !== 'ok') return (await common(d, r)) ?? fail('server');
   if (r.value.rev !== pick.rev || r.value.sha !== pick.sha) return { r: 'serverChanged', why: 'conflict' };
-  let next: sim.State;
-  try {
-    next = sim.parseState(r.value.body);
-  } catch {
-    return fail('server');
-  }
+  // 이 판이 이어 갈 수 없는 서버 본(판이 다름·손상)은 받지 않는다(화면도 고르지 못하게 한다)
+  if (d.local.side(r.value.body).state === null) return fail('server');
   const localRaw = d.local.raw();
   if (localRaw !== null) {
     // preRestore 칸을 덮기 전에 자리부터 본다(D1): 칸에 다른 본이 있고 parked가 가득이면 아무것도 바꾸지 않고 멈춘다
     if (preRestoreBlocked(d, localRaw)) return { r: 'parkFull' };
-    const c = await d.api.addConflict(localRaw, iso(savedAtOf(localRaw) ?? d.now()));
-    if (c.kind !== 'ok') return (await common(d, c)) ?? fail('server');
+    // 서버 conflict 칸에는 올리는 본문(v3 = 허용 목록)으로. 본문을 못 만드는 본은 서버에 두지 않고 기기 preRestore 칸만 지킨다
+    const localBody = d.local.body(localRaw);
+    if (localBody !== null && uploadShapeOk(localBody)) {
+      const c = await d.api.addConflict(localBody, iso(savedAtOf(localRaw) ?? d.now()));
+      if (c.kind !== 'ok') return (await common(d, c)) ?? fail('server');
+    }
     // 올리는 동안 게임이 저장한 본이 있으면 그 본은 어디에도 없다 → 바꾸지 않고 다시 나란히
     if (d.local.raw() !== localRaw) return { r: 'localChanged', why: 'conflict' };
     const kept = putPreRestore(d, localRaw);
     if (kept !== null) return kept;
   }
-  if (!d.local.adopt(next)) return fail('device');
+  if (!d.local.adopt(r.value.body)) return fail('device');
   const rec = readRecord(d.kv) ?? FRESH_RECORD;
-  save(d, { ...rec, rev: r.value.rev, sha: r.value.sha, syncedAt: d.now(), conflict: false, held: null });
+  save(d, { ...rec, rev: r.value.rev, sha: r.value.sha, syncedAt: d.now(), conflict: false, held: null, form: d.local.form() });
   return { r: 'synced' };
 }
 
@@ -352,15 +358,25 @@ async function takeServer(d: TaskDeps, pick: ServerPick): Promise<TaskResult> {
  * 서버 conflict 칸(최대 3벌)과 달리 이 칸은 30일 동안 밀려나지 않는다. 칸에 못 두면 고르지 않는다(되찾은 본이 닿을 수 없는 곳으로만 가지 않게).
  */
 async function keepLocal(d: TaskDeps, pick: ServerPick, park: boolean): Promise<TaskResult> {
-  if (park) {
+  // v3 기기는 늘 밀려날 서버 본을 받아 본다: 옛 v2면 보관함에, v3면 쌓이기만 하는 칸(공방·정)을 이 기기 본으로 모은 뒤 맡긴다(V27b)
+  const v3Mode = d.local.form() === 'v3';
+  if (park || v3Mode) {
     const r = await d.api.getSave();
-    if (r.kind === 'notFound') return { r: 'serverChanged', why: 'conflict' };
+    if (r.kind === 'notFound') return v3Mode && !park ? upload(d, pick) : { r: 'serverChanged', why: 'conflict' };
     if (r.kind !== 'ok') return (await common(d, r)) ?? fail('server');
     if (r.value.rev !== pick.rev || r.value.sha !== pick.sha) return { r: 'serverChanged', why: 'conflict' };
-    // 앞선 칸을 덮지 않는다: 다 찼으면 고르기를 멈춘다(재리뷰 3 Q1). 같은 본이 이미 있으면 그대로
-    const kept = addParked(d.kv, r.value.body, d.now());
-    if (kept === 'full') return { r: 'parkFull' };
-    if (kept === 'io') return fail('device');
+    const form = v3.saveFormOf(r.value.body);
+    if (v3Mode && form === 'v2') {
+      // 옛 세이브(v2)는 보관만 한다: 덮기 전에 기기 보관함에(이 기기 옛 세이브 보관 키와 같은 원문이면 그대로)
+      const kept = archiveCloudV2(d.kv, r.value.body, d.now(), [v3.V3_KEYS.archiveV2]);
+      if (kept !== 'ok') return fail('device');
+    } else if (park) {
+      // 앞선 칸을 덮지 않는다: 다 찼으면 고르기를 멈춘다(재리뷰 3 Q1). 같은 본이 이미 있으면 그대로
+      const kept = addParked(d.kv, r.value.body, d.now());
+      if (kept === 'full') return { r: 'parkFull' };
+      if (kept === 'io') return fail('device');
+    }
+    if (v3Mode && form === 'v3' && !d.local.absorb(r.value.body)) return fail('device');
   }
   return upload(d, pick);
 }
@@ -508,15 +524,11 @@ async function retryForgotten(d: TaskDeps): Promise<TaskResult> {
 async function revert(d: TaskDeps): Promise<TaskResult> {
   const pre = readPreRestore(d.kv, d.now());
   if (!pre) return fail('device');
-  let back: sim.State;
-  try {
-    back = sim.parseState(pre.raw);
-  } catch {
-    return fail('device');
-  }
+  // 이 판이 이어 갈 수 없는 본(판이 다름·손상)이면 맞바꾸지 않는다
+  if (d.local.side(pre.raw).state === null) return fail('device');
   const cur = d.local.raw();
   if (cur !== null && !keepPreRestore(d.kv, cur, d.now())) return fail('device');
-  if (!d.local.adopt(back)) {
+  if (!d.local.adopt(pre.raw)) {
     keepPreRestore(d.kv, pre.raw, pre.at);
     return fail('device');
   }

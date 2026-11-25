@@ -13,20 +13,25 @@
 //  ⑤ 식별자 0: 맡겨 두기 요청의 경로·머리글·본문 키가 계약 목록 밖이면, 핑 본문에 긴 숫자(ms 시각·씨앗)·계약 밖 키가 있으면 실패.
 // 사건은 '보기에 맞는 선택지 중 r번째' 꼴이라, 사건을 빼도 열이 계속 돌아간다 → 실패 열을 줄여(shrink) 고정 시험으로 남길 수 있다.
 // 화면 쪽(useCloud 훅)의 send·작업 실행 규칙은 React 없이 여기서 같은 순서로 흉내 낸다(훅의 부작용 3가지: 글귀 확인 완료·켜짐인데 기록 없음 → 소개·옮겨 감/지움 → 소개면 기록 지움).
+// V27b 세이브 v3: 기기마다 판(form)을 둔다 — v2(옛 세이브, 실제 createLocalV2), v3(새 컨셉, 실제 createLocalV3 — 올리는 본문 = uploadV3).
+// v3 본의 열쇠 = 쌓이기만 하는 칸(공방·정·정 자막 횟수)과 되찾을 때 채우는 말 기록을 뺀 내용(같은 본이 기기 형태·올린 형태·병합 뒤에도 같은 열쇠).
+// 불변식 더하기: ⑥ 쌓이기만 — 기기의 v3 본은 사건 뒤 공방이 줄지 않고, 같은 몽망이면 정이 줄지 않는다.
+// ⑤ 확장 — 맡겨 두기 PUT·conflicts 본문이 v3면 core checkUploadBodyV3 통과(허용 목록 밖 칸 0). ① 확장 — 기기 옛 v2 보관함(cloudV2)도 자리.
 import { createHash } from 'node:crypto';
 import { daysBetween, localDate, normalizeRecoveryCode, pingSchema } from '@mong/contract';
-import { SAVE_KEYS, sim, type KV } from '@mong/core';
+import { SAVE_KEYS, sim, v3, type KV } from '@mong/core';
 import { vi } from 'vitest';
 import { recordAge } from '../../src/cloud/ageGate';
 import { createCloudApi } from '../../src/cloud/api';
 import { createFakeServer, type FakeServer } from '../../src/cloud/fakeServer';
 import { deleteToken, initialView, reduce, startEvents, type CloudEvent, type Task, type TaskResult, type View } from '../../src/cloud/model';
-import { PARKED_KEY, PRE_RESTORE_KEY, readParkedList, readPreRestore, readRecord, readUnconfirmedDelete, writeRecord } from '../../src/cloud/record';
+import { CLOUD_V2_ARCHIVE_KEY, PARKED_KEY, PRE_RESTORE_KEY, readParkedList, readPreRestore, readRecord, readUnconfirmedDelete, writeRecord } from '../../src/cloud/record';
 import { markCodeConfirmed, runTask, type TaskDeps } from '../../src/cloud/tasks';
 import { SLOW_MS } from '../../src/cloud/useCloud';
 import { metricsConsent, setMetricsOn } from '../../src/net/gate';
 import type { FetchLike } from '../../src/net/http';
 import { createPingClient, PING_USER_AGENT, type PingContext } from '../../src/net/ping';
+import { createLocalV2, createLocalV3 } from '../../src/cloud/localSave';
 
 export const T0 = Date.UTC(2026, 10, 25, 3, 0); // 서울 11-25 정오
 export const TZ = 540;
@@ -74,7 +79,7 @@ export type Act =
   | ['ev', number, CloudEvent];
 
 export interface Violation {
-  rule: '①유실' | '①칸' | '①덮임' | '②거짓안내' | '④끈뒤요청' | '⑤식별자' | '⑤경로' | '실행';
+  rule: '①유실' | '①칸' | '①덮임' | '②거짓안내' | '④끈뒤요청' | '⑤식별자' | '⑤경로' | '⑥쌓임' | '실행';
   step: number;
   msg: string;
   /** 이 사건 안에서 끝난 작업들(알려진 결함 가려내기용) */
@@ -91,8 +96,12 @@ interface Pending {
   marker0: ReturnType<typeof readUnconfirmedDelete>;
 }
 
+export type Form = 'v2' | 'v3';
+
 interface Dev {
   name: string;
+  /** 이 기기가 도는 판(V27b) */
+  form: Form;
   kv: MemKV;
   deps: TaskDeps;
   view: View;
@@ -132,23 +141,83 @@ export interface World {
 
 const MAX_DEVS = 4;
 
-/** 본 열쇠: 저장 시각을 뺀 상태 내용(받아 이어 가기 adopt가 다시 저장해도 같은 열쇠) */
+/**
+ * 본 열쇠: 저장 시각을 뺀 상태 내용(받아 이어 가기 adopt가 다시 저장해도 같은 열쇠).
+ * v3 본(기기 형태·올린 형태)은 쌓이기만 하는 칸(공방·정 relation.jeongDays/jeongDay·정 자막 횟수)과 말의 night·세기·사전 판·입력 방식을 뺀다 —
+ * 같은 본을 받아 병합해도(adoptV3·stackV3) 같은 본으로 센다(그 칸들은 ⑥이 따로 본다).
+ */
+const KEY_MEMO = new Map<string, string>();
 export function keyOf(raw: string): string {
+  const hit = KEY_MEMO.get(raw);
+  if (hit !== undefined) return hit;
+  const k = keyOfUncached(raw);
+  if (KEY_MEMO.size > 20_000) KEY_MEMO.clear();
+  KEY_MEMO.set(raw, k);
+  return k;
+}
+function keyOfUncached(raw: string): string {
+  const h = (x: unknown) => createHash('sha1').update(JSON.stringify(x)).digest('hex').slice(0, 12);
   try {
-    return createHash('sha1').update(JSON.stringify(sim.parseState(raw))).digest('hex').slice(0, 12);
+    if (v3.saveFormOf(raw) === 'v3') {
+      const s = v3.readAnyV3(raw);
+      const { jeongDays: _j, jeongDay: _d, ...rel } = s.sim.relation;
+      return `v3:${h({ sim: { ...s.sim, relation: rel }, words: s.v3.words.map((w) => [w.sense, w.strokeId]), life: s.v3.life, meal: s.v3.meal, tonight: s.v3.tonightCounted })}`;
+    }
+    return h(sim.parseState(raw));
   } catch {
     return `bad:${createHash('sha1').update(raw).digest('hex').slice(0, 12)}`;
   }
 }
 
-/** 처음 설치한 기기: 자기 몽망이 한 마리(씨앗이 다르면 다른 몽망이) */
-function freshSave(seed: number, t: number): string {
-  const s = sim.createInitial(T0 - seed * 3_600_000, TZ, seed);
-  return sim.serializeState(s, t);
+/** 기기 본 키(판마다) */
+export const mainKeyOf = (form: Form) => (form === 'v3' ? v3.V3_KEYS.main : SAVE_KEYS.main);
+
+const V3_STROKE = (seed: number) =>
+  Array.from({ length: 40 }, (_, i) => {
+    const th = 1.4 + (seed % 5) * 0.5 + i / 33;
+    return { x: Math.sin(th) * 0.62, y: -Math.cos(th) * 0.62, t: i * 20 };
+  });
+
+/** 처음 설치한 기기: 자기 몽망이 한 마리(씨앗이 다르면 다른 몽망이). v3는 말 한두 개를 쓴 몽망이 */
+function freshSave(seed: number, t: number, form: Form = 'v2'): string {
+  if (form === 'v2') return sim.serializeState(sim.createInitial(T0 - seed * 3_600_000, TZ, seed), t);
+  const at = T0 - seed * 3_600_000 - 3 * DAY;
+  let s = v3.createV3(at, TZ, seed, { birth: { x: 0, y: 0, ms: at, installAt: at, entropy: seed } });
+  const word = { ...v3.storedWordOf(v3.interpretWord(['비', '고마워', '행복해'][seed % 3]!, 'ko')), lexVer: v3.LEX_VER, source: 'keyboard' as const };
+  for (let d = 0; d < 1 + (seed % 2); d++) {
+    const b = at + d * DAY;
+    for (const e of [
+      { type: 'appForeground', at: b, tzOffsetMin: TZ },
+      { type: 'grind', at: b + 60_000, durationMs: 4000 },
+      { type: 'tap', at: b + 90_000, target: 'body', holdMs: 100, x: 0, y: 0 },
+      { type: 'write', at: b + 120_000, word, chars: 1, raw: V3_STROKE(seed + d) },
+      { type: 'putToSleep', at: b + 7_200_000 },
+      { type: 'appForeground', at: b + 43_200_000, tzOffsetMin: TZ },
+    ] as v3.V3Event[])
+      s = v3.reduceV3(s, e).state;
+  }
+  return v3.serializeV3(s, t);
 }
 
-/** 게임이 새 본을 저장한다(깸 정산·하루 지남 흉내 — 같은 몽망이, 다음 날). 저장마다 내용이 달라지게 rng에 일련번호 */
+const MEAL_ORDER = ['clear', 'pine', 'dew'] as const;
+const TREAT_ORDER = ['pattern', 'ribbon', 'dewdrop'] as const;
+
+/**
+ * 게임이 새 본을 저장한다(깸 정산·하루 지남 흉내 — 같은 몽망이, 다음 날). 저장마다 내용이 달라지게 rng에 일련번호.
+ * v3는 쌓이기만 하는 칸도 키운다: 정 +1(홀수 번째), 공방 한 종류(번호로 결정) — 갈래마다 다른 종류가 열려 병합(합집합·최댓값)을 지난다.
+ */
 export function playOnce(raw: string, t: number, n: number): string {
+  if (v3.saveFormOf(raw) === 'v3') {
+    const s = v3.parseV3(raw);
+    const rel = s.sim.relation;
+    const meal = MEAL_ORDER.filter((x) => s.v3.pantry.meal.includes(x) || (n % 3 === 0 && x === MEAL_ORDER[(n >> 2) % 3]));
+    const treat = TREAT_ORDER.filter((x) => s.v3.pantry.treat.includes(x) || (n % 3 === 1 && x === TREAT_ORDER[(n >> 2) % 3]));
+    const next: v3.V3State = {
+      sim: { ...s.sim, dayIndex: s.sim.dayIndex + 1, rng: 1_000_000 + n, relation: { ...rel, jeongDays: rel.jeongDays + (n % 2) } },
+      v3: { ...s.v3, pantry: { meal, treat } },
+    };
+    return v3.serializeV3(next, t);
+  }
   const s = sim.parseState(raw);
   return sim.serializeState({ ...s, dayIndex: s.dayIndex + 1, rng: 1_000_000 + n }, t);
 }
@@ -173,11 +242,15 @@ const BODY_KEYS: Record<string, string[]> = {
 /** DELETE /me를 보낼 수 있는 작업(사용자가 '지우기'·'다시 지우기'를 직접 고른 것뿐) */
 const DELETE_TASKS = new Set<Task['t']>(['delete', 'deleteCheck', 'retryForgotten']);
 
-export function createWorld(seed: number, nDevs = 2): World {
+/** forms = 기기마다 판(모자라면 마지막 값). 기본은 모두 옛 세이브(v2) — C13 원래 세계 그대로 */
+export function createWorld(seed: number, nDevs = 2, forms: readonly Form[] = ['v2']): World {
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   const srv = createFakeServer(sha, seed);
   const w: World = { srv, devs: [], t: T0, violations: [], step: 0, codebook: new Map(), notebook: [], excused: new Set(), settledNow: [], parent: new Map(), tracked: new Set(), plays: 0, srvSave: new Map(), pings: [], stats: { cloud: 0, ping: 0, tasks: {}, results: {} } };
-  for (let i = 0; i < nDevs; i++) addDevice(w, memKV(new Map([[SAVE_KEYS.main, freshSave(i + 1, T0)]])));
+  for (let i = 0; i < nDevs; i++) {
+    const form = forms[Math.min(i, forms.length - 1)] ?? 'v2';
+    addDevice(w, memKV(new Map([[mainKeyOf(form), freshSave(i + 1, T0, form)]])), form);
+  }
   return w;
 }
 
@@ -189,7 +262,7 @@ function violate(w: World, rule: Violation['rule'], msg: string) {
   w.violations.push({ rule, step: w.step, msg, settled: [...w.settledNow] });
 }
 
-function addDevice(w: World, kv: MemKV): Dev {
+function addDevice(w: World, kv: MemKV, form: Form = 'v2'): Dev {
   const name = String.fromCharCode(65 + w.devs.length);
   // 연령 확인은 통과로 둔다(켜기·되찾기·통계 모두 같은 기록)
   recordAge(kv, 'pass', T0, TZ);
@@ -201,8 +274,30 @@ function addDevice(w: World, kv: MemKV): Dev {
     return w.srv.fetch(url, init);
   };
   const now = () => w.t + dev.skew;
+  const mainKey = mainKeyOf(form);
+  const local =
+    form === 'v3'
+      ? createLocalV3({
+          kv,
+          current: () => {
+            const r = kv.getString(mainKey);
+            return r ? v3.parseV3(r) : null;
+          },
+          write: (st) => {
+            kv.set(mainKey, v3.serializeV3(st, now()));
+            return true;
+          },
+        })
+      : createLocalV2({
+          kv,
+          adopt: (st: sim.State) => {
+            kv.set(SAVE_KEYS.main, sim.serializeState(st, now()));
+            return true;
+          },
+        });
   Object.assign(dev, {
     name,
+    form,
     kv,
     skew: 0,
     view: { v: 'intro' } as View,
@@ -215,13 +310,7 @@ function addDevice(w: World, kv: MemKV): Dev {
       kv,
       sha256: sha,
       now,
-      local: {
-        raw: () => kv.getString(SAVE_KEYS.main) ?? null,
-        adopt: (st: sim.State) => {
-          kv.set(SAVE_KEYS.main, sim.serializeState(st, now()));
-          return true;
-        },
-      },
+      local,
     } satisfies TaskDeps,
   });
   dev.view = initialView(readRecord(kv));
@@ -259,6 +348,11 @@ function checkCloudRequest(w: World, dev: Dev, url: string, init: Parameters<Fet
     const o = JSON.parse(init.body) as Record<string, unknown>;
     const extra = Object.keys(o).filter((k) => !want?.includes(k));
     if (extra.length) violate(w, '⑤식별자', `${dev.name}: 본문에 계약 밖 키 ${extra.join(',')} (${route})`);
+    // V27b: v3 본문은 허용 목록 검사(서버와 같은 core 검사)를 통과해야 한다 — 기기 전용 칸·말 기록이 실려 나가면 실패
+    if ((route === 'PUT saves/main' || route === 'POST saves/main/conflicts') && typeof o.body === 'string' && v3.saveFormOf(o.body) === 'v3') {
+      const c = v3.checkUploadBodyV3(o.body);
+      if (c.kind !== 'ok') violate(w, '⑤식별자', `${dev.name}: v3 본문이 허용 목록 밖(${JSON.stringify(c)}, ${route})`);
+    }
     const gate = o.ageGate as Record<string, unknown> | undefined;
     if (gate && Object.keys(gate).some((k) => k !== 'v' && k !== 'ok')) violate(w, '⑤식별자', `${dev.name}: ageGate에 판정 밖 값 ${JSON.stringify(gate)}`);
   } else if (want && want.length) violate(w, '⑤경로', `${dev.name}: 본문이 없는 ${route}`);
@@ -281,8 +375,17 @@ type Loc = { key: string };
 function locations(w: World): Map<string, Loc> {
   const out = new Map<string, Loc>();
   for (const d of w.devs) {
-    const main = d.kv.getString(SAVE_KEYS.main);
+    const main = d.kv.getString(mainKeyOf(d.form));
     if (main) out.set(`dev:${d.name}:main`, { key: keyOf(main) });
+    // v3 기기의 옛 세이브 보관 키·서버에서 만난 옛 v2 보관함(V27b) — 덮지도 지우지도 않는 자리
+    const arch = d.form === 'v3' ? d.kv.getString(v3.V3_KEYS.archiveV2) : undefined;
+    if (arch) out.set(`dev:${d.name}:archive:own`, { key: keyOf(arch) });
+    try {
+      const list = JSON.parse(d.kv.getString(CLOUD_V2_ARCHIVE_KEY) ?? '[]') as Array<{ raw?: string }>;
+      list.forEach((x, i) => x.raw && out.set(`dev:${d.name}:archive:${i}`, { key: keyOf(x.raw) }));
+    } catch {
+      /* 깨진 칸 */
+    }
     // 칸은 저장소 원문을 직접 읽는다(운영 읽기 함수가 거르거나 지워도 시험은 속지 않는다)
     try {
       const pre = JSON.parse(d.kv.getString(PRE_RESTORE_KEY) ?? 'null') as { raw?: string } | null;
@@ -318,14 +421,14 @@ function checkOverwrite(w: World, act: Act) {
     w.srvSave.set(u.id, now);
     if (prev === undefined || prev === now || isAncestorOrSelf(w, prev, now)) continue;
     if (u.conflicts.some((c) => keyOf(c.body) === prev)) continue;
-    const chooser = w.devs.find((d) => d.mayReplace && d.kv.getString(SAVE_KEYS.main) !== undefined && keyOf(d.kv.getString(SAVE_KEYS.main)!) === now);
+    const chooser = w.devs.find((d) => d.mayReplace && d.kv.getString(mainKeyOf(d.form)) !== undefined && keyOf(d.kv.getString(mainKeyOf(d.form))!) === now);
     if (chooser) continue;
     violate(w, '①덮임', `서버 본 ${prev} 가 사용자 선택 없이 ${now} 로 덮임(conflict 칸에도 없음, 사건 ${JSON.stringify(act)})`);
   }
   // 고른 본이 서버에 올라갔으면 허락은 끝
   for (const d of w.devs) {
     const body = w.srv.peek(d.name)?.save?.body;
-    const main = d.kv.getString(SAVE_KEYS.main);
+    const main = d.kv.getString(mainKeyOf(d.form));
     if (d.mayReplace && body && main && keyOf(body) === keyOf(main)) d.mayReplace = false;
   }
 }
@@ -359,7 +462,7 @@ function checkLoss(w: World, before: Map<string, Loc>, after: Map<string, Loc>, 
   }
   // 기기 칸(preRestore·parked)은 사용자가 비우지 않으면 사라지지 않는다 — 시계를 어떻게 돌려도(③)
   for (const k of before.keys()) {
-    if (!/^dev:[A-Z]:(pre|parked:)/.test(k) || after.has(k) || excusedLoc(w, k)) continue;
+    if (!/^dev:[A-Z]:(pre|parked:|archive:)/.test(k) || after.has(k) || excusedLoc(w, k)) continue;
     violate(w, '①칸', `기기 칸 ${k} 가 사용자 비우기 없이 사라짐(사건 ${JSON.stringify(act)})`);
   }
 }
@@ -370,6 +473,43 @@ function excusedLoc(w: World, k: string): boolean {
   // 설계 예외: 서버 conflict 칸은 최대 3벌 — 가득 찬 채 새 칸이 들어와 밀려난 것
   const c = /^srv:([^:]+):conf:/.exec(k);
   return c !== null && (w.srv.dump().find((u) => u.id === c[1])?.conflicts.length ?? 0) >= 3;
+}
+
+// ── ⑥ 쌓이기만(V27b): v3 기기 본의 공방·정 ──
+type Stack = { seed: number; at: number; jeong: number; meal: string[]; treat: string[] };
+const STACK_MEMO = new Map<string, Stack>();
+function stacks(w: World): Map<string, Stack> {
+  const out = new Map<string, Stack>();
+  for (const d of w.devs) {
+    if (d.form !== 'v3') continue;
+    const raw = d.kv.getString(v3.V3_KEYS.main);
+    if (!raw) continue;
+    const hit = STACK_MEMO.get(raw);
+    if (hit) {
+      out.set(d.name, hit);
+      continue;
+    }
+    try {
+      const s = v3.parseV3(raw);
+      const st = { seed: s.sim.birth.seed, at: s.sim.birth.at, jeong: s.sim.relation.jeongDays, meal: [...s.v3.pantry.meal], treat: [...s.v3.pantry.treat] };
+      if (STACK_MEMO.size > 20_000) STACK_MEMO.clear();
+      STACK_MEMO.set(raw, st);
+      out.set(d.name, st);
+    } catch {
+      /* 손상 본은 ①이 본다 */
+    }
+  }
+  return out;
+}
+function checkStack(w: World, before: Map<string, Stack>, act: Act) {
+  const after = stacks(w);
+  for (const [name, b] of before) {
+    const a = after.get(name);
+    if (!a) continue;
+    const lost = [...b.meal.filter((x) => !a.meal.includes(x)), ...b.treat.filter((x) => !a.treat.includes(x))];
+    if (lost.length) violate(w, '⑥쌓임', `${name}: 공방 ${lost.join(',')} 이(가) 줄었다(사건 ${JSON.stringify(act)})`);
+    if (a.seed === b.seed && a.at === b.at && a.jeong < b.jeong) violate(w, '⑥쌓임', `${name}: 같은 몽망이의 정 ${b.jeong} → ${a.jeong}(사건 ${JSON.stringify(act)})`);
+  }
 }
 
 // ── 화면(useCloud.send와 같은 규칙) ──
@@ -543,6 +683,7 @@ export async function apply(w: World, act: Act): Promise<void> {
   w.excused = new Set();
   w.settledNow = [];
   const before = locations(w);
+  const stackBefore = stacks(w);
   const dev = (i: number) => w.devs[i % w.devs.length]!;
   switch (act[0]) {
     case 'ui': {
@@ -557,11 +698,11 @@ export async function apply(w: World, act: Act): Promise<void> {
     }
     case 'play': {
       const d = dev(act[1]);
-      const raw = d.kv.getString(SAVE_KEYS.main);
+      const raw = d.kv.getString(mainKeyOf(d.form));
       if (raw) {
         const next = playOnce(raw, d.deps.now(), ++w.plays);
         w.parent.set(keyOf(next), keyOf(raw));
-        d.kv.set(SAVE_KEYS.main, next);
+        d.kv.set(mainKeyOf(d.form), next);
       }
       break;
     }
@@ -593,7 +734,7 @@ export async function apply(w: World, act: Act): Promise<void> {
       const src = dev(act[1]);
       const name = String.fromCharCode(65 + w.devs.length);
       if (act[2] === 1) w.srv.copySession(src.name, name);
-      const d = addDevice(w, memKV(src.kv.m));
+      const d = addDevice(w, memKV(src.kv.m), src.form);
       d.view = initialView(readRecord(d.kv));
       break;
     }
@@ -650,6 +791,7 @@ export async function apply(w: World, act: Act): Promise<void> {
   settle(w);
   checkLoss(w, before, locations(w), act);
   checkOverwrite(w, act);
+  checkStack(w, stackBefore, act);
   w.step++;
 }
 
@@ -701,8 +843,8 @@ export function genActs(seed: number, n: number, profile: 'all' | 'ping' = 'all'
 }
 
 /** 사건 열 하나를 처음부터 돌린다 → 불변식 위반 목록 */
-export async function runActs(seed: number, acts: readonly Act[]): Promise<{ violations: Violation[]; world: World }> {
-  const w = createWorld(seed);
+export async function runActs(seed: number, acts: readonly Act[], forms?: readonly Form[]): Promise<{ violations: Violation[]; world: World }> {
+  const w = createWorld(seed, 2, forms);
   try {
     for (const a of acts) await apply(w, a);
     await drain(w);
@@ -715,9 +857,9 @@ export async function runActs(seed: number, acts: readonly Act[]): Promise<{ vio
 }
 
 /** 실패 열 줄이기(델타 디버깅 — 덩어리를 빼도 같은 규칙이 깨지면 뺀다) */
-export async function shrink(seed: number, acts: Act[], rule: Violation['rule']): Promise<Act[]> {
+export async function shrink(seed: number, acts: Act[], rule: Violation['rule'], forms?: readonly Form[]): Promise<Act[]> {
   // (profile과 무관 — 열 자체를 줄인다)
-  const fails = async (a: Act[]) => (await runActs(seed, a)).violations.some((v) => v.rule === rule);
+  const fails = async (a: Act[]) => (await runActs(seed, a, forms)).violations.some((v) => v.rule === rule);
   let cur = acts;
   for (let chunk = Math.ceil(cur.length / 2); chunk >= 1; chunk = Math.floor(chunk / 2)) {
     for (let i = 0; i < cur.length; ) {

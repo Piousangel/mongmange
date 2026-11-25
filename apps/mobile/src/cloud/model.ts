@@ -20,6 +20,11 @@ export interface SaveSide {
   strokes: number | null;
   /** 그 본을 기기에서 마지막으로 저장한 시각(ms). 모르면 null */
   savedAt: number | null;
+  /**
+   * 새 컨셉(v3) 기기가 만난 서버의 옛 세이브(v2) 본(V27b). 이어 갈 수 없으므로(state=null) 서버 쪽은 고를 수 없고,
+   * '이 기기'를 고르면 그 본을 기기 보관함에 둔 뒤 맡긴다(덮기 전에 보관 — 옛 v2는 보관만 한다)
+   */
+  old?: boolean;
 }
 
 /** 서버 본을 고를 때 '고른 그 본'인지 다시 확인하는 값 */
@@ -357,7 +362,8 @@ export function reduce(view: View, ev: CloudEvent): View {
       if (view.v !== 'choose' || view.confirming) return view;
       // 이 앱이 못 읽는 서버 본(새 판)이면 어느 쪽도 고르지 않는다: 서버 본은 그리지도 검증하지도 못했고,
       // 이 기기 본을 고르면 그 새 판이 conflict 칸에서 30일 뒤 사라질 수 있다 → 앱을 업데이트한 뒤 고른다
-      if (view.server.state === null) return view;
+      // 단, 서버 본이 옛 세이브(v2, old)면 '이 기기'만 고를 수 있다(그 본은 기기 보관함에 둔 뒤 맡긴다 — V27b)
+      if (view.server.state === null && !(view.server.old === true && ev.side === 'local')) return view;
       return { ...view, picked: ev.side };
     case 'confirmPick':
       if (view.v !== 'choose' || view.picked === null) return view;

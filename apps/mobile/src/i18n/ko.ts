@@ -474,6 +474,7 @@ export const ko = {
   'cloud.choose.saved': '{when} 저장',
   'cloud.choose.unknown': '알 수 없음',
   'cloud.choose.unreadable': '이 앱으로는 열 수 없는 새 판이에요. 앱을 업데이트한 뒤 고를 수 있어요.',
+  'cloud.choose.old': '맡겨 둔 쪽은 예전 판의 몽망이라 여기서는 이어 갈 수 없어요. 이 기기의 몽망이를 맡기면, 예전 판 몽망이는 이 기기에 그대로 보관해 둬요.',
   'cloud.choose.side.a11y': '{side}. {detail}. {saved}',
   'cloud.choose.next': '이 몽망이로 이어 가기',
   'cloud.choose.confirmLocal': '이 기기의 몽망이로 이어 가요. 맡겨 둔 몽망이는 30일 동안 서버에 남아요.',

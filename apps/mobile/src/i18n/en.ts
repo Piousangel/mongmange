@@ -476,6 +476,7 @@ export const en: Messages = {
   'cloud.choose.saved': 'Saved {when}',
   'cloud.choose.unknown': 'unknown',
   'cloud.choose.unreadable': 'This is a newer version this app can’t open. You can choose after updating the app.',
+  'cloud.choose.old': `The one you left with us is a ${M} from the earlier version, so it can’t continue here. If you keep the one on this device, the earlier ${M} stays stored on this device as it is.`,
   'cloud.choose.side.a11y': '{side}. {detail}. {saved}',
   'cloud.choose.next': 'Continue with this one',
   'cloud.choose.confirmLocal': `You’ll continue with the ${M} on this device. The one you left with us stays on our server for 30 days.`,

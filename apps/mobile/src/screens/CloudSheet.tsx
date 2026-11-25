@@ -618,6 +618,8 @@ function Choose({ view, cloud }: { view: Extract<CloudView, { v: 'choose' }>; cl
   const { width } = useWindowDimensions();
   const fs = useFontScale();
   const unreadable = view.server.state === null;
+  // 서버 쪽이 예전 판(v2) 몽망이면 '이 기기'만 고를 수 있다(예전 판은 기기에 보관 — V27b)
+  const old = unreadable && view.server.old === true;
   // 좁거나 글자가 크면 위아래로 쌓는다(카드 하나 최소 폭 150 × 글자 배율)
   const stacked = Math.min(width, 560) - 40 < 2 * 150 * Math.min(fs, 2) + 12;
   const sides: { key: 'local' | 'server'; side: SaveSide; label: string }[] = [
@@ -637,7 +639,7 @@ function Choose({ view, cloud }: { view: Extract<CloudView, { v: 'choose' }>; cl
             side={side}
             label={label}
             picked={view.picked === key}
-            disabled={unreadable || view.confirming}
+            disabled={view.confirming || (unreadable && !(old && key === 'local'))}
             onPick={() => send({ e: 'pick', side: key })}
             testID={`cloud-side-${key}`}
           />
@@ -645,7 +647,7 @@ function Choose({ view, cloud }: { view: Extract<CloudView, { v: 'choose' }>; cl
       </View>
       {unreadable && (
         <KText style={styles.note} testID="cloud-unreadable">
-          {t('cloud.choose.unreadable')}
+          {t(old ? 'cloud.choose.old' : 'cloud.choose.unreadable')}
         </KText>
       )}
       {view.confirming ? (

@@ -10,6 +10,7 @@ import { createFakeServer } from '../src/cloud/fakeServer';
 import { closable, deleteToken, initialView, reduce, startEvents, tailMatches, type CloudEvent, type SaveSide, type View } from '../src/cloud/model';
 import { addParked, UNCONFIRMED_DELETE_KEY as UNCONFIRMED_KEY, CLOUD_KEY, keepPreRestore, markUnconfirmedDelete, PARKED_KEY, PARKED_SLOTS, PRE_RESTORE_KEY, readParkedList, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete } from '../src/cloud/record';
 import { markCodeConfirmed, runTask, uploadShapeOk, type TaskDeps } from '../src/cloud/tasks';
+import { createLocalV2 } from '../src/cloud/localSave';
 
 const sha = async (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 const T = Date.UTC(2026, 10, 25, 3, 0); // 서울 11-25 정오
@@ -36,14 +37,14 @@ function device(server: ReturnType<typeof createFakeServer>, name: string, raw: 
     kv,
     sha256: sha,
     now: () => T,
-    local: {
-      raw: () => kv.getString(SAVE_KEYS.main) ?? null,
+    local: createLocalV2({
+      kv,
       adopt: (st) => {
         adopted.push(st);
         kv.set(SAVE_KEYS.main, sim.serializeState(st, T + 1));
         return true;
       },
-    },
+    }),
   };
   return { kv, deps, adopted };
 }
@@ -409,7 +410,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     const keep = { ...FRESH_REC, creature: 'KEEP0000', sub: 'first-try', conflict: true, rev: 3 };
     b.kv.set(CLOUD_KEY, JSON.stringify(keep));
     expect(await runTask({ t: 'recover', code: en.code, target: x }, b.deps)).toMatchObject({ r: 'recovered' });
-    expect(readRecord(b.kv)).toEqual(keep);
+    expect(readRecord(b.kv)).toEqual({ ...keep, form: null }); // V27b: 기록에 form 칸이 생겼다(옛 기록 = null)
   });
 
   it('[R4·B2b] 토큰을 새로 받아도 DELETE가 계속 401 unauthorized면 지워짐이 아니라 확인 필요', async () => {
@@ -471,7 +472,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     const keep = { ...FRESH_REC, creature: 'KEEP0000', sub: 'kept', conflict: true };
     b.kv.set(CLOUD_KEY, JSON.stringify(keep));
     expect(await runTask({ t: 'recover', code: en.code, target: null }, b.deps)).toMatchObject({ r: 'compare', note: 'hasCreature' });
-    expect(readRecord(b.kv)).toEqual(keep);
+    expect(readRecord(b.kv)).toEqual({ ...keep, form: null }); // V27b: 기록에 form 칸이 생겼다(옛 기록 = null)
   });
 
   it('[리뷰 C1] 대상 인장 코드를 모르면 반쯤 성공이어도 성공으로 보지 않고 나란히(안내 hasCreature), 지우지 않음', async () => {

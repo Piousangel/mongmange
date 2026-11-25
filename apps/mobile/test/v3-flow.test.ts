@@ -1,5 +1,5 @@
 // 새 컨셉 v3 앱 층(리뷰 2026-11-25-v3-slice H1·H2·M1·M2·M4·M5): store v3 경로, 스크린리더로 한 마디까지, 쓴 글자 남기지 않기,
-// 배고픔 낱말 기쁨 호 없음, 곁 대답이 따로 드러나지 않음, 맡겨 두기와 함께 켜지지 않음.
+// 배고픔 낱말 기쁨 호 없음, 곁 대답이 따로 드러나지 않음, 맡겨 두기는 V27b 뒤로 함께 켤 수 있음(v3 본문은 cloud-v3 시험).
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { PING_EVENTS } from '@mong/contract';
@@ -95,14 +95,13 @@ describe('store v3 경로', () => {
     expect(kv.m.get(v3.V3_KEYS.archiveV2)).toBe(v2);
   });
 
-  it('맡겨 두기 복원은 v3 모드에서 거부, 맡겨 두기 플래그는 v3와 함께 켜지지 않는다(M5)', () => {
+  it('v3 모드에서 옛 세이브(v2) 복원은 거부(v2 키는 보관만), 맡겨 두기 플래그는 V27b 뒤로 v3와 함께 켤 수 있다(M5 풀림)', () => {
     boot();
     install();
     expect(adoptState(sim.createInitial(KST_NOON, 540, 9))).toBe(false);
     setFeature('cloud', true);
-    expect(isOn('cloud')).toBe(false);
-    setFeature('conceptV3', false);
     expect(isOn('cloud')).toBe(true);
+    setFeature('cloud', null);
   });
 });
 

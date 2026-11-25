@@ -8,6 +8,7 @@ import { createFakeServer } from '../src/cloud/fakeServer';
 import { PRE_RESTORE_DAYS, PRE_RESTORE_KEY, readPreRestore } from '../src/cloud/record';
 import { runTask, type TaskDeps } from '../src/cloud/tasks';
 import { __configureForTest, adoptState, boot, dispatch, getSnapshot, install, onEffects, tickNow } from '../src/game/store';
+import { createLocalV2 } from '../src/cloud/localSave';
 
 const sha = async (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 const KST_16 = Date.UTC(2026, 10, 20, 7, 0); // 서울 16:00
@@ -49,7 +50,7 @@ describe('바꾸기 전으로 되돌리기(preRestore)', () => {
       kv,
       sha256: sha,
       now: () => t,
-      local: { raw: () => kv.getString(SAVE_KEYS.main) ?? null, adopt: adoptState },
+      local: createLocalV2({ kv, adopt: adoptState }),
     };
     expect(await runTask({ t: 'enable' }, deps)).toMatchObject({ r: 'enabled' });
     await srv.putFromElsewhere('A', sRaw);
@@ -110,7 +111,7 @@ describe('바꾸기 전으로 되돌리기(preRestore)', () => {
       if (recState) kv.set('mong.cloud.v1', JSON.stringify({ v: 1, state: recState, rev: 1, sha: null, syncedAt: null, codeConfirmed: true, conflict: false, held: null, creature: null, parked: null }));
       const srv = createFakeServer(sha);
       const auth = srv.authFor('A');
-      const deps: TaskDeps = { api: createCloudApi({ fetch: srv.fetch, base: 'https://api.test', auth }), auth, kv, sha256: sha, now: () => t, local: { raw: () => kv.getString(SAVE_KEYS.main) ?? null, adopt: adoptState } };
+      const deps: TaskDeps = { api: createCloudApi({ fetch: srv.fetch, base: 'https://api.test', auth }), auth, kv, sha256: sha, now: () => t, local: createLocalV2({ kv, adopt: adoptState }) };
       expect(await runTask({ t: 'revert' }, deps)).toEqual({ r: 'reverted' });
       expect(srv.log).toHaveLength(0);
       expect(readPreRestore(kv, t)!.raw).toBe(grown);

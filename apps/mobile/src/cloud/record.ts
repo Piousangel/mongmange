@@ -29,9 +29,14 @@ export interface CloudRecord {
   deleteTries: number;
   /** 맡겨 두기를 켠(되찾은) 로그인의 sub(B2b 리뷰 H1). 서버가 '그 로그인에 사용자 없음'이라 할 때 지금 sub와 같아야만 지워짐·끝남을 확정한다 */
   sub: string | null;
+  /**
+   * 마지막으로 맞춘 서버 본의 형태(V27b): v2 = 옛 세이브, v3 = 새 컨셉 본문. 없으면(V27b 전 기록) v2로 본다.
+   * 이 기기가 도는 판과 다르면 If-Match로 덮지 않고 나란히 고르기를 거친다(서버의 옛 v2 본을 말없이 덮지 않게).
+   */
+  form: 'v2' | 'v3' | null;
 }
 
-export const FRESH_RECORD: CloudRecord = { v: 1, state: 'on', rev: null, sha: null, syncedAt: null, codeConfirmed: false, conflict: false, held: null, creature: null, deleteTries: 0, sub: null };
+export const FRESH_RECORD: CloudRecord = { v: 1, state: 'on', rev: null, sha: null, syncedAt: null, codeConfirmed: false, conflict: false, held: null, creature: null, deleteTries: 0, sub: null, form: null };
 
 const isNumOrNull = (x: unknown) => x === null || (typeof x === 'number' && Number.isFinite(x));
 
@@ -52,7 +57,8 @@ export function readRecord(kv: KV): CloudRecord | null {
     const creature = typeof o.creature === 'string' ? o.creature : null;
     const deleteTries = typeof o.deleteTries === 'number' && o.deleteTries >= 0 ? o.deleteTries : 0;
     const sub = typeof o.sub === 'string' ? o.sub : null;
-    return { v: 1, state: o.state, rev: o.rev ?? null, sha: o.sha ?? null, syncedAt: o.syncedAt ?? null, codeConfirmed: o.codeConfirmed === true, conflict: o.conflict === true, held, creature, deleteTries, sub };
+    const form = o.form === 'v2' || o.form === 'v3' ? o.form : null;
+    return { v: 1, state: o.state, rev: o.rev ?? null, sha: o.sha ?? null, syncedAt: o.syncedAt ?? null, codeConfirmed: o.codeConfirmed === true, conflict: o.conflict === true, held, creature, deleteTries, sub, form };
   } catch {
     return { ...FRESH_RECORD, conflict: true };
   }
@@ -200,6 +206,43 @@ export function setParked(kv: KV, id: string, raw: string | null, at: number): b
   const all = readAllParked(kv);
   const next = raw === null ? all.filter((p) => p.id !== id) : all.map((p): Parked => (p.id === id ? { id, at, raw } : p));
   return writeAllParked(kv, next);
+}
+
+// ── 서버에서 만난 옛 세이브(v2) 보관함(V27b) ──
+// 새 컨셉(v3)으로 도는 기기가 서버에서 옛 세이브(v2) 본을 만나면 그 본은 이어 갈 수 없다(새 컨셉은 1일차부터 — 이 기기의 옛 세이브도
+// mong.v3.archive.v2에 보관만 한다). 사용자가 '이 기기' 몽망이를 맡기기로 고르면, 서버 본을 덮기 **전에** 그 원문을 이 보관함에 둔다.
+// 보관함은 **덮지 않고 자동으로 지우지 않는다**(만료 표시도 없음 — 옛 판 보관이지 다시 고를 칸이 아니다). 같은 원문은 한 번만.
+// 칸은 CLOUD_V2_ARCHIVE_SLOTS개, 다 차면 'full'(아무것도 쓰지 않음 → 고르기를 멈춘다). 서버로 보내지 않는다.
+export const CLOUD_V2_ARCHIVE_KEY = 'mong.v3.archive.cloudV2';
+export const CLOUD_V2_ARCHIVE_SLOTS = 3;
+
+export function readCloudV2Archive(kv: KV): { at: number; raw: string }[] {
+  try {
+    const s = kv.getString(CLOUD_V2_ARCHIVE_KEY);
+    if (!s) return [];
+    const o = JSON.parse(s) as unknown;
+    return Array.isArray(o) ? o.filter((x): x is { at: number; raw: string } => typeof x?.at === 'number' && typeof x?.raw === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 옛 세이브 본 보관. 같은 원문이 보관함(또는 이 기기 옛 세이브 보관 키 alsoKeys)에 이미 있으면 ok, 다 찼으면 full, 쓰기 실패면 io */
+export function archiveCloudV2(kv: KV, raw: string, at: number, alsoKeys: readonly string[] = []): 'ok' | 'full' | 'io' {
+  const all = readCloudV2Archive(kv);
+  try {
+    if (all.some((x) => x.raw === raw) || alsoKeys.some((k) => kv.getString(k) === raw)) return 'ok';
+  } catch {
+    return 'io';
+  }
+  if (all.length >= CLOUD_V2_ARCHIVE_SLOTS) return 'full';
+  try {
+    const v = JSON.stringify([...all, { at, raw }]);
+    kv.set(CLOUD_V2_ARCHIVE_KEY, v);
+    return kv.getString(CLOUD_V2_ARCHIVE_KEY) === v ? 'ok' : 'io';
+  } catch {
+    return 'io';
+  }
 }
 
 // ── 확인하지 못한 지우기(리뷰 재리뷰 2 M-a) ──

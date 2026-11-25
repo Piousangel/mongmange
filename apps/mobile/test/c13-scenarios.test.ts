@@ -1,14 +1,14 @@
 // C13 고정 시나리오: 오프라인 7일(Q9 — 끊긴 채 매일 깸, 토큰 만료, 아웃박스, 칸 만료)과 느린 서버(Q5 — 요청마다 10~30초, 커밋 뒤 늦은 응답,
 // 중간 끊김). 세계·불변식(①~⑤)은 무작위 시험과 같은 test/support/c13World.ts — 매 사건 뒤 같은 검사를 돈다.
 import { EVENT_MAX_AGE_DAYS } from '@mong/contract';
-import { SAVE_KEYS } from '@mong/core';
+import { SAVE_KEYS, v3 } from '@mong/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CLOUD_TIMEOUT_MS } from '../src/cloud/api';
 import { deleteToken, type CloudEvent } from '../src/cloud/model';
-import { PARKED_KEY, PRE_RESTORE_KEY, readParkedList, readPreRestore, readRecord } from '../src/cloud/record';
+import { PARKED_KEY, PRE_RESTORE_KEY, readCloudV2Archive, readParkedList, readPreRestore, readRecord } from '../src/cloud/record';
 import { SLOW_MS } from '../src/cloud/useCloud';
 import { NET_KEYS, OUTBOX_MAX } from '../src/net/ping';
-import { apply, createWorld, DAY, disposeWorld, keyOf, playOnce, type World } from './support/c13World';
+import { apply, createWorld, DAY, disposeWorld, keyOf, mainKeyOf, playOnce, type World } from './support/c13World';
 
 afterEach(() => disposeWorld());
 
@@ -317,3 +317,164 @@ describe('느린 서버(Q5): 요청마다 10~30초', () => {
     clean(w);
   });
 });
+
+// ── V27b 세이브 v3 시나리오: 같은 세계·불변식(①~⑥)에 새 컨셉 기기 ──
+describe('세이브 v3(V27b) — 기기 이동·충돌·오프라인 7일·느린 서버', () => {
+  const raw3 = (w: World, i = 0) => w.devs[i]!.kv.getString(mainKeyOf(w.devs[i]!.form))!;
+  const st3 = (w: World, i = 0) => v3.parseV3(raw3(w, i));
+  /** 글귀 확인까지 끝낸 되찾기 → 나란히 고르기(restore) */
+  async function recoverToChoose(w: World, i: number, code: string) {
+    await recover(w, i, code);
+    await tick(w, 100);
+    const v = view(w, i);
+    if (v.v !== 'code') throw new Error(JSON.stringify(v));
+    await ev(w, i, { e: 'codeWritten' });
+    await ev(w, i, { e: 'codeCheck', input: v.code.slice(-4) });
+    await tick(w, 100);
+  }
+  const pick = async (w: World, i: number, side: 'local' | 'server') => {
+    await ev(w, i, { e: 'pick', side });
+    await ev(w, i, { e: 'confirmPick' });
+    await ev(w, i, { e: 'confirmPick' });
+    await tick(w, 100);
+  };
+
+  it('기기 이동: A(v3)가 맡기고 B(v3)가 되찾아 서버 본을 고르면 A의 몽망이로, B의 앞 몽망이는 preRestore·서버 conflict 칸 — 되돌리면 그대로', async () => {
+    const w = createWorld(900, 2, ['v3']);
+    await apply(w, ['play', 0]);
+    const code = await enable(w, 0);
+    const aKey = keyOf(raw3(w, 0));
+    const bBefore = raw3(w, 1);
+    await recoverToChoose(w, 1, code);
+    expect(view(w, 1)).toMatchObject({ v: 'choose', why: 'restore' });
+    await pick(w, 1, 'server');
+    expect(view(w, 1)).toEqual({ v: 'on' });
+    expect(keyOf(raw3(w, 1))).toBe(aKey);
+    expect(st3(w, 1).sim.birth.seed).toBe(st3(w, 0).sim.birth.seed);
+    expect(readPreRestore(w.devs[1]!.kv, w.t)!.raw).toBe(bBefore);
+    expect(w.srv.peek('B')!.conflicts.map((c) => keyOf(c.body))).toContain(keyOf(bBefore));
+    await ev(w, 1, { e: 'askRevert', now: null, before: null });
+    await ev(w, 1, { e: 'confirmRevert' });
+    await tick(w, 100);
+    expect(view(w, 1)).toEqual({ v: 'reverted' });
+    expect(v3.parseV3(raw3(w, 1)).v3.words).toEqual(v3.parseV3(bBefore).v3.words);
+    clean(w);
+  });
+
+  it('충돌: 같은 로그인 두 갈래가 공방을 따로 열면, 어느 쪽을 골라도 공방은 합집합·정은 큰 쪽', async () => {
+    for (const side of ['local', 'server'] as const) {
+      const w = createWorld(901, 1, ['v3']);
+      await enable(w, 0);
+      const srvBody = w.srv.peek('A')!.save!.body;
+      // 다른 갈래(번호 6·9 → 밥 송화·이슬, 정 +1) / 이 기기 갈래(번호 1~4 → 간식 늘인 먹, 정 +2) — playOnce 규칙
+      const other = v3.uploadBodyV3(v3.parseV3(playOnce(playOnce(v3.serializeV3(v3.parseUploadV3(srvBody), w.t), w.t, 6), w.t, 9)), w.t);
+      w.parent.set(keyOf(other), keyOf(srvBody));
+      await w.srv.putFromElsewhere('A', other);
+      for (let k = 0; k < 4; k++) await apply(w, ['play', 0]);
+      await ev(w, 0, { e: 'syncNow' });
+      await tick(w, 100);
+      expect(view(w)).toMatchObject({ v: 'choose', why: 'conflict', picked: null });
+      const serverSt = v3.parseUploadV3(other);
+      const localSt = st3(w);
+      await pick(w, 0, side);
+      expect(view(w)).toEqual({ v: 'on' });
+      const got = side === 'local' ? v3.parseUploadV3(w.srv.peek('A')!.save!.body) : st3(w);
+      for (const k of [...serverSt.v3.pantry.meal, ...localSt.v3.pantry.meal]) expect(got.v3.pantry.meal, side).toContain(k);
+      for (const k of [...serverSt.v3.pantry.treat, ...localSt.v3.pantry.treat]) expect(got.v3.pantry.treat, side).toContain(k);
+      expect(got.sim.relation.jeongDays).toBe(Math.max(serverSt.sim.relation.jeongDays, localSt.sim.relation.jeongDays));
+      expect(serverSt.v3.pantry.meal).toEqual(expect.arrayContaining(['pine', 'dew'])); // 시험이 헛돌지 않게: 갈래마다 다른 종류
+      expect(localSt.v3.pantry.treat).toContain('ribbon');
+      expect(localSt.v3.pantry.meal).not.toContain('pine');
+      expect(got.v3.pantry).toMatchObject({ meal: expect.arrayContaining(['pine', 'dew']), treat: expect.arrayContaining(['ribbon']) });
+      expect(serverSt.sim.relation.jeongDays).not.toBe(localSt.sim.relation.jeongDays);
+      clean(w);
+      disposeWorld();
+    }
+  });
+
+  it('오프라인 7일: v3 기기가 끊긴 채 매일 깸 → 다시 붙으면 나란히(자동으로 고르지 않음), 두 본 모두 남고 공방은 줄지 않음', async () => {
+    const w = createWorld(902, 1, ['v3']);
+    await enable(w, 0);
+    await apply(w, ['net', 0, 0.1]);
+    await apply(w, ['expire', 0]);
+    for (let d = 1; d <= 7; d++) {
+      await tick(w, DAY);
+      await apply(w, ['play', 0]);
+      await ev(w, 0, { e: 'syncNow' });
+      await tick(w, 100);
+      expect(view(w)).toMatchObject({ v: 'failed', failure: 'offline' });
+      await ev(w, 0, { e: 'back' });
+      if (d === 3) {
+        const b = w.srv.peek('A')!.save!.body;
+        const other = v3.uploadBodyV3(v3.parseV3(playOnce(v3.serializeV3(v3.parseUploadV3(b), w.t), w.t, 9_000)), w.t);
+        w.parent.set(keyOf(other), keyOf(b));
+        await w.srv.putFromElsewhere('A', other);
+      }
+    }
+    await apply(w, ['net', 5, 0]);
+    const localKey = keyOf(raw3(w));
+    const serverKey = keyOf(w.srv.peek('A')!.save!.body);
+    await ev(w, 0, { e: 'syncNow' });
+    await tick(w, 100);
+    expect(view(w)).toMatchObject({ v: 'choose', why: 'conflict', picked: null });
+    await pick(w, 0, 'local');
+    expect(keyOf(w.srv.peek('A')!.save!.body)).toBe(localKey);
+    expect(w.srv.peek('A')!.conflicts.map((c) => keyOf(c.body))).toContain(serverKey);
+    clean(w);
+  });
+
+  it('느린 서버 20초(커밋 뒤 늦은 응답): v3 본문도 다시 시도가 같은 sha 빨리 감기, rev는 한 번만', async () => {
+    const w = createWorld(903, 1, ['v3']);
+    await enable(w, 0);
+    await apply(w, ['play', 0]);
+    const rev0 = w.srv.peek('A')!.save!.rev;
+    w.srv.faults.delayAfterMs = 20_000;
+    await ev(w, 0, { e: 'syncNow' });
+    await tick(w, SLOW_MS);
+    expect(view(w)).toMatchObject({ v: 'busy', slow: true });
+    await tick(w, CLOUD_TIMEOUT_MS);
+    expect(view(w)).toMatchObject({ v: 'failed', failure: 'timeout' });
+    await apply(w, ['net', 5, 0]);
+    await ev(w, 0, { e: 'retry' });
+    await tick(w, 100);
+    expect(view(w)).toEqual({ v: 'on' });
+    expect(w.srv.peek('A')!.save!.rev).toBe(rev0 + 1);
+    expect(v3.checkUploadBodyV3(w.srv.peek('A')!.save!.body)).toEqual({ kind: 'ok' });
+    clean(w);
+  });
+
+  it('한쪽 v2 한쪽 v3: v2 기기(A)가 맡긴 몽망이를 v3 기기(B)가 되찾으면 서버 쪽은 고를 수 없고, 이 기기를 고르면 옛 v2는 기기 보관함 + 서버 conflict 칸', async () => {
+    const w = createWorld(904, 2, ['v2', 'v3']);
+    const code = await enable(w, 0);
+    const oldBody = w.srv.peek('A')!.save!.body;
+    await recoverToChoose(w, 1, code);
+    const v = view(w, 1);
+    expect(v).toMatchObject({ v: 'choose', why: 'restore', server: { state: null, old: true } });
+    await ev(w, 1, { e: 'pick', side: 'server' });
+    expect(view(w, 1)).toMatchObject({ picked: null });
+    await pick(w, 1, 'local');
+    expect(view(w, 1)).toEqual({ v: 'on' });
+    expect(readCloudV2Archive(w.devs[1]!.kv).map((x) => x.raw)).toEqual([oldBody]);
+    expect(v3.saveFormOf(w.srv.peek('B')!.save!.body)).toBe('v3');
+    expect(w.srv.peek('B')!.conflicts.map((c) => c.body)).toContain(oldBody);
+    expect(w.devs[0]!.kv.getString(SAVE_KEYS.main)).toBeDefined(); // A의 v2 본은 A에 그대로
+    clean(w);
+  });
+
+  it('한쪽 v3 한쪽 v2: v2 기기가 v3 맡긴 본을 만나면 어느 쪽도 고를 수 없고 서버 v3는 덮이지 않는다', async () => {
+    const w = createWorld(905, 2, ['v3', 'v2']);
+    const code = await enable(w, 0);
+    const body3 = w.srv.peek('A')!.save!.body;
+    await recoverToChoose(w, 1, code);
+    expect(view(w, 1)).toMatchObject({ v: 'choose', why: 'restore', server: { state: null } });
+    await ev(w, 1, { e: 'pick', side: 'local' });
+    await ev(w, 1, { e: 'pick', side: 'server' });
+    expect(view(w, 1)).toMatchObject({ picked: null });
+    await ev(w, 1, { e: 'back' });
+    await ev(w, 1, { e: 'syncNow' });
+    await tick(w, 100);
+    expect(w.srv.peek('B')!.save!.body).toBe(body3);
+    clean(w);
+  });
+});
+

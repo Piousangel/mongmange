@@ -1,13 +1,14 @@
 // 맡겨 두기 앱 연결(제품 경로). 서버 주소(API_BASE)와 로그인 포트가 둘 다 있어야 작업 묶음(TaskDeps)이 생긴다.
 // 로그인 포트(Supabase 익명 로그인·세션 저장 MMKV mong.session)는 C11 net 모듈이 registerCloudAuth로 넘긴다 — 그 전에는 null(행 숨김).
-import { SAVE_KEYS, type sim } from '@mong/core';
+import type { sim } from '@mong/core';
 import { useMemo, useSyncExternalStore } from 'react';
 import { optionalModule } from '../lib/optionalModule';
 import { kv } from '../game/storage';
-import { adoptState, now } from '../game/store';
+import { adoptState, adoptStateV3, getV3, isV3Mode, now } from '../game/store';
 import { API_BASE } from '../net/env';
 import type { FetchLike } from '../net/http';
 import { createCloudApi, type CloudAuth } from './api';
+import { createLocalSwitch, createLocalV2, createLocalV3 } from './localSave';
 import type { TaskDeps } from './tasks';
 
 type ExpoCrypto = typeof import('expo-crypto');
@@ -43,16 +44,8 @@ export function cloudDeps(a: CloudAuth | null = auth): TaskDeps | null {
     kv,
     sha256: sha256Hex,
     now,
-    local: {
-      raw: () => {
-        try {
-          return kv.getString(SAVE_KEYS.main) ?? null;
-        } catch {
-          return null;
-        }
-      },
-      adopt: (st: sim.State) => adoptState(st),
-    },
+    // 부팅한 판(옛 세이브 v2 / 새 컨셉 v3)을 부를 때마다 본다(V27b)
+    local: createLocalSwitch(isV3Mode, createLocalV2({ kv, adopt: (st: sim.State) => adoptState(st) }), createLocalV3({ kv, current: getV3, write: adoptStateV3 })),
   };
 }
 

@@ -7,7 +7,7 @@ import { ageStatus, judgeAge, recordAge, type AgeInput, type AgeInputError, chec
 import { ageEvents, deleteToken, initialView, reduce, startEvents, type CloudEvent, type Purpose, type View } from './model';
 import { readPreRestore, readRecord, readUnconfirmedDelete, writeRecord } from './record';
 import { myDataEntry } from './myData';
-import { markCodeConfirmed, runTask, sideOf, type TaskDeps } from './tasks';
+import { markCodeConfirmed, runTask, type TaskDeps } from './tasks';
 
 /** 이보다 오래 걸리면 '서버가 조금 느려요'를 보인다(ms) */
 export const SLOW_MS = 4000;
@@ -88,7 +88,7 @@ export function useCloud(deps: TaskDeps | null, opts: { initial?: View; tzOffset
       if (entry === 'revert') {
         // 맞바꾸기 확인에 두 몽망이(지금·바꾸기 전)를 나란히
         const pre = readPreRestore(deps.kv, deps.now());
-        set(reduce(init, { e: 'askRevert', now: sideOf(deps.local.raw()), before: pre ? sideOf(pre.raw) : null }));
+        set(reduce(init, { e: 'askRevert', now: deps.local.side(deps.local.raw()), before: pre ? deps.local.side(pre.raw) : null }));
       } else if (entry === 'delete') set(myDataEntry(init, readRecord(deps.kv)));
       else if (entry?.startsWith('parked:')) set(reduce(init, { e: 'openParked', slot: entry.slice('parked:'.length) }));
       else set(init);

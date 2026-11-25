@@ -503,7 +503,7 @@ export interface UploadWord {
   attachStroke: StrokeRecord;
   sense: string;
 }
-/** 아직 맡겨 두기에 연결하지 않았다. 모양만 고정(시험) */
+/** 맡겨 두기 본문은 v3/cloud.ts uploadBodyV3가 uploadV3(이 함수 포함)로만 만든다(V27b) */
 export function uploadWords(s: V3State): UploadWord[] {
   const byId = new Map(s.sim.strokes.map((x) => [x.id, x]));
   const out: UploadWord[] = [];

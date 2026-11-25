@@ -6,7 +6,9 @@
 // 인증은 B2b 계약(@mong/contract AUTH_ERROR)대로: 토큰 문제 = 401 unauthorized, 그 로그인(sub)에 사용자 없음 = 401 no_account,
 // DELETE /me에 지울 것 없음 = 410 no_account, 옮겨 감 = 410 moved. recover 재시도(같은 sub·같은 옛 글귀) = 200 replay:true.
 // 토큰은 JWT 꼴(`h.<base64url {sub}>.s`)이라 앱의 subOf가 sub를 읽는다.
-import { formatRecoveryCode, normalizeRecoveryCode, RECOVERY_ALPHABET, type SaveMeta } from '@mong/contract';
+// 세이브 본문 검사(V27b, 실서버 inspectSave와 같은 core 검사): 크기 상한 → 413, v3 블록이 허용 목록 밖이면 422 save_invalid.
+import { formatRecoveryCode, normalizeRecoveryCode, RECOVERY_ALPHABET, SAVE_MAX_BYTES, type SaveMeta } from '@mong/contract';
+import { v3 } from '@mong/core';
 import type { FetchLike } from '../net/http';
 import type { CloudAuth } from './api';
 
@@ -174,6 +176,11 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
     }
     if (route === 'GET saves/main/meta') return user.save ? res(200, meta(user.save)) : err(404, 'no_save');
     if (route === 'GET saves/main') return user.save ? res(200, { ...meta(user.save), body: user.save.body }) : err(404, 'no_save');
+    if (route === 'POST saves/main/conflicts' || route === 'PUT saves/main') {
+      const b = String(body.body);
+      if (new TextEncoder().encode(b).length > SAVE_MAX_BYTES) return err(413, 'save_too_large');
+      if (v3.checkUploadBodyV3(b).kind === 'invalid') return err(422, 'save_invalid');
+    }
     if (route === 'POST saves/main/conflicts') {
       if (!user.save) return err(404, 'no_save');
       const b = String(body.body);

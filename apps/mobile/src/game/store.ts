@@ -237,7 +237,7 @@ export function install(firstTap?: { x: number; y: number }) {
  * 호출 전 기기 본 원문 보존(PRE_RESTORE_KEY)과 서버 conflict 칸 업로드는 cloud/tasks.ts가 먼저 끝낸다.
  */
 export function adoptState(state: State): boolean {
-  // 새 컨셉 v3 세로 조각은 맡겨 두기와 아직 잇지 않았다(업로드 모양만 core v3.uploadWords로 고정)
+  // 새 컨셉(v3)으로 도는 동안 옛 세이브(v2) 키는 보관만 한다 — v3 본은 adoptStateV3로(V27b)
   if (snap.futureSave || v3Mode) return false;
   const r = writeSave(kv, state, now(), { rotateBackup: true });
   if (!r.ok) return false;
@@ -245,6 +245,20 @@ export function adoptState(state: State): boolean {
   const step = sim.reduce(state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow(), ...nightFields() });
   apply(step, null, false);
   persist(step.state, false);
+  return true;
+}
+
+/**
+ * 맡겨 두기 v3 복원(V27b): 새 컨셉으로 도는 기기에서만. 받은 상태(병합은 cloud/localSave.ts — core adoptV3·stackV3)를 v3 키에 쓰고
+ * (지금 본은 백업으로 민다) 그 시각까지 정산해 홈을 다시 그린다. 옛 세이브(v2) 키는 건드리지 않는다. 새 버전 세이브·쓰기 실패면 false.
+ */
+export function adoptStateV3(st: v3.V3State): boolean {
+  if (snap.futureSave || !v3Mode) return false;
+  const r = v3.writeSaveV3(kv, st, now(), { rotateBackup: true });
+  if (!r.ok) return false;
+  const step = v3.reduceV3(st, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow(), ...nightFields() });
+  applyV3(step, null, false);
+  persist(step.state.sim, false, step.state.v3);
   return true;
 }
 

@@ -6,7 +6,7 @@
 import 'reflect-metadata';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { SCHEMA_VERSION, sim } from '@mong/core';
+import { SCHEMA_VERSION, sim, v3 } from '@mong/core';
 import { normalizeRecoveryCode, SAVE_DAILY_GZIP_BYTES } from '@mong/contract';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -126,6 +126,47 @@ async function putN(d: Device, from: number, n: number): Promise<number> {
   for (let i = 0; i < n; i++) rev = (await put(d, body(from + i), { ifMatch: rev }).expect(200)).body.rev;
   return rev;
 }
+
+// ───────────── 세이브 v3 본문(V27b) ─────────────
+
+describe('세이브 v3 본문 — 실제 Postgres 경로(V27b)', () => {
+  function v3State(days: number): v3.V3State {
+    let s = v3.createV3(T0, 540, 4, { birth: { x: 0, y: 0, ms: T0, installAt: T0, entropy: 11 } });
+    const w = { ...v3.storedWordOf(v3.interpretWord('고마워', 'ko')), lexVer: v3.LEX_VER, source: 'keyboard' as const };
+    for (let d = 0; d < days; d++) {
+      const b = T0 + d * DAY + 9 * 3_600_000;
+      const raw = Array.from({ length: 40 }, (_, i) => ({ x: Math.sin(1.4 + d * 0.5 + i / 33) * 0.6, y: -Math.cos(1.4 + d * 0.5 + i / 33) * 0.6, t: i * 20 }));
+      for (const e of [
+        { type: 'appForeground', at: b, tzOffsetMin: 540 },
+        { type: 'grind', at: b + 60_000, durationMs: 4000 },
+        { type: 'write', at: b + 120_000, word: w, chars: 1, raw },
+        { type: 'putToSleep', at: b + 7_200_000 },
+        { type: 'appForeground', at: b + 43_200_000, tzOffsetMin: 540 },
+      ] as v3.V3Event[])
+        s = v3.reduceV3(s, e).state;
+    }
+    return s;
+  }
+  it('앱이 만든 v3 본문은 저장·검증되고 받은 본문이 바이트까지 같다. 기기 세이브 그대로·기기 전용 칸은 422', async () => {
+    const d = await device();
+    await boot(d);
+    const s = v3State(3);
+    const good = v3.uploadBodyV3(s, T0 + 5 * DAY);
+    const w = await put(d, good, { none: true }).expect(200);
+    const got = await as(d, http().get('/api/v1/saves/main')).expect(200);
+    expect(got.body.body).toBe(good);
+    expect(got.body).toMatchObject({ validated: true, dayIndex: s.sim.dayIndex, strokesTotal: s.sim.strokesTotal, rev: w.body.rev });
+    expect(v3.parseUploadV3(got.body.body).v3.life).toEqual(s.v3.life);
+    const device422 = await put(d, v3.serializeV3(s, T0 + 6 * DAY), { ifMatch: w.body.rev }).expect(422);
+    expect(device422.body.error).toMatchObject({ code: 'save_invalid', details: { reason: 'v3_word' } });
+    const o = JSON.parse(good) as { v3: Record<string, unknown> };
+    o.v3.captionsShown = [1, 0, 0, 0];
+    await put(d, JSON.stringify(o), { ifMatch: w.body.rev }).expect(422);
+    await as(d, http().post('/api/v1/saves/main/conflicts')).send({ body: JSON.stringify(o), clientSavedAt: savedAt }).expect(422);
+    // 서버 본은 그대로
+    expect((await as(d, http().get('/api/v1/saves/main')).expect(200)).body.body).toBe(good);
+  });
+});
 
 // ───────────── 계정·연령 ─────────────
 

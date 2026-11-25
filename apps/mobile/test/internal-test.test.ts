@@ -176,10 +176,11 @@ describe('시험판에서만 새 컨셉 v3·v3 개발 메뉴 켜짐(운영·prev
     const { conceptV3: _v3, share: _s, review: _r, ...rest } = FEATURE_DEFAULTS;
     for (const [id, on] of Object.entries(rest)) expect(on, id).toBe(false);
   });
-  it('v3가 켜지면 맡겨 두기(cloud)는 꺼진 채(기존 규칙 그대로)', () => {
+  it('v3가 켜져도 맡겨 두기(cloud)는 번들 기본값(꺼짐)을 따른다 — V27b 뒤로 둘 다 켜짐은 허용, 켜는 길은 개발 메뉴·원격뿐', () => {
     setFeature('conceptV3', true);
-    setFeature('cloud', true);
     expect(isOn('cloud')).toBe(false);
+    setFeature('cloud', true);
+    expect(isOn('cloud')).toBe(true);
     setFeature('cloud', null);
     setFeature('conceptV3', null);
   });

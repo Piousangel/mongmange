@@ -12,6 +12,7 @@ import { addParked, markUnconfirmedDelete, writeRecord, readRecord } from '../cl
 import { markCodeConfirmed, runTask, sideOf, type TaskDeps } from '../cloud/tasks';
 import { kv as webKV } from '../game/storage';
 import { CloudSheetHost } from './CloudSheet';
+import { createLocalV2 } from '../cloud/localSave';
 
 function memKV(): KV {
   const m = new Map<string, string>();
@@ -37,13 +38,13 @@ async function setup(cv: string): Promise<{ deps: TaskDeps; initial?: CloudView 
     kv,
     sha256: sha256Hex,
     now: () => Date.now(),
-    local: {
-      raw: () => kv.getString(SAVE_KEYS.main) ?? null,
+    local: createLocalV2({
+      kv,
       adopt: (st) => {
         kv.set(SAVE_KEYS.main, sim.serializeState(st, Date.now()));
         return true;
       },
-    },
+    }),
   };
   const enable = async () => (await runTask({ t: 'enable' }, deps)) as { r: string; code?: string };
   const conflict = async () => {
