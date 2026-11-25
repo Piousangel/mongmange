@@ -1,13 +1,15 @@
 # Cloud Run 서비스 mong-api (서울) — `deploy.sh deploy`가 ${…} 자리를 채워 `gcloud run services replace`로 올린다.
 # 근거: architecture.md 2-3(설정값)·2-4(Scheduler 행: 요청 timeout 300초 이상)·6-4(비밀·운영 필수값), B7-report 5절(권장 설정), DECISIONS 'B6 배포 준비'.
-# 비밀값은 Secret Manager 이름만 적는다(값은 오너가 직접 넣는다 — b6-owner-guide.md 10단계).
+# 비밀값은 Secret Manager 이름과 **판 번호**만 적는다(값은 오너가 직접 넣는다 — b6-owner-guide.md 8단계).
+# 판 번호 고정(B6 준비 리뷰 H2): `latest`는 인스턴스가 뜰 때마다 해석되어 같은 리비전 안에서 옛 값·새 값이 섞인다
+# (RECOVERY_PEPPER가 섞이면 되찾기 글귀가 깨진다). deploy.sh가 enabled 최신 판 번호를 채우고, 비밀을 바꾸면 deploy를 다시 돌려 새 리비전으로 넘긴다.
 #
 # 값마다 까닭(바꾸면 deploy.sh check의 기대값도 함께 바꾼다):
 #   containerConcurrency 40 — B7 3-1: 동시 40에서 p95 39ms(HTML)·134ms(비콘). DB 풀이 5라 더 올리면 풀 대기만 길어진다
 #   minScale ${MIN_INSTANCES} — 소프트런칭 0, 정식 출시 주 1(`deploy.sh deploy --launch-week`). 링크 HTML은 CDN이 콜드 스타트를 가린다
 #   maxScale 3 — 비용·DB 연결 상한(풀 5 × 3 = 15, Supavisor 한도 안)
-#   timeoutSeconds 300 — B7은 60초를 권했지만 storage-gc(attemptDeadline 300초)가 같은 서비스로 오므로 300(architecture 2-4).
-#                        B7이 걱정한 '멈춘 연결이 슬롯을 5분 잡는 일'은 B7a의 DB_QUERY_TIMEOUT_MS(6초)가 먼저 끊는다
+#   timeoutSeconds 300 — [잠정, B7a 커밋 뒤 확정] B7은 60초를 권했지만 storage-gc(attemptDeadline 300초)가 같은 서비스로 오므로 300(architecture 2-4).
+#                        멈춘 DB 연결은 B7a의 DB_QUERY_TIMEOUT_MS(6초)가 끊는다. 느린 클라이언트는 경로별 제한으로(README 3절)
 #   memory 1Gi — B7 B2(서로 다른 IP 홍수 OOM). B7a의 상한 있는 리밋 저장소가 배포·재시험(시나리오 5)된 뒤 512Mi로 내린다
 #   ingress all — 앱 API가 *.run.app에 직접 오고(architecture 2-1), Firebase Hosting rewrite(/m/**·ota)도 공개 run.app으로 온다.
 #                 'internal-and-cloud-load-balancing'으로 좁히면 둘 다 끊긴다 → run.app 직접 호출 차단은 인그레스로 할 수 없다(README 4절)
@@ -81,27 +83,27 @@ spec:
               value: '5000'
             - name: DB_QUERY_TIMEOUT_MS
               value: '6000'
-            # 비밀값 — Secret Manager(서울 보관), 값은 오너만
+            # 비밀값 — Secret Manager(서울 보관), 값은 오너만. key = 판 번호(latest 금지)
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: DATABASE_URL
-                  key: latest
+                  key: '${VER_DATABASE_URL}'
             - name: SUPABASE_SERVICE_ROLE_KEY
               valueFrom:
                 secretKeyRef:
                   name: SUPABASE_SERVICE_ROLE_KEY
-                  key: latest
+                  key: '${VER_SUPABASE_SERVICE_ROLE_KEY}'
             - name: RECOVERY_PEPPER
               valueFrom:
                 secretKeyRef:
                   name: RECOVERY_PEPPER
-                  key: latest
+                  key: '${VER_RECOVERY_PEPPER}'
             - name: READY_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: READY_TOKEN
-                  key: latest
+                  key: '${VER_READY_TOKEN}'
           # DB를 보지 않는 /healthz만(B7 5절 '프로브'). 콜드 스타트 로컬 1.6초 → 여유 30초
           startupProbe:
             httpGet:

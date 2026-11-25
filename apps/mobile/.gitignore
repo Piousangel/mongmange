@@ -29,6 +29,9 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+# 자체 OTA 공개 인증서만 커밋한다(ota-self-host.md 6절, B6 준비 리뷰 M2). 개인키 이름(private-key.pem·*.private.pem)은 위 *.pem과 루트 .gitignore가 막는다
+!certs/ota-preview.pem
+!certs/ota-production.pem
 
 # local env files
 .env*.local

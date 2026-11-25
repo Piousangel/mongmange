@@ -1,24 +1,28 @@
 #!/usr/bin/env bash
 # mong-api 배포 도우미(B6). **기본은 dry-run** — 실행할 명령을 찍기만 한다. 실제로 실행하려면 --apply.
-# 오너 노트북에서 오너 계정(gcloud auth login)으로 돈다. 비밀값을 읽거나 찍지 않는다(값 넣기는 b6-owner-guide.md 10단계, 오너 손으로).
+# 오너 노트북에서 오너 계정(gcloud auth login)으로 돈다. 비밀값을 읽거나 찍지 않는다(값 넣기는 b6-owner-guide.md 8단계, 오너 손으로).
 #
-#   apps/server/deploy/deploy.sh [--apply] [--env FILE] [--digest sha256:…] [--launch-week] <단계>...
+#   apps/server/deploy/deploy.sh [--apply] [--env FILE] [--digest sha256:…|current] [--launch-week] <단계>...
 #
-# 단계(실제 순서·사이에 끼는 Supabase·비밀값 넣기는 docs/ops/b6-owner-guide.md):
+# 단계(안내서 순서. 사이에 끼는 Supabase·비밀값 넣기는 docs/ops/b6-owner-guide.md):
 #   check      템플릿을 채워 YAML·JSON 문법과 기대값(B7·architecture 설정)을 검사한다. gcloud 없이 돈다. 늘 먼저 돈다
 #   apis       필요한 API 켜기
-#   registry   Artifact Registry 저장소 mong(서울) + 정리 정책(최근 3개만)
-#   accounts   서비스 계정 2개(mong-api-run: 실행, mong-scheduler: 호출)
+#   budget     예산 알림(25·50·100% + 예측 100%). 같은 이름이 있으면 건너뜀
+#   logging    서울 로그 버킷 mong-logs 7일 + _Default 싱크 전환 + Cloud Run 플랫폼 요청 로그 제외(첫 배포 **전에**)
+#   registry   Artifact Registry 저장소 mong(서울) + 정리 정책(최근 5개 보존)
+#   accounts   서비스 계정 2개(mong-api-run: 실행, mong-scheduler: 호출) + 쓰지 않는 기본 Compute 계정의 Editor 회수
 #   secrets    비밀 4개의 **빈 자리**(서울 보관) + 실행 계정에 그 4개만 읽기 권한. 값은 넣지 않는다
-#   logging    서울 로그 버킷 mong-logs 7일 + _Default 싱크 전환 + Cloud Run 플랫폼 요청 로그 제외
-#   budget     예산 알림(25·50·100%)
-#   build      linux/amd64 이미지 빌드 + 푸시(태그 = git 커밋) → 다이제스트를 찍는다
-#   deploy     서비스 YAML을 채워 올리고 공개 호출(allUsers invoker)을 연다. --digest 필수(--apply일 때)
+#   build      linux/amd64 이미지 빌드 + 푸시(태그 = git 커밋) → 다이제스트를 찍는다. B7a가 커밋된 HEAD에서만
+#   deploy     비밀 판 번호를 고정해 서비스 YAML을 채워 올리고 공개 호출(allUsers invoker)을 연다
+#              --digest 필수(--apply일 때). 비밀만 바꿀 때는 --digest current(지금 이미지 그대로 새 판 번호로 새 리비전)
 #   scheduler  호출 계정에 이 서비스 invoker만 주고 잡 3개(storage-gc·moderation·cdn-purge)를 만들거나 고친다
-#   smoke      /healthz·/readyz(토큰은 Secret Manager에서 바로 헤더로 — 화면에 안 나옴)·cron 무인증 404
+#   smoke      /healthz·/readyz(토큰은 화면에 안 나옴)·cron 무인증 404·moderation 잡 실제 시도 확인. 하나라도 틀리면 문구와 함께 실패
+#   logs-on    장애 조사 때만(오너): 플랫폼 요청 로그를 --hours(기본 2, 최대 4)시간만 받는다. 만료 시각이 제외 필터에 들어가 **끄는 것을 잊어도 자동으로 다시 제외**
+#   logs-off   조사 끝: 제외 필터를 원래 꼴(시간 조건 없음)로 되돌린다
+#   k6         처리방침 K6 증거 ①~④를 출력한다(읽기만)
 #
-# 예) 전체를 미리 보기:  apps/server/deploy/deploy.sh check apis registry accounts secrets logging budget build deploy scheduler smoke
-#     실제 실행:        apps/server/deploy/deploy.sh --apply apis registry accounts secrets
+# 예) 전체 미리 보기: apps/server/deploy/deploy.sh check apis budget logging registry accounts secrets build deploy scheduler smoke
+#     실제 실행:      apps/server/deploy/deploy.sh --apply apis budget logging registry accounts secrets
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,15 +33,18 @@ SERVICE=mong-api
 SECRETS=(DATABASE_URL SUPABASE_SERVICE_ROLE_KEY RECOVERY_PEPPER READY_TOKEN)
 JOBS=(storage-gc moderation cdn-purge)
 # 템플릿에서 채우는 자리 — 이 밖의 ${…}가 남으면 check가 실패한다
-VARS=(PROJECT_ID PROJECT_NUMBER SUPABASE_URL HOPS_API HOPS_WEB HOPS_OTA METRIC_APP_VERSIONS MIN_INSTANCES IMAGE_DIGEST APP_VERSION)
+VARS=(PROJECT_ID PROJECT_NUMBER SUPABASE_URL HOPS_API HOPS_WEB HOPS_OTA METRIC_APP_VERSIONS MIN_INSTANCES IMAGE_DIGEST APP_VERSION
+  VER_DATABASE_URL VER_SUPABASE_SERVICE_ROLE_KEY VER_RECOVERY_PEPPER VER_READY_TOKEN)
 
 APPLY=0
 ENV_FILE="${HOME}/.config/mong/deploy.env"
 IMAGE_DIGEST="${IMAGE_DIGEST:-}"
 MIN_INSTANCES=0
+HOURS=2
 STEPS=()
 
-usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"; exit "${1:-0}"; }
+die() { echo "멈춤: $*" >&2; exit 1; }
 
 while (($#)); do
   case "$1" in
@@ -45,8 +52,9 @@ while (($#)); do
     --env) ENV_FILE="$2"; shift ;;
     --digest) IMAGE_DIGEST="$2"; shift ;;
     --launch-week) MIN_INSTANCES=1 ;;
+    --hours) HOURS="$2"; shift ;;
     -h|--help) usage 0 ;;
-    check|apis|registry|accounts|secrets|logging|budget|build|deploy|scheduler|smoke) STEPS+=("$1") ;;
+    check|apis|registry|accounts|secrets|logging|budget|build|deploy|scheduler|smoke|logs-on|logs-off|k6) STEPS+=("$1") ;;
     *) echo "모르는 인자: $1" >&2; usage 2 ;;
   esac
   shift
@@ -82,7 +90,7 @@ run() {
 run_sh() {
   if ((APPLY)); then bash -c "$1"; else printf '[dry-run] %s\n' "$1"; fi
 }
-# 있으면 건너뛰고 없으면 만든다: exists <describe 명령…> -- <create 명령…>
+# 있으면 건너뛰고 없으면 만든다: ensure <describe 명령…> -- <create 명령…>
 ensure() {
   local describe=() create=()
   while [[ "$1" != -- ]]; do describe+=("$1"); shift; done; shift
@@ -92,6 +100,35 @@ ensure() {
   else
     printf '[dry-run] (없을 때만) '; printf '%q ' "${create[@]}"; printf '\n'
   fi
+}
+
+# --apply 전 자리표시자 거부(리뷰 M11): 이 값으로 배포하면 부팅은 되지만 JWT 검증·cron이 조용히 실패한다
+guard_apply() {
+  ((APPLY)) || return 0
+  [[ "$PROJECT_NUMBER" =~ ^[0-9]{6,20}$ && ! "$PROJECT_NUMBER" =~ ^0+$ ]] || die "PROJECT_NUMBER가 자리표시자입니다(deploy.env)"
+  [[ "$PROJECT_ID" != *REPLACE* && -n "$PROJECT_ID" ]] || die "PROJECT_ID가 자리표시자입니다"
+  [[ "$SUPABASE_URL" =~ ^https://[a-z0-9]{10,40}\.supabase\.co$ && "$SUPABASE_URL" != *REPLACE* ]] || die "SUPABASE_URL이 자리표시자이거나 형식이 아닙니다(https://<ref>.supabase.co)"
+  local actual
+  actual="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')" || die "gcloud projects describe 실패($PROJECT_ID)"
+  [[ "$actual" == "$PROJECT_NUMBER" ]] || die "PROJECT_NUMBER($PROJECT_NUMBER)가 실제 번호($actual)와 다릅니다"
+}
+
+# 비밀 판 번호(리뷰 H2): VER_<이름>이 있으면 그 값, 없으면 enabled 판 중 가장 최근 것. dry-run은 1
+resolve_versions() {
+  local s v
+  for s in "${SECRETS[@]}"; do
+    v="$(eval "printf '%s' \"\${VER_$s-}\"")"
+    if [[ -z "$v" ]]; then
+      if ((APPLY)); then
+        v="$(gcloud secrets versions list "$s" --project="$PROJECT_ID" --filter='state=ENABLED' --sort-by='~createTime' --limit=1 --format='value(name.basename())')"
+        [[ -n "$v" ]] || die "비밀 $s에 enabled 판이 없습니다 — 안내서 8단계에서 값을 먼저 넣으세요"
+      else
+        v=1
+      fi
+    fi
+    [[ "$v" =~ ^[1-9][0-9]*$ ]] || die "비밀 $s 판 번호가 숫자가 아닙니다: $v (latest 금지)"
+    printf -v "VER_$s" '%s' "$v"
+  done
 }
 
 # 템플릿 채우기: 정해진 이름의 ${VAR}만 바꾼다
@@ -107,6 +144,8 @@ render() {
 
 render_all() {
   local digest="${IMAGE_DIGEST:-sha256:0000000000000000000000000000000000000000000000000000000000000000}"
+  [[ "$digest" == current ]] && digest="sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  resolve_versions
   IMAGE_DIGEST="$digest" render "$DEPLOY_DIR/cloudrun/mong-api.service.yaml" "$OUT/mong-api.service.yaml"
   local j
   for j in "${JOBS[@]}"; do render "$DEPLOY_DIR/scheduler/$j.flags.yaml" "$OUT/$j.flags.yaml"; done
@@ -140,6 +179,7 @@ step_check() {
     for (const s of ["DATABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "RECOVERY_PEPPER", "READY_TOKEN"]) {
       if (!env[s] || !env[s].valueFrom || env[s].value !== undefined) fail(s + "는 Secret Manager 참조여야 한다(값 금지)");
       eq(env[s].valueFrom.secretKeyRef.name, s, s + " 비밀 이름");
+      if (!/^[1-9][0-9]*$/.test(String(env[s].valueFrom.secretKeyRef.key))) fail(s + " 비밀은 판 번호로 고정해야 한다(latest 금지 — 리뷰 H2): " + env[s].valueFrom.secretKeyRef.key);
     }
     for (const [k, v] of Object.entries(env)) if (v.value !== undefined && /postgres(ql)?:\/\/|sb_secret_|eyJ[A-Za-z0-9_-]{10,}/.test(v.value)) fail(k + "에 비밀값처럼 보이는 값");
     eq(env.NODE_ENV.value, "production", "NODE_ENV");
@@ -168,8 +208,8 @@ step_check() {
       if (parseInt(f["--attempt-deadline"]) > t.spec.timeoutSeconds) fail(job + " attemptDeadline이 Cloud Run timeout보다 길다");
     }
     const pol = JSON.parse(fs.readFileSync(out + "/cleanup-policy.json", "utf8"));
-    if (!pol.some((p) => p.action.type === "Keep" && p.mostRecentVersions && p.mostRecentVersions.keepCount >= 2)) fail("정리 정책에 최근 판 보존(Keep)이 없다");
-    console.log("check 통과: 서비스 YAML 1·Scheduler 3·정리 정책 1 (동시성 40·max 3·timeout 300·1Gi·ingress all·비밀 4개는 이름만)");
+    if (!pol.some((p) => p.action.type === "Keep" && p.mostRecentVersions && p.mostRecentVersions.keepCount >= 5)) fail("정리 정책에 최근 5개 보존(Keep)이 없다");
+    console.log("check 통과: 서비스 YAML 1·Scheduler 3·정리 정책 1 (동시성 40·max 3·timeout 300·1Gi·ingress all·비밀 4개는 이름 + 판 번호만)");
   ')
   echo "채운 사본: $OUT (스크립트가 끝나면 지워짐)"
 }
@@ -180,6 +220,40 @@ step_apis() {
     run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com cloudscheduler.googleapis.com \
     logging.googleapis.com monitoring.googleapis.com iam.googleapis.com iamcredentials.googleapis.com \
     firebase.googleapis.com firebasehosting.googleapis.com billingbudgets.googleapis.com
+}
+
+step_budget() {
+  say "budget — 예산 알림(알림일 뿐 지출을 멈추지 않는다)"
+  if ((APPLY)); then
+    [[ -n "${BILLING_ACCOUNT:-}" && -n "${BUDGET_AMOUNT:-}" ]] || die "deploy.env에 BILLING_ACCOUNT·BUDGET_AMOUNT가 필요합니다"
+    if gcloud billing budgets list --billing-account="$BILLING_ACCOUNT" --format='value(displayName)' | grep -qx mong-monthly; then
+      echo "있음 — 건너뜀: 예산 mong-monthly"; return 0
+    fi
+  fi
+  run gcloud billing budgets create --billing-account="${BILLING_ACCOUNT:-XXXXXX-XXXXXX-XXXXXX}" --display-name="mong-monthly" \
+    --budget-amount="${BUDGET_AMOUNT:-120USD}" --filter-projects="projects/$PROJECT_NUMBER" \
+    --threshold-rule=percent=0.25 --threshold-rule=percent=0.5 --threshold-rule=percent=1.0 \
+    --threshold-rule=percent=1.0,basis=forecasted-spend
+}
+
+step_logging() {
+  say "logging — 서울 버킷 mong-logs 7일, _Default 싱크 전환, Cloud Run 플랫폼 요청 로그 제외"
+  local bucket="logging.googleapis.com/projects/${PROJECT_ID}/locations/${REGION}/buckets/mong-logs"
+  ensure gcloud logging buckets describe mong-logs --location="$REGION" --project="$PROJECT_ID" -- \
+    gcloud logging buckets create mong-logs --location="$REGION" --retention-days=7 --project="$PROJECT_ID" \
+      --description="mong: 7 days, Seoul (architecture 5-2)"
+  run gcloud logging buckets update mong-logs --location="$REGION" --retention-days=7 --project="$PROJECT_ID"
+  run gcloud logging sinks update _Default "$bucket" --project="$PROJECT_ID"
+  # 플랫폼 요청 로그(IP·UA·전체 URL — /m 코드·/deletion 영수증 포함)는 받지 않는다. 5xx·지연 알림은 Cloud Monitoring 지표로 본다.
+  # 장애 조사 때만 잠시 끈다(README 7절). 처리방침 문구와의 정합은 DECISIONS B6 준비 ③(처리방침 담당 결정 대기)
+  if ((APPLY)) && gcloud logging sinks describe _Default --project="$PROJECT_ID" --format=json | grep -q '"name": "run-platform-requests"'; then
+    echo "있음 — 건너뜀: 제외 run-platform-requests"
+  else
+    run gcloud logging sinks update _Default --project="$PROJECT_ID" \
+      --add-exclusion='name=run-platform-requests,description=no IP/UA/URL request logs (B6),filter=log_id("run.googleapis.com/requests")'
+  fi
+  # 옛 _Default 버킷(global)은 위치를 못 바꾼다 → 새로 들어가는 것이 없게 된 뒤 보존을 최소(1일)로
+  run gcloud logging buckets update _Default --location=global --retention-days=1 --project="$PROJECT_ID"
 }
 
 step_registry() {
@@ -197,6 +271,18 @@ step_accounts() {
     gcloud iam service-accounts create mong-api-run --project="$PROJECT_ID" --display-name="mong-api runtime (no project roles)"
   ensure gcloud iam service-accounts describe "$SCHED_SA" --project="$PROJECT_ID" -- \
     gcloud iam service-accounts create mong-scheduler --project="$PROJECT_ID" --display-name="Cloud Scheduler -> mong-api /internal/cron (OIDC)"
+  # 쓰지 않는 기본 Compute 계정에 자동으로 붙은 Editor를 회수(리뷰 L7). 계정이 없거나 역할이 없으면 건너뜀
+  local csa="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+  if ((APPLY)); then
+    if gcloud projects get-iam-policy "$PROJECT_ID" --flatten='bindings[].members' \
+        --filter="bindings.role=roles/editor AND bindings.members=serviceAccount:$csa" --format='value(bindings.role)' | grep -q editor; then
+      gcloud projects remove-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$csa" --role=roles/editor --condition=None
+    else
+      echo "없음 — 건너뜀: 기본 Compute 계정 Editor"
+    fi
+  else
+    printf '[dry-run] (있을 때만) gcloud projects remove-iam-policy-binding %s --member=serviceAccount:%s --role=roles/editor --condition=None\n' "$PROJECT_ID" "$csa"
+  fi
 }
 
 step_secrets() {
@@ -208,50 +294,41 @@ step_secrets() {
     run gcloud secrets add-iam-policy-binding "$s" --project="$PROJECT_ID" \
       --member="serviceAccount:$RUN_SA" --role=roles/secretmanager.secretAccessor --condition=None
   done
-  echo "값은 넣지 않았습니다 — b6-owner-guide.md 10단계를 오너가 직접 합니다."
-}
-
-step_logging() {
-  say "logging — 서울 버킷 mong-logs 7일, _Default 싱크 전환, Cloud Run 플랫폼 요청 로그 제외"
-  local bucket="logging.googleapis.com/projects/${PROJECT_ID}/locations/${REGION}/buckets/mong-logs"
-  ensure gcloud logging buckets describe mong-logs --location="$REGION" --project="$PROJECT_ID" -- \
-    gcloud logging buckets create mong-logs --location="$REGION" --retention-days=7 --project="$PROJECT_ID" \
-      --description="mong: 7 days, Seoul (architecture 5-2)"
-  run gcloud logging buckets update mong-logs --location="$REGION" --retention-days=7 --project="$PROJECT_ID"
-  # 플랫폼 요청 로그(IP·UA·전체 URL — /m 코드·/deletion 영수증 포함)는 받지 않는다. 5xx·지연 알림은 Cloud Monitoring 지표로 본다.
-  # 앱 자체 로그(pino 화이트리스트: route 템플릿·상태·지연, IP 없음)는 남는다. DECISIONS 'B6 배포 준비' ③
-  run gcloud logging sinks update _Default "$bucket" --project="$PROJECT_ID" \
-    --add-exclusion='name=run-platform-requests,description=no IP/UA/URL request logs (B6),filter=log_id("run.googleapis.com/requests")'
-  # 옛 _Default 버킷(global)은 위치를 못 바꾼다 → 새로 들어가는 것이 없게 된 뒤 보존을 최소(1일)로
-  run gcloud logging buckets update _Default --location=global --retention-days=1 --project="$PROJECT_ID"
-}
-
-step_budget() {
-  say "budget — 예산 알림(알림일 뿐 지출을 멈추지 않는다)"
-  if ((APPLY)); then : "${BILLING_ACCOUNT:?deploy.env에 BILLING_ACCOUNT가 필요합니다}" "${BUDGET_AMOUNT:?}"; fi
-  BILLING_ACCOUNT="${BILLING_ACCOUNT:-XXXXXX-XXXXXX-XXXXXX}"
-  run gcloud billing budgets create --billing-account="$BILLING_ACCOUNT" --display-name="mong-monthly" \
-    --budget-amount="$BUDGET_AMOUNT" --filter-projects="projects/$PROJECT_ID" \
-    --threshold-rule=percent=0.25 --threshold-rule=percent=0.5 --threshold-rule=percent=1.0 \
-    --threshold-rule=percent=1.0,basis=forecasted-spend
+  echo "값은 넣지 않았습니다 — b6-owner-guide.md 8단계를 오너가 직접 합니다."
 }
 
 step_build() {
   say "build — linux/amd64 이미지(Apple Silicon에서도 Cloud Run용으로) → $IMAGE:$APP_VERSION"
+  # B7a(상한 있는 리밋 저장소·DB 쿼리 제한 시간)가 커밋된 HEAD여야 한다(리뷰 M3 — 300초·1Gi 판단이 이 코드를 전제로 한다)
+  local env_head
+  env_head="$(git -C "$REPO_ROOT" show HEAD:apps/server/src/config/env.ts 2>/dev/null || true)"
+  if ! grep -q DB_QUERY_TIMEOUT_MS <<<"$env_head" || ! grep -q RATE_LIMIT_MAX_KEYS <<<"$env_head"; then
+    if ((APPLY)); then die "HEAD에 B7a(DB_QUERY_TIMEOUT_MS·RATE_LIMIT_MAX_KEYS)가 없습니다 — B7a 커밋 뒤에 빌드하세요"; fi
+    echo "[dry-run] 경고: HEAD에 B7a가 아직 없습니다 — --apply면 여기서 멈춥니다" >&2
+  fi
   if ((APPLY)) && [[ -n "$(git -C "$REPO_ROOT" status --porcelain -- apps/server packages 2>/dev/null)" ]]; then
-    echo "apps/server·packages에 커밋 안 된 변경이 있습니다 — 태그(커밋)와 이미지 내용이 달라지므로 멈춥니다" >&2; exit 1
+    die "apps/server·packages에 커밋 안 된 변경이 있습니다 — 태그(커밋)와 이미지 내용이 달라집니다"
   fi
   run gcloud auth configure-docker "$AR_HOST" --quiet
-  run docker buildx build --platform linux/amd64 -f "$REPO_ROOT/apps/server/Dockerfile" \
+  # provenance·SBOM 증명을 붙이지 않는다 — 판 수(정리 정책 5개)를 증명 매니페스트가 차지하지 않게(리뷰 L6)
+  run docker buildx build --platform linux/amd64 --provenance=false --sbom=false -f "$REPO_ROOT/apps/server/Dockerfile" \
     --build-arg "APP_VERSION=$APP_VERSION" -t "$IMAGE:$APP_VERSION" --push "$REPO_ROOT"
   run gcloud artifacts docker images describe "$IMAGE:$APP_VERSION" --format='value(image_summary.digest)'
   echo "위 다이제스트(sha256:…)를 deploy 단계의 --digest로 넘깁니다."
 }
 
 step_deploy() {
-  say "deploy — 서비스 YAML 채우기 → services replace → 공개 호출"
-  if ((APPLY)) && [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then echo "--digest sha256:<64자>가 필요합니다(build 단계 출력)" >&2; exit 2; fi
+  say "deploy — 비밀 판 번호 고정 → 서비스 YAML 채우기 → services replace → 공개 호출"
+  if ((APPLY)) && [[ "$IMAGE_DIGEST" == current ]]; then
+    local img
+    img="$(gcloud run services describe "$SERVICE" --region="$REGION" --project="$PROJECT_ID" --format='value(spec.template.spec.containers[0].image)')"
+    IMAGE_DIGEST="${img##*@}"
+    echo "지금 이미지 그대로: $IMAGE_DIGEST"
+  fi
+  if ((APPLY)) && [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then die "--digest sha256:<64자> 또는 current가 필요합니다(build 단계 출력)"; fi
   step_check >/dev/null
+  local s
+  for s in "${SECRETS[@]}"; do v="VER_$s"; echo "비밀 $s → 판 ${!v}"; done
   run gcloud run services replace "$OUT/mong-api.service.yaml" --region="$REGION" --project="$PROJECT_ID"
   # 앱·Firebase rewrite가 인증 없이 부른다(권한 판단은 Nest — JWT·OIDC·READY_TOKEN)
   run gcloud run services add-iam-policy-binding "$SERVICE" --region="$REGION" --project="$PROJECT_ID" \
@@ -276,17 +353,72 @@ step_scheduler() {
 
 step_smoke() {
   say "smoke — $SERVICE_URL"
-  run curl -fsS "$SERVICE_URL/healthz"
-  # 토큰은 Secret Manager에서 바로 헤더 파일로(화면·셸 기록에 남지 않음)
-  run_sh "gcloud secrets versions access latest --secret=READY_TOKEN --project=$PROJECT_ID | sed 's/^/x-ready-token: /' | curl -fsS -H @- $SERVICE_URL/readyz"
-  # cron은 토큰 없이 404여야 한다(경로가 있는지도 알리지 않음)
-  run_sh "test \"\$(curl -s -o /dev/null -w '%{http_code}' -X POST $SERVICE_URL/internal/cron/storage-gc)\" = 404 && echo 'cron 무인증 404 확인'"
-  # Scheduler가 실제로 통과하는지: moderation을 한 번 돌리고 상태를 본다(성공이면 status 비어 있음 = code 0)
-  run gcloud scheduler jobs run moderation --location="$REGION" --project="$PROJECT_ID"
-  run gcloud scheduler jobs describe moderation --location="$REGION" --project="$PROJECT_ID" --format='value(lastAttemptTime,status)'
+  if ! ((APPLY)); then
+    printf '[dry-run] curl -fsS %s/healthz\n' "$SERVICE_URL"
+    printf "[dry-run] gcloud secrets versions access <고정 판> --secret=READY_TOKEN | sed 's/^/x-ready-token: /' | curl -fsS -H @- %s/readyz\n" "$SERVICE_URL"
+    printf '[dry-run] curl -X POST %s/internal/cron/storage-gc → 404여야 함\n' "$SERVICE_URL"
+    printf '[dry-run] gcloud scheduler jobs run moderation → lastAttemptTime이 실행 시각 뒤이고 status.code가 0(또는 없음)일 때까지 최대 60초\n'
+    return 0
+  fi
+  local body code start t st i
+  body="$(curl -fsS "$SERVICE_URL/healthz")" || die "smoke 실패: /healthz 응답 없음"
+  grep -q '"ok":true' <<<"$body" || die "smoke 실패: /healthz 본문에 \"ok\":true 없음"
+  echo "/healthz 통과"
+  resolve_versions
+  # 토큰은 Secret Manager에서 바로 헤더로(화면·셸 기록·인자에 남지 않음)
+  body="$(gcloud secrets versions access "$VER_READY_TOKEN" --secret=READY_TOKEN --project="$PROJECT_ID" | sed 's/^/x-ready-token: /' | curl -sS -H @- "$SERVICE_URL/readyz")" || die "smoke 실패: /readyz 요청 실패"
+  grep -q '"db":"up"' <<<"$body" || die "smoke 실패: /readyz에 \"db\":\"up\" 없음 — DB 연결(TLS 포함) 확인, 팀에 알림"
+  echo "/readyz 통과(db up)"
+  code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "$SERVICE_URL/internal/cron/storage-gc" || true)"
+  [[ "$code" == 404 ]] || die "smoke 실패: 토큰 없는 cron 응답 ${code:-없음}(기대 404)"
+  echo "cron 무인증 404 통과"
+  start="$(date -u +%Y-%m-%dT%H:%M:%S)"
+  gcloud scheduler jobs run moderation --location="$REGION" --project="$PROJECT_ID"
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+    IFS=$'\t' read -r t st < <(gcloud scheduler jobs describe moderation --location="$REGION" --project="$PROJECT_ID" \
+      --format='value(lastAttemptTime,status.code)' || true) || true
+    if [[ -n "${t:-}" ]] && ! [[ "${t:0:19}" < "$start" ]]; then
+      [[ -z "${st:-}" || "$st" == 0 ]] || die "smoke 실패: moderation 잡 시도 실패(status.code=$st — 404면 audience·계정 이메일 불일치)"
+      echo "Scheduler moderation 시도 통과($t)"; return 0
+    fi
+    sleep 5
+  done
+  die "smoke 실패: 60초 안에 moderation 잡 시도 기록이 생기지 않음"
+}
+
+EXCL_BASE='log_id("run.googleapis.com/requests")'
+# 요청 로그 잠시 받기(README 7절). 제외 필터 = 기본 조건 AND timestamp >= 만료 시각 → 만료 전 로그만 들어오고, 만료 뒤에는 다시 제외된다
+step_logs_on() {
+  say "logs-on — 플랫폼 요청 로그를 ${HOURS}시간만 받는다(장애 조사, 오너만)"
+  [[ "$HOURS" =~ ^[1-4]$ ]] || die "--hours는 1~4(최대 4시간)"
+  local until
+  until="$(date -u -v+"${HOURS}"H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "+${HOURS} hours" +%Y-%m-%dT%H:%M:%SZ)"
+  run gcloud logging sinks update _Default --project="$PROJECT_ID" \
+    --update-exclusion="name=run-platform-requests,filter=${EXCL_BASE} AND timestamp>=\"${until}\""
+  echo "만료 $until(UTC) 뒤에는 자동으로 다시 제외됩니다. 받은 로그는 mong-logs 보존 7일 뒤 지워집니다."
+  echo "운영 기록(docs/ops/log-debug-record.md)에 한 줄: $(date -u +%Y-%m-%dT%H:%MZ) 켬, 만료 $until, 까닭 <장애 요약>"
+  echo "조사가 끝나면 만료 전이라도: apps/server/deploy/deploy.sh --apply logs-off"
+}
+
+step_logs_off() {
+  say "logs-off — 제외 필터를 원래 꼴로(시간 조건 없음)"
+  run gcloud logging sinks update _Default --project="$PROJECT_ID" \
+    --update-exclusion="name=run-platform-requests,filter=${EXCL_BASE}"
+  echo "운영 기록에 한 줄: $(date -u +%Y-%m-%dT%H:%MZ) 끔"
+}
+
+# 처리방침 K6 증거(B6 첫날, 읽기만). 결과를 docs/ops/에 붙인다
+step_k6() {
+  say "k6 — 처리방침 K6 증거 ①~④"
+  echo "① 제외 필터"; run gcloud logging sinks describe _Default --project="$PROJECT_ID" --format='yaml(destination,exclusions)' || echo "① 조회 실패"
+  echo "② mong-logs 보존 7일·서울"; run gcloud logging buckets describe mong-logs --location="$REGION" --project="$PROJECT_ID" --format='value(name,retentionDays)' || echo "② 조회 실패"
+  echo "③ 제외 뒤 플랫폼 요청 로그 0건(최근 1일 — 출력이 비어 있어야 함)"
+  run gcloud logging read "${EXCL_BASE}" --project="$PROJECT_ID" --freshness=1d --limit=5 --format='value(timestamp)' || echo "③ 조회 실패"
+  echo "④ Firebase Hosting Cloud Logging 연동 꺼짐 — 콘솔 > Hosting > 사이트 > 설정 > Cloud Logging 통합이 '사용 안 함'인 화면 캡처(명령 없음)"
 }
 
 ((APPLY)) || echo "[dry-run] 아무것도 실행하지 않습니다. 실제 실행은 --apply" >&2
-# check는 늘 먼저(템플릿이 틀리면 원격 명령 전에 멈춘다)
+# check는 늘 먼저(템플릿이 틀리면 원격 명령 전에 멈춘다). --apply면 자리표시자도 먼저 거부
 [[ " ${STEPS[*]} " == *" check "* ]] || step_check
-for s in "${STEPS[@]}"; do "step_$s"; done
+[[ " ${STEPS[*]} " == " check " ]] || guard_apply
+for s in "${STEPS[@]}"; do "step_${s//-/_}"; done
