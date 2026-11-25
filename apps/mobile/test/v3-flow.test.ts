@@ -6,7 +6,7 @@ import { SAVE_KEYS, sim, v3, writeSave, type KV, type RawPoint } from '@mong/cor
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isOn, setFeature } from '../src/features';
 import { __configureForTest, adoptState, boot, devReset, devRestartV3, dispatch, getSnapshot, getV3, install } from '../src/game/store';
-import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, inkstoneA11yActions, sheetGrindMode, sheetGrindStep, wordSheetClose, wordSheetOnAppState } from '../src/game/v3Flow';
+import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, inkstoneA11yActions, sheetGrindMode, sheetGrindOn, sheetGrindStep, wordSheetClose, wordSheetOnAppState } from '../src/game/v3Flow';
 import { CUE, answerPose, cueLength } from '../src/render/answer';
 
 const KST_NOON = Date.UTC(2026, 10, 25, 3, 0);
@@ -219,10 +219,34 @@ describe('벼루 시트 먹 갈기(리뷰 2차 L-d)', () => {
     dispatch({ type: 'grind', durationMs: sheetGrindStep(getV3()!.sim.ledger.grindMs, 99_999).addMs });
     expect(v3.inkCells(getV3()!)).toBe(v3.WORD_MAX_CHARS);
   });
-  it('앱은 스크린리더 여부로 시트 갈기 방식을 고른다', () => {
+  it('멈춤 규칙: 다시 누름·6칸 닿음·시트 닫힘·앱 background에서 멈추고 그때까지 간 양을 넘긴다(L 리뷰 N2·N3)', () => {
+    const T0 = 1_000_000;
+    // 멈춰 있을 때: 누르면 시작, 그 밖 사건은 아무것도 아님
+    expect(sheetGrindOn(null, { type: 'press', at: T0 }, 0)).toEqual({ startAt: T0, started: true, commitMs: null });
+    for (const ev of [{ type: 'tick', at: T0 }, { type: 'hide', at: T0 }, { type: 'appState', state: 'background', at: T0 }] as const)
+      expect(sheetGrindOn(null, ev, 0)).toEqual({ startAt: null, started: false, commitMs: null });
+    // 다시 누름 → 멈춤
+    expect(sheetGrindOn(T0, { type: 'press', at: T0 + 3200 }, 0)).toEqual({ startAt: null, started: false, commitMs: 3200 });
+    // 6칸 전 tick은 계속, 6칸에 닿으면 저절로 멈춤(상한까지만)
+    expect(sheetGrindOn(T0, { type: 'tick', at: T0 + 5000 }, 0)).toEqual({ startAt: T0, started: false, commitMs: null });
+    expect(sheetGrindOn(T0, { type: 'tick', at: T0 + A11Y_GRIND_MS }, 0)).toEqual({ startAt: null, started: false, commitMs: A11Y_GRIND_MS });
+    expect(sheetGrindOn(T0, { type: 'tick', at: T0 + A11Y_GRIND_MS - 3000 }, 3000)).toEqual({ startAt: null, started: false, commitMs: A11Y_GRIND_MS - 3000 });
+    // 시트가 닫히면 멈춤
+    expect(sheetGrindOn(T0, { type: 'hide', at: T0 + 2000 }, 0)).toEqual({ startAt: null, started: false, commitMs: 2000 });
+    // background(알 수 없는 상태 포함)에서 멈춤 — 다음 깸으로 넘어가지 않게. inactive·active에서는 계속
+    for (const st of ['background', 'unknown']) expect(sheetGrindOn(T0, { type: 'appState', state: st, at: T0 + 2500 }, 0)).toEqual({ startAt: null, started: false, commitMs: 2500 });
+    for (const st of ['inactive', 'active']) expect(sheetGrindOn(T0, { type: 'appState', state: st, at: T0 + 2500 }, 0)).toEqual({ startAt: T0, started: false, commitMs: null });
+  });
+  it('앱 배선: 시트 갈기 상태는 앱이 쥐고, 앱 상태(sim 백그라운드 알림 전)·시트 닫힘·0.1초 tick이 멈춤 규칙을 부른다', () => {
     const app = readFileSync(path.join(__dirname, '../src/game/GameApp.tsx'), 'utf8');
     expect(app).toContain('grindMode={sheetGrindMode(screenReader)}');
-    const sheet = readFileSync(path.join(__dirname, '../src/screens/V3Sheets.tsx'), 'utf8');
-    expect(sheet).toContain('sheetGrindStep(');
+    // 앱 상태: background 처리(goBackground) 전에 멈춰 그 깸 장부에 넣는다
+    const listener = app.slice(app.indexOf("AppState.addEventListener('change'"), app.indexOf('goBackground();'));
+    expect(listener).toContain("sheetGrind({ type: 'appState', state: st, at: Date.now() })");
+    // 시트가 안 보이면(닫기·잠·아침) 멈춤
+    expect(app).toMatch(/if \(!inkSheetShown\) sheetGrind\(\{ type: 'hide', at: Date\.now\(\) \}\)/);
+    // 6칸 자동 멈춤은 tick이 멈춤 규칙을 부른다
+    expect(app).toMatch(/setInterval\(\(\) => \{\s*setGrindNow\(Date\.now\(\)\);\s*sheetGrind\(\{ type: 'tick', at: Date\.now\(\) \}\);/);
+    expect(app).toContain('visible={inkSheetShown}');
   });
 });

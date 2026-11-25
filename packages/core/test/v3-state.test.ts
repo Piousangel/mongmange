@@ -366,3 +366,33 @@ describe('세이브 v3', () => {
     expect(run()).toBe(run());
   });
 });
+
+describe('사전 판 lexVer 고정(v3 L 리뷰 N1 — 배고픔 표지로 사전 patch 0.1.0 → 0.1.1)', () => {
+  const OLD = 'ko0.1.0+en0.1.0+r0.4.0';
+  it('지금 판은 ko·en 0.1.1(표지 변경 = patch)', () => {
+    expect(v3.LEX_VER).toBe('ko0.1.1+en0.1.1+r0.4.0');
+    expect(v3.LEX_VER).not.toBe(OLD);
+  });
+  it('옛 판으로 쓴 말은 세이브를 다시 읽어도 판·결·강도가 그대로, 새 말만 새 판(지난 말 재해석 없음, D-13)', () => {
+    // 옛 빌드(0.1.0)에서 '배고파'를 쓴 날 — 결·강도는 판과 무관하게 같았다
+    const d1 = play(fresh(), [
+      { type: 'grind', at: kst(11, 25, 10), durationMs: 9000 },
+      { type: 'write', at: kst(11, 25, 10) + 1000, word: { ...v3.storedWordOf(v3.interpretWord('배고파', 'ko')), lexVer: OLD, source: 'keyboard' }, chars: 3, raw: handStroke(1) },
+      { type: 'putToSleep', at: kst(11, 25, 22) },
+      { type: 'appBackground', at: kst(11, 25, 22) + 60_000 },
+    ]).state;
+    const json = v3.serializeV3(d1, kst(11, 25, 23));
+    const back = v3.parseV3(json);
+    expect(back.v3.words).toEqual(d1.v3.words);
+    expect(back.v3.words[0]).toMatchObject({ sense: 'home.in.meal', intensity: 2, lexVer: OLD });
+    // 새 빌드에서 다음 깸에 쓴 말은 새 판
+    const d2 = play(back, [
+      { type: 'appForeground', at: kst(11, 26, 9), tzOffsetMin: KST },
+      { type: 'grind', at: kst(11, 26, 10), durationMs: 9000 },
+      { type: 'write', at: kst(11, 26, 10) + 1000, word: word('맛있어'), chars: 3, raw: handStroke(2) },
+    ]).state;
+    expect(d2.v3.words.map((w) => w.lexVer)).toEqual([OLD, v3.LEX_VER]);
+    expect(d2.v3.words[0]).toEqual(back.v3.words[0]);
+    expect(v3.parseV3(v3.serializeV3(d2, kst(11, 26, 11))).v3.words).toEqual(d2.v3.words);
+  });
+});

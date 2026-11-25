@@ -5,9 +5,8 @@
 // ② 벼루 하위 시트(D-27 · care-rituals 2-1): 먹 갈기 / 한 숟갈(먹을 한 칸 이상 갈았을 때) / 작은 것. 숫자·게이지 없음(QA-3 R7).
 //    '먹 갈기'는 스크린리더면 한 번에 6칸(H1), 그 밖에는 눌러 시작·눌러 멈춤으로 길게 누르기와 같은 속도로 칸이 차오른다(리뷰 2차 L-d).
 import { PALETTE, v3 } from '@mong/core';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { sheetGrindStep } from '../game/v3Flow';
 import { t, getLocale } from '../i18n';
 import { BottomSheet } from '../ui/BottomSheet';
 import { KText, SANS, SERIF, track } from '../ui/type';
@@ -102,15 +101,14 @@ export function WordSheet({
   );
 }
 
-/** 벼루 하위 시트(밥 1·간식 1 최소판) */
+/** 벼루 하위 시트(밥 1·간식 1 최소판). 시트 갈기 상태·멈춤 규칙은 앱이 쥔다(앱 상태로도 멈춰야 해서, v3Flow `sheetGrindOn`) */
 export function InkstoneSheet({
   visible,
   sheet,
   grindMode,
-  grindMs,
-  onGrindAll,
-  onGrindStart,
-  onGrindEnd,
+  grinding,
+  grindCells,
+  onGrindRow,
   onSpoon,
   onTreat,
   onClose,
@@ -119,51 +117,15 @@ export function InkstoneSheet({
   sheet: { spoon: 'ok' | 'noInk' | 'cap'; treat: 'ok' | 'cap' };
   /** 'all' = 한 번에 6칸(스크린리더), 'flow' = 눌러 시작·눌러 멈춤 */
   grindMode: 'all' | 'flow';
-  /** 이 깸에 이미 간 양(ms) — 진행 칸 수를 잇는다 */
-  grindMs: number;
-  onGrindAll: () => void;
-  onGrindStart: () => void;
-  /** 멈춤: 넘길 갈기 양(6칸 넘는 몫은 뺀 값). 0이면 갈지 않은 것 */
-  onGrindEnd: (addMs: number) => void;
+  /** 시트 갈기 중인가('flow'에서만) */
+  grinding: boolean;
+  /** 갈기 중 보이는 칸 수(이미 간 양 + 지금까지) */
+  grindCells: number;
+  onGrindRow: () => void;
   onSpoon: () => void;
   onTreat: () => void;
   onClose: () => void;
 }) {
-  const [startAt, setStartAt] = useState<number | null>(null);
-  const [now, setNow] = useState(0);
-  const live = useRef({ startAt, grindMs, onGrindEnd });
-  live.current = { startAt, grindMs, onGrindEnd };
-  const stop = () => {
-    const c = live.current;
-    if (c.startAt == null) return;
-    live.current.startAt = null;
-    setStartAt(null);
-    c.onGrindEnd(sheetGrindStep(c.grindMs, Date.now() - c.startAt).addMs);
-  };
-  const grinding = startAt != null;
-  const step = sheetGrindStep(grindMs, grinding ? now - startAt : 0);
-  // 차오름: 길게 누르기와 같은 속도(INK_CELL_MS마다 한 칸). 6칸에 닿으면 저절로 멈춘다
-  useEffect(() => {
-    if (startAt == null) return;
-    const iv = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(iv);
-  }, [startAt]);
-  useEffect(() => {
-    if (grinding && step.done) stop();
-  });
-  // 시트가 닫히거나(뒤로 가기·끌어 닫기·잠) 사라지면 그때까지 간 만큼 넘긴다(D-03: 잃는 것 없음)
-  useEffect(() => {
-    if (!visible) stop();
-  }, [visible]);
-  useEffect(() => () => stop(), []);
-  const onGrindRow = () => {
-    if (grindMode === 'all') return onGrindAll();
-    if (grinding) return stop();
-    const at = Date.now();
-    setNow(at);
-    setStartAt(at);
-    onGrindStart();
-  };
   const spoonNote = sheet.spoon === 'noInk' ? t('v3.inkstone.spoonNoInk') : sheet.spoon === 'cap' ? t('v3.inkstone.again') : '';
   const treatNote = sheet.treat === 'cap' ? t('v3.inkstone.treatAgain') : '';
   const grindNote = grindMode === 'all' ? t('v3.inkstone.grindHint') : grinding ? t('v3.inkstone.grinding') : t('v3.inkstone.grindTap');
@@ -171,9 +133,9 @@ export function InkstoneSheet({
     <BottomSheet visible={visible} onClose={onClose} title={t('v3.inkstone.title')} theme="day" contentContainerStyle={styles.content} testID="v3-inkstone-sheet">
       <Row label={grinding ? t('v3.inkstone.grindStop') : t('v3.inkstone.grind')} note={grindNote} onPress={onGrindRow} testID="v3-sheet-grind" />
       {grinding && (
-        <View style={styles.cells} accessible accessibilityLabel={t('v3.word.ink', { n: step.cells })} accessibilityLiveRegion="polite" testID="v3-sheet-grind-cells">
+        <View style={styles.cells} accessible accessibilityLabel={t('v3.word.ink', { n: grindCells })} accessibilityLiveRegion="polite" testID="v3-sheet-grind-cells">
           {Array.from({ length: v3.WORD_MAX_CHARS }, (_, i) => (
-            <View key={i} style={[styles.cell, i < step.cells ? styles.cellInk : styles.cellDry]} />
+            <View key={i} style={[styles.cell, i < grindCells ? styles.cellInk : styles.cellDry]} />
           ))}
         </View>
       )}

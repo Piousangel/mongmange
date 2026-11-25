@@ -53,6 +53,25 @@ export function inkstoneA11yActions(labels: { grind: string; sheet: string }): {
   ];
 }
 
+/** 시트 갈기 사건: 누름(시작·멈춤) / 0.1초 tick(6칸 자동 멈춤) / 시트 숨김 / 앱 상태 */
+export type SheetGrindEvent =
+  | { type: 'press'; at: number }
+  | { type: 'tick'; at: number }
+  | { type: 'hide'; at: number }
+  | { type: 'appState'; state: string; at: number };
+
+/**
+ * 시트 갈기 멈춤 규칙(L 리뷰 N2·N3). startAt = 갈기 시작 시각(null = 멈춤), baseMs = 이 깸에 이미 간 양.
+ * 다시 누름·6칸 닿음·시트 숨김·앱 background(알 수 없는 상태 포함)에서 멈추고 그때까지 간 양(commitMs)을 넘긴다 — 그 깸 장부에 남고
+ * 다음 깸으로 넘어가지 않는다. inactive(iOS 제어 센터 등)에서는 계속 간다
+ */
+export function sheetGrindOn(startAt: number | null, ev: SheetGrindEvent, baseMs: number): { startAt: number | null; started: boolean; commitMs: number | null } {
+  if (startAt == null) return ev.type === 'press' ? { startAt: ev.at, started: true, commitMs: null } : { startAt: null, started: false, commitMs: null };
+  const step = sheetGrindStep(baseMs, ev.at - startAt);
+  const keep = (ev.type === 'tick' && !step.done) || (ev.type === 'appState' && (ev.state === 'active' || ev.state === 'inactive'));
+  return keep ? { startAt, started: false, commitMs: null } : { startAt: null, started: false, commitMs: step.addMs };
+}
+
 /** 한 마디 시트 상태. key가 바뀌면 시트가 새로 그려져 입력칸이 빈다 */
 export interface WordSheetState {
   open: boolean;

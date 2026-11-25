@@ -33,7 +33,7 @@ import { boot, dispatch, getSnapshot, getV3, goBackground, goForeground, install
 import { InkstoneSheet, WordSheet, type WordPick } from '../screens/V3Sheets';
 import { CUE } from '../render/answer';
 import type { V3Home } from '../screens/GameHome';
-import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, sheetGrindMode, wordSheetClose, wordSheetOnAppState, type V3Cue } from './v3Flow';
+import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, sheetGrindMode, sheetGrindOn, sheetGrindStep, wordSheetClose, wordSheetOnAppState, type SheetGrindEvent, type V3Cue } from './v3Flow';
 import { rejectText } from './text';
 import { requestReview } from './review';
 import { createReviewAsker } from './reviewPolicy';
@@ -128,6 +128,25 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const [strokeKey, setStrokeKey] = useState(0);
   const [notifPrompt, setNotifPrompt] = useState(false);
   const [screenReader, setScreenReader] = useState(false);
+  // 벼루 시트 갈기(눌러 시작·눌러 멈춤, 리뷰 2차 L-d). 앱 상태로도 멈춰야 해서 앱이 쥔다(L 리뷰 N3). ref = 이벤트 처리용 정본, state = 그리기용
+  const sheetGrindAt = useRef<number | null>(null);
+  const [sheetGrindStart, setSheetGrindStart] = useState<number | null>(null);
+  const [grindNow, setGrindNow] = useState(0);
+  /** 멈춤 규칙(v3Flow sheetGrindOn)을 적용하고, 멈추면 그때까지 간 양을 이 깸 장부에 넣는다 */
+  const sheetGrind = useCallback((ev: SheetGrindEvent) => {
+    const r = sheetGrindOn(sheetGrindAt.current, ev, getV3()?.sim.ledger.grindMs ?? 0);
+    if (r.startAt === sheetGrindAt.current && !r.started && r.commitMs == null) return;
+    sheetGrindAt.current = r.startAt;
+    setSheetGrindStart(r.startAt);
+    if (r.started) {
+      setGrindNow(ev.at);
+      sound.play('inkGrind');
+    }
+    if (r.commitMs != null) {
+      sound.stop('inkGrind');
+      if (r.commitMs > 0) dispatch({ type: 'grind', durationMs: r.commitMs });
+    }
+  }, []);
   const lineTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const returnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const promptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -158,6 +177,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => {
       setWordSheet((cur) => wordSheetOnAppState(cur, st));
+      // 시트 갈기는 background에서 멈춰 그 깸에 남긴다(sim에 백그라운드를 알리기 전, 다음 깸으로 넘어가지 않게)
+      sheetGrind({ type: 'appState', state: st, at: Date.now() });
       if (st === 'active') {
         goForeground();
         reviewAsker.onActive();
@@ -178,7 +199,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       sub.remove();
       clearInterval(iv);
     };
-  }, []);
+  }, [sheetGrind]);
 
   // ── sim 효과 → 소리·문구·알림 ──
   useEffect(
@@ -385,6 +406,21 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       if (t) clearTimeout(t);
     };
   }, [kind, developed]);
+
+  // 벼루 시트 갈기: 0.1초마다 칸을 다시 그리고 6칸에 닿으면 저절로 멈춘다. 시트가 안 보이면(닫기·잠·아침·화면 내림) 멈춘다(간 만큼 남음, D-03)
+  const inkSheetShown = inkSheetOpen && kind === 'day';
+  useEffect(() => {
+    if (sheetGrindStart == null) return;
+    const iv = setInterval(() => {
+      setGrindNow(Date.now());
+      sheetGrind({ type: 'tick', at: Date.now() });
+    }, 100);
+    return () => clearInterval(iv);
+  }, [sheetGrindStart, sheetGrind]);
+  useEffect(() => {
+    if (!inkSheetShown) sheetGrind({ type: 'hide', at: Date.now() });
+  }, [inkSheetShown, sheetGrind]);
+  useEffect(() => () => sheetGrind({ type: 'hide', at: Date.now() }), [sheetGrind]);
 
   // 낮 홈이 아니게 되면(잠·아침) 열려 있던 한 마디 시트를 닫고 입력칸을 새로 만든다(다음 날 어제 글자가 다시 보이지 않게, 리뷰 H2)
   useEffect(() => {
@@ -633,21 +669,21 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             }}
           />
           <InkstoneSheet
-            visible={inkSheetOpen && kind === 'day'}
+            visible={inkSheetShown}
             sheet={v3.mealSheet(full)}
             grindMode={sheetGrindMode(screenReader)}
-            grindMs={full.sim.ledger.grindMs}
+            grinding={sheetGrindStart != null}
+            grindCells={sheetGrindStep(full.sim.ledger.grindMs, sheetGrindStart == null ? 0 : grindNow - sheetGrindStart).cells}
             onClose={() => setInkSheetOpen(false)}
-            onGrindAll={() => {
-              // 스크린리더: 시트의 '먹 갈기'는 한 번에 6칸(길게 누르기를 못 해도 한 마디까지, 리뷰 H1)
-              setInkSheetOpen(false);
-              grindForA11y();
-            }}
-            // 보는 사용자: 눌러 시작·눌러 멈춤, 길게 누르기와 같은 속도로 칸이 차오른다(리뷰 2차 L-d). 시트는 열린 채라 이어서 한 숟갈을 뜰 수 있다
-            onGrindStart={() => sound.play('inkGrind')}
-            onGrindEnd={(ms) => {
-              sound.stop('inkGrind');
-              if (ms > 0) dispatch({ type: 'grind', durationMs: ms });
+            onGrindRow={() => {
+              if (sheetGrindMode(screenReader) === 'all') {
+                // 스크린리더: 시트의 '먹 갈기'는 한 번에 6칸(길게 누르기를 못 해도 한 마디까지, 리뷰 H1)
+                setInkSheetOpen(false);
+                grindForA11y();
+                return;
+              }
+              // 보는 사용자: 눌러 시작·눌러 멈춤, 길게 누르기와 같은 속도로 칸이 차오른다(리뷰 2차 L-d). 시트는 열린 채라 이어서 한 숟갈을 뜰 수 있다
+              sheetGrind({ type: 'press', at: Date.now() });
             }}
             onSpoon={() => {
               setInkSheetOpen(false);
