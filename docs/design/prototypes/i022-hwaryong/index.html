@@ -7,6 +7,10 @@
 <!--
   시제품 I-022 화룡점정 낙서 — 기획 회의 1차(2026-11-25), docs/design/ideas/daily-loop-v1.md 8-3 ①
   규칙: 한 파일·외부 의존 0·저장 0·네트워크 0·공유 없음(ideas/README.md 7-2). 정본이 아니다.
+  v1.1(11-25, 회의 1차 독립 검토 반영): 테스터 화면(#tester — 설명·질문·기록·갈림 규칙 숨김),
+  여러 획으로 그린 닫힌 모양도 닫힘으로 판정, 시범은 기록에서 뺌, 떠오르기 전 기다림 1초 → 2초, '그냥 낙서' 표현 뺌.
+  작업 시각: v1 11-25 11:58~12:12, v1.1 11-25 오후(약 0.1일).
+  진행자 화면 = index.html / 테스터 화면 = index.html#tester
 -->
 <style>
   :root {
@@ -75,22 +79,31 @@
   .a11y summary { font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
   footer { margin-top: 18px; font-size: 11.5px; color: var(--ink-soft); line-height: 1.6; }
   @media (prefers-reduced-motion: reduce) { .caption { transition: none; } }
+  /* 테스터 화면: 갈림 규칙을 알려 주는 것은 모두 숨김 */
+  body.tester .host-only { display: none !important; }
+  .tester-only { display: none; }
+  body.tester .tester-only { display: block; }
+  .mode { font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0; }
+  .mode a { color: var(--ink-2); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1><span class="seal" aria-hidden="true"></span>화룡점정 낙서</h1>
-    <p>I-022 시제품. 연습지에 닫힌 모양을 그리고 그 안에 눈 점 하나를 찍으면, 그림이 그 깸 동안 살아나 몽망이 곁에서 놀아요. 밤에는 먹으로 풀려요.</p>
+    <p class="host-only">I-022 시제품. 연습지에 닫힌 모양을 그리고 그 안에 눈 점 하나를 찍으면, 그림이 그 깸 동안 살아나 몽망이 곁에서 놀아요. 밤에는 먹으로 풀려요.</p>
+    <p class="tester-only" style="margin:0;font-size:13px;color:var(--ink-soft)">몽망이와 한지 위에서 놀아 보세요. 붓을 누르면 연습지가 펴져요.</p>
+    <p class="mode host-only">진행자 화면이에요. 테스터에게는 <a href="#tester">테스터 화면</a>을 보여 주세요(설명·기록 숨김).</p>
   </header>
 
-  <details class="q" open>
+  <details class="q host-only" open>
     <summary>확인하고 싶은 질문 3</summary>
     <ol>
       <li><b>갈림 규칙</b> — 버튼 없이 '닫힌 모양 + 그 안의 점 = 살아남'을, 시범을 한 번 본 사람이 혼자 알아채나요?
-        <span class="see">볼 것: 시범 뒤 첫 살려 내기까지 시도 수(아래 기록), 점을 모양 밖에 찍는 실수, "왜 안 살아나지"라는 말. 기준 안: 시범 1번 뒤 3명 중 2명 이상이 3번 안에 살려 냄</span></li>
+        <span class="see">볼 것: 시범 뒤 첫 살려 내기까지 시도 수(아래 기록, 시범은 세지 않음), 점을 모양 밖에 찍는 실수, 여러 획으로 모양을 그리는지, "왜 안 살아나지"라는 말. 기준 안: 시범 1번 뒤 3명 중 2명 이상이 3번 안에 살려 냄</span>
+        <span class="see"><b>안전</b>: "못 그려서", "내가 이상하게 그렸나" 같은 말을 센다 — 안 살아난 것을 그림 솜씨 평가로 읽는지. 기준 안: 5명 중 0명</span></li>
       <li><b>누가 주인공인가</b> — 살아난 그림이 몸의 2/3 크기, 한지 아래 1/3 안으로 묶여 있어도 몽망이가 화면의 주인공으로 남나요? 홈이 붐비지 않나요?
-        <span class="see">볼 것: "이게 몽망이 친구예요/새 몽망이예요?" 같은 말, 시선이 어디에 오래 머무나, 성향 넷을 바꿔 보며 '노는 모습이 다르다'를 알아채나</span></li>
+        <span class="see">볼 것: "이게 몽망이 친구예요/새 몽망이예요?" 같은 말, 시선이 어디에 오래 머무나, 성향 넷을 바꿔 보며 '노는 모습이 다르다'를 알아채나. '대담'에서 몽망이가 그림 위에 올라앉는 것이 "내 그림을 깔고 앉았다"로 읽히는지</span></li>
       <li><b>내일 또</b> — 밤에 그림이 먹으로 풀리는 것이 '아깝다·잃었다'가 아니라 '내일 또 그리고 싶다'로 읽히나요?
         <span class="see">볼 것: 풀릴 때 표정·말("아…", "또 그려야지"), 아침 뒤 다시 연습지를 여는가. 기준 안: '잃었다'가 5명 중 1명 이하</span></li>
     </ol>
@@ -116,7 +129,7 @@
     </div>
   </div>
 
-  <div class="row" role="group" aria-label="시제품 전용 성향">
+  <div class="row host-only" role="group" aria-label="시제품 전용 성향">
     <span class="label">시제품 전용 · 성향</span>
     <button class="chip" data-temp="close" aria-pressed="true">다가옴</button>
     <button class="chip" data-temp="curious" aria-pressed="false">호기심</button>
@@ -128,13 +141,13 @@
     <button class="btn" id="morningBtn" disabled>아침 — 다음 깸</button>
   </div>
 
-  <div class="log" id="log" aria-live="polite">
+  <div class="log host-only" id="log" aria-live="polite">
     <b>기록(이 화면에만, 저장 안 함)</b><br>
     <span id="logLine">아직 그린 것이 없어요.</span>
   </div>
 
-  <footer>
-    갈림 규칙(I-022 3회차 고친 안): ① 닫힌 모양(시작·끝 거리가 크기의 30% 안) 하나 이상 + 그 안에 점 하나 → 살아남 ② 선 없이 점만 2개 이상 → I-020 가락 자리(이 시제품에서는 그냥 낙서) ③ 그 밖 = 그냥 낙서. 한 깸에 하나, 새로 살리면 앞의 것은 먹으로 풀려요. 몽망이는 칭찬하지 않고(끄덕임·박수 없음) 놀기만 해요.
+  <footer class="host-only">
+    갈림 규칙(I-022 3회차 고친 안 + v1.1): ① 닫힌 모양 하나 이상 + 그 안에 점 하나 → 살아남. 닫힌 모양 = 한 획 또는 끝점이 이어지는 여러 획을 이은 선의 시작·끝 거리가 크기의 30% 안 ② 선 없이 점만 2개 이상 → I-020 가락 자리(이 시제품에서는 낙서) ③ 그 밖 = 낙서. 마지막 획을 뗀 뒤 2초 기다렸다가 떠올라요(그동안 더 그리면 다시 기다림). 한 깸에 하나, 새로 살리면 앞의 것은 먹으로 풀려요. 몽망이는 칭찬하지 않고(끄덕임·박수 없음) 놀기만 해요.
   </footer>
 </div>
 
@@ -143,7 +156,7 @@
   <div class="sheet-in">
     <div class="grab" aria-hidden="true"></div>
     <h2 id="sheetTitle">연습지</h2>
-    <p class="hint">무엇이든 그려 보세요. 마음대로 그린 낙서는 그냥 낙서로 남아요.</p>
+    <p class="hint">무엇이든 그려 보세요.<span class="host-only"> 마음대로 그린 낙서는 낙서로 남아요.</span></p>
     <canvas id="pad" aria-label="연습지 그리는 칸"></canvas>
     <div class="judge" id="judge" aria-live="polite"></div>
     <div class="row" style="margin-top:6px">
@@ -337,7 +350,7 @@
     return { img: c, w, h, pts };
   }
 
-  function spawnDoodle(strokes, srcW, from) {
+  function spawnDoodle(strokes, srcW, from, demo) {
     if (doodle) startDissolve(doodle, 0.9);
     const d = makeDoodle(strokes, srcW);
     const reg = regionY();
@@ -347,7 +360,7 @@
     d.alpha = 0; d.bornT = now; d.wanderT = 0; d.jig = 0;
     doodle = d;
     mong.phase = 'wary'; mong.phaseT = 0;
-    lived++;
+    if (demo) demos++; else lived++;
     if (!captionShown) { showCaption('눈을 찍었더니 그림이 종이에서 떠올랐어요'); captionShown = true; }
     updateLog();
   }
@@ -381,10 +394,35 @@
     }
     return c;
   }
+  // v1.1: 끝점이 가까운 획들을 이어 한 선으로 본다(여러 획으로 그린 닫힌 모양). 결정적 — 획 순서대로 탐욕적으로 잇는다
+  const JOIN = 22; // px, 연습지 좌표
+  function chains(lines) {
+    const used = new Array(lines.length).fill(false), out = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (used[i]) continue;
+      used[i] = true; let ch = lines[i].slice(); let grew = true;
+      while (grew) {
+        grew = false;
+        for (let k = 0; k < lines.length; k++) {
+          if (used[k]) continue;
+          const L = lines[k], a = L[0], b = L[L.length - 1], e = ch[ch.length - 1], st = ch[0];
+          const d = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+          if (d(e, a) <= JOIN) ch = ch.concat(L);
+          else if (d(e, b) <= JOIN) ch = ch.concat(L.slice().reverse());
+          else if (d(st, b) <= JOIN) ch = L.concat(ch);
+          else if (d(st, a) <= JOIN) ch = L.slice().reverse().concat(ch);
+          else continue;
+          used[k] = true; grew = true;
+        }
+      }
+      out.push(ch);
+    }
+    return out;
+  }
   function judge(strokes) {
     const dots = strokes.filter((s) => pathLen(s) < DOT_LEN);
     const lines = strokes.filter((s) => pathLen(s) >= DOT_LEN);
-    const closed = lines.filter(isClosed);
+    const closed = lines.filter(isClosed).concat(chains(lines).filter((c) => c.length && isClosed(c)));
     let eye = null;
     for (const d of dots) for (const c of closed) if (inside(d[0], c)) { eye = d; break; }
     if (closed.length && eye) return { kind: 'alive', closed: closed.length, dots: dots.length };
@@ -431,20 +469,21 @@
     const j = judge(strokes);
     if (j.kind === 'alive') {
       judgeEl.textContent = '';
-      attempts++;
-      judgeTimer = setTimeout(() => liftFromPad(), 1000); // 카드: 1초 뒤 떠오름
+      if (!fromDemo) attempts++;
+      judgeTimer = setTimeout(() => liftFromPad(), 2000); // v1.1: 마지막 획 뒤 2초(카드 1초 → 귀·꼬리를 그릴 틈)
     } else {
       judgeEl.textContent = '';
       lastJudge = j;
       updateLog();
     }
   }
-  let attempts = 0, lived = 0, lastJudge = null, captionShown = false, sheetOpens = 0;
+  let attempts = 0, lived = 0, lastJudge = null, captionShown = false, sheetOpens = 0, fromDemo = false, demos = 0;
 
   function liftFromPad() {
     const copy = strokes.map((s) => s.slice());
     closeSheet();
-    spawnDoodle(copy, PW, { x: W * 0.5, y: H * 0.12 });
+    spawnDoodle(copy, PW, { x: W * 0.5, y: H * 0.12 }, fromDemo);
+    fromDemo = false;
     strokes = []; redrawPad();
     lastJudge = { kind: 'alive' };
     updateLog();
@@ -493,7 +532,7 @@
   // 시범: 몽망이가 연습지에 동그라미를 그리고 눈 점을 찍음(10번째 아침 뒤 첫 깸 1번)
   document.getElementById('demoBtn').addEventListener('click', () => {
     if (mong.sleeping || demoRunning) return;
-    openSheet(); demoRunning = true; strokes = [];
+    openSheet(); demoRunning = true; fromDemo = true; strokes = [];
     judgeEl.textContent = '몽망이가 빗 끝으로 연습지에 무언가를 그려요.';
     setTimeout(() => {
       const target = circlePts(PW * 0.5, PH * 0.5, PW * 0.22, PH * 0.18).map((p, i) => ({ x: p.x + Math.sin(i * 0.7) * 2.5, y: p.y + Math.cos(i * 0.5) * 2 }));
@@ -556,7 +595,7 @@
 
   // ---------- 기록 ----------
   const logLine = document.getElementById('logLine');
-  const KIND = { alive: '살아남', melody: '점만 여럿 — I-020 가락 자리(시제품에서는 낙서)', doodle: '그냥 낙서' };
+  const KIND = { alive: '살아남', melody: '점만 여럿 — I-020 가락 자리(시제품에서는 낙서)', doodle: '낙서' };
   function updateLog() {
     let last = '';
     if (lastJudge) {
@@ -567,7 +606,7 @@
         else if (lastJudge.dotOutside) last += '(점이 모양 밖)';
       }
     }
-    logLine.innerHTML = `연습지 연 수 ${sheetOpens} · 판정한 그림 ${attempts} · 살아난 그림 ${lived} · 지난 아침 ${mornings}${last}<br><span style="font-size:11.5px">진행자용 숫자예요. 실제 앱에는 어떤 숫자도 보이지 않아요(P4).</span>`;
+    logLine.innerHTML = `시범 ${demos} · 연습지 연 수 ${sheetOpens} · 판정한 그림 ${attempts} · 살아난 그림 ${lived}(시범 뺌) · 지난 아침 ${mornings}${last}<br><span style="font-size:11.5px">진행자용 숫자예요. 실제 앱에는 어떤 숫자도 보이지 않아요(P4).</span>`;
   }
 
   // ---------- 루프 ----------
@@ -762,6 +801,9 @@
     requestAnimationFrame(frame);
   }
 
+  const applyMode = () => { document.body.classList.toggle('tester', location.hash === '#tester'); };
+  window.addEventListener('hashchange', () => { applyMode(); sizeScene(); });
+  applyMode();
   window.addEventListener('resize', () => { sizeScene(); if (sheet.classList.contains('on')) sizePad(); });
   sizeScene();
   updateLog();
