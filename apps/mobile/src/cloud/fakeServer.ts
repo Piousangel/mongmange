@@ -49,7 +49,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 1): FakeServer {
   const users = new Map<string, User>();
   /** token → userId. revoked면 410 */
-  const tokens = new Map<string, { user: string | null; revoked: boolean; expired?: boolean }>();
+  const tokens = new Map<string, { user: string | null; revoked: boolean; expired?: boolean; gone?: boolean }>();
   const sessions = new Map<string, string>();
   let n = seed;
   const rnd = () => {
@@ -78,6 +78,8 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
     const route = `${method} ${path}`;
     if (route === 'POST me/bootstrap') {
       if (!(body.ageGate as { ok?: unknown } | undefined)?.ok) return err(400, 'bad_request');
+      // 지운 계정의 남은 로그인으로는 되살아나지 않는다(실서버: Auth Admin에 sub가 없으면 401)
+      if (sess.gone) return err(401, 'unauthorized');
       if (!sess.user) {
         const id = `u${rnd()}`;
         users.set(id, { creature: Array.from({ length: 8 }, () => RECOVERY_ALPHABET[(rnd() >> 16) % 32]).join(''), code16: null, save: null, conflicts: [] });
@@ -102,7 +104,11 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
     }
     if (route === 'DELETE me') {
       users.delete(sess.user!);
-      for (const s of tokens.values()) if (s.user === sess.user) s.user = null;
+      for (const s of tokens.values())
+        if (s.user === sess.user) {
+          s.user = null;
+          s.gone = true;
+        }
       return res(202, { receipt: 'r'.repeat(22) });
     }
     if (route === 'GET saves/main/meta') return user.save ? res(200, meta(user.save)) : err(404, 'no_save');
@@ -128,19 +134,6 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
       if (body.resolve === 'keep_mine') user.conflicts = [...user.conflicts, { ...cur, id: uuid() }].slice(-3);
       user.save = { rev: cur.rev + 1, sha, body: b, clientSavedAt: String(body.clientSavedAt) };
       return res(200, { rev: user.save.rev, sha });
-    }
-    if (route === 'GET saves/main/versions') {
-      return res(200, user.conflicts.map((c) => ({ id: c.id, reason: 'conflict', rev: c.rev, clientSavedAt: c.clientSavedAt, dayIndex: dayOf(c.body), strokesTotal: strokesOf(c.body), validated: true, createdAt: c.clientSavedAt })));
-    }
-    const vm = /^(GET|POST) saves\/main\/versions\/([^/]+)(\/restore)?$/.exec(route);
-    if (vm) {
-      const row = user.conflicts.find((c) => c.id === vm[2]);
-      if (!row) return err(404, 'not_found');
-      if (!vm[3]) return res(200, { id: row.id, reason: 'conflict', rev: row.rev, clientSavedAt: row.clientSavedAt, dayIndex: dayOf(row.body), strokesTotal: strokesOf(row.body), validated: true, createdAt: row.clientSavedAt, body: row.body });
-      const cur = user.save;
-      if (!cur || Number(headers['if-match']) !== cur.rev) return err(409, 'save_conflict', { server: cur ? meta(cur) : null });
-      user.save = { rev: cur.rev + 1, sha: row.sha, body: row.body, clientSavedAt: row.clientSavedAt };
-      return res(200, { rev: user.save.rev, sha: row.sha });
     }
     return err(404, 'not_found');
   }
@@ -189,7 +182,7 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
           const s = old ? tokens.get(old) : undefined;
           if (!s || faults.offline) return false;
           const t = `t${device}-${rnd()}`;
-          tokens.set(t, { user: s.user, revoked: s.revoked });
+          tokens.set(t, { user: s.user, revoked: s.revoked, gone: s.gone });
           sessions.set(device, t);
           return true;
         },

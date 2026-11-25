@@ -8,15 +8,11 @@ import {
   recoveryCodeResponseSchema,
   saveConflictDetailsSchema,
   saveMetaSchema,
-  saveVersionSchema,
-  saveVersionWithBodySchema,
   saveWithBodySchema,
   saveWriteResponseSchema,
   type AgeGate,
   type RecoverResponse,
   type SaveMeta,
-  type SaveVersion,
-  type SaveVersionWithBody,
   type SaveWithBody,
   type SaveWriteResponse,
 } from '@mong/contract';
@@ -130,9 +126,6 @@ export interface CloudApi {
   recover(code: string, ageGate: AgeGate): Promise<ApiResult<RecoverResponse>>;
   getSave(): Promise<ApiResult<SaveWithBody>>;
   getMeta(): Promise<ApiResult<SaveMeta>>;
-  versions(): Promise<ApiResult<SaveVersion[]>>;
-  version(id: string): Promise<ApiResult<SaveVersionWithBody>>;
-  restoreVersion(id: string, ifMatch: number): Promise<ApiResult<SaveWriteResponse>>;
   putSave(body: string, clientSavedAt: string, pre: Precondition, keepMine?: boolean): Promise<ApiResult<SaveWriteResponse>>;
   addConflict(body: string, clientSavedAt: string): Promise<ApiResult<{ id: string }>>;
   deleteMe(): Promise<ApiResult<{ receipt: string }>>;
@@ -166,24 +159,6 @@ export function createCloudApi(deps: CloudApiDeps): CloudApi {
     },
     async getMeta() {
       return read(await call('GET', 'saves/main/meta'), saveMetaSchema);
-    },
-    async versions() {
-      return read(await call('GET', 'saves/main/versions'), { safeParse: (x: unknown) => {
-        if (!Array.isArray(x)) return { success: false as const };
-        const out: SaveVersion[] = [];
-        for (const v of x) {
-          const p = saveVersionSchema.safeParse(v);
-          if (!p.success) return { success: false as const };
-          out.push(p.data);
-        }
-        return { success: true as const, data: out };
-      } }) as ApiResult<SaveVersion[]>;
-    },
-    async version(id) {
-      return read(await call('GET', `saves/main/versions/${encodeURIComponent(id)}`), saveVersionWithBodySchema);
-    },
-    async restoreVersion(id, ifMatch) {
-      return read(await call('POST', `saves/main/versions/${encodeURIComponent(id)}/restore`, { headers: { 'if-match': String(ifMatch) } }), saveWriteResponseSchema);
     },
     async putSave(body, clientSavedAt, pre, keepMine) {
       const headers: Record<string, string> = 'ifMatch' in pre ? { 'if-match': String(pre.ifMatch) } : { 'if-none-match': '*' };

@@ -11,7 +11,7 @@ import { MorningScreen } from '../screens/MorningScreen';
 import { NoteSheet } from '../screens/NoteSheet';
 import { CloudSheetHost, cloudRowState } from '../screens/CloudSheet';
 import { useCloudDeps } from '../cloud';
-import { PARKED_DAYS, PRE_RESTORE_DAYS, parkedLive, readPreRestore, readRecord } from '../cloud/record';
+import { PARKED_DAYS, PRE_RESTORE_DAYS, readParked, readPreRestore, readRecord } from '../cloud/record';
 import { bornDate } from '../screens/NameTag';
 import { kv } from './storage';
 import { NameSheet, type NameSheetMode } from '../screens/NameSheet';
@@ -548,7 +548,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
                     setCloudOpen('default');
                   },
                   parked: (() => {
-                    const p = parkedLive(readRecord(kv), nowT);
+                    const p = readParked(kv, nowT);
                     if (!p) return null;
                     return {
                       until: bornDate(p.at + PARKED_DAYS * 86_400_000, tzOffsetNow()),

@@ -14,7 +14,7 @@ import { isFuture, sim, type KV } from '@mong/core';
 import { passGate } from './ageGate';
 import type { ApiResult, CloudApi, CloudAuth, Failure } from './api';
 import type { ChooseNote, SaveSide, ServerPick, Task, TaskResult, Why } from './model';
-import { clearRecovering, dropPreRestore, FRESH_RECORD, keepPreRestore, markRecovering, parkedLive, readPreRestore, readRecord, readRecovering, writeRecord, type CloudRecord } from './record';
+import { clearRecovering, clearUnconfirmedDelete, dropParked, dropPreRestore, FRESH_RECORD, keepParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
 
 export interface LocalSave {
   /** 기기에 저장된 본 원문(core SAVE_KEYS.main 그대로 — 같은 본이면 같은 sha). 없으면 null */
@@ -201,43 +201,42 @@ async function fetchCompare(d: TaskDeps, why: Why, opts: { note?: ChooseNote; ke
   };
 }
 
-/** 되찾기에서 '이 기기'를 골라 conflict 칸에 둔 본을 다시 나란히(30일) */
+/** '이 기기'를 골라 밀려난 서버 본(기기 parked 칸, 30일)을 다시 나란히. 서버를 부르지 않는다(칸이 기기에 있으므로) */
 async function fetchParked(d: TaskDeps): Promise<TaskResult> {
-  const rec = readRecord(d.kv);
-  const parked = parkedLive(rec, d.now());
-  if (!rec || !parked) return fail('server');
-  const v = await d.api.version(parked.id);
-  if (v.kind === 'notFound') {
-    // 서버 칸에서 밀려났거나(최대 3벌) 기간이 지났다 → 행을 거둔다
-    save(d, { ...rec, parked: null });
-    return { r: 'synced' };
-  }
-  if (v.kind !== 'ok') return (await common(d, v)) ?? fail('server');
-  const meta = await d.api.getMeta();
-  if (meta.kind !== 'ok') return (await common(d, meta)) ?? fail('server');
-  return {
-    r: 'compare',
-    why: 'parked',
-    local: sideOf(d.local.raw()),
-    server: v.value.validated ? sideOf(v.value.body, v.value) : sideOf(null, v.value),
-    pick: { rev: meta.value.rev, sha: await d.sha256(v.value.body), versionId: v.value.id },
-  };
+  const p = readParked(d.kv, d.now());
+  if (!p) return { r: 'synced' };
+  return { r: 'compare', why: 'parked', local: sideOf(d.local.raw()), server: sideOf(p.raw), pick: { rev: 0, sha: await d.sha256(p.raw) } };
 }
 
-/** 서버 본으로 이어 가기(위 머리말 ①~⑤). pick.versionId면 먼저 서버 restore로 그 이력 본을 현재본으로 만든다(지금 서버 본은 pre_restore 칸 30일) */
-async function takeServer(d: TaskDeps, pick: ServerPick): Promise<TaskResult> {
-  let expect = pick;
-  if (pick.versionId) {
-    const rs = await d.api.restoreVersion(pick.versionId, pick.rev);
-    if (rs.kind === 'conflict' || rs.kind === 'notFound') return { r: 'serverChanged', why: 'parked' };
-    if (rs.kind !== 'ok') return (await common(d, rs)) ?? fail('server');
-    if (rs.value.sha !== pick.sha) return fail('server');
-    expect = { rev: rs.value.rev, sha: rs.value.sha };
+/**
+ * parked 칸의 본으로 이어 가기 = 맞바꾸기: 지금 본은 parked 칸으로(새 30일), 칸의 본은 지금 자리로.
+ * 칸에 먼저 쓰고 바꾸며, 바꾸기에 실패하면 칸을 원래 본으로 되돌린다. 다음 맡기기는 평소처럼(사용자가 고른 본) — 밀려나는 서버 본은 서버 이력에 남는다.
+ */
+async function takeParked(d: TaskDeps): Promise<TaskResult> {
+  const p = readParked(d.kv, d.now());
+  if (!p) return fail('device');
+  let next: sim.State;
+  try {
+    next = sim.parseState(p.raw);
+  } catch {
+    return fail('device');
   }
+  const cur = d.local.raw();
+  if (cur !== null && !keepParked(d.kv, cur, d.now())) return fail('device');
+  if (!d.local.adopt(next)) {
+    keepParked(d.kv, p.raw, p.at);
+    return fail('device');
+  }
+  if (cur === null) dropParked(d.kv);
+  return { r: 'synced' };
+}
+
+/** 서버 본으로 이어 가기(위 머리말 ①~⑤) */
+async function takeServer(d: TaskDeps, pick: ServerPick): Promise<TaskResult> {
   const r = await d.api.getSave();
   if (r.kind === 'notFound') return { r: 'serverChanged', why: 'conflict' };
   if (r.kind !== 'ok') return (await common(d, r)) ?? fail('server');
-  if (r.value.rev !== expect.rev || r.value.sha !== expect.sha) return { r: 'serverChanged', why: 'conflict' };
+  if (r.value.rev !== pick.rev || r.value.sha !== pick.sha) return { r: 'serverChanged', why: 'conflict' };
   let next: sim.State;
   try {
     next = sim.parseState(r.value.body);
@@ -254,21 +253,23 @@ async function takeServer(d: TaskDeps, pick: ServerPick): Promise<TaskResult> {
   }
   if (!d.local.adopt(next)) return fail('device');
   const rec = readRecord(d.kv) ?? FRESH_RECORD;
-  save(d, { ...rec, rev: r.value.rev, sha: r.value.sha, syncedAt: d.now(), conflict: false, held: null, parked: pick.versionId ? null : rec.parked });
+  save(d, { ...rec, rev: r.value.rev, sha: r.value.sha, syncedAt: d.now(), conflict: false, held: null });
   return { r: 'synced' };
 }
 
-/** 이 기기 본을 고름. 되찾기 맥락(restore)이면 밀려난 되찾은 본의 이력 행을 찾아 기록해 둔다(공방 노트 '다시 고르기', 30일) */
-async function keepLocal(d: TaskDeps, pick: ServerPick, why: Why): Promise<TaskResult> {
-  const u = await upload(d, pick);
-  if (u.r !== 'synced' || why !== 'restore') return u;
-  const vs = await d.api.versions();
-  if (vs.kind === 'ok') {
-    const row = vs.value.find((v) => v.reason === 'conflict' && v.rev === pick.rev);
-    const rec = readRecord(d.kv);
-    if (row && rec) save(d, { ...rec, parked: { id: row.id, at: d.now() } });
+/**
+ * 이 기기 본을 고름. park(되찾기·has_creature 맥락)면 밀려날 서버 본을 먼저 받아 고른 그 본인지(sha) 확인하고 기기 parked 칸에 둔다(리뷰 재리뷰 2 M-b·M-d).
+ * 서버 conflict 칸(최대 3벌)과 달리 이 칸은 30일 동안 밀려나지 않는다. 칸에 못 두면 고르지 않는다(되찾은 본이 닿을 수 없는 곳으로만 가지 않게).
+ */
+async function keepLocal(d: TaskDeps, pick: ServerPick, park: boolean): Promise<TaskResult> {
+  if (park) {
+    const r = await d.api.getSave();
+    if (r.kind === 'notFound') return { r: 'serverChanged', why: 'conflict' };
+    if (r.kind !== 'ok') return (await common(d, r)) ?? fail('server');
+    if (r.value.rev !== pick.rev || r.value.sha !== pick.sha) return { r: 'serverChanged', why: 'conflict' };
+    if (!keepParked(d.kv, r.value.body, d.now())) return fail('device');
   }
-  return u;
+  return upload(d, pick);
 }
 
 /** 인장 코드 알아내기: bootstrap은 이미 몽망이가 있는 사용자에게 그 코드를 돌려준다(멱등). 실패하면 null */
@@ -278,6 +279,9 @@ async function currentCreature(d: TaskDeps): Promise<string | null> {
 }
 
 async function recover(d: TaskDeps, code: string, target: string | null): Promise<TaskResult> {
+  // 인장 칸에 이 기기 몽망이의 코드를 넣었다면 되찾을 대상이 아니다(리뷰 재리뷰 2 M-c) — 서버를 부르기 전에 되돌려 준다
+  const own = readRecord(d.kv)?.creature ?? null;
+  if (target !== null && own !== null && target === own) return { r: 'ownSeal' };
   const s = await signIn(d);
   if (s) return s;
   // 부르기 직전에 남긴다: 응답이 끊겨 다시 부를 때 has_creature를 판별할 근거(대상 인장 코드)
@@ -293,6 +297,7 @@ async function recover(d: TaskDeps, code: string, target: string | null): Promis
     // 그 몽망이의 인장 코드가 되찾기 대상과 같을 때만 '이미 되찾음'. 그 밖에는 언제나 나란히 고르기, 기기 기록은 덮지 않는다
     const cur = await currentCreature(d);
     const want = marker?.target ?? null;
+    // (대상 = 이 기기 몽망이 코드인 경우는 위에서 이미 걸렀다)
     if (cur !== null && want !== null && cur === want) {
       // 성공: 앞선 되찾기가 이미 끝났다. 평소 되찾기와 같이 나란히 고르기로 이어 간다(서버 본이 없으면 '이미 되찾음'으로 끝)
       clearRecovering(d.kv);
@@ -323,8 +328,8 @@ async function finishDeleted(d: TaskDeps): Promise<TaskResult> {
  * 그래도 202가 아니면 '확인 필요'로 둔다: 계약의 401(`unauthorized`)은 '토큰 문제'와 '사용자 없음'을 구별하지 않으므로 지워짐의 증거가 아니다.
  */
 async function deleteMe(d: TaskDeps, first: boolean): Promise<TaskResult> {
-  const rec = readRecord(d.kv) ?? FRESH_RECORD;
-  save(d, { ...rec, state: 'deleting' });
+  const rec0 = readRecord(d.kv) ?? FRESH_RECORD;
+  const rec = save(d, { ...rec0, state: 'deleting', deleteTries: first ? 0 : rec0.deleteTries });
   if (first) {
     const r = await d.api.deleteMe();
     if (r.kind === 'ok') return finishDeleted(d);
@@ -334,7 +339,32 @@ async function deleteMe(d: TaskDeps, first: boolean): Promise<TaskResult> {
   const again = await d.api.deleteMe();
   if (again.kind === 'ok') return finishDeleted(d);
   if (again.kind === 'moved') return (await common(d, again))!;
-  return { r: 'deleteUnknown' };
+  const tries = rec.deleteTries + 1;
+  save(d, { ...rec, deleteTries: tries });
+  return { r: 'deleteUnknown', tries };
+}
+
+/**
+ * 지우기 결과를 끝내 모를 때의 출구(리뷰 재리뷰 2 M-a — 서버 B2b 전까지): 이 기기의 맡겨 두기 기록만 비우고,
+ * '서버에 남았을 수 있음' 표시(인장 코드)를 남긴다. 로그인은 남겨 두어 소개 화면에서 '다시 지우기'를 할 수 있게 한다.
+ */
+function forget(d: TaskDeps): TaskResult {
+  const rec = readRecord(d.kv);
+  if (!markUnconfirmedDelete(d.kv, rec?.creature ?? null, d.now())) return fail('device');
+  writeRecord(d.kv, null);
+  return { r: 'forgotten' };
+}
+
+/** 끈 뒤 '다시 지우기': 토큰을 새로 받아 DELETE. 202일 때만 표시를 지우고 '지웠어요' */
+async function retryForgotten(d: TaskDeps): Promise<TaskResult> {
+  await d.auth.refresh().catch(() => false);
+  const r = await d.api.deleteMe();
+  if (r.kind === 'ok') {
+    clearUnconfirmedDelete(d.kv);
+    await d.auth.signOut().catch(() => undefined);
+    return { r: 'deleted' };
+  }
+  return fail(r.kind === 'failed' ? r.failure : 'signedOut');
 }
 
 /**
@@ -358,6 +388,9 @@ async function revert(d: TaskDeps): Promise<TaskResult> {
     return fail('device');
   }
   if (cur === null) dropPreRestore(d.kv);
+  // 맡겨 두는 중이면 다음 맡기기가 서버 현재본을 말없이 덮지 않게, 나란히 고르기를 거치게 한다(리뷰 재리뷰 2 M-e)
+  const rec = readRecord(d.kv);
+  if (rec?.state === 'on') save(d, { ...rec, conflict: true });
   return { r: 'reverted' };
 }
 
@@ -365,6 +398,8 @@ export async function runTask(task: Task, d: TaskDeps): Promise<TaskResult> {
   try {
     switch (task.t) {
       case 'enable': {
+        // 확인하지 못한 지우기가 남았으면 그 로그인을 쓰지 않고 새로 시작한다(지워졌을 수 있는 계정에 다시 붙지 않게)
+        if (readUnconfirmedDelete(d.kv)) await d.auth.signOut().catch(() => undefined);
         const s = await signIn(d);
         if (s) return s;
         const b = await d.api.bootstrap(passGate());
@@ -382,7 +417,13 @@ export async function runTask(task: Task, d: TaskDeps): Promise<TaskResult> {
       case 'fetch':
         return task.why === 'parked' ? await fetchParked(d) : await fetchCompare(d, task.why);
       case 'keepLocal':
-        return await keepLocal(d, task.server, task.why);
+        return await keepLocal(d, task.server, task.park);
+      case 'takeParked':
+        return await takeParked(d);
+      case 'forget':
+        return forget(d);
+      case 'retryForgotten':
+        return await retryForgotten(d);
       case 'takeServer':
         return await takeServer(d, task.server);
       case 'sync':

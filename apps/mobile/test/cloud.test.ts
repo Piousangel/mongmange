@@ -8,7 +8,7 @@ import { AGE_KEY, ageStatus, checkAgeInput, judgeAge, recordAge } from '../src/c
 import { classify, createCloudApi } from '../src/cloud/api';
 import { createFakeServer } from '../src/cloud/fakeServer';
 import { closable, deleteToken, initialView, reduce, startEvents, tailMatches, type CloudEvent, type SaveSide, type View } from '../src/cloud/model';
-import { CLOUD_KEY, parkedLive, PRE_RESTORE_KEY, readPreRestore, readRecord, readRecovering } from '../src/cloud/record';
+import { CLOUD_KEY, keepPreRestore, PARKED_KEY, PRE_RESTORE_KEY, readParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete } from '../src/cloud/record';
 import { markCodeConfirmed, runTask, uploadShapeOk, type TaskDeps } from '../src/cloud/tasks';
 
 const sha = async (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
@@ -161,9 +161,12 @@ describe('상태 기계', () => {
     expect(run({ v: 'on' }, ask, { e: 'confirmDelete', input: 'K7M3' })).toMatchObject({ mismatch: true });
     expect(run({ v: 'on' }, ask, { e: 'back' })).toEqual({ v: 'on' });
     expect(deleteToken({ creature: 'ABCDK7M2', sha: null })).toBe('K7M2');
-    expect(initialView({ state: 'deleting' })).toEqual({ v: 'deleteCheck' });
-    expect(reduce({ v: 'deleteCheck' }, { e: 'retry' })).toEqual({ v: 'busy', task: { t: 'deleteCheck' }, slow: false });
-    expect(reduce({ v: 'busy', task: { t: 'delete' }, slow: false }, { e: 'done', result: { r: 'deleteUnknown' } })).toEqual({ v: 'deleteCheck' });
+    expect(initialView({ state: 'deleting', deleteTries: 3 })).toEqual({ v: 'deleteCheck', tries: 3 });
+    expect(reduce({ v: 'deleteCheck', tries: 0 }, { e: 'retry' })).toEqual({ v: 'busy', task: { t: 'deleteCheck' }, slow: false });
+    expect(reduce({ v: 'busy', task: { t: 'delete' }, slow: false }, { e: 'done', result: { r: 'deleteUnknown', tries: 1 } })).toEqual({ v: 'deleteCheck', tries: 1 });
+    // 출구('이 기기에서 끄기')는 몇 번 확인한 뒤에만
+    expect(reduce({ v: 'deleteCheck', tries: 1 }, { e: 'forget' })).toEqual({ v: 'deleteCheck', tries: 1 });
+    expect(reduce({ v: 'deleteCheck', tries: 2 }, { e: 'forget' })).toEqual({ v: 'busy', task: { t: 'forget' }, slow: false });
     expect(initialView(null)).toEqual({ v: 'intro' });
     expect(initialView({ state: 'moved' })).toEqual({ v: 'moved' });
   });
@@ -307,7 +310,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     await srv.putFromElsewhere('A', mong(8, 6));
     expect(await runTask({ t: 'takeServer', server: cmp.pick }, a.deps)).toEqual({ r: 'serverChanged', why: 'conflict' });
     expect(a.adopted).toHaveLength(0);
-    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'conflict' }, a.deps)).toEqual({ r: 'serverChanged', why: 'conflict' });
+    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'conflict', park: false }, a.deps)).toEqual({ r: 'serverChanged', why: 'conflict' });
     expect(srv.peek('A')!.save!.body).toBe(mong(8, 6));
   });
 
@@ -334,7 +337,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     const mine = mong(1, 1);
     a.kv.set(SAVE_KEYS.main, mine);
     const cmp = (await runTask({ t: 'fetch', why: 'conflict' }, a.deps)) as { pick: { rev: number; sha: string } };
-    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'conflict' }, a.deps)).toEqual({ r: 'synced' });
+    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'conflict', park: false }, a.deps)).toEqual({ r: 'synced' });
     expect(srv.peek('A')!.save!.body).toBe(mine);
     expect(srv.peek('A')!.conflicts.map((c) => c.body)).toContain(mong(9, 5));
     expect(readRecord(a.kv)!.conflict).toBe(false);
@@ -420,7 +423,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(await runTask({ t: 'recover', code: xEn.code, target: null }, z.deps)).toMatchObject({ r: 'recovered' });
   });
 
-  it('[재리뷰] 되찾기에서 이 기기를 고르면 되찾은 본은 서버 conflict 칸(30일)에 남고, 그 기간 다시 골라 이어 갈 수 있다', async () => {
+  it('[재리뷰] 되찾기에서 이 기기를 고르면 되찾은 본은 서버 conflict 칸에도, 기기 parked 칸(30일)에도 남고, 다시 골라 이어 갈 수 있다', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1, 4));
     const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
@@ -428,21 +431,82 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     const b = device(srv, 'B', mong(2, 1));
     await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
     const cmp = (await runTask({ t: 'fetch', why: 'restore' }, b.deps)) as { pick: { rev: number; sha: string } };
-    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'restore' }, b.deps)).toEqual({ r: 'synced' });
+    expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'restore', park: true }, b.deps)).toEqual({ r: 'synced' });
     expect(srv.peek('B')!.conflicts.map((c) => c.body)).toContain(xBody);
-    const parked = readRecord(b.kv)!.parked!;
-    expect(parkedLive(readRecord(b.kv), T + 29 * 86_400_000)).not.toBeNull();
-    expect(parkedLive(readRecord(b.kv), T + 31 * 86_400_000)).toBeNull();
-    // 공방 노트 → 다시 나란히 → 되찾은 본 고름
+    expect(readParked(b.kv, T)!.raw).toBe(xBody);
+    expect(readParked(b.kv, T + 29 * 86_400_000)).not.toBeNull();
+    expect(readParked(b.kv, T + 31 * 86_400_000)).toBeNull();
+    // 공방 노트 → 다시 나란히 → 되찾은 본 고름(맞바꾸기: 지금 본은 parked 칸으로)
     expect(reduce({ v: 'on' }, { e: 'openParked' })).toEqual({ v: 'busy', task: { t: 'fetch', why: 'parked' }, slow: false });
     const again = await runTask({ t: 'fetch', why: 'parked' }, b.deps);
-    expect(again).toMatchObject({ r: 'compare', why: 'parked', server: { dayIndex: 4 }, local: { dayIndex: 1 }, pick: { versionId: parked.id } });
+    expect(again).toMatchObject({ r: 'compare', why: 'parked', server: { dayIndex: 4 }, local: { dayIndex: 1 } });
+    const v = reduce(reduce(reduce({ v: 'busy', task: { t: 'fetch', why: 'parked' }, slow: false }, { e: 'done', result: again }), { e: 'pick', side: 'server' }), { e: 'confirmPick' });
+    expect(reduce(v, { e: 'confirmPick' })).toEqual({ v: 'busy', task: { t: 'takeParked' }, slow: false });
     const mine = b.kv.getString(SAVE_KEYS.main);
-    expect(await runTask({ t: 'takeServer', server: (again as { pick: { rev: number; sha: string; versionId: string } }).pick }, b.deps)).toEqual({ r: 'synced' });
+    expect(await runTask({ t: 'takeParked' }, b.deps)).toEqual({ r: 'synced' });
     expect(b.adopted.at(-1)!.dayIndex).toBe(4);
-    expect(srv.peek('B')!.save!.body).toBe(xBody);
-    expect(readPreRestore(b.kv, T)!.raw).toBe(mine);
-    expect(readRecord(b.kv)!.parked).toBeNull();
+    expect(readParked(b.kv, T)!.raw).toBe(mine);
+  });
+
+  it('[재리뷰 2 M-d] 서버 conflict 칸이 3벌 한도로 밀려도 기기 parked 칸은 30일 동안 그대로', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 4));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const xBody = srv.peek('A')!.save!.body;
+    const b = device(srv, 'B', mong(2, 1));
+    await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
+    const cmp = (await runTask({ t: 'fetch', why: 'restore' }, b.deps)) as { pick: { rev: number; sha: string } };
+    await runTask({ t: 'keepLocal', server: cmp.pick, why: 'restore', park: true }, b.deps);
+    for (let i = 0; i < 4; i++) {
+      await srv.putFromElsewhere('B', mong(20 + i, 6 + i));
+      b.kv.set(SAVE_KEYS.main, mong(2, 2 + i));
+      const c = (await runTask({ t: 'fetch', why: 'conflict' }, b.deps)) as { pick: { rev: number; sha: string } };
+      await runTask({ t: 'keepLocal', server: c.pick, why: 'conflict', park: false }, b.deps);
+    }
+    expect(srv.peek('B')!.conflicts.map((c) => c.body)).not.toContain(xBody);
+    expect(readParked(b.kv, T + 20 * 86_400_000)!.raw).toBe(xBody);
+    expect(await runTask({ t: 'fetch', why: 'parked' }, b.deps)).toMatchObject({ r: 'compare', server: { dayIndex: 4 } });
+  });
+
+  it('[재리뷰 2 M-b] 인장 칸을 비운 반쯤 성공(has_creature)에서 이 기기를 골라도 밀려나는 서버 본을 parked로 남긴다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 4));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const xBody = srv.peek('A')!.save!.body;
+    const b = device(srv, 'B', mong(2, 0));
+    srv.faults.dropAfterCommit = true;
+    await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
+    const r = await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
+    expect(r).toMatchObject({ r: 'compare', note: 'hasCreature' });
+    const v = reduce(reduce(reduce({ v: 'busy', task: { t: 'recover', code: 'X', target: null }, slow: false }, { e: 'done', result: r }), { e: 'pick', side: 'local' }), { e: 'confirmPick' });
+    const task = reduce(v, { e: 'confirmPick' });
+    expect(task).toMatchObject({ v: 'busy', task: { t: 'keepLocal', park: true } });
+    expect(await runTask((task as { task: Parameters<typeof runTask>[0] }).task, b.deps)).toEqual({ r: 'synced' });
+    expect(readParked(b.kv, T)!.raw).toBe(xBody);
+  });
+
+  it('[재리뷰 2 M-b] parked로 남길 서버 본이 고른 그 본이 아니면(sha 다름) 고르지 않고 다시 나란히', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 4));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const b = device(srv, 'B', mong(2, 1));
+    await runTask({ t: 'recover', code: en.code, target: null }, b.deps);
+    const cmp = (await runTask({ t: 'fetch', why: 'restore' }, b.deps)) as { pick: { rev: number; sha: string } };
+    expect(await runTask({ t: 'keepLocal', server: { ...cmp.pick, sha: 'f'.repeat(64) }, why: 'restore', park: true }, b.deps)).toEqual({ r: 'serverChanged', why: 'conflict' });
+    expect(b.kv.getString(PARKED_KEY)).toBeUndefined();
+  });
+
+  it('[재리뷰 2 M-c] 인장 칸에 이 기기 몽망이의 코드를 넣으면 서버를 부르지 않고 바로 알려 준다(이미 되찾음으로 안내하지 않음)', async () => {
+    const srv = createFakeServer(sha);
+    const xDev = device(srv, 'X', mong(5, 6));
+    const xEn = (await runTask({ t: 'enable' }, xDev.deps)) as { code: string };
+    const y = device(srv, 'Y', mong(7, 3));
+    await runTask({ t: 'enable' }, y.deps);
+    const own = readRecord(y.kv)!.creature!;
+    const before = srv.log.length;
+    expect(await runTask({ t: 'recover', code: xEn.code, target: own }, y.deps)).toEqual({ r: 'ownSeal' });
+    expect(srv.log.length).toBe(before);
+    expect(reduce({ v: 'busy', task: { t: 'recover', code: 'X', target: own }, slow: false }, { e: 'done', result: { r: 'ownSeal' } })).toEqual({ v: 'recoverInput', error: 'ownSeal' });
   });
 
   it('[리뷰 M3] 서버 본을 고른 뒤 바꾸기 직전까지 이 기기 본이 바뀌면 바꾸지 않고 다시 나란히(preRestore도 쓰지 않음)', async () => {
@@ -468,10 +532,44 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     const a = device(srv, 'A', mong(1));
     await runTask({ t: 'enable' }, a.deps);
     srv.faults.dropAfterCommit = true;
-    expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleteUnknown' });
+    expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 1 });
     expect(readRecord(a.kv)!.state).toBe('deleting');
     expect(srv.log.filter((l) => l === 'DELETE me')).toHaveLength(2);
-    expect(initialView(readRecord(a.kv))).toEqual({ v: 'deleteCheck' });
+    expect(initialView(readRecord(a.kv))).toEqual({ v: 'deleteCheck', tries: 1 });
+  });
+
+  it('[재리뷰 2 M-a] 확인 필요에서 영구히 갇히지 않는다: 몇 번 확인 뒤 이 기기에서 끄기 → 서버에 남았을 수 있다는 표시 + 다시 지우기 길 → 다시 켤 수 있음', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    const creature = readRecord(a.kv)!.creature;
+    srv.faults.dropAfterCommit = true;
+    expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 1 });
+    expect(await runTask({ t: 'deleteCheck' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 2 });
+    expect(await runTask({ t: 'forget' }, a.deps)).toEqual({ r: 'forgotten' });
+    expect(readRecord(a.kv)).toBeNull();
+    expect(readUnconfirmedDelete(a.kv)).toMatchObject({ creature });
+    expect(reduce({ v: 'forgotten' }, { e: 'continue' })).toEqual({ v: 'intro' });
+    // 다시 지우기: 서버에서 이미 지워져 401 → 표시는 그대로(지웠다고 하지 않음)
+    expect(await runTask({ t: 'retryForgotten' }, a.deps)).toEqual({ r: 'failed', failure: 'signedOut' });
+    expect(readUnconfirmedDelete(a.kv)).not.toBeNull();
+    // 다시 켜기: 남은 로그인을 버리고 새로 시작
+    expect(await runTask({ t: 'enable' }, a.deps)).toMatchObject({ r: 'enabled' });
+    expect(readRecord(a.kv)!.creature).not.toBe(creature);
+  });
+
+  it('[재리뷰 2 M-a] 끈 뒤 다시 지우기: 서버에 남아 있었으면 202 → 지웠어요, 표시를 지운다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    srv.faults.offline = true;
+    await runTask({ t: 'delete' }, a.deps);
+    await runTask({ t: 'deleteCheck' }, a.deps);
+    srv.faults.offline = false;
+    expect(await runTask({ t: 'forget' }, a.deps)).toEqual({ r: 'forgotten' });
+    expect(srv.peek('A')).not.toBeNull();
+    expect(await runTask({ t: 'retryForgotten' }, a.deps)).toEqual({ r: 'deleted' });
+    expect(readUnconfirmedDelete(a.kv)).toBeNull();
   });
 
   it('[재리뷰 R4] DELETE가 닿지 않고(오프라인) 확인도 401(토큰 문제)이어도 지웠다고 하지 않는다 → 다시 확인하면 새 토큰으로 202 → 그때만 지워짐', async () => {
@@ -479,14 +577,44 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     const a = device(srv, 'A', mong(1));
     await runTask({ t: 'enable' }, a.deps);
     srv.faults.offline = true;
-    expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleteUnknown' });
+    expect(await runTask({ t: 'delete' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 1 });
     srv.faults.offline = false;
     srv.faults.failNext = { status: 401, code: 'unauthorized' };
-    expect(await runTask({ t: 'deleteCheck' }, a.deps)).toEqual({ r: 'deleteUnknown' });
+    expect(await runTask({ t: 'deleteCheck' }, a.deps)).toEqual({ r: 'deleteUnknown', tries: 2 });
     expect(srv.peek('A')).not.toBeNull();
     expect(readRecord(a.kv)!.state).toBe('deleting');
     expect(await runTask({ t: 'deleteCheck' }, a.deps)).toEqual({ r: 'deleted' });
     expect(readRecord(a.kv)).toBeNull();
+  });
+
+  it('[재리뷰 2 M-e] 맡겨 두는 중에 되돌리면(맞바꾸기) 다음 맡기기가 서버 현재본을 말없이 덮지 않고 나란히 고르기를 거친다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 2));
+    await runTask({ t: 'enable' }, a.deps);
+    const serverBody = srv.peek('A')!.save!.body;
+    keepPreRestore(a.kv, mong(9, 7), T);
+    expect(await runTask({ t: 'revert' }, a.deps)).toEqual({ r: 'reverted' });
+    expect(readRecord(a.kv)!.conflict).toBe(true);
+    const puts = srv.log.filter((l) => l.startsWith('PUT')).length;
+    expect(await runTask({ t: 'sync' }, a.deps)).toEqual({ r: 'conflict' });
+    expect(srv.log.filter((l) => l.startsWith('PUT')).length).toBe(puts);
+    expect(srv.peek('A')!.save!.body).toBe(serverBody);
+  });
+
+  it('[재리뷰 2 M-f/N9] 되돌리기·parked 맞바꾸기에서 바꾸기가 실패하면 칸을 원래 본으로 되돌린다(어느 본도 잃지 않음)', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 2));
+    const cur = a.kv.getString(SAVE_KEYS.main)!;
+    const before = mong(9, 7);
+    keepPreRestore(a.kv, before, T - 1000);
+    const failing = { ...a.deps, local: { ...a.deps.local, adopt: () => false } };
+    expect(await runTask({ t: 'revert' }, failing)).toEqual({ r: 'failed', failure: 'device' });
+    expect(readPreRestore(a.kv, T)).toEqual({ at: T - 1000, raw: before });
+    expect(a.kv.getString(SAVE_KEYS.main)).toBe(cur);
+    a.kv.set(PARKED_KEY, JSON.stringify({ at: T - 2000, raw: before }));
+    expect(await runTask({ t: 'takeParked' }, failing)).toEqual({ r: 'failed', failure: 'device' });
+    expect(readParked(a.kv, T)).toEqual({ at: T - 2000, raw: before });
+    expect(a.kv.getString(SAVE_KEYS.main)).toBe(cur);
   });
 
   it('[리뷰 H2] 첫 DELETE가 401(토큰 만료)이면 토큰을 새로 받아 다시 보내 202 → 지워짐', async () => {

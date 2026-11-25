@@ -8,7 +8,7 @@ import { sha256Hex } from '../cloud';
 import { createCloudApi } from '../cloud/api';
 import { createFakeServer } from '../cloud/fakeServer';
 import { deleteToken, type View as CloudView } from '../cloud/model';
-import { writeRecord, readRecord } from '../cloud/record';
+import { keepParked, markUnconfirmedDelete, writeRecord, readRecord } from '../cloud/record';
 import { markCodeConfirmed, runTask, sideOf, type TaskDeps } from '../cloud/tasks';
 import { kv as webKV } from '../game/storage';
 import { CloudSheetHost } from './CloudSheet';
@@ -87,7 +87,8 @@ async function setup(cv: string): Promise<{ deps: TaskDeps; initial?: CloudView 
       await enable();
       markCodeConfirmed(kv);
       const rec = readRecord(kv);
-      if (rec) writeRecord(kv, { ...rec, parked: { id: '00000000-0000-4000-8000-000000000000', at: Date.now() } });
+      if (rec) writeRecord(kv, rec);
+      keepParked(kv, other, Date.now());
       return { deps, initial: { v: 'on' } };
     }
     case 'on-attention': {
@@ -110,7 +111,10 @@ async function setup(cv: string): Promise<{ deps: TaskDeps; initial?: CloudView 
       markCodeConfirmed(kv);
       return { deps, initial: { v: 'deleteConfirm', token: deleteToken(readRecord(kv)), mismatch: false } };
     case 'delete-check':
-      return { deps, initial: { v: 'deleteCheck' } };
+      return { deps, initial: { v: 'deleteCheck', tries: 2 } };
+    case 'unconfirmed':
+      markUnconfirmedDelete(kv, 'K7M2ABCD', Date.now());
+      return { deps };
     case 'already':
       return { deps, initial: { v: 'already' } };
     case 'revert':

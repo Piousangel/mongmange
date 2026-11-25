@@ -11,7 +11,7 @@ import { CAN_COPY, copyText } from '../cloud/clipboard';
 import { CONFIRM_TAIL, type SaveSide, type Task, type View as CloudView } from '../cloud/model';
 import type { CloudRecord } from '../cloud/record';
 import { useCloud, type CloudController } from '../cloud/useCloud';
-import { parkedLive, readRecord } from '../cloud/record';
+import { DELETE_TRIES_BEFORE_EXIT, readParked, readRecord, readUnconfirmedDelete } from '../cloud/record';
 import type { TaskDeps } from '../cloud/tasks';
 import type { AgeInputError } from '../cloud/ageGate';
 import { useMongLook, useStrokeInks } from '../game/look';
@@ -22,7 +22,11 @@ import { Portrait } from './NameTag';
 
 const C = PALETTE.day;
 
-export function CloudSheet({ visible, onClose, cloud, record, entry }: { visible: boolean; onClose: () => void; cloud: CloudController; record: CloudRecord | null; entry?: 'revert' | 'parked' }) {
+/** 기록 밖의 기기 칸 상태(그릴 때마다 읽는다): parked = 다시 고를 수 있는 되찾은 본이 있음, unconfirmed = 확인하지 못한 지우기(인장 코드) */
+export type CloudExtra = { parked: boolean; unconfirmed: { creature: string | null } | null };
+const NO_EXTRA: CloudExtra = { parked: false, unconfirmed: null };
+
+export function CloudSheet({ visible, onClose, cloud, record, entry, extra = NO_EXTRA }: { visible: boolean; onClose: () => void; cloud: CloudController; record: CloudRecord | null; entry?: 'revert' | 'parked'; extra?: CloudExtra }) {
   const { view } = cloud;
   const closable = view.v !== 'code';
   const { reopen } = cloud;
@@ -35,7 +39,7 @@ export function CloudSheet({ visible, onClose, cloud, record, entry }: { visible
   useAnnounce(view);
   return (
     <BottomSheet visible={visible} onClose={onClose} title={t('cloud.title')} theme="day" closable={closable} contentContainerStyle={styles.content} testID="cloud">
-      <Body cloud={cloud} record={record} onClose={onClose} />
+      <Body cloud={cloud} record={record} onClose={onClose} extra={extra} />
     </BottomSheet>
   );
 }
@@ -44,7 +48,8 @@ export function CloudSheet({ visible, onClose, cloud, record, entry }: { visible
 export function CloudSheetHost({ visible, onClose, deps, initial, entry, tzOffsetMin }: { visible: boolean; onClose: () => void; deps: TaskDeps; initial?: CloudView; entry?: 'revert' | 'parked'; tzOffsetMin: () => number }) {
   const cloud = useCloud(deps, { initial, tzOffsetMin });
   const record = readRecord(deps.kv);
-  return <CloudSheet visible={visible} onClose={onClose} cloud={cloud} record={record} entry={entry} />;
+  const extra: CloudExtra = { parked: readParked(deps.kv, deps.now()) !== null, unconfirmed: readUnconfirmedDelete(deps.kv) };
+  return <CloudSheet visible={visible} onClose={onClose} cloud={cloud} record={record} entry={entry} extra={extra} />;
 }
 
 /**
@@ -124,7 +129,12 @@ export function busyKey(task: Task): BusyKey {
     case 'delete':
       return 'cloud.busy.delete';
     case 'deleteCheck':
+    case 'retryForgotten':
       return 'cloud.busy.deleteCheck';
+    case 'forget':
+      return 'cloud.busy.forget';
+    case 'takeParked':
+      return 'cloud.busy.takeServer';
     case 'revert':
       return 'cloud.busy.revert';
   }
@@ -134,7 +144,7 @@ export function failKey(f: Failure): FailKey {
   return `cloud.failed.${f}`;
 }
 
-function Body({ cloud, record, onClose }: { cloud: CloudController; record: CloudRecord | null; onClose: () => void }) {
+function Body({ cloud, record, onClose, extra }: { cloud: CloudController; record: CloudRecord | null; onClose: () => void; extra: CloudExtra }) {
   const { view, send } = cloud;
   switch (view.v) {
     case 'intro':
@@ -144,6 +154,13 @@ function Body({ cloud, record, onClose }: { cloud: CloudController; record: Clou
           <P sub>{t('cloud.intro.what')}</P>
           <P sub testID="cloud-word-notice">{t('cloud.intro.word')}</P>
           <P sub>{t('cloud.intro.free')}</P>
+          {extra.unconfirmed && (
+            <View testID="cloud-unconfirmed">
+              <P>{t('cloud.unconfirmed.body', { code: extra.unconfirmed.creature ?? t('cloud.choose.unknown') })}</P>
+              <Btn label={t('cloud.unconfirmed.retry')} onPress={() => send({ e: 'retryForgotten' })} testID="cloud-unconfirmed-retry" />
+            </View>
+          )}
+          {extra.parked && <Row label={t('cloud.on.parked')} onPress={() => send({ e: 'openParked' })} strong testID="cloud-parked-intro" />}
           <Actions>
             <Btn primary label={t('cloud.intro.enable')} onPress={() => cloud.start('enable')} testID="cloud-enable" />
             <Btn label={t('cloud.intro.recover')} onPress={() => cloud.start('recover')} testID="cloud-recover" />
@@ -214,16 +231,27 @@ function Body({ cloud, record, onClose }: { cloud: CloudController; record: Clou
         <View testID="cloud-delete-check">
           <P>{t('cloud.deleteCheck.body')}</P>
           <P sub>{t('cloud.failed.safe')}</P>
+          {view.tries >= DELETE_TRIES_BEFORE_EXIT && <P sub testID="cloud-delete-exit-note">{t('cloud.deleteCheck.exitNote')}</P>}
           <Actions>
             <Btn primary label={t('cloud.deleteCheck.retry')} onPress={() => send({ e: 'retry' })} testID="cloud-delete-check-retry" />
+            {view.tries >= DELETE_TRIES_BEFORE_EXIT && <Btn label={t('cloud.deleteCheck.exit')} onPress={() => send({ e: 'forget' })} testID="cloud-delete-exit" />}
             <Btn label={t('cloud.later')} onPress={onClose} />
           </Actions>
         </View>
       );
+    case 'forgotten':
+      return (
+        <>
+          <P>{t('cloud.forgotten.body')}</P>
+          <Actions>
+            <Btn primary label={t('cloud.continue')} onPress={() => send({ e: 'continue' })} testID="cloud-forgotten-continue" />
+          </Actions>
+        </>
+      );
     case 'choose':
       return <Choose view={view} cloud={cloud} />;
     case 'on':
-      return <OnView record={record} cloud={cloud} />;
+      return <OnView record={record} cloud={cloud} parked={extra.parked} />;
     case 'deleteConfirm':
       return <DeleteConfirm token={view.token} mismatch={view.mismatch} onConfirm={(input) => send({ e: 'confirmDelete', input })} onBack={() => send({ e: 'back' })} />;
     case 'deleted':
@@ -426,9 +454,12 @@ function CodeConfirm({ mismatch, onCheck, onAgain }: { mismatch: boolean; onChec
   );
 }
 
-function RecoverForm({ error, onSubmit, onBack }: { error: 'format' | 'seal' | 'notFound' | null; onSubmit: (s: string, seal: string) => void; onBack: () => void }) {
+function RecoverForm({ error, onSubmit, onBack }: { error: 'format' | 'seal' | 'ownSeal' | 'notFound' | null; onSubmit: (s: string, seal: string) => void; onBack: () => void }) {
   const [input, setInput] = useState('');
   const [seal, setSeal] = useState('');
+  // 인장 코드 칸은 접어 둔다(글귀와 헷갈리지 않게 — 리뷰 재리뷰 2 낮음). 인장 관련 오류면 펼친다
+  const [sealOpen, setSealOpen] = useState(false);
+  const showSeal = sealOpen || error === 'seal' || error === 'ownSeal';
   const fs = useFontScale();
   const { width } = useWindowDimensions();
   // 글귀 19자(대시 포함)가 칸 안에 다 보이는 크기까지만 키운다(좁은 폭·200%에서 자리표시가 잘리지 않게 — 리뷰 L6)
@@ -452,25 +483,31 @@ function RecoverForm({ error, onSubmit, onBack }: { error: 'format' | 'seal' | '
         style={[styles.input, styles.codeInput, { fontSize: inputSize, minHeight: 52 * Math.min(fs, 2) }]}
         testID="cloud-recover-input"
       />
-      <KText style={styles.label}>{t('cloud.recover.seal')}</KText>
-      <TextInput
-        value={seal}
-        onChangeText={setSeal}
-        onSubmitEditing={() => onSubmit(input, seal)}
-        autoCapitalize="characters"
-        autoCorrect={false}
-        autoComplete="off"
-        spellCheck={false}
-        maxLength={16}
-        accessibilityLabel={t('cloud.recover.seal')}
-        accessibilityHint={t('cloud.recover.sealHint')}
-        style={[styles.input, styles.codeInput, { fontSize: inputSize, minHeight: 52 * Math.min(fs, 2) }]}
-        testID="cloud-recover-seal"
-      />
-      <P sub>{t('cloud.recover.sealHint')}</P>
+      {showSeal ? (
+        <>
+        <KText style={styles.label}>{t('cloud.recover.seal')}</KText>
+        <TextInput
+          value={seal}
+          onChangeText={setSeal}
+          onSubmitEditing={() => onSubmit(input, seal)}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          autoComplete="off"
+          spellCheck={false}
+          maxLength={16}
+          accessibilityLabel={t('cloud.recover.seal')}
+          accessibilityHint={t('cloud.recover.sealHint')}
+          style={[styles.input, styles.codeInput, { fontSize: inputSize, minHeight: 52 * Math.min(fs, 2) }]}
+          testID="cloud-recover-seal"
+        />
+        <P sub>{t('cloud.recover.sealHint')}</P>
+        </>
+      ) : (
+        <Btn label={t('cloud.recover.sealToggle')} onPress={() => setSealOpen(true)} testID="cloud-recover-seal-toggle" />
+      )}
       {error && (
         <KText style={styles.error} accessibilityLiveRegion="polite" testID="cloud-recover-error">
-          {t(error === 'format' ? 'cloud.recover.format' : error === 'seal' ? 'cloud.recover.sealFormat' : 'cloud.recover.notFound')}
+          {t(error === 'format' ? 'cloud.recover.format' : error === 'seal' ? 'cloud.recover.sealFormat' : error === 'ownSeal' ? 'cloud.recover.ownSeal' : 'cloud.recover.notFound')}
         </KText>
       )}
       <P sub>{t('cloud.recover.rotate')}</P>
@@ -584,7 +621,7 @@ function SidePortrait({ state }: { state: sim.State }) {
 
 // ── 켜짐 ──
 
-function OnView({ record, cloud }: { record: CloudRecord | null; cloud: CloudController }) {
+function OnView({ record, cloud, parked }: { record: CloudRecord | null; cloud: CloudController; parked: boolean }) {
   const { send } = cloud;
   const held = record?.held ?? null;
   return (
@@ -596,7 +633,7 @@ function OnView({ record, cloud }: { record: CloudRecord | null; cloud: CloudCon
       <P sub testID="cloud-last">{record?.syncedAt ? t('cloud.on.last', { when: savedWhen(record.syncedAt) }) : t('cloud.on.never')}</P>
       {held && <P sub testID="cloud-held">{t(held === 'tooLarge' ? 'cloud.on.held.tooLarge' : held === 'quota' ? 'cloud.on.held.quota' : 'cloud.on.held.shape')}</P>}
       {record?.conflict && <Row label={t('cloud.on.conflict')} onPress={() => send({ e: 'resolve' })} strong testID="cloud-resolve" />}
-      {parkedLive(record, Date.now()) && <Row label={t('cloud.on.parked')} onPress={() => send({ e: 'openParked' })} strong testID="cloud-parked" />}
+      {parked && <Row label={t('cloud.on.parked')} onPress={() => send({ e: 'openParked' })} strong testID="cloud-parked" />}
       {record && !record.codeConfirmed && <Row label={t('cloud.on.codePending')} onPress={() => send({ e: 'reissue' })} strong testID="cloud-code-pending" />}
       {!record?.conflict && <Row label={t('cloud.on.sync')} onPress={() => send({ e: 'syncNow' })} testID="cloud-sync" />}
       {record?.codeConfirmed !== false && <Row label={t('cloud.on.reissue')} hint={t('cloud.on.reissueHint')} onPress={() => send({ e: 'reissue' })} testID="cloud-reissue" />}

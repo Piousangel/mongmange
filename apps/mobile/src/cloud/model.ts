@@ -9,6 +9,7 @@
 import { normalizeCreatureCode, normalizeRecoveryCode } from '@mong/contract';
 import type { sim } from '@mong/core';
 import type { Failure } from './api';
+import { DELETE_TRIES_BEFORE_EXIT } from './record';
 
 export type Purpose = 'enable' | 'recover';
 
@@ -25,11 +26,9 @@ export interface SaveSide {
 export interface ServerPick {
   rev: number;
   sha: string;
-  /** 서버 이력 칸(conflict)의 본을 고를 때 그 행 id — 서버 restore로 현재본을 만든 뒤 받는다 */
-  versionId?: string;
 }
 
-/** 나란히 고르기를 연 까닭: restore = 되찾기 직후, conflict = 다른 기기 본, parked = 되찾기에서 '이 기기'를 골라 30일 칸에 둔 본 다시 보기 */
+/** 나란히 고르기를 연 까닭: restore = 되찾기 직후, conflict = 다른 기기 본, parked = '이 기기'를 골라 밀려난 서버 본(기기 안 30일 칸) 다시 보기 */
 export type Why = 'restore' | 'conflict' | 'parked';
 /** 고르기 화면 위 안내: already = 되찾기 대상(인장 코드)과 같은 몽망이가 이미 이 로그인에 있음, hasCreature = 이 로그인에 다른 몽망이가 있어 글귀의 몽망이를 되찾지 못했을 수 있음 */
 export type ChooseNote = 'already' | 'hasCreature' | null;
@@ -41,7 +40,13 @@ export type Task =
   /** 나란히 보려고 서버 본을 받는다 */
   | { t: 'fetch'; why: Why }
   /** 이 기기 본을 맡긴다(덮이는 서버 본은 서버 conflict 칸 30일 — 되찾기 맥락이면 그 행을 기록해 공방 노트에서 다시 고르게 한다) */
-  | { t: 'keepLocal'; server: ServerPick; why: Why }
+  | { t: 'keepLocal'; server: ServerPick; why: Why; /** 밀려나는 서버 본을 기기 parked 칸에 30일 둔다(되찾기·has_creature 맥락) */ park: boolean }
+  /** parked 칸의 본으로 이어 간다(지금 본은 preRestore 칸으로) */
+  | { t: 'takeParked' }
+  /** 지우기 결과를 끝내 모를 때 '이 기기에서 맡겨 두기 끄기'(서버에 남았을 수 있다는 표시를 남김) */
+  | { t: 'forget' }
+  /** 끈 뒤 소개 화면에서 '다시 지우기' — 남아 있던 로그인으로 DELETE를 다시 보낸다 */
+  | { t: 'retryForgotten' }
   /** 서버 본으로 이어 간다(이 기기 본은 서버 conflict 칸 30일 + 기기 preRestore 칸) */
   | { t: 'takeServer'; server: ServerPick }
   | { t: 'sync' }
@@ -67,8 +72,11 @@ export type TaskResult =
   | { r: 'localChanged'; why: Why }
   | { r: 'reissued'; code: string }
   | { r: 'deleted' }
-  /** 지우기 결과를 확인하지 못했다(기기 기록은 'deleting'으로 남는다) */
-  | { r: 'deleteUnknown' }
+  /** 지우기 결과를 확인하지 못했다(기기 기록은 'deleting'으로 남는다). tries = 지금까지 모른 횟수 */
+  | { r: 'deleteUnknown'; tries: number }
+  /** 인장 칸에 이 기기 몽망이의 코드를 넣었다(되찾을 대상이 아님) */
+  | { r: 'ownSeal' }
+  | { r: 'forgotten' }
   | { r: 'reverted' }
   | { r: 'moved' }
   | { r: 'failed'; failure: Failure };
@@ -77,7 +85,7 @@ export type View =
   | { v: 'intro' }
   | { v: 'age'; purpose: Purpose }
   | { v: 'ageUnder' }
-  | { v: 'recoverInput'; error: 'format' | 'seal' | 'notFound' | null }
+  | { v: 'recoverInput'; error: 'format' | 'seal' | 'ownSeal' | 'notFound' | null }
   | { v: 'busy'; task: Task; slow: boolean }
   | { v: 'failed'; task: Task; failure: Failure }
   | { v: 'code'; code: string; step: 'show' | 'confirm'; then: 'on' | 'restore'; mismatch: boolean }
@@ -85,7 +93,8 @@ export type View =
   | { v: 'choose'; why: Why; local: SaveSide; server: SaveSide; pick: ServerPick; picked: 'local' | 'server' | null; confirming: boolean; note: ChooseNote }
   | { v: 'on' }
   | { v: 'deleteConfirm'; token: string; mismatch: boolean }
-  | { v: 'deleteCheck' }
+  | { v: 'deleteCheck'; tries: number }
+  | { v: 'forgotten' }
   | { v: 'deleted' }
   /** 맞바꾸기 확인: 지금 몽망이와 바꾸기 전 몽망이를 나란히 보인다(리뷰 R3) */
   | { v: 'revertConfirm'; back: 'on' | 'intro'; now: SaveSide | null; before: SaveSide | null }
@@ -118,6 +127,8 @@ export type CloudEvent =
   | { e: 'continue' }
   /** 공방 노트 '되찾은 몽망이 다시 고르기'(30일 칸) */
   | { e: 'openParked' }
+  | { e: 'forget' }
+  | { e: 'retryForgotten' }
   | { e: 'restart' };
 
 /** 확인에 다시 쓰게 하는 끝 글자 수(한 묶음) */
@@ -154,16 +165,19 @@ export function fallbackOf(task: Task): View {
       return { v: 'recoverInput', error: null };
     case 'delete':
     case 'deleteCheck':
-      return { v: 'deleteCheck' };
+      return { v: 'deleteCheck', tries: 0 };
+    case 'retryForgotten':
+    case 'forget':
+      return { v: 'intro' };
     default:
       return { v: 'on' };
   }
 }
 
 /** 보기를 열 때 처음 자리: 기기 기록에서 정한다 */
-export function initialView(rec: { state: 'on' | 'moved' | 'deleting' } | null): View {
+export function initialView(rec: { state: 'on' | 'moved' | 'deleting'; deleteTries?: number } | null): View {
   if (!rec) return { v: 'intro' };
-  if (rec.state === 'deleting') return { v: 'deleteCheck' };
+  if (rec.state === 'deleting') return { v: 'deleteCheck', tries: rec.deleteTries ?? 0 };
   return rec.state === 'moved' ? { v: 'moved' } : { v: 'on' };
 }
 
@@ -197,7 +211,11 @@ function onResult(view: Extract<View, { v: 'busy' }>, res: TaskResult): View {
     case 'deleted':
       return { v: 'deleted' };
     case 'deleteUnknown':
-      return { v: 'deleteCheck' };
+      return { v: 'deleteCheck', tries: res.tries };
+    case 'ownSeal':
+      return { v: 'recoverInput', error: 'ownSeal' };
+    case 'forgotten':
+      return { v: 'forgotten' };
     case 'reverted':
       return { v: 'reverted' };
     case 'moved':
@@ -270,7 +288,8 @@ export function reduce(view: View, ev: CloudEvent): View {
     case 'confirmPick':
       if (view.v !== 'choose' || view.picked === null) return view;
       if (!view.confirming) return { ...view, confirming: true };
-      return busy(view.picked === 'local' ? { t: 'keepLocal', server: view.pick, why: view.why } : { t: 'takeServer', server: view.pick });
+      if (view.why === 'parked') return view.picked === 'local' ? { v: 'on' } : busy({ t: 'takeParked' });
+      return busy(view.picked === 'local' ? { t: 'keepLocal', server: view.pick, why: view.why, park: view.why === 'restore' || view.note !== null } : { t: 'takeServer', server: view.pick });
     case 'resolve':
       return view.v === 'on' ? busy({ t: 'fetch', why: 'conflict' }) : view;
     case 'syncNow':
@@ -289,10 +308,15 @@ export function reduce(view: View, ev: CloudEvent): View {
       return view;
     }
     case 'openParked':
-      return view.v === 'on' ? busy({ t: 'fetch', why: 'parked' }) : view;
+      return view.v === 'on' || view.v === 'intro' ? busy({ t: 'fetch', why: 'parked' }) : view;
+    case 'forget':
+      return view.v === 'deleteCheck' && view.tries >= DELETE_TRIES_BEFORE_EXIT ? busy({ t: 'forget' }) : view;
+    case 'retryForgotten':
+      return view.v === 'intro' ? busy({ t: 'retryForgotten' }) : view;
     case 'confirmRevert':
       return view.v === 'revertConfirm' ? busy({ t: 'revert' }) : view;
     case 'continue':
+      if (view.v === 'forgotten') return { v: 'intro' };
       return view.v === 'already' || view.v === 'reverted' ? { v: 'on' } : view;
     case 'restart':
       return view.v === 'moved' || view.v === 'deleted' ? { v: 'intro' } : view;
