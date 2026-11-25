@@ -13,18 +13,18 @@ import { describe, expect, it } from 'vitest';
 import { createCloudApi } from '../src/cloud/api';
 import { createFakeServer } from '../src/cloud/fakeServer';
 import { initialView, reduce } from '../src/cloud/model';
-import { formatBytes, loadMyData, myDataEntry, myDataRows } from '../src/cloud/myData';
+import { canDelete, formatBytes, loadMyData, myDataEntry, myDataRows, type MyDataView } from '../src/cloud/myData';
 import { runTask, type TaskDeps } from '../src/cloud/tasks';
-import { tIn } from '../src/i18n';
+import { messages, tIn, type MessageKey } from '../src/i18n';
 
 const sha = async (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
 const T = Date.UTC(2026, 10, 25, 3, 0);
 const TZ = 540;
 const NAME = '이름글자노출안됨';
 
-function memKV(): KV {
+function memKV(): KV & { m: Map<string, string> } {
   const m = new Map<string, string>();
-  return { getString: (k) => m.get(k), set: (k, v) => void m.set(k, v), remove: (k) => void m.delete(k) };
+  return { m, getString: (k) => m.get(k), set: (k, v) => void m.set(k, v), remove: (k) => void m.delete(k) };
 }
 function mong(seed: number): string {
   return sim.serializeState(sim.createInitial(T, TZ, seed), T);
@@ -105,6 +105,38 @@ describe('불러오기 갈래(loadMyData)', () => {
     await b.deps.api.recover((code as { code: string }).code, { v: 2, ok: true });
     expect((await loadMyData(a.deps)).k).toBe('moved');
   });
+  it('불러오기는 어느 갈래에서도 기기 저장소 전체와 세션을 바꾸지 않는다(보기만 — 리뷰 L3)', async () => {
+    const server = createFakeServer(sha);
+    const snap = async (d: ReturnType<typeof device>) => JSON.stringify({ kv: [...d.kv.m.entries()].sort(), tok: await d.deps.auth.token() });
+    // ready
+    const a = await enabled(server, 'A', mong(3));
+    let before = await snap(a);
+    expect((await loadMyData(a.deps)).k).toBe('ready');
+    expect(await snap(a)).toBe(before);
+    // unavailable(503)
+    server.faults.failNext = { status: 503, code: 'x' };
+    expect((await loadMyData(a.deps)).k).toBe('unavailable');
+    expect(await snap(a)).toBe(before);
+    // offline
+    server.faults.offline = true;
+    expect((await loadMyData(a.deps)).k).toBe('offline');
+    server.faults.offline = false;
+    expect(await snap(a)).toBe(before);
+    // noAccount(401 no_account — 로그인은 있는데 맡긴 적 없음): 세션을 비우지 않는다
+    const b = device(server, 'B', mong(4));
+    await b.deps.auth.signIn();
+    before = await snap(b);
+    expect((await loadMyData(b.deps)).k).toBe('noAccount');
+    expect(await snap(b)).toBe(before);
+    // moved(410)
+    const code = (await runTask({ t: 'reissue' }, a.deps)) as { code: string };
+    const c = device(server, 'C', null);
+    await c.deps.auth.signIn();
+    await c.deps.api.recover(code.code, { v: 2, ok: true });
+    before = await snap(a);
+    expect((await loadMyData(a.deps)).k).toBe('moved');
+    expect(await snap(a)).toBe(before);
+  });
   it('불러오기는 기기 기록을 바꾸지 않는다(보기만 — no_account에서도 지우거나 끄지 않음)', async () => {
     const server = createFakeServer(sha);
     const a = await enabled(server, 'A', mong(3));
@@ -172,6 +204,18 @@ describe('표시 줄(myDataRows) — ko·en', () => {
 });
 
 describe('지우기 길 — 기존 C12 지우기 확인으로 이어진다', () => {
+  it('지우기 버튼은 ready·offline·unavailable에서만(옮겨 감·이 로그인에 없음·로딩에서는 없음 — 리뷰 L5)', () => {
+    const at = (k: MyDataView['k']) => canDelete(k === 'ready' ? { k, data: {} as MyData } : ({ k } as MyDataView));
+    expect(['loading', 'ready', 'offline', 'unavailable', 'noAccount', 'moved'].filter((k) => at(k as MyDataView['k']))).toEqual(['ready', 'offline', 'unavailable']);
+    const sheet = readFileSync(path.resolve(__dirname, '../src/screens/MyDataSheet.tsx'), 'utf8');
+    // 지우기 버튼은 한 곳뿐이고 canDelete(view) 블록 안에 있다
+    expect(sheet.match(/testID="mydata-delete"/g)).toHaveLength(1);
+    const start = sheet.indexOf('{canDelete(view) && (');
+    const btn = sheet.indexOf('testID="mydata-delete"');
+    expect(start).toBeGreaterThan(0);
+    expect(btn).toBeGreaterThan(start);
+    expect(btn).toBeLessThan(sheet.indexOf('</>', start));
+  });
   it('켜짐에서 열면 지우기 확인(인장 코드 끝 네 자)으로, 다른 자리에서는 그 자리 그대로', () => {
     const rec = { creature: 'ABCD2345', sha: null };
     const on = myDataEntry(initialView({ state: 'on' }), rec);
@@ -200,11 +244,12 @@ describe('화면·진입점 소스 검사', () => {
     expect(sheet).not.toMatch(/numberOfLines/);
     expect(sheet).not.toMatch(/maxFontSizeMultiplier=\{1\}/);
   });
-  it('재촉·공포 문구 0(ko·en): 지금 바로·서두르·위험·경고·영원히·hurry·danger·warning·forever 없음', () => {
-    const keys = ['cloud.view.lead', 'cloud.view.offline', 'cloud.view.unavailable', 'cloud.view.noAccount', 'cloud.view.moved', 'cloud.view.deleteHint', 'cloud.view.device'] as const;
+  it('재촉·공포 문구 0(ko·en, cloud.view.*·note.cloud.view* 전 키 — 활용형 포함, 리뷰 L4)', () => {
+    const keys = (Object.keys(messages('ko')) as MessageKey[]).filter((k) => k.startsWith('cloud.view.') || k.startsWith('note.cloud.view'));
+    expect(keys.length).toBeGreaterThan(40);
     for (const k of keys) {
-      expect(tIn('ko', k), k).not.toMatch(/지금 바로|서두르|위험|경고|영원히|즉시/);
-      expect(tIn('en', k), k).not.toMatch(/hurry|danger|warning|forever|immediately|right now/i);
+      expect(messages('ko')[k], k).not.toMatch(/지금 바로|서둘|급히|급하|빨리|곧 사라|사라져|위험|경고|영원히|즉시|놓치|잃어/);
+      expect(messages('en')[k], k).not.toMatch(/hurr|rush|quick|danger|warn|forever|immediate|right now|\blose\b|\blost\b|soon/i);
     }
   });
   it('진입점: 공방 노트 행은 view가 있을 때만, GameApp은 cloud 플래그·서버 연결·켜짐 기록일 때만 view를 넘긴다', () => {
@@ -215,6 +260,41 @@ describe('화면·진입점 소스 검사', () => {
     expect(cloudProp).toMatch(/cloudFlag && cloudDeps/);
     expect(cloudProp).toMatch(/view: readRecord\(kv\)\?\.state === 'on'/);
     expect(game).toMatch(/\{cloudFlag && cloudDeps && \(\s*<MyDataSheet/);
+  });
+});
+
+describe('처리방침 12절 열람 항목 = 화면 줄(넓게도 좁게도 쓰지 않음 — 리뷰 M2)', () => {
+  const ROOT = path.resolve(__dirname, '../../..');
+  const sec12 = (md: string) => md.slice(md.indexOf('## 12.'), md.indexOf('### 12-1.'));
+  // 화면 줄 id → 12절 열람 행이 그 항목을 말하는 낱말(ko·en)
+  const TERMS: Record<string, [string, string][]> = {
+    creatures: [['몽망이 수', 'number of Mongmangi'], ['인장 코드', 'seal code']],
+    save: [['게임 기록', 'game record'], ['날 수', 'number of days'], ['획 수', 'number of strokes'], ['크기', 'size']],
+    last: [['마지막으로 맡긴 때', 'last kept']],
+    versions: [['이전 판', 'earlier copies']],
+    version: [['이전 판', 'earlier copies'], ['날짜', 'dates']],
+    phrase: [['되찾기 글귀', 'recovery phrase']],
+    link: [['공유 링크', 'share link']],
+    account: [['계정을 만든 날', 'creation date'], ['마지막으로 쓴 달', 'last month of use']],
+    age: [['나이 확인 날', 'age-check date']],
+    logins: [['연결된 로그인 수', 'number of linked sign-ins']],
+    deletion: [['삭제 요청 처리 예정일', 'deletion request is due']],
+  };
+  const full: MyData = { ...sample, account: { ...sample.account, deletionPendingUntil: '2026-11-28T01:00:00.000Z' } };
+  it('모든 줄 id에 대응 낱말이 있고, ko·en 12절 열람 행에 그 낱말이 있다', () => {
+    const ko = sec12(readFileSync(path.join(ROOT, 'docs/release/privacy-policy.ko.md'), 'utf8'));
+    const en = sec12(readFileSync(path.join(ROOT, 'docs/release/privacy-policy.en.md'), 'utf8'));
+    const koRow = ko.split('\n').find((l) => l.includes(`'${tIn('ko', 'note.cloud.view')}'`))!;
+    const enRow = en.split('\n').find((l) => l.replace(/’/g, "'").includes(`"${tIn('en', 'note.cloud.view').replace(/’/g, "'")}"`))!;
+    expect(koRow).toBeTruthy();
+    expect(enRow).toBeTruthy();
+    const ids = new Set(myDataRows(full, 'ko', TZ).map((r) => r.id.replace(/-\d+$/, '')));
+    expect([...ids].sort()).toEqual(Object.keys(TERMS).sort());
+    for (const [id, terms] of Object.entries(TERMS))
+      for (const [k, e] of terms) {
+        expect(koRow, `${id}: ${k}`).toContain(k);
+        expect(enRow.toLowerCase(), `${id}: ${e}`).toContain(e.toLowerCase());
+      }
   });
 });
 

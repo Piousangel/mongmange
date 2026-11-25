@@ -658,5 +658,5 @@ export const en: Messages = {
   'cloud.view.logins': 'Linked sign-ins',
   'cloud.view.logins.value': '{n}',
   'cloud.view.logins.moved': '{n} · {m} ended when moving',
-  'cloud.view.deletion': 'Planned clean-up date',
+  'cloud.view.deletion': 'Deletion request due',
 };

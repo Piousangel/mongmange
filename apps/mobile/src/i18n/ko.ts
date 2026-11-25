@@ -656,7 +656,7 @@ export const ko = {
   'cloud.view.logins': '연결된 로그인',
   'cloud.view.logins.value': '{n}개',
   'cloud.view.logins.moved': '{n}개 · 옮겨 가며 끊긴 로그인 {m}개',
-  'cloud.view.deletion': '정리 예정일',
+  'cloud.view.deletion': '삭제 요청 처리 예정일',
 } as const;
 
 export type KoMessages = typeof ko;

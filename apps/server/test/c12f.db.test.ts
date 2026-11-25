@@ -190,4 +190,35 @@ describe('GET /me/data — 맡긴 것 보기(C12f)', () => {
       expect(all, `${n}가 로그에 있음`).not.toContain(s);
     }
   });
+  it('가드를 지난 뒤 조회 전에 계정이 지워지면 401 no_account(섞인 응답·500 없음 — 리뷰 L2)', async () => {
+    const d = await device();
+    const boot = await as(d, http().post('/api/v1/me/bootstrap')).send({ ageGate: gate }).expect(200);
+    const orig = prisma.$transaction.bind(prisma);
+    (prisma as unknown as { $transaction: unknown }).$transaction = async (...a: unknown[]) => {
+      // 가드는 이미 통과했다 — 스냅숏을 열기 직전에 지운다(동시 삭제 흉내)
+      await prisma.user.delete({ where: { id: boot.body.userId as string } });
+      return (orig as (...x: unknown[]) => Promise<unknown>)(...a);
+    };
+    try {
+      const r = await as(d, http().get('/api/v1/me/data'));
+      expect(r.status).toBe(401);
+      expect(r.body.error.code).toBe('no_account');
+    } finally {
+      (prisma as unknown as { $transaction: unknown }).$transaction = orig;
+    }
+  });
+
+  it('응답이 계약(myDataSchema)에 맞지 않으면 내보내지 않고 500 — 응답 내용은 본문·로그 어디에도 없다(리뷰 L1)', async () => {
+    const a = await userWithData(11);
+    // 계약 밖 값: 인장 코드에 Crockford가 아닌 글자(I) — DB 열(char 8)은 받지만 계약 정규식은 받지 않는다
+    const BAD = 'IIIIIIII';
+    await prisma.$executeRaw`UPDATE app.creatures SET code = ${BAD} WHERE id = ${a.creatureId}::uuid`;
+    lines.length = 0;
+    const r = await as(a.d, http().get('/api/v1/me/data'));
+    expect(r.status).toBe(500);
+    await new Promise((ok) => setTimeout(ok, 30));
+    expect(JSON.stringify(r.body)).not.toContain(BAD);
+    expect(lines.join('\n')).not.toContain(BAD);
+    expect(lines.join('\n')).not.toContain(a.d.sub);
+  });
 });

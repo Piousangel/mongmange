@@ -5,8 +5,8 @@
 // 모션 없음(시트 자체만 움직인다). 재촉·공포 문구 없음(D-03).
 import { PALETTE } from '@mong/core';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
-import { loadMyData, myDataRows, type MyDataView } from '../cloud/myData';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { canDelete, loadMyData, myDataRows, type MyDataView } from '../cloud/myData';
 import type { TaskDeps } from '../cloud/tasks';
 import { getLocale, t } from '../i18n';
 import { BottomSheet } from '../ui/BottomSheet';
@@ -35,8 +35,9 @@ export function MyDataSheet({ visible, onClose, onDelete, deps, tzOffsetMin }: {
   }, [visible, load]);
 
   const announce = view.k === 'ready' ? t('cloud.view.title') : view.k === 'loading' ? t('cloud.view.loading') : t(`cloud.view.${view.k}`);
+  // 갈래 알림은 iOS만 — Android는 본문의 accessibilityLiveRegion이 읽는다(두 번 읽히지 않게, 리뷰 L7)
   useEffect(() => {
-    if (visible) AccessibilityInfo.announceForAccessibility(announce);
+    if (visible && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(announce);
   }, [visible, announce]);
 
   return (
@@ -48,7 +49,7 @@ export function MyDataSheet({ visible, onClose, onDelete, deps, tzOffsetMin }: {
       )}
       {view.k === 'ready' && (
         <View testID="mydata-ready">
-          <P>{t('cloud.view.lead')}</P>
+          <P live>{t('cloud.view.lead')}</P>
           <View style={styles.list}>
             {myDataRows(view.data, getLocale(), tzOffsetMin()).map((r) => (
               <View key={r.id} style={[styles.row, r.id.startsWith('version-') && styles.rowSub]} accessible accessibilityLabel={r.a11y} testID={`mydata-row-${r.id}`}>
@@ -83,7 +84,7 @@ export function MyDataSheet({ visible, onClose, onDelete, deps, tzOffsetMin }: {
       <View style={styles.actions}>
         {(view.k === 'offline' || view.k === 'unavailable') && <Btn label={t('cloud.view.retry')} onPress={load} primary testID="mydata-retry" />}
         {/* 지우기 길: 서버에 닿을 수 있는(또는 지금만 못 닿는) 갈래에서. 옮겨 감·이 로그인에 없음은 여기서 지울 것이 없다 — 웹 삭제 안내가 본문에 있다 */}
-        {(view.k === 'ready' || view.k === 'offline' || view.k === 'unavailable') && (
+        {canDelete(view) && (
           <>
             <Btn label={t('cloud.view.delete')} onPress={onDelete} testID="mydata-delete" />
             <P sub>{t('cloud.view.deleteHint')}</P>

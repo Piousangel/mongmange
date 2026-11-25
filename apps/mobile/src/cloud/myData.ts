@@ -43,6 +43,14 @@ export async function loadMyData(d: { api: CloudApi; auth: CloudAuth }): Promise
   }
 }
 
+/**
+ * 지우기 버튼을 보일 갈래(리뷰 L5): 서버에 닿을 수 있거나 지금만 못 닿는 갈래. 옮겨 감·이 로그인에 없음은 이 기기에서 지울 것이 없다
+ * (본문이 되찾기 글귀·웹 삭제를 안내한다). 로딩 중에는 아직 모른다.
+ */
+export function canDelete(v: MyDataView): boolean {
+  return v.k === 'ready' || v.k === 'offline' || v.k === 'unavailable';
+}
+
 export interface DataRow {
   id: string;
   label: string;
