@@ -78,12 +78,12 @@ function ObjectIcon({ i, x, y, line, fill, color, alpha }: { i: number; x: numbe
   );
 }
 
-export function ObjectLabels({ width, y, color, labels }: { width: number; y: number; color: string; labels?: string[] }) {
+export function ObjectLabels({ width, y, color, labels, order = [0, 1, 2] }: { width: number; y: number; color: string; labels?: string[]; order?: readonly number[] }) {
   const ls = labels ?? [t('obj.brush.label'), t('obj.inkstone.label'), t('obj.dropper.label')];
   return (
     <>
       {ls.map((l, i) => (
-        <Text key={l} style={[styles.label, { color, top: y + 24, left: width * (0.2 + 0.3 * i) - 50 }]} pointerEvents="none">
+        <Text key={l} style={[styles.label, { color, top: y + 24, left: width * (0.2 + 0.3 * (order[i] ?? i)) - 50 }]} pointerEvents="none">
           {l}
         </Text>
       ))}

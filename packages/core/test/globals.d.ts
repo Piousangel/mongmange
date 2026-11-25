@@ -9,3 +9,11 @@ interface ImportMeta {
 }
 /** 무거운 시험 스위치(RENDER_HEAVY=1, pnpm verify --heavy)를 읽는 데만 쓴다 */
 declare const process: { env: Record<string, string | undefined> };
+/** 시험에서 정본 파일 경로를 만들 때만 쓴다(v3-lexicon: 평가기 모듈 동적 import) */
+declare class URL {
+  constructor(input: string, base?: string);
+  readonly href: string;
+}
+interface ImportMeta {
+  readonly url: string;
+}

@@ -571,6 +571,7 @@ export const en: Messages = {
   // ── concept v3 vertical slice (D-26·D-27, flag conceptV3) — provisional copy until V14·V30 (PL-2·QA-3 gate) ──
   'v3.night': 'Night {n}',
   'v3.nightIre': 'Night {n} · seventh',
+  'v3.morning': 'Morning after night {n}',
   'v3.ire': 'Seventh night {n}',
   'v3.complete': `${M}, fully grown · staying by you`,
   'v3.firstPrompt': 'Grind ink on the inkstone, then write today’s word with the brush',

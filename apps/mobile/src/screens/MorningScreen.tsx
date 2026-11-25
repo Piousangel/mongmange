@@ -37,8 +37,11 @@ export function MorningScreen({
   onDone,
   look,
   strokeInks,
+  title,
 }: {
   state: sim.State;
+  /** 제목을 바꿔 쓸 때(새 컨셉 v3: 'n번째 밤 뒤 아침'). 없으면 '{날} 아침' */
+  title?: string;
   /** M1 그 아이(없으면 기본형) */
   look?: MongLook;
   /** 획마다 먹(H2) */
@@ -188,7 +191,7 @@ export function MorningScreen({
 
       {!developed && (
         <KText style={[ui.line, { top: insets.top + height * 0.07, color: PALETTE.night.text, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header" serif="title">
-          {t('morning.title', { day: dayName(state.dayIndex) })}
+          {title ?? t('morning.title', { day: dayName(state.dayIndex) })}
         </KText>
       )}
 

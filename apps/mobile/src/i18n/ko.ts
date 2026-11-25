@@ -569,6 +569,7 @@ export const ko = {
   // ── 새 컨셉 v3 세로 조각(D-26·D-27, 플래그 conceptV3) — 문구는 V14·V30(PL-2·QA-3 관문) 전 임시 ──
   'v3.night': '{n}번째 밤',
   'v3.nightIre': '{n}번째 밤 · 이레',
+  'v3.morning': '{n}번째 밤 뒤 아침',
   'v3.ire': '{n}번째 이레',
   'v3.complete': '다 여문 몽망이 · 곁에',
   'v3.firstPrompt': '벼루에서 먹을 갈고, 붓으로 오늘의 한 마디를 써 주세요',

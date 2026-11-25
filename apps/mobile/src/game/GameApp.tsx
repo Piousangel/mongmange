@@ -475,6 +475,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         developed={developed}
         look={look}
         strokeInks={strokeInks}
+        title={full ? (v3.isComplete(full) ? t('v3.complete') : t('v3.morning', { n: Math.max(1, full.v3.life.slept) })) : undefined}
         onDevelop={() => dispatch({ type: 'developCard' })}
         onDone={() => {
           setDeveloped(null);
@@ -509,6 +510,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             pendingWord.current = null;
             setMode('home');
           },
+          v3: v3On,
           washOpen: v3On ? false : washOpen,
           onJarTap: () => !v3On && dispatch({ type: 'washStroke' }),
           assist: screenReader || meta.assistStroke,

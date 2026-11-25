@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = path.resolve(__dirname, '../../..');
 const SCAN = ['apps/mobile/src', 'apps/mobile/App.tsx', 'packages/core/src'];
+// 새 컨셉 v3 사전·위기 대조(core/src/v3)는 화면에 그리지 않는 데이터라 뺀다(사전 표본의 KS 밖 글자가 글꼴을 키우지 않게)
+const SKIP = [path.join('packages', 'core', 'src', 'v3')];
 const CHARS = path.join(ROOT, 'apps/mobile/assets/fonts/GowunBatang_400Regular.subset.chars.txt');
 
 function files(p: string): string[] {
@@ -18,7 +20,7 @@ describe('Gowun Batang 서브셋', () => {
     const have = new Set(readFileSync(CHARS, 'utf8'));
     const missing = new Map<string, string>();
     for (const rel of SCAN)
-      for (const f of files(path.join(ROOT, rel)))
+      for (const f of files(path.join(ROOT, rel)).filter((x) => !SKIP.some((k) => x.includes(k))))
         for (const ch of readFileSync(f, 'utf8')) {
           if (ch.codePointAt(0)! < 0x20 || have.has(ch) || missing.has(ch)) continue;
           missing.set(ch, path.relative(ROOT, f));

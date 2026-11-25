@@ -76,6 +76,8 @@ export interface StrokeGame {
   look?: MongLook;
   /** 획마다 먹(H2, 첫 밤 뒤 바꾸기는 새 획에만) */
   strokeInks?: readonly (sim.InkId | null)[];
+  /** 새 컨셉 v3: 사물 순서 벼루 → 붓 → 연적, 라벨 '한 마디' */
+  v3?: boolean;
 }
 
 export function StrokeScreen({ initial, game }: { initial: number; game?: StrokeGame }) {
@@ -345,7 +347,9 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
   };
 
   const clean = PARAMS.clean;
-  const labels = [t('obj.brush.label'), t('obj.inkstone.label'), t('obj.dropper.label')];
+  const labels = game?.v3 ? [t('v3.brush.label'), t('v3.inkstone.label'), t('v3.dropper.label')] : [t('obj.brush.label'), t('obj.inkstone.label'), t('obj.dropper.label')];
+  const order: readonly number[] = game?.v3 ? [1, 0, 2] : [0, 1, 2];
+  const brushX = width * (0.2 + 0.3 * order[0]!);
   return (
     <View style={styles.root}>
       <GestureDetector gesture={pan}>
@@ -358,9 +362,9 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
               </Oval>
             )}
             <Mongmangi frame={frame} records={records} live={live} mode={PARAMS.body} grammar={grammar} look={game?.look} strokeInks={game?.strokeInks} />
-            <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={halfDim} />
+            <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={halfDim} order={order} />
           </Canvas>
-          <ObjectLabels width={width} y={L.objectsY} color={PALETTE.day.textSub} labels={labels} />
+          <ObjectLabels width={width} y={L.objectsY} color={PALETTE.day.textSub} labels={labels} order={order} />
           {!game && <Caption text={caption} color={PALETTE.day.textSub} />}
         </View>
       </GestureDetector>
@@ -378,7 +382,7 @@ export function StrokeScreen({ initial, game }: { initial: number; game?: Stroke
         <>
           <Pressable
             testID="brush-down"
-            style={[styles.objHit, { left: width * 0.2 - 40, top: L.objectsY - 32 }]}
+            style={[styles.objHit, { left: brushX - 40, top: L.objectsY - 32 }]}
             onPress={game.onBrushTap}
             accessibilityRole="button"
             accessibilityLabel={t('stroke.brushDown')}

@@ -12,6 +12,8 @@ const SRC_FONT = path.join(ROOT, 'node_modules/@expo-google-fonts/gowun-batang/4
 const OUT_DIR = path.join(ROOT, 'apps/mobile/assets/fonts');
 const OUT = path.join(OUT_DIR, 'GowunBatang_400Regular.subset.ttf');
 const SCAN = ['apps/mobile/src', 'apps/mobile/App.tsx', 'packages/core/src'];
+// 새 컨셉 v3 사전·위기 대조(core/src/v3)는 화면에 그리지 않는 데이터라 뺀다(사전 표본의 KS 밖 글자가 글꼴을 키우지 않게)
+const SKIP = [path.join('packages', 'core', 'src', 'v3')];
 
 async function* walk(p) {
   const st = await stat(p);
@@ -24,7 +26,7 @@ async function* walk(p) {
 
 const chars = new Set();
 // 1) 앱 소스의 모든 글자(주석 포함 — 넉넉하게)
-for (const rel of SCAN) for await (const f of walk(path.join(ROOT, rel))) for (const ch of await readFile(f, 'utf8')) chars.add(ch);
+for (const rel of SCAN) for await (const f of walk(path.join(ROOT, rel))) if (!SKIP.some((k) => f.includes(k))) for (const ch of await readFile(f, 'utf8')) chars.add(ch);
 // 2) KS X 1001 완성형 한글 2,350자(EUC-KR 0xB0A1..0xC8FE)
 const dec = new TextDecoder('euc-kr');
 let ks = 0;
