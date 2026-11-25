@@ -151,18 +151,44 @@ export const CAPTION_FADE_MS = 600;
 /** 큰 반김 길이(answer.ts GREET_MS[greetBig]와 같아야 한다 — 시험) */
 export const BIG_GREET_MS = 3000;
 
-/**
- * 반김이 시작될 때 조용한 구간의 끝(ms, Date.now 기준). 72h 이상(첫 터치 = 큰 반김)이면 첫 터치 전까지 끝이 없다(Infinity).
- * 머뭇거림 스위치가 꺼져 기다림 자세로 열어도 같다. 그 밖의 반김은 구간을 바꾸지 않는다(null)
- */
-export function quietOnGreet(plan: GreetPlan): number | null {
-  return plan.firstTouch === 'big' ? Number.POSITIVE_INFINITY : null;
-}
+/** 72h 반김이 시작된 뒤 첫 터치를 기다리며 조용히 두는 최대 시간(ms). 머뭇거림 0.8초 + 이만큼이 지나면 글이 다시 된다(리뷰 2차 H2) */
+export const QUIET_TOUCH_WAIT_MS = 10_000;
+/** 조용한 구간이 아무리 길어도 이 시간(ms)을 넘지 않는다(첫 터치 뒤 큰 반김 포함) */
+export const QUIET_MAX_MS = 20_000;
 
-/** 첫 터치: 큰 반김은 머뭇거림이 끝난 뒤(notBefore) 시작해 BIG_GREET_MS 동안 — 그때까지 조용하다 */
-export function quietOnFirstTouch(now: number, notBefore: number): number {
-  return Math.max(now, notBefore) + BIG_GREET_MS;
+/**
+ * 조용한 구간 상태(리뷰 H1 + 2차 H2). until = 이 시각(Date.now) 전에는 글 0, started = 구간을 연 시각(상한 기준).
+ * - greet: 72h 이상(첫 터치 = 큰 반김)이면 머뭇거림 + 첫 터치 대기 상한까지 조용. 그 밖 반김은 구간을 **푼다**(새 반김이 앞 반김을 덮음)
+ * - touch: 큰 반김을 기다리던 첫 터치 — 머뭇거림이 끝난 때부터 큰 반김 길이만큼(상한 안)
+ * - background·woke: 앱을 닫거나 깸이 바뀌면 푼다
+ */
+export interface QuietState {
+  until: number;
+  started: number;
+  waitingTouch: boolean;
 }
+export const QUIET_NONE: QuietState = { until: 0, started: 0, waitingTouch: false };
+export type QuietEvent =
+  | { type: 'greet'; plan: GreetPlan; now: number }
+  | { type: 'touch'; now: number; notBefore: number }
+  | { type: 'background' }
+  | { type: 'woke' };
+export function quietStep(q: QuietState, ev: QuietEvent): QuietState {
+  switch (ev.type) {
+    case 'greet':
+      if (ev.plan.firstTouch !== 'big') return QUIET_NONE;
+      return { until: ev.now + GREET_HESITATE_MS + QUIET_TOUCH_WAIT_MS, started: ev.now, waitingTouch: true };
+    case 'touch': {
+      if (!q.waitingTouch || ev.now >= q.until) return q.until > ev.now ? q : QUIET_NONE;
+      const until = Math.min(Math.max(ev.now, ev.notBefore) + BIG_GREET_MS, q.started + QUIET_MAX_MS);
+      return { until, started: q.started, waitingTouch: false };
+    }
+    default:
+      return QUIET_NONE;
+  }
+}
+/** 머뭇거림 길이(answer.ts GREET_MS[hesitate]·core GREET.hesitateMs와 같아야 한다 — 시험) */
+export const GREET_HESITATE_MS = 800;
 
 /** 지금 글(자막·안내 한 줄·스크린리더 알림)을 내도 되는가 */
 export function textAllowed(now: number, quietUntil: number): boolean {

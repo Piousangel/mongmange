@@ -17,8 +17,12 @@ import {
   leanIntensity,
   queueCaption,
   queueGreet,
-  quietOnFirstTouch,
-  quietOnGreet,
+  GREET_HESITATE_MS,
+  QUIET_MAX_MS,
+  QUIET_NONE,
+  QUIET_TOUCH_WAIT_MS,
+  quietStep,
+  type QuietState,
   textAllowed,
 } from '../src/game/v3Flow';
 import { messages, setLanguagePref, t as tr } from '../src/i18n';
@@ -167,14 +171,22 @@ describe('정 자막 문구 — 관찰자 3인칭 한 줄, 금지 표현 0(시�
     }
   });
   it('관찰자 3인칭 서술만: 듣는 사람(당신·너·you)·몽망이 1인칭·말 걸기·인용이 없고, 주어는 몽망이(이름)로 시작한다(PM 판정)', () => {
-    const VIEWER_KO = /당신|너희|너는|너를|너도|네가|니가|우리|내가|나는|나를|저는|제가|저를|님|해\s*줘|줄래|볼래|["“”'‘’]|\?/;
-    const VIEWER_EN = /\byou\b|\byour|\byou'|\bI\b|\bme\b|\bmy\b|\bmine\b|\bwe\b|\bus\b|\bour\b|\blet's\b|["“”]|\?/i;
+    // 2인칭·1인칭(몽망이가 화자)·말 걸기·권유·명령형(리뷰 2차 M3: '나 여기 있다고'·'만져 봐요' 같은 꼴까지)
+    const VIEWER_KO = /당신|너희|너는|너를|너도|네가|니가|우리|내가|나는|나를|저는|제가|저를|(^|\s)나(\s|$)|(^|\s)내(\s|$)|(^|\s)제(\s|$)|여기\s*있|있다고|님|해\s*줘|줄래|볼래|(어|아|해|져|러|워|와)\s?봐(요)?$|(어|아|해|져|러|워|와)\s?봐요|보세요|세요|주세요|자요$|합시다|["“”'‘’]|\?|!/;
+    const VIEWER_EN = /\byou\b|\byour|\byou'|\bI\b|\bme\b|\bmy\b|\bmine\b|\bwe\b|\bus\b|\bour\b|\blet's\b|\bplease\b|\bgive\b|\btry\b|["“”]|\?|!/i;
+    // 부재 암시(리뷰 2차 M3·A7: 낱말 검사 한계 — 나머지는 V14 사람 검수 목록)
+    const ABSENCE_KO = /기다|그리|보고\s*싶|오랜|종일|하루\s*종일|내내|아직|여태|다시\s*왔|돌아왔|문\s*쪽|문을|비었|없는\s*동안|혼자/;
+    const ABSENCE_EN = /miss|wait|been away|where were|all day|all night|kept|still|finally|at last|again|came back|come back|returned|door|alone|lonely|empty|gone/i;
     for (const loc of ['ko', 'en'] as const) {
       const m = messages(loc) as Record<string, string>;
       for (const key of Object.values(JEONG_CAPTION_KEYS)) {
         const s = m[key]!;
         expect(s, `${loc} ${key}`).not.toMatch(loc === 'ko' ? VIEWER_KO : VIEWER_EN);
+        expect(s, `${loc} ${key} 부재`).not.toMatch(loc === 'ko' ? ABSENCE_KO : ABSENCE_EN);
         expect(s.startsWith('{name'), `${loc} ${key} 주어`).toBe(true);
+        // 서술형으로 끝남: ko '…어요/아요/해요'(권유 '봐요'는 위에서 막음), en 주어 뒤 3인칭 단수 동사(명령형 아님)
+        if (loc === 'ko') expect(s, `${loc} ${key} 끝`).toMatch(/(어|아|해|여|워|와|러|봐)요$/);
+        else expect(s, `${loc} ${key} 동사`).toMatch(/^\{name\} ([a-z]+ly )?[a-z]+s\b/);
       }
     }
   });
@@ -243,18 +255,63 @@ describe('콜드 스타트 반김(store)', () => {
 });
 
 describe('머뭇거림부터 큰 반김까지 글 0(리뷰 H1)', () => {
-  it('72h 이상 계획은 첫 터치 전까지 조용(Infinity) — 머뭇거림 스위치와 무관. 그 밖 반김은 구간을 바꾸지 않는다', () => {
-    for (const hesitation of [true, false]) expect(quietOnGreet(greetPlan({ tier: 'long', waiting: true }, { hesitation }))).toBe(Number.POSITIVE_INFINITY);
-    for (const tier of ['glance', 'joy', 'wait'] as const) expect(quietOnGreet(greetPlan({ tier, waiting: true }, { hesitation: true }))).toBeNull();
-    expect(textAllowed(1e15, Number.POSITIVE_INFINITY)).toBe(false);
+  const long = greetPlan({ tier: 'long', waiting: true }, { hesitation: true });
+  const glance = greetPlan({ tier: 'glance', waiting: false }, { hesitation: true });
+  it('72h 이상 반김은 머뭇거림 + 첫 터치 대기 상한까지만 조용 — 머뭇거림 스위치와 무관, 그 밖 반김은 구간을 푼다', () => {
+    expect(GREET_HESITATE_MS).toBe(GREET_MS[CUE.hesitate]);
+    expect(GREET_HESITATE_MS).toBe(v3.GREET.hesitateMs);
+    for (const hesitation of [true, false]) {
+      const q = quietStep(QUIET_NONE, { type: 'greet', plan: greetPlan({ tier: 'long', waiting: false }, { hesitation }), now: 1000 });
+      expect(q.until).toBe(1000 + GREET_HESITATE_MS + QUIET_TOUCH_WAIT_MS);
+      expect(Number.isFinite(q.until)).toBe(true);
+    }
+    expect(QUIET_TOUCH_WAIT_MS + GREET_HESITATE_MS).toBeLessThanOrEqual(QUIET_MAX_MS);
+    expect(QUIET_MAX_MS).toBeLessThanOrEqual(60_000); // 길어도 수십 초
+    for (const tier of ['glance', 'joy', 'wait'] as const) expect(quietStep({ until: 9e9, started: 0, waitingTouch: true }, { type: 'greet', plan: greetPlan({ tier, waiting: true }, { hesitation: true }), now: 5 })).toEqual(QUIET_NONE);
   });
-  it('첫 터치 뒤에는 머뭇거림이 끝난 때부터 큰 반김 길이만큼 조용하고, 그 뒤엔 글이 다시 된다', () => {
+  it('첫 터치 뒤에는 머뭇거림이 끝난 때부터 큰 반김 길이만큼(상한 안) 조용하고, 그 뒤엔 글이 다시 된다', () => {
     expect(BIG_GREET_MS).toBe(GREET_MS[CUE.greetBig]);
-    const q = quietOnFirstTouch(1000, 1800);
-    expect(q).toBe(1800 + BIG_GREET_MS);
-    expect(textAllowed(q - 1, q)).toBe(false);
-    expect(textAllowed(q, q)).toBe(true);
-    expect(quietOnFirstTouch(5000, 1800)).toBe(5000 + BIG_GREET_MS);
+    let q = quietStep(QUIET_NONE, { type: 'greet', plan: long, now: 1000 });
+    q = quietStep(q, { type: 'touch', now: 1200, notBefore: 1800 });
+    expect(q.until).toBe(1800 + BIG_GREET_MS);
+    expect(textAllowed(q.until - 1, q.until)).toBe(false);
+    expect(textAllowed(q.until, q.until)).toBe(true);
+    // 두 번째 터치는 구간을 늘리지 않는다
+    expect(quietStep(q, { type: 'touch', now: 2000, notBefore: 9000 })).toEqual(q);
+  });
+  it('리뷰 2차 H2 순서: 72h 반김 → 몸을 안 만지고 앱 닫기 → 다시 열기(짧은 반김) = 글이 바로 다시 된다', () => {
+    let q: QuietState = quietStep(QUIET_NONE, { type: 'greet', plan: long, now: 0 });
+    expect(textAllowed(500, q.until)).toBe(false);
+    q = quietStep(q, { type: 'background' });
+    expect(q).toEqual(QUIET_NONE);
+    q = quietStep(q, { type: 'greet', plan: glance, now: 120_000 });
+    expect(textAllowed(120_001, q.until)).toBe(true);
+  });
+  it('리뷰 2차 H2: 닫지 않고 만지지도 않아도 상한이 지나면 글이 된다 — 그 뒤 첫 터치는 다시 조용하게 하지 않는다', () => {
+    let q: QuietState = quietStep(QUIET_NONE, { type: 'greet', plan: long, now: 0 });
+    const end = GREET_HESITATE_MS + QUIET_TOUCH_WAIT_MS;
+    expect(textAllowed(end - 1, q.until)).toBe(false);
+    expect(textAllowed(end, q.until)).toBe(true);
+    q = quietStep(q, { type: 'touch', now: end + 5000, notBefore: 800 });
+    expect(textAllowed(end + 5000, q.until)).toBe(true);
+    // 깸이 바뀌어도 푼다
+    expect(quietStep(quietStep(QUIET_NONE, { type: 'greet', plan: long, now: 0 }), { type: 'woke' })).toEqual(QUIET_NONE);
+  });
+  it('어떤 순서로도 조용한 구간은 시작부터 QUIET_MAX_MS를 넘지 않는다(무작위 순서 500)', () => {
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
+    for (let n = 0; n < 500; n++) {
+      let q = QUIET_NONE;
+      let now = 0;
+      for (let i = 0; i < 8; i++) {
+        now += Math.floor(rnd() * 15_000);
+        const r = rnd();
+        const ev: Parameters<typeof quietStep>[1] =
+          r < 0.35 ? { type: 'greet', plan: rnd() < 0.6 ? long : glance, now } : r < 0.8 ? { type: 'touch', now, notBefore: now + Math.floor(rnd() * 2000) } : rnd() < 0.5 ? { type: 'background' } : { type: 'woke' };
+        q = quietStep(q, ev);
+        if (q.until > 0) expect(q.until - q.started).toBeLessThanOrEqual(QUIET_MAX_MS);
+      }
+    }
   });
   it('store: 80h 뒤 돌아오면 반김(long)만 — 정 신호(자막 후보)가 하나도 없다(core 규칙, 정 4·익숙한 시각이어도)', () => {
     boot();
@@ -280,12 +337,16 @@ describe('머뭇거림부터 큰 반김까지 글 0(리뷰 H1)', () => {
   it('GameApp: 안내 한 줄(flash)·스크린리더 알림(announce)·정 자막은 모두 textAllowed 문을 지난다 — 알림 직접 호출은 한 곳뿐', () => {
     const app = src('src/game/GameApp.tsx');
     expect(app.match(/AccessibilityInfo\.announceForAccessibility\(/g)).toHaveLength(1);
-    expect(app).toMatch(/if \(textAllowed\(Date\.now\(\), quietUntil\.current\)\) AccessibilityInfo\.announceForAccessibility\(text\);/);
-    expect(app).toMatch(/const flash = useCallback\(\(text: string, ms = 3400\) => \{\n\s+if \(!textAllowed\(Date\.now\(\), quietUntil\.current\)\) return;/);
-    expect(app).toMatch(/if \(!st \|\| !textAllowed\(Date\.now\(\), quietUntil\.current\)\) return;/);
-    // 72h 반김이 시작되면 떠 있던 한 줄·자막도 거둔다
-    expect(app).toMatch(/quietUntil\.current = q;\n\s+if \(lineTimer\.current\) clearTimeout\(lineTimer\.current\);\n\s+setLine\(''\);\n\s+setCaption\(null\);/);
-    expect(app).toMatch(/if \(f\.cue === 'big'\) quietUntil\.current = quietOnFirstTouch\(Date\.now\(\), f\.notBefore\);/);
+    expect(app).toMatch(/if \(textAllowed\(Date\.now\(\), quiet\.current\.until\)\) AccessibilityInfo\.announceForAccessibility\(text\);/);
+    expect(app).toMatch(/const flash = useCallback\(\(text: string, ms = 3400\) => \{\n\s+if \(!textAllowed\(Date\.now\(\), quiet\.current\.until\)\) return;/);
+    expect(app).toMatch(/if \(!st \|\| !textAllowed\(Date\.now\(\), quiet\.current\.until\)\) return;/);
+    // 반김마다 구간을 다시 정하고(72h가 아니면 푼다), 72h면 떠 있던 한 줄·자막도 거둔다
+    expect(app).toMatch(/quiet\.current = quietStep\(quiet\.current, \{ type: 'greet', plan, now: Date\.now\(\) \}\);\n\s+if \(quiet\.current\.waitingTouch\) \{\n(\s+\/\/.*\n)?\s+if \(lineTimer\.current\) clearTimeout\(lineTimer\.current\);\n\s+setLine\(''\);\n\s+setCaption\(null\);/);
+    expect(app).toMatch(/if \(f\.cue === 'big'\) quiet\.current = quietStep\(quiet\.current, \{ type: 'touch', now: Date\.now\(\), notBefore: f\.notBefore \}\);/);
+    // 리뷰 2차 H2: 앱을 닫거나 깸이 바뀌면 푼다(quiet를 바꾸는 곳은 quietStep 넷뿐)
+    expect(app).toMatch(/quiet\.current = quietStep\(quiet\.current, \{ type: 'background' \}\);\n\s+firstTouch\.current = null;/);
+    expect(app).toMatch(/case 'woke':\n\s+quiet\.current = quietStep\(quiet\.current, \{ type: 'woke' \}\);/);
+    expect(app.match(/quiet\.current = /g)).toHaveLength(4);
   });
 });
 
@@ -329,5 +390,17 @@ describe('플래그 jeong 꺼짐 = M4 이전 v3(리뷰 M2)', () => {
     expect(fx.some((e) => e.type === 'wordAccepted')).toBe(true);
     expect(getV3()!.sim.relation.jeongDays).toBe(0);
     expect(kv.m.get(v3.V3_KEYS.main)).not.toContain('captionsShown');
+  });
+});
+
+describe("공방·벼루 문구가 '써야 열린다'로 읽히지 않는다(V27 서명 PM 11-25, 리뷰 2차 참고 4)", () => {
+  it('v3 문구(ko·en)에 쓰기와 열림을 잇는 표현이 없다', () => {
+    const BAN_KO = /써야|쓰면\s*(열|생|받|나와)|써\s*주면|한\s*마디(를|로)?\s*(써야|쓰면|해야)|열리려면|열려면|정이\s*(쌓이면|오르면)|매일\s*쓰|날마다\s*쓰/;
+    const BAN_EN = /unlock|write\s+to\s+(open|get)|if you write|keep writing|write (every|each) day|to open (it|this)|earn/i;
+    for (const loc of ['ko', 'en'] as const) {
+      const m = messages(loc) as Record<string, string>;
+      const bad = Object.entries(m).filter(([k, v]) => k.startsWith('v3.') && (loc === 'ko' ? BAN_KO : BAN_EN).test(v));
+      expect(bad, loc).toEqual([]);
+    }
   });
 });

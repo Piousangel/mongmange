@@ -43,8 +43,8 @@ import {
   leanIntensity,
   queueCaption,
   queueGreet,
-  quietOnFirstTouch,
-  quietOnGreet,
+  QUIET_NONE,
+  quietStep,
   textAllowed,
   type GreetCue,
   type GreetQueue,
@@ -138,7 +138,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   /** 낮 홈이 아닐 때(아침 카드·인트로) 난 반김은 낮 홈에 들어갈 때 보인다 — 반김은 마지막 한 번만(리뷰 L2) */
   const greetQueue = useRef<GreetQueue<() => void>>(emptyGreetQueue());
   /** 머뭇거림부터 큰 반김이 끝날 때까지 글 0(리뷰 H1): 이 시각 전에는 자막·안내 한 줄·스크린리더 알림을 내지 않는다 */
-  const quietUntil = useRef(0);
+  /** 조용한 구간(순수 규칙 quietStep) — 72h 반김·첫 터치·앱 닫기·깸으로만 바뀐다 */
+  const quiet = useRef(QUIET_NONE);
   const showCaptionRef = useRef<((signal: v3.JeongSignal) => void) | null>(null);
   const kindRef = useRef<string>('intro');
   const [introPlaying, setIntroPlaying] = useState(false);
@@ -185,10 +186,10 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
 
   /** 스크린리더 알림도 머뭇거림~큰 반김 동안 0(리뷰 H1·M1) */
   const announce = useCallback((text: string) => {
-    if (textAllowed(Date.now(), quietUntil.current)) AccessibilityInfo.announceForAccessibility(text);
+    if (textAllowed(Date.now(), quiet.current.until)) AccessibilityInfo.announceForAccessibility(text);
   }, []);
   const flash = useCallback((text: string, ms = 3400) => {
-    if (!textAllowed(Date.now(), quietUntil.current)) return; // 머뭇거림~큰 반김 동안 안내 한 줄 0(리뷰 H1)
+    if (!textAllowed(Date.now(), quiet.current.until)) return; // 머뭇거림~큰 반김 동안 안내 한 줄 0(리뷰 H1)
     if (lineTimer.current) clearTimeout(lineTimer.current);
     setLine(text);
     lineTimer.current = setTimeout(() => setLine(''), ms);
@@ -219,6 +220,9 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         sound.resume();
         setNowT(now());
       } else if (st === 'background') {
+        // 앱을 닫으면 조용한 구간·첫 터치 대기를 푼다(다시 열면 새 반김이 정한다, 리뷰 2차 H2)
+        quiet.current = quietStep(quiet.current, { type: 'background' });
+        firstTouch.current = null;
         goBackground();
         sound.suspend();
         scheduleForBackground();
@@ -252,7 +256,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       later(() => {
         const st = getSnapshot().state;
         // 머뭇거림~큰 반김 동안은 자막을 내지 않고 횟수도 쓰지 않는다(리뷰 H1)
-        if (!st || !textAllowed(Date.now(), quietUntil.current)) return;
+        if (!st || !textAllowed(Date.now(), quiet.current.until)) return;
         const text = t(JEONG_CAPTION_KEYS[signal], { name: displayName(st) ?? t('name.default') });
         setCaption({ text, key: ++cueSeq.current });
         // 스크린리더: Android는 자막 띠의 liveRegion(polite)이 읽고, iOS는 알림으로 한 번(정보 동등성, 리뷰 M1)
@@ -271,10 +275,10 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               const plan = greetPlan(e, { hesitation: isOn('hesitation') });
               const intensity = leanIntensity(e.lean);
               onDayGreet(() => {
-                const q = quietOnGreet(plan);
-                if (q !== null) {
+                // 새 반김은 앞 반김의 조용한 구간을 덮는다(72h가 아니면 푼다 — 리뷰 2차 H2)
+                quiet.current = quietStep(quiet.current, { type: 'greet', plan, now: Date.now() });
+                if (quiet.current.waitingTouch) {
                   // 72h 이상: 지금 떠 있는 안내 한 줄·자막도 거둔다 — 머뭇거림 동안 화면에 글 0
-                  quietUntil.current = q;
                   if (lineTimer.current) clearTimeout(lineTimer.current);
                   setLine('');
                   setCaption(null);
@@ -370,6 +374,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               }
               break;
             case 'woke':
+              quiet.current = quietStep(quiet.current, { type: 'woke' });
               setNotifPrompt(false);
               if (AppState.currentState === 'active') void cancelMorning();
               break;
@@ -391,7 +396,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         if (jeongOn && ev?.type === 'tap' && ev.target === 'body' && firstTouch.current) {
           const f = firstTouch.current;
           firstTouch.current = null;
-          if (f.cue === 'big') quietUntil.current = quietOnFirstTouch(Date.now(), f.notBefore);
+          if (f.cue === 'big') quiet.current = quietStep(quiet.current, { type: 'touch', now: Date.now(), notBefore: f.notBefore });
           later(() => {
             greetCue(f.cue, f.intensity);
             if (f.cue === 'big') {
