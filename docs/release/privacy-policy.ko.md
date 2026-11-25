@@ -34,7 +34,7 @@
 > | K22 | 수탁사 법인명(7·8) | Supabase 공식 방침의 관리 주체가 'Supabase Pte. Ltd.'로 표기됨 — 실제 DPA 계약 상대 법인명과 대조. **증거**: `docs/release/dpa/` 사본 | 확인 필요 |
 > | K23 | 유출 대응 절차(14, 영어판 18 NZ) | B6 운영 문서에 앱 안 공지·웹 게시·신고 기준(한국 72시간, 퀘벡·NZ·PH)과 사고 등록부 | 문서 없음 |
 > | K24 | 영어판 18 Canada의 영향 평가 문장 | `docs/release/pia-quebec.md` 7절 승인(운영자 서명·날짜) + PIA R11·A6(8.1조 회신) 반영 | PIA 초안(승인 전) |
-> | K25 | 통계 토글은 **만 14세 확인을 통과한 사용자에게만 보임**, 14세 미만은 켤 수 없음(1·3-1·4) | C11 2d08504: `apps/mobile/src/screens/MetricsSheet.tsx`(공방 노트 '이용 통계 보내기'를 처음 누르면 만 14세 확인 → 통과한 경우에만 켜고 끄는 단추), `gate.ts`(통과 기록 없으면 `metricsConsent` false), `apps/mobile/test/net-*.test.ts` | **11-25: 일치()** — main 합침 커밋에서 이 줄을 해시로 고침. 핑 항목은 B4 대조 남음 |
+> | K25 | 통계 토글은 **만 14세 확인을 통과한 사용자에게만 보임**, 14세 미만은 켤 수 없음(1·3-1·4) | C11 2d08504: `apps/mobile/src/screens/MetricsSheet.tsx`(공방 노트 '이용 통계 보내기'를 처음 누르면 만 14세 확인 → 통과한 경우에만 켜고 끄는 단추), `gate.ts`(통과 기록 없으면 `metricsConsent` false), `apps/mobile/test/net-*.test.ts` | **11-25: 일치(2d08504)**. 핑 항목은 B4 대조 남음 |
 > | K26 | `/m/` 웹 페이지 요청은 IP와 링크 주소가 함께 남는 로그로 수집하지 않음(3-6) | Cloud Run 요청 로그 `/m/` **제외 필터**(architecture 3-12). **증거**: 로그 싱크 제외 필터 설정 출력 | 미설정(B6) |
 > | K27 | 업데이트 요청은 **Google의 Firebase Hosting(전 세계 네트워크)을 지나** 서울의 운영자 서버(Cloud Run)에 닿음. 앱 API도 수탁자 네트워크를 지난다고 씀. '해외 전송망을 거치지 않음'이라고 쓰지 않음(3-2·7·8·14) | PM 11-25 정정(DECISIONS V21 절 'GCP 앞단은 모두 Google 전 세계 엣지를 지남'·ota-self-host.md 9-1 ①): `ota.mongmang.ink` = Firebase Hosting 리라이트 → Cloud Run. 경로 그룹 `ota`(`TRUSTED_PROXY_HOPS_OTA`). Cloudflare 프록시를 쓰면 7·8절 행을 먼저 추가 | **11-25: 결정됨**(문구를 결정대로 고침 — 18fa723:DECISIONS.md, 472bcc5:docs/design/server-v1/ota-self-host.md 9-1). 연결·캐시 헤더 실측은 B6 |
 > | K28 | 통계 90일 뒤 월 합계(6) | `app.rollup_metric_daily()` pg_cron 등록·실행 기록 | 함수 있음 / 예약 미등록(B6) |
