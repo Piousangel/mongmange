@@ -332,7 +332,6 @@ export const ART_REV_RASTERS: Readonly<Record<number, readonly string[]>> = {
     'far-alone.kite',
     'near-with.umbrella',
     'far-alone.paper-boat',
-    'near-with.palm',
     'near-with.window-hand',
     'near-alone.quilt',
     'near-alone.teacup',

@@ -102,13 +102,16 @@ export const MOTIF_NIGHT_INK = '#BEC5D1';
  * 몽망이와 **재질로** 가른다: 순흑 대신 담묵(몸 먹의 45~60%) + 젖은 테, 모양은 완전한 원이 아닌 붓 방울(시드 흔들림·가로로 조금 긴 꼴),
  * 눈 없음. fill = 면 알파, total = 테 자리 합성 농도(상한), 판 1에만(판 0 = 빌드 1 그대로)
  */
-export const COMPANION = { fill: 0.45, total: 0.6, stretch: 1.38, wobble: 0.18, holdStretch: 1.1 } as const;
+export const COMPANION = { fill: 0.45, total: 0.6, stretch: 0.88, wobble: 0.06, tipRise: 1.45 } as const;
 /** 몸 이외 덩어리(장면의 맑지 않은 방울·곁 방울)의 먹 농도 상한(몸 = 1) */
 export const BLOB_INK_MAX = 0.6;
 /** 곁 방울 원형도(4πA/P²) 상한 — 완전한 원(1)이 아니어야 한다 */
 export const COMPANION_ROUNDNESS_MAX = 0.94;
 
-/** 곁 방울 붓 방울 꼴(반경 1 기준 꺾은선 [x0,y0,x1,y1,…], 아래가 조금 평평 — 물 위에 앉은 방울). 같은 시드 = 같은 꼴 */
+/**
+ * 곁 방울 꼴(반경 1 기준 꺾은선 [x0,y0,x1,y1,…]). 9차(4차 블라인드: 곁이 '회색 몽망이 복제'로 읽힘 — 2·3·4차): 몽망이(둥근 몸 + 빗)와
+ * 형태 언어를 가른다 — **위가 뾰족하고 세로로 긴 물방울**(아래는 조금 평평 — 물 위에 앉음), 빗(머리 획) 없음. 같은 시드 = 같은 꼴
+ */
 export function companionBlob(seed: number, n = 48, stretch: number = COMPANION.stretch): number[] {
   const out: number[] = [];
   for (let i = 0; i < n; i++) {
@@ -118,8 +121,12 @@ export function companionBlob(seed: number, n = 48, stretch: number = COMPANION.
     const u = f * f * (3 - 2 * f);
     const noise = (hash01(seed, k0 % 7, 3) * (1 - u) + hash01(seed, (k0 + 1) % 7, 3) * u) * 2 - 1;
     const r = 1 + COMPANION.wobble * noise;
-    const y = Math.sin(a) * r;
-    out.push(Math.cos(a) * r * stretch, y > 0 ? y * 0.78 : y);
+    const x0 = Math.cos(a) * r;
+    const y0 = Math.sin(a) * r;
+    // 윗쪽(y < 0)은 꼭대기로 갈수록 좁혀 뾰족하게, 위로 늘인다
+    const x = y0 < 0 ? x0 * Math.pow(Math.max(0, 1 + y0 / r), 0.7) : x0;
+    const y = y0 < 0 ? y0 * COMPANION.tipRise : y0 * 0.82;
+    out.push(x * stretch, y);
   }
   return out;
 }

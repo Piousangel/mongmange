@@ -39,16 +39,24 @@ const MOON_IDS: ReadonlySet<string> = new Set(BUNDLED_MOON_MOTIFS.map((m) => m.i
 const isMotif = (id: string): id is MotifId => MOTIF_IDS.has(id);
 const isMoon = (id: string): id is MoonId => MOON_IDS.has(id);
 
-/** 꿈 모티프 이름(시 문구). 모르는 id는 null(원격 모티프는 파일의 text.title — 원격 연결 때) */
-export function motifName(id: string): string | null {
-  if (isMotif(id)) return t(`motif.${id}`);
+/**
+ * 판별 문구(8차, PM): 판 1 그림이 바뀌어 뜻이 달라진 모티프는 판 1 카드에만 다른 문구를 쓴다. 판 0 카드(빌드 1에서 받은 카드)는
+ * 옛 문구 그대로(시험 고정). 모티프 id는 그대로(맡겨 두기·핑 호환)
+ */
+const REV1_TEXT: ReadonlySet<MotifId> = new Set<MotifId>(['near-with.window-hand', 'near-with.palm']);
+type Rev1Id = 'near-with.window-hand' | 'near-with.palm';
+const rev1 = (id: MotifId, rev: number): id is Rev1Id => rev >= 1 && REV1_TEXT.has(id);
+
+/** 꿈 모티프 이름(시 문구). rev = 카드의 그림 판(`sim.dreamArtRevOf`, 기본 0). 모르는 id는 null(원격 모티프는 파일의 text.title — 원격 연결 때) */
+export function motifName(id: string, rev = 0): string | null {
+  if (isMotif(id)) return rev1(id, rev) ? t(`motif.${id}.r1`) : t(`motif.${id}`);
   if (isMoon(id)) return t(`moon.${id}`);
   return null;
 }
 
 /** 카드 그림 설명(스크린리더, 아트 10절). 카드 v1.1 구도 기준 — 그림이 바뀌면 ko·en 둘 다 고친다 */
-export function motifScene(id: string): string {
-  if (isMotif(id)) return t(`scene.${id}`);
+export function motifScene(id: string, rev = 0): string {
+  if (isMotif(id)) return rev1(id, rev) ? t(`scene.${id}.r1`) : t(`scene.${id}`);
   if (isMoon(id)) return t(`scene.moon.${id}`);
   return t('scene.fallback');
 }
@@ -62,14 +70,14 @@ const CAUSE_RE = /^(near-alone|near-with|far-alone|far-with|center)\.([123])$/;
  * - 일반 카드: 원인 = 고를 때 정한 말씨(`card.cause`), 없으면 결과만.
  * - 모르는 모티프(원격 미연결)는 null — 캡션 줄을 비운다.
  */
-export function dreamCaption(card: Pick<sim.DreamCard, 'motifId' | 'composition' | 'cause'>): string | null {
+export function dreamCaption(card: Pick<sim.DreamCard, 'motifId' | 'composition' | 'cause' | 'artRev'>): string | null {
   const phase = sim.moonPhaseOfCard(card);
   if (phase) {
     if (!isMoon(card.motifId)) return null;
     return t('caption.dream', { cause: t(`caption.moon.cause.${phase}`), line: t(`caption.moon.line.${card.motifId}`) });
   }
   if (!isMotif(card.motifId)) return null;
-  const line = t(`caption.line.${card.motifId}`);
+  const line = rev1(card.motifId, sim.dreamArtRevOf(card)) ? t(`caption.line.${card.motifId}.r1`) : t(`caption.line.${card.motifId}`);
   const m = card.cause ? CAUSE_RE.exec(card.cause) : null;
   if (!m) return line;
   return t('caption.dream', { cause: t(`caption.cause.${m[1] as Zone}.${m[2] as '1' | '2' | '3'}`), line });
@@ -79,7 +87,7 @@ export function dreamCaption(card: Pick<sim.DreamCard, 'motifId' | 'composition'
  * 화면에 낼 캡션(플래그 반영). 보름은 독립 기능이라 `moonNight`만 켜져 있어도 보름 카드 캡션을 낸다(리뷰 m4).
  * 일반 카드 캡션은 `dreamContent`가 켜졌을 때만. 둘 다 꺼짐 = 빌드 1(캡션 없음).
  */
-export function visibleCaption(card: Pick<sim.DreamCard, 'motifId' | 'composition' | 'cause'>, on: { dream: boolean; moon: boolean }): string | null {
+export function visibleCaption(card: Pick<sim.DreamCard, 'motifId' | 'composition' | 'cause' | 'artRev'>, on: { dream: boolean; moon: boolean }): string | null {
   const isMoonCard = sim.moonPhaseOfCard(card) !== null;
   if (isMoonCard ? !(on.moon || on.dream) : !on.dream) return null;
   return dreamCaption(card);
@@ -108,7 +116,7 @@ type Sign = 'plus' | 'minus';
 export function morningLine(line: sim.MorningLine, card: sim.DreamCard | null): string {
   if (line.kind === 'seven-day') return t('poem.sevenDay');
   if (line.kind === 'observation') {
-    const motif = card ? motifName(card.motifId) : null;
+    const motif = card ? motifName(card.motifId, sim.dreamArtRevOf(card)) : null;
     return motif ? t('poem.dream', { motif }) : t('poem.quietDream');
   }
   const [cause, effect] = line.keys;

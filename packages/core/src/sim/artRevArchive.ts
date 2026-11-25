@@ -65,9 +65,9 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
     "near-with.letter": {
       "paths": [
         {
-          "d": "M2 58 Q50 61 98 57",
-          "w": 2.6,
-          "layer": "ink"
+          "d": "M8 57 Q36 60.5 70 57.5",
+          "w": 2.4,
+          "layer": "wash"
         },
         {
           "d": "M14 4 Q50 4.4 86 4 Q87.3 29.5 87 55 Q50 55.5 13 56 Q14.3 30 14 4",
@@ -111,17 +111,16 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       ],
       "raster": {
         "box": [
-          30,
-          63,
-          60,
-          24
+          34,
+          56,
+          54,
+          36
         ],
         "keep": [
           0,
           1
         ],
-        "cover": 0.85,
-        "stretch": true
+        "cover": 0.85
       },
       "zoom": 1.3
     },
@@ -164,12 +163,14 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
       ],
       "raster": {
         "box": [
-          10,
-          6,
-          80,
-          66
+          12,
+          23,
+          76,
+          56
         ],
-        "keep": [],
+        "keep": [
+          0
+        ],
         "cover": 0.85
       },
       "zoom": 1.35
@@ -540,20 +541,33 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
     "near-with.palm": {
       "paths": [
         {
-          "d": "M34 66 Q64 86 94 64",
-          "w": 2.4,
+          "d": "M42 61 Q50.1 57.3 58 53 Q69 51.9 80 52 Q88 56 96 60 Q90 59.7 84 60.5 Q73 59.8 62 58.5 Q52 59.5 42 61",
+          "w": 3.6,
           "layer": "wash"
+        },
+        {
+          "d": "M32 72 Q39.1 69.6 46 66.5 Q56 65.5 66 66 Q79 65.3 92 64.5 Q90.2 69.1 90 74 Q80.1 78.4 70 82 Q58 81.6 46 82 Q38.5 77.7 32 72",
+          "w": 1.6,
+          "layer": "wash"
+        },
+        {
+          "d": "M38 76 Q62 73 88 68",
+          "w": 1,
+          "layer": "ink"
+        },
+        {
+          "d": "M34 74 Q27 80 21 88",
+          "w": 1.8,
+          "layer": "ink"
         }
       ],
       "field": [
         {
-          "k": "tine",
-          "x": 70,
-          "y": 98,
-          "dx": 5,
-          "dy": -10,
-          "lambda": 14,
-          "gauss": true
+          "k": "drop",
+          "x": 68,
+          "y": 62.5,
+          "r": 7,
+          "ink": 0
         },
         {
           "k": "tine",
@@ -563,23 +577,21 @@ export const ART_REV_SHAPES_ARCHIVE: Readonly<Record<number, Readonly<Record<str
           "dy": 0,
           "lambda": 4,
           "len": 70
+        },
+        {
+          "k": "tine",
+          "x": 64,
+          "y": 96,
+          "dx": 12,
+          "dy": 0,
+          "lambda": 3,
+          "len": 60
         }
       ],
       "seat": [
-        32,
-        54
+        20,
+        60
       ],
-      "raster": {
-        "box": [
-          38,
-          50,
-          58,
-          30
-        ],
-        "keep": [],
-        "cover": 0.3,
-        "stretch": true
-      },
       "zoom": 1.3
     },
     "near-with.umbrella": {

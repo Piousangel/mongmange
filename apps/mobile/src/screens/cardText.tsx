@@ -1,5 +1,5 @@
 // 인화 카드의 글(카드 위 라벨·스크린리더 설명)과 공유 버튼. 문장은 앱이 언어별로 만든다(시스템 2.6).
-import { PALETTE, type sim } from '@mong/core';
+import { PALETTE, sim } from '@mong/core';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { DreamCardInput, DreamCardLabels } from '../render/dreamCard/DreamCard';
@@ -24,7 +24,7 @@ export function nightName(card: sim.DreamCard): string {
  * 이름 줄을 공유 이름(sharedName)으로 다시 쓴다.
  */
 export function cardLabels(card: sim.DreamCard, line: string, name: string | null = null): DreamCardLabels {
-  const motif = motifName(card.motifId) ?? t('motif.fallback');
+  const motif = motifName(card.motifId, sim.dreamArtRevOf(card)) ?? t('motif.fallback');
   return { name: cardNameLabel(card, name), line, sub: t('card.sub', { motif, night: nightName(card) }) };
 }
 
@@ -33,8 +33,8 @@ export function cardLabels(card: sim.DreamCard, line: string, name: string | nul
  * '처음 꾼 꿈'을 붙인다(dreams-30days 3-2·1-7 — 시각 표시와 같은 때만).
  */
 export function cardA11y(card: sim.DreamCard, line: string, extra: readonly (string | null | undefined)[] = []): string {
-  const motif = motifName(card.motifId) ?? t('motif.fallback');
-  const scene = motifScene(card.motifId);
+  const motif = motifName(card.motifId, sim.dreamArtRevOf(card)) ?? t('motif.fallback');
+  const scene = motifScene(card.motifId, sim.dreamArtRevOf(card));
   const merged = card.nightsMerged > 1 ? t('card.a11y.merged', { n: card.nightsMerged }) : '';
   return appendA11y(t('card.a11y', { night: nightName(card), motif, scene, merged, line }).trim(), extra);
 }
