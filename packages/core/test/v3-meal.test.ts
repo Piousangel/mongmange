@@ -164,20 +164,22 @@ describe('공방 pantry — 열림 = 이레 아침·정(care 3-2), 줄지 않음
   it('처음엔 맑은 먹·무늬 먹 조각만', () => {
     expect(fresh().v3.pantry).toEqual({ meal: ['clear'], treat: ['pattern'] });
   });
-  it('송화 먹 = 첫 이레 아침(7밤 뒤 깸), 이슬 먹 = 둘째 이레 아침(14밤 뒤 깸)', () => {
+  it('송화 먹 = 첫 이레 아침(7밤 뒤 깸), 이슬 먹 = 11번째 아침(11밤 뒤 깸, V9b T-2)', () => {
     let r = days(fresh(), 6);
     expect(r.state.v3.pantry.meal).toEqual(['clear']);
     r = day(r.state, 6);
     expect(r.state.v3.life.slept).toBe(7);
     expect(r.state.v3.pantry.meal).toEqual(['clear', 'pine']);
     expect(r.effects).toContainEqual({ type: 'pantryOpened', kind: 'meal', item: 'pine' });
-    r = days(r.state, 6, {}, 7);
+    r = days(r.state, 3, {}, 7);
+    expect(r.state.v3.life.slept).toBe(10);
     expect(r.state.v3.pantry.meal).toEqual(['clear', 'pine']);
-    r = day(r.state, 13);
-    expect(r.state.v3.life.slept).toBe(14);
+    r = day(r.state, 10);
+    expect(r.state.v3.life.slept).toBe(11);
     expect(r.state.v3.pantry.meal).toEqual(['clear', 'pine', 'dew']);
+    expect(r.effects).toContainEqual({ type: 'pantryOpened', kind: 'meal', item: 'dew' });
   });
-  it('늘인 먹 한 가락 = 정 2, 이슬 한 방울 = 정 4 — 그다음 깸 경계에서 열린다', () => {
+  it('늘인 먹 한 가락 = 정 2 — 그다음 깸 경계에서 열린다. 이슬 한 방울은 정과 무관(V9b T-2: 18번째 아침)', () => {
     let r = day(fresh(), 0, { touch: true });
     expect(r.state.sim.relation.jeongDays).toBe(1);
     expect(r.state.v3.pantry.treat).toEqual(['pattern']);
@@ -185,8 +187,9 @@ describe('공방 pantry — 열림 = 이레 아침·정(care 3-2), 줄지 않음
     expect(r.state.sim.relation.jeongDays).toBe(2);
     expect(r.state.v3.pantry.treat).toEqual(['pattern', 'ribbon']);
     expect(r.effects).toContainEqual({ type: 'pantryOpened', kind: 'treat', item: 'ribbon' });
-    r = days(r.state, 2, { touch: true }, 2);
-    expect(r.state.v3.pantry.treat).toEqual(['pattern', 'ribbon', 'dewdrop']);
+    r = days(r.state, 4, { touch: true }, 2);
+    expect(r.state.sim.relation.jeongDays).toBeGreaterThanOrEqual(4);
+    expect(r.state.v3.pantry.treat).toEqual(['pattern', 'ribbon']);
   });
   it('열린 종류는 바로 줄 수 있다', () => {
     const s = days(fresh(), 2, { touch: true }).state;
@@ -313,7 +316,7 @@ describe('세이브 v3 이행 — 세로 조각 세이브가 유실 없이 이�
     const once = v3.serializeV3(v3.parseV3(old), kst(12, 11, 9));
     const twice = v3.serializeV3(v3.parseV3(once), kst(12, 11, 9));
     expect(twice).toBe(once);
-    expect(v3.parseV3(once).v3.pantry).toEqual({ meal: ['clear', 'pine', 'dew'], treat: ['pattern', 'ribbon', 'dewdrop'] });
+    expect(v3.parseV3(once).v3.pantry).toEqual({ meal: ['clear', 'pine', 'dew'], treat: ['pattern', 'ribbon'] }); // 15밤: 이슬 한 방울은 18번째 아침(V9b T-2)
   });
   it('저장 키·읽기 경로 그대로: 세로 조각 본을 readSaveV3가 main에서 읽고, 다시 써도 옛 빌드가 읽을 수 있는 같은 판(3)', () => {
     const s = days(fresh(), 3, { touch: true }).state;
@@ -364,7 +367,7 @@ describe('업로드 허용 목록 — 맡겨 두기·핑(care 2-3·4-1, M6)', ()
   });
   it('블록의 모든 칸은 업로드 또는 기기 전용 중 하나로 정해져 있다(새 칸이 말없이 올라가지 않게)', () => {
     const known = new Set<string>(['version', ...v3.V3_UPLOAD_FIELDS, ...v3.V3_DEVICE_ONLY_FIELDS]);
-    expect(Object.keys(v3.emptyV3Block()).filter((k) => !known.has(k))).toEqual([]);
+    expect(Object.keys(v3.emptyV3Block(7)).filter((k) => !known.has(k))).toEqual([]);
   });
 });
 
@@ -454,7 +457,7 @@ describe('재시작해도 같은 결과 — 공방은 깸 경계에서만 열린
   function scenario(seed: number): E[] {
     const r = rng(seed);
     const ev: E[] = [];
-    for (let d = 0; d < 18; d++) {
+    for (let d = 0; d < 26; d++) {
       const morning = kst(11, 26 + d, 8) + Math.floor(r() * 3) * H;
       const evening = kst(11, 25 + d, 20);
       ev.push({ type: 'appForeground', at: evening, tzOffsetMin: KST });
@@ -471,7 +474,7 @@ describe('재시작해도 같은 결과 — 공방은 깸 경계에서만 열린
     }
     return ev;
   }
-  it('속성: 임의 사건 경계에서 세이브를 갈아 끼워도 공방·밥 칸·밥 효과가 끊지 않은 경우와 같다(시드 40개)', () => {
+  it('속성: 임의 사건 경계에서 세이브를 갈아 끼워도 공방·밥 칸·밥 효과가 끊지 않은 경우와 같다(시드 40개 × 26일 — 18번째 아침까지)', () => {
     let reloads = 0;
     let opens = 0;
     for (let seed = 1; seed <= 40; seed++) {
@@ -505,5 +508,103 @@ describe('공방 손상 정책 하나(V27 리뷰 L2)', () => {
     expect(() => v3.parseV3(JSON.stringify(o))).toThrow(/pantry/);
     o.v3.pantry = { meal: ['clear'], treat: ['pattern', 'pine'] };
     expect(() => v3.parseV3(JSON.stringify(o))).toThrow(/pantry/);
+  });
+});
+
+describe('V9b T-2 열림 자리 옮기기(daily-loop v1.1 5-2, 밤 수 기준) — 좋아하는 것 예외', () => {
+  const seedLiking = (item: string, not = false) => {
+    let e = 1;
+    while ((v3.likedItemOf(fresh(e).sim.birth.seed) === item) === not) e++;
+    return e;
+  };
+  it('표: 이슬 먹 = 11밤, 이슬 한 방울 = 18밤(정 문턱 없음). 송화 먹 7밤·늘인 먹 정 2는 그대로', () => {
+    const at = (item: string) => v3.PANTRY_OPENS.find((o) => o.item === item)!;
+    expect(at('pine')).toMatchObject({ slept: 7 });
+    expect(at('dew')).toMatchObject({ slept: 11 });
+    expect(at('ribbon')).toMatchObject({ jeong: 2 });
+    expect(at('dewdrop')).toMatchObject({ slept: 18 });
+    expect(at('dewdrop').jeong).toBeUndefined();
+  });
+  it('이슬 한 방울은 18번째 아침(깸 경계)에 열린다 — 만지지 않아도(정 0), 17번째 아침까지는 잠김', () => {
+    const e = seedLiking('dewdrop', true);
+    let r = days(fresh(e), 17, { write: false });
+    expect(r.state.v3.life.slept).toBe(17);
+    expect(r.state.sim.relation.jeongDays).toBe(0);
+    expect(r.state.v3.pantry.treat).toEqual(['pattern']);
+    expect(r.effects.some((x) => x.type === 'pantryOpened' && x.item === 'dewdrop')).toBe(false);
+    r = day(r.state, 17, { write: false });
+    expect(r.state.v3.life.slept).toBe(18);
+    expect(r.state.v3.pantry.treat).toEqual(['pattern', 'dewdrop']);
+    expect(r.effects).toContainEqual({ type: 'pantryOpened', kind: 'treat', item: 'dewdrop' });
+  });
+  it('좋아하는 것이 이슬 한 방울이면 처음부터 열려 있고, 열림 효과는 나지 않는다(처음 열린 둘과 같은 자리)', () => {
+    const e = seedLiking('dewdrop');
+    const s = fresh(e);
+    expect(s.v3.pantry).toEqual({ meal: ['clear'], treat: ['pattern', 'dewdrop'] });
+    expect(v3.emptyV3Block(s.sim.birth.seed)).toEqual(s.v3);
+    const at = kst(11, 25, 10);
+    expect(play(s, [{ type: 'offer', at, kind: 'treat', item: 'dewdrop' }]).effects).toContainEqual({ type: 'received', kind: 'treat', item: 'dewdrop', bow: false, liked: false });
+    const r = days(s, 20, { touch: true });
+    expect(r.effects.filter((x) => x.type === 'pantryOpened').map((x) => (x as { item: string }).item)).toEqual(['ribbon', 'pine', 'dew']);
+    expect(r.state.v3.pantry.treat).toEqual(['pattern', 'ribbon', 'dewdrop']);
+  });
+  it('openPantry: 좋아하는 것 예외로 더해진 이슬 한 방울은 열림 효과가 아니다(깸 경계에서 처음 채워져도)', () => {
+    const start = { meal: ['clear'] as v3.MealItem[], treat: ['pattern'] as v3.TreatItem[] };
+    expect(v3.openPantry(start, { slept: 0, jeong: 0 }, 'dewdrop')).toEqual({ pantry: { meal: ['clear'], treat: ['pattern', 'dewdrop'] }, opened: [] });
+    expect(v3.openPantry(start, { slept: 18, jeong: 0 }, 'dewdrop').opened).toEqual([
+      { kind: 'meal', item: 'pine' },
+      { kind: 'meal', item: 'dew' },
+    ]);
+    expect(v3.openPantry(start, { slept: 18, jeong: 0 }, 'pine').opened).toContainEqual({ kind: 'treat', item: 'dewdrop' });
+  });
+  it('다른 것을 좋아하면 예외 없음: 처음엔 맑은 먹·무늬 먹 조각만, 이슬 먹을 좋아해도 11번째 아침', () => {
+    for (const item of ['clear', 'pine', 'dew', 'pattern', 'ribbon']) {
+      const s = fresh(seedLiking(item));
+      expect(s.v3.pantry, item).toEqual({ meal: ['clear'], treat: ['pattern'] });
+    }
+    const r = days(fresh(seedLiking('dew')), 11);
+    expect(r.effects.filter((x) => x.type === 'pantryOpened' && x.item === 'dew')).toHaveLength(1);
+    expect(r.state.v3.life.slept).toBe(11);
+  });
+  it('열림 입력은 씨앗·밤·정뿐 — 같은 씨앗·같은 사건열이면 같은 공방(D-13)', () => {
+    const e = seedLiking('dewdrop');
+    const a = days(fresh(e), 12, { touch: true }).state;
+    const b = days(fresh(e), 12, { touch: true }).state;
+    expect(v3.serializeV3(a, kst(12, 7, 9))).toBe(v3.serializeV3(b, kst(12, 7, 9)));
+  });
+
+  /** V27 규칙(이슬 먹 14밤·이슬 한 방울 정 4)으로 쓰인 세이브 흉내: 공방만 바꿔 쓴다 */
+  const withPantry = (s: S, pantry: v3.V3Block['pantry'], at: number) => {
+    const o = JSON.parse(v3.serializeV3(s, at)) as { v3: v3.V3Block };
+    o.v3 = { ...o.v3, pantry };
+    return JSON.stringify(o);
+  };
+  it('이행: V27 규칙으로 이미 열린 이슬 한 방울(정 4, 18밤 전)은 닫히지 않는다 — 다시 읽고 써도 같은 바이트(멱등)', () => {
+    const s = days(fresh(seedLiking('dewdrop', true)), 6, { touch: true }).state;
+    expect(s.v3.life.slept).toBe(6);
+    const old = withPantry(s, { meal: ['clear'], treat: ['pattern', 'ribbon', 'dewdrop'] }, kst(12, 1, 9));
+    const once = v3.serializeV3(v3.parseV3(old), kst(12, 1, 9));
+    expect(v3.parseV3(once).v3.pantry.treat).toEqual(['pattern', 'ribbon', 'dewdrop']);
+    expect(v3.serializeV3(v3.parseV3(once), kst(12, 1, 9))).toBe(once);
+    // 그 뒤 아침들에도 줄지 않고, 18번째 아침에 다시 열림 효과가 나지 않는다
+    const r = days(v3.parseV3(once), 14, { touch: true }, 6);
+    expect(r.state.v3.pantry.treat).toEqual(['pattern', 'ribbon', 'dewdrop']);
+    expect(r.effects.some((x) => x.type === 'pantryOpened' && x.item === 'dewdrop')).toBe(false);
+  });
+  it('이행: 좋아하는 것이 이슬 한 방울인데 V27 세이브에 없으면 읽을 때 채운다(문턱 0 — 처음 열린 둘과 같은 이행), 멱등', () => {
+    const s = days(fresh(seedLiking('dewdrop')), 3).state;
+    const old = withPantry(s, { meal: ['clear'], treat: ['pattern'] }, kst(11, 28, 9));
+    const once = v3.serializeV3(v3.parseV3(old), kst(11, 28, 9));
+    expect(v3.parseV3(once).v3.pantry.treat).toEqual(['pattern', 'dewdrop']);
+    expect(v3.serializeV3(v3.parseV3(once), kst(11, 28, 9))).toBe(once);
+  });
+  it('이행: V27 규칙에서 아직 잠긴 이슬 먹(11~13밤)은 V9b 규칙의 마지막 깸 경계 값으로 채워진다, 멱등', () => {
+    const s = days(fresh(seedLiking('dewdrop', true)), 12, { write: false }).state;
+    expect(s.v3.life.slept).toBe(12);
+    const old = withPantry(s, { meal: ['clear', 'pine'], treat: ['pattern'] }, kst(12, 7, 9));
+    const back = v3.parseV3(old);
+    expect(back.v3.pantry).toEqual(s.v3.pantry);
+    expect(back.v3.pantry.meal).toEqual(['clear', 'pine', 'dew']);
+    expect(v3.serializeV3(v3.parseV3(v3.serializeV3(back, kst(12, 7, 9))), kst(12, 7, 9))).toBe(v3.serializeV3(back, kst(12, 7, 9)));
   });
 });

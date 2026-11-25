@@ -57,7 +57,8 @@ const famOf = (id, motifs = MOTIFS) => (id.startsWith('moon-') ? 'moon' : motifs
 export function pick(zone, history, rand, moonWindow, motifs = MOTIFS) {
   const n = history.length;
   const seenMotifs = new Set(history.map((h) => h.motifId));
-  const pool = motifs.filter((m) => (m.zone === zone || m.zone === 'center') && m.unlock <= n)
+  // V9b(daily-loop v1.1 5-1): 이미 본 모티프는 해금 값과 상관없이 풀에 남는다(본 꿈은 닫히지 않음)
+  const pool = motifs.filter((m) => (m.zone === zone || m.zone === 'center') && (m.unlock <= n || seenMotifs.has(m.id)))
     .filter((m) => !(moonWindow && m.id === 'center.moon'))
     .sort((a, b) => (a.id < b.id ? -1 : 1)); // 결정성: id 오름차순
   const scenes = [];

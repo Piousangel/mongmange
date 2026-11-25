@@ -226,7 +226,7 @@ export function install(firstTap?: { x: number; y: number }) {
   const birth: sim.BirthInput = { x: firstTap?.x ?? 0, y: firstTap?.y ?? 0, ms: at, installAt: at, entropy: entropy32().value };
   const state = sim.createInitial(at, tzOffsetNow(), seed, { birth });
   ensureNameTimingGroup(kv); // 설치 순간 이름 A/B 군을 정한다(통계 켜짐과 무관, B0 리뷰 I7)
-  const block = v3Mode ? v3.emptyV3Block() : null;
+  const block = v3Mode ? v3.emptyV3Block(state.birth.seed) : null; // 씨앗 = 좋아하는 것 예외(V9b T-2)로 처음 공방이 갈린다
   emit({ state, v3: block, restoredFrom: 'fresh', lostSave: false });
   persist(state, false, block);
 }
