@@ -18,6 +18,7 @@ import { isMoonMotifId, moonMotifUsable } from '../moon/motifs';
 import { rngNext } from '../sim/rng';
 import type { DreamCard } from '../sim/types';
 import { coreScale } from './bodySpec';
+import { flattenMotifPath, motifInkPlacement, motifInkPoint, type DreamMotifInk } from './motifInk';
 
 export type DreamAspect = '4:5' | '9:16';
 
@@ -81,6 +82,11 @@ export interface DreamScene {
   friend: { x: number; y: number; r: number } | null;
   /** 상한 때문에 합치거나 뺀 조작 수(0이어야 정상 — 테스트가 지킨다) */
   trimmed: number;
+  /**
+   * C14b 붓 형상(경로 `paths`가 있는 모티프만 — 빌드 1의 10개는 없음). 마블링 위·몽망이 아래에 먹·담묵·금 붓으로 그린다.
+   * 없을 때는 키 자체가 없다(빌드 1 장면 해시 그대로)
+   */
+  motifInk?: DreamMotifInk;
 }
 
 /**
@@ -251,6 +257,9 @@ export function dreamMotifShape(motifId: string, dev: boolean): string {
   return 'center.moon';
 }
 
+/** C14b 붓 형상 카드의 고리 중심: 인화 중심에서 몽망이 반대쪽으로 이 배(R)만큼 */
+export const RING_OFF = 1;
+
 /** 뒤 조작 우선순위: 낮은 것부터 뺀다(빈 자리·달·창 같은 형상은 끝까지 남김) */
 type Prio = 0 | 1 | 2 | 3 | 4;
 
@@ -348,6 +357,23 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
     default:
       break;
   }
+  // C14b 붓 형상: 그림의 몽망이 자리(seat)가 c0에 오게 놓는다. 고리는 기존 꿈처럼 인화를 채워 몽망이를 감싸되, 중심은
+  // 인화 가운데·몽망이에서 비켜 둔다(몽망이 반대쪽으로 비스듬히 RING_OFF·R — 눈동자·과녁·정가운데 동심원 금지)
+  const inkDef = MOTIFS.find((m) => m.id === motif && m.paths.length > 0 && m.seat);
+  const inkPlace = inkDef?.seat ? motifInkPlacement(inkDef.seat, card.composition, R) : null;
+  if (inkPlace) {
+    anchor.x = inkPlace.anchor.x;
+    anchor.y = inkPlace.anchor.y;
+    const al = Math.hypot(anchor.x, anchor.y);
+    const a = (al > 0.02 ? Math.atan2(-anchor.y, -anchor.x) : -Math.PI / 2) + side * 0.6;
+    ringC.x = -anchor.x + Math.cos(a) * RING_OFF * R;
+    ringC.y = -anchor.y + Math.sin(a) * RING_OFF * R;
+    // 고리 중심은 인화 테(R)에 두고 가장 바깥 고리 반경 약 1.73R — 인화에는 호만 지나가고(이불·빗소리와 같은 잘린 고리),
+    // 반대쪽 0.6R 안의 몽망이도 고리 안 맑은 자리에 앉는다. 조금 더 감아(curlK) 호가 굽이친다
+    ringShare = 3;
+    calm = 0.6;
+    curlK = 1.5;
+  }
   if (anchor.x === 0 && anchor.y === 0) {
     anchor.x = -ringC.x * 0.8;
     anchor.y = -ringC.y * 0.7;
@@ -390,7 +416,32 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
   }
 
   // 2) 모티프 형상(motifPre = 고리 뒤 방울, post p2 = 결 앞 빗질, late = 결 뒤, final = 몽망이 자리 뒤)
-  switch (motif) {
+  let motifInk: DreamMotifInk | undefined;
+  if (inkDef && inkPlace) {
+    const box = { ...inkPlace.box, flip: inkPlace.flip };
+    if (inkDef.water === 'clear') {
+      // 소리 없는 눈: 점마다 고리 없는 맑은 물방울 한 겹(몽망이 자리 뒤 — 마지막 좌표 그대로)
+      for (const p of inkDef.paths) {
+        const at = flattenMotifPath(p.d)[0]?.[0];
+        if (!at) continue;
+        const q = motifInkPoint(box, at[0], at[1]);
+        final.push({ k: 'drop', x: q.x, y: q.y, r: (p.w / 200) * box.size, ink: 0 });
+      }
+    } else {
+      motifInk = { ...box, paths: inkDef.paths };
+    }
+    if (inkDef.friend) {
+      const [fx, fy, fr] = inkDef.friend;
+      const q = motifInkPoint(box, fx, fy);
+      // 다른 방울은 물 위에 그대로 앉힌다 — 맑은 자리(흰 테)를 두면 몽망이 자리와 나란한 '두 눈'으로 읽힌다(1-1 눈동자 금지)
+      // 구도 c에서 그림 끝이 인화 밖으로 나가도 다른 방울은 인화 안(0.85R)에 남긴다 — 잘린 형상 위에 뜬 방울 금지
+      const px = q.x + anchor.x;
+      const py = q.y + anchor.y;
+      const d = Math.hypot(px, py);
+      const k = d > 0.85 * R ? (0.85 * R) / d : 1;
+      friend = { x: px * k - anchor.x, y: py * k - anchor.y, r: fr };
+    }
+  } else switch (motif) {
     case 'near-alone.quilt': {
       // 포근한 이불: 몽망이 아랫몸을 덮은 누빔 이불(그림) — 물결은 이불 아래로 흐른다
       vessels.push({ kind: 'quilt', x: side * 0.02, y: 0.004, w: 0.37, h: 0.15, handle: 1, friend: false });
@@ -608,5 +659,6 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
     vessels,
     friend,
     trimmed,
+    ...(motifInk ? { motifInk } : {}),
   };
 }

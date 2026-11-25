@@ -247,7 +247,7 @@ export const ko = {
   'scene.far-with.sea-hand': '물띠 곁에 작은 몽망이 둘이 나란히 있어요',
   'scene.center.rain': '비구름 같은 호 아래로 먹점이 끌려 내려요',
   'scene.center.moon': '큰 맑은 방울에 금빛 테가 둘린 둥근 달이에요',
-  // C6 새 모티프 15(dreams-30days v1.1 1-3·1-5). 형상은 아트 레인 C14 — 그 전에는 개발 빌드에서만 보인다
+  // C6 새 모티프 15(dreams-30days v1.1 1-3·1-5). 붓 형상은 C14b(core `sim/dreamMotifShapes.ts`), 운영 노출은 플래그 dreamContent
   'motif.near-alone.inkstone': '벼루 곁 낮잠',
   'motif.near-alone.washing-line': '빨랫줄',
   'motif.near-alone.sprout': '작은 싹',

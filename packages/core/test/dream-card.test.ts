@@ -75,8 +75,8 @@ describe('uniform 상한 — 자르기가 일어나면 실패', () => {
     expect(tight.post.some((o) => o.k === 'drop' && o.seat)).toBe(true);
   });
 
-  it('모티프 구성(조작 종류 열·그릇)이 형상 있는 10개 모두 다르다(C6의 15개는 형상 자리표시 — C14)', () => {
-    const shaped = sim.MOTIFS.filter((m) => !m.placeholder);
+  it('모티프 구성(조작 종류 열·그릇)이 마블링 절차 형상 10개 모두 다르다(C14b 15개는 붓 경로 — 아래 절)', () => {
+    const shaped = sim.MOTIFS.filter((m) => m.paths.length === 0);
     expect(shaped).toHaveLength(10);
     const sigs = new Set(shaped.map((m) => {
       const sc = buildDreamScene({ card: card(m.id), strokes: day7Records() });
@@ -96,36 +96,25 @@ describe('uniform 상한 — 자르기가 일어나면 실패', () => {
 // 11-20 v1.2: quilt916 갱신 — 서툰 손 6번(앞 위 지그재그)이 미끄러짐 비용(attach SLIDE_DRIFT_W)으로 자리가 바뀜. 의도한 변경
 const SNAPSHOT = { moon: [3914316475, '2d519a11'], quilt916: '37769e1e', empty: '8487e6ad' };
 
-// C6 리뷰 I2: 세이브에 이미 있는 미완 모티프 카드(개발 빌드 세이브·원격 앞당김 뒤 형상 제거 등)는 그리기 규칙만이 막는다
+// C6 리뷰 I2: 세이브에 이미 있는 미완 모티프 카드(개발 빌드 세이브·원격 앞당김 뒤 형상 제거 등)는 그리기 규칙만이 막는다.
+// C14b 뒤 25개는 모두 형상이 있어 미완은 보름 번들(자리표시)과 표에 없는 자리표시 모티프뿐이다
 describe('제품 빌드의 미완 모티프 = 형상 없는 일반 카드(plain)', () => {
-  const STAND_IN: Record<sim.MotifZone, string> = {
-    'near-alone': 'near-alone.quilt',
-    'near-with': 'near-with.window-hand',
-    'far-alone': 'far-alone.mountain',
-    'far-with': 'far-with.stars-drops',
-    center: 'center.rain',
-  };
   const goldInPost = (sc: DreamScene) => sc.post.filter((o) => o.k === 'drop' && (o as { gold?: boolean }).gold).length;
 
-  it('자리표시 15개: 제품 = plain, 개발 = 같은 구역 기존 형상', () => {
-    const ph = sim.MOTIFS.filter((m) => m.placeholder);
-    expect(ph).toHaveLength(15);
-    for (const m of ph) {
-      expect(dreamMotifShape(m.id, false), m.id).toBe('plain');
-      expect(dreamMotifShape(m.id, true), m.id).toBe(STAND_IN[m.zone]);
+  it('표의 25개는 모두 자기 형상 id로 그린다(제품·개발 같음 — 자리표시 0)', () => {
+    // 표(MOTIFS)에는 이제 자리표시가 없다 — 규칙은 dreamMotifShape가 표를 읽는 그대로 둔다
+    expect(sim.MOTIFS.filter((m) => m.placeholder)).toEqual([]);
+    for (const m of sim.MOTIFS) {
+      expect(dreamMotifShape(m.id, false), m.id).toBe(m.id);
+      expect(dreamMotifShape(m.id, true), m.id).toBe(m.id);
     }
   });
 
-  it('plain 장면에는 달(결 뒤 맑은 방울 + 금박 테)이 없다 — 달 형상 장면과 조작이 다르다', () => {
-    for (const m of sim.MOTIFS.filter((x) => x.placeholder)) {
-      const sc = buildDreamScene({ card: card(m.id), strokes: day7Records() });
-      expect(sc.motifId).toBe('plain');
-      expect(goldInPost(sc), m.id).toBe(0);
-      expect(sc.vessels).toEqual([]);
-      expect(sc.friend).toBeNull();
-    }
+  it('미완 보름 번들은 제품 빌드에서 plain — 달(결 뒤 맑은 방울 + 금박 테)이 없다', () => {
     expect(goldInPost(buildDreamScene({ card: card('center.moon'), strokes: day7Records() }))).toBeGreaterThan(0);
-    // 제품 빌드의 미완 보름 모티프도 같다
-    expect(goldInPost(buildDreamScene({ card: card('moon-12'), strokes: day7Records() }))).toBe(0);
+    const sc = buildDreamScene({ card: card('moon-12'), strokes: day7Records() });
+    expect(sc.motifId).toBe('plain');
+    expect(goldInPost(sc)).toBe(0);
+    expect(sc.motifInk).toBeUndefined();
   });
 });

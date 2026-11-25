@@ -18,6 +18,7 @@ export * from './visual/pose';
 export * from './visual/selectVisual';
 export * from './visual/grammar';
 export * from './visual/dreamCard';
+export * from './visual/motifInk';
 export * from './visual/traits';
 export * from './visual/ink';
 export * from './visual/look';

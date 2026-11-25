@@ -40,6 +40,8 @@ import {
   type StrokeRecord,
   type sim,
   sealOutlineOf,
+  motifInkLayers,
+  type MotifInkLayer,
 } from '@mong/core';
 import { useMemo } from 'react';
 import { PixelRatio, Platform, StyleSheet, Text, View } from 'react-native';
@@ -116,7 +118,8 @@ export interface DreamArt {
   uniforms: ReturnType<typeof marbleUniforms>;
   vessels: VesselArt[];
   body: BodyGeo;
-  friend: { t: object[]; geo: BodyGeo } | null;
+  /** 곁의 다른 방울. eyes = 눈을 그리나(C14b 붓 형상 카드는 그리지 않는다 — 1-1 '다른 존재의 방울에는 눈을 넣지 않는다') */
+  friend: { t: object[]; geo: BodyGeo; eyes: boolean } | null;
   ringPx: { x: number; y: number; r: number };
   seal: { plate: SkPath; figure: SkPath; combs: Verts; eyes: SkPath };
   /** 낙관을 그리나(이레 영상 카드 줄은 끔 — 주사는 한 화면 한 곳) */
@@ -124,6 +127,19 @@ export interface DreamArt {
   dots: { x: number; y: number; r: number; kind: 'past' | 'now' | 'future' }[];
   /** 장치 px 하한을 건 블러(그림 단위): 그림자·이불 접힘 그늘 */
   blur: { shadow: number; fold: number };
+  /** C14b 붓 형상(경로가 있는 모티프만). 그림 좌표 0..100 리본 → transform으로 카드에 놓고, 인화 번짐과 같은 원으로 흐리게 지운다 */
+  motifInk: MotifInkArt | null;
+}
+
+export interface MotifInkArt {
+  t: object[];
+  layers: { layer: MotifInkLayer['layer']; verts: Verts }[];
+  /** 인화 번짐(셰이더 fade와 같은 원: 반경 0.9 → 1.12배에서 사라짐) */
+  fade: { cx: number; cy: number; r: number };
+  /** 글 줄 위 경계(이 아래로는 그리지 않는다) */
+  yLim: number;
+  /** 번짐 블러(그림 단위 — 상자 변의 0.6%, 장치 0.5px 하한) */
+  bleed: number;
 }
 
 /** 카드 그림 단위와 화면의 관계(썸네일 LOD·블러 하한). 기본 = 화면 Canvas(그림 단위 = pt) */
@@ -330,7 +346,8 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
 }
 
 export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx: number, aa: number, opts: DreamArtOpts = {}): DreamArt {
-  // 개발 빌드만 미완 모티프(형상 자리표시·보름 초안)를 임시 형상으로 그린다. 제품은 형상 없는 일반 카드(core `dreamMotifShape`)
+  // 개발 빌드만 미완 모티프(보름 번들 자리표시·초안)를 임시 형상으로 그린다. 제품은 형상 없는 일반 카드(core `dreamMotifShape`).
+  // 꿈 모티프 25는 C14b 뒤 모두 형상이 있다(10 = 마블링 조작, 15 = 붓 경로 `scene.motifInk`)
   const scene = buildDreamScene({ card: input.card, strokes: input.strokes, aspect, ink: input.look?.ink, dev: typeof __DEV__ !== 'undefined' && __DEV__ === true });
   const shape = input.look?.shape;
   const layout = dreamCardLayout(aspect);
@@ -351,7 +368,7 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   const L = bodyLod(wpx * (opts.ptPerUnit ?? 1), GRAMMARS.C, opts.lod ?? false);
   const body = bodyGeometry(input.strokes.length, scene.body.s, true, shape, L.eyeScale, L.combScale);
   const friend = scene.friend
-    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false) }
+    ? { t: [{ translateX: c0.x + u(scene.friend.x) }, { translateY: c0.y + u(scene.friend.y) }, { scale: wpx }] as object[], geo: bodyGeometry(0, scene.friend.r * scene.body.s, false), eyes: !scene.motifInk }
     : null;
   // 낙관: 주사 인면에 몽망이(빗 포함)를 양각으로 새김 — 글꼴 없이 그리는 이 앱만의 인장
   const sl = layout.seal;
@@ -360,6 +377,16 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
       ? sealPath(sealOutlineOf(input.sealSeed, u(sl.size) * (opts.ptPerUnit ?? 1)), u(sl.size), u(sl.x), u(sl.y))
       : deckleRect(u(sl.x), u(sl.y), u(sl.size), u(sl.size), u(0.0016), u(0.003), scene.seed & 0xff);
   const fig = bodyGeometry(0, 1.0, true, shape);
+  const mi = scene.motifInk;
+  const motifInk: MotifInkArt | null = mi
+    ? {
+        t: [{ translateX: c0.x + u(mi.x) }, { translateY: c0.y + u(mi.y) }, { scale: u(mi.size) / 100 }, ...(mi.flip ? [{ translateX: 100 }, { scaleX: -1 }] : [])],
+        layers: motifInkLayers(mi.paths).map((l) => ({ layer: l.layer, verts: toVerts(l.ribbons) })),
+        fade: { cx: fade[0], cy: fade[1], r: fade[2] * 1.12 },
+        yLim,
+        bleed: blurFloorPt(u(mi.size) * 0.006, opts.devicePerUnit ?? 1),
+      }
+    : null;
   const night = Math.max(1, input.card.night);
   const idx = (night - 1) % 7;
   const d = layout.dots;
@@ -387,17 +414,75 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
     dots,
     // 블러 마스크 장치 0.5px 하한(눈 소실 결함과 같은 GPU 문턱). 큰 카드는 입력 그대로
     blur: { shadow: blurFloorPt(W * 0.012, opts.devicePerUnit ?? 1), fold: blurFloorPt(W * 0.003, opts.devicePerUnit ?? 1) },
+    motifInk,
   };
+}
+
+/** 붓 층 색·불투명도: 먹 = 몸 먹(그릇 테와 같은 0.8), 담묵 = 새 획 먹을 옅게, 금 = 머리카락 금점 */
+const INK_LAYER: Record<MotifInkLayer['layer'], { color: string; alpha: number }> = {
+  ink: { color: PALETTE.day.body, alpha: 0.8 },
+  wash: { color: PALETTE.day.strokeInk, alpha: 0.34 },
+  gold: { color: GOLD_HEX, alpha: 0.95 },
+};
+const layerPaints = new Map<number, ReturnType<typeof Skia.Paint>>();
+function alphaPaint(a: number) {
+  let p = layerPaints.get(a);
+  if (!p) {
+    p = Skia.Paint();
+    p.setAlphaf(a);
+    layerPaints.set(a, p);
+  }
+  return p;
+}
+
+/**
+ * C14b 붓 형상: 층마다 한 번에 칠하고(겹친 곳이 진해지지 않게 레이어 알파), 먹 층 아래에는 같은 획을 흐리게 한 번 더(한지 번짐).
+ * 마블링 위·몽망이 아래. 인화 바깥은 셰이더와 같은 원으로 지우고 글 줄 위에서 자른다
+ */
+export function MotifInkArtView({ ink, W }: { ink: MotifInkArt; W: number }) {
+  const { fade } = ink;
+  return (
+    <Group clip={{ x: 0, y: 0, width: W, height: ink.yLim }}>
+      <Group layer>
+        {ink.layers.map(({ layer, verts }) => {
+          const st = INK_LAYER[layer];
+          return (
+            <Group key={layer}>
+              {layer !== 'gold' && (
+                <Group layer={alphaPaint(st.alpha * 0.35)}>
+                  <Group transform={ink.t as never}>
+                    <Vertices vertices={verts.vertices} indices={verts.indices} mode="triangles" color={st.color}>
+                      <BlurMask blur={ink.bleed * 2.5} style="normal" />
+                    </Vertices>
+                  </Group>
+                </Group>
+              )}
+              <Group layer={alphaPaint(st.alpha)}>
+                <Group transform={ink.t as never}>
+                  <Vertices vertices={verts.vertices} indices={verts.indices} mode="triangles" color={st.color}>
+                    {layer !== 'gold' && <BlurMask blur={ink.bleed * 0.5} style="normal" />}
+                  </Vertices>
+                </Group>
+              </Group>
+            </Group>
+          );
+        })}
+        <Fill blendMode="dstIn">
+          <RadialGradient c={vec(fade.cx, fade.cy)} r={fade.r} colors={['#000000', '#000000', 'rgba(0,0,0,0)']} positions={[0, 0.9 / 1.12, 1]} />
+        </Fill>
+      </Group>
+    </Group>
+  );
 }
 
 const PAPER_BASE = [0xef / 255, 0xe8 / 255, 0xda / 255];
 
-function Drop({ t, geo, color = PALETTE.day.body }: { t: object[]; geo: BodyGeo; color?: string }) {
+function Drop({ t, geo, color = PALETTE.day.body, eyes = true }: { t: object[]; geo: BodyGeo; color?: string; eyes?: boolean }) {
   return (
     <Group transform={t as never}>
       <Path path={geo.core} color={color} />
       <Vertices vertices={geo.combs.vertices} indices={geo.combs.indices} mode="triangles" color={color} />
-      <Path path={geo.eyes} color={PALETTE.day.bg} />
+      {eyes && <Path path={geo.eyes} color={PALETTE.day.bg} />}
     </Group>
   );
 }
@@ -449,7 +534,8 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
             </Group>
           ) : null,
         )}
-        {art.friend && <Drop t={art.friend.t} geo={art.friend.geo} />}
+        {art.motifInk && <MotifInkArtView ink={art.motifInk} W={W} />}
+        {art.friend && <Drop t={art.friend.t} geo={art.friend.geo} eyes={art.friend.eyes} />}
         {art.vessels.map((v, i) => (v.kind === 'cup' && v.friend ? <Drop key={`f${i}`} t={v.friend.t} geo={v.friend.geo} /> : null))}
         {/* 몽망이 */}
         <Drop t={bodyT} geo={art.body} />

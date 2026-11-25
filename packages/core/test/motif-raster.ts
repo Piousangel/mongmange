@@ -1,7 +1,7 @@
 // 64px 흑백 구별 틀(dreams-30days 1-2)의 기계 쪽 도구 — 시험 전용. 사람 3명 시험(오답 쌍 3쌍 이하)이 관문이고,
 // 이 틀은 그 전에 같은 시트를 기계로 한 번 거르는 앞단이다(형상이 들어온 모티프만 대상).
 // 형상 = 스키마 1 `paths`(SVG 경로, 그림 좌표 0..100 정사각). 선 굵기 `w`도 같은 좌표 단위.
-import type { MotifPathData } from '../src/index';
+import { flattenMotifPath, type MotifPathData } from '../src/index';
 
 export const THUMB_PX = 64;
 const VIEW = 100;
@@ -9,78 +9,8 @@ const LAYER_INK: Record<MotifPathData['layer'], number> = { ink: 1, gold: 0.6, w
 
 type Pt = [number, number];
 
-/** SVG 경로 → 꺾은선 목록(M·L·H·V·C·S·Q·T·Z, 대소문자). A(호)는 끝점으로 곧게 잇는다 */
-export function flattenPath(d: string, steps = 16): Pt[][] {
-  const tok = d.match(/[MLHVCSQTAZmlhvcsqtaz]|-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/g) ?? [];
-  const out: Pt[][] = [];
-  let cur: Pt[] = [];
-  let p: Pt = [0, 0];
-  let start: Pt = [0, 0];
-  let ctrl: Pt | null = null;
-  let cmd = '';
-  let i = 0;
-  const num = () => Number(tok[i++]);
-  const bez = (pts: Pt[]) => {
-    for (let k = 1; k <= steps; k++) {
-      const t = k / steps;
-      let q = pts.map((x) => [...x] as Pt);
-      while (q.length > 1) q = q.slice(1).map((b, j) => [q[j]![0] + (b[0] - q[j]![0]) * t, q[j]![1] + (b[1] - q[j]![1]) * t] as Pt);
-      cur.push(q[0]!);
-    }
-  };
-  while (i < tok.length) {
-    if (/[a-zA-Z]/.test(tok[i]!)) cmd = tok[i++]!;
-    const rel = cmd === cmd.toLowerCase();
-    const o: Pt = rel ? p : [0, 0];
-    const C = cmd.toUpperCase();
-    if (C === 'Z') {
-      cur.push(start);
-      p = start;
-      ctrl = null;
-      continue;
-    }
-    if (C === 'M') {
-      if (cur.length > 1) out.push(cur);
-      p = [o[0] + num(), o[1] + num()];
-      start = p;
-      cur = [p];
-      cmd = rel ? 'l' : 'L';
-      ctrl = null;
-    } else if (C === 'L') {
-      p = [o[0] + num(), o[1] + num()];
-      cur.push(p);
-      ctrl = null;
-    } else if (C === 'H') {
-      p = [(rel ? p[0] : 0) + num(), p[1]];
-      cur.push(p);
-      ctrl = null;
-    } else if (C === 'V') {
-      p = [p[0], (rel ? p[1] : 0) + num()];
-      cur.push(p);
-      ctrl = null;
-    } else if (C === 'C' || C === 'S') {
-      const c1: Pt = C === 'C' ? [o[0] + num(), o[1] + num()] : ctrl ? [2 * p[0] - ctrl[0], 2 * p[1] - ctrl[1]] : p;
-      const c2: Pt = [o[0] + num(), o[1] + num()];
-      const e: Pt = [o[0] + num(), o[1] + num()];
-      bez([p, c1, c2, e]);
-      ctrl = c2;
-      p = e;
-    } else if (C === 'Q' || C === 'T') {
-      const c1: Pt = C === 'Q' ? [o[0] + num(), o[1] + num()] : ctrl ? [2 * p[0] - ctrl[0], 2 * p[1] - ctrl[1]] : p;
-      const e: Pt = [o[0] + num(), o[1] + num()];
-      bez([p, c1, e]);
-      ctrl = c1;
-      p = e;
-    } else if (C === 'A') {
-      i += 5;
-      p = [o[0] + num(), o[1] + num()];
-      cur.push(p);
-      ctrl = null;
-    } else i++;
-  }
-  if (cur.length > 1) out.push(cur);
-  return out;
-}
+/** SVG 경로 → 꺾은선(카드 붓 렌더와 같은 해석 — core `flattenMotifPath`) */
+export const flattenPath = flattenMotifPath;
 
 function segDist(px: number, py: number, a: Pt, b: Pt): number {
   const dx = b[0] - a[0];

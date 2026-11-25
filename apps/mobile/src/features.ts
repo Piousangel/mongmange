@@ -39,8 +39,9 @@ export const FEATURE_DEFAULTS = {
   bodyLight: false,
   /**
    * C6 꿈 콘텐츠(dreams-30days v1.1): 모티프 25·점적 해금·반복 방지 규칙·카드 캡션·'처음 꾼 꿈'. 꺼짐 = 빌드 1(모티프 10, 캡션 없음).
-   * 값은 재우기·포그라운드 이벤트의 선택 필드로 sim에 들어간다(`game/store.ts` `nightFields`). 새 15개는 형상(C14) 전이라
-   * 제품 빌드에서는 켜도 고르지 않는다(개발 빌드만 임시 형상).
+   * 값은 재우기·포그라운드 이벤트의 선택 필드로 sim에 들어간다(`game/store.ts` `nightFields`). 새 15개의 붓 형상은 C14b에서
+   * 들어와 켜면 제품 빌드에서도 25개를 고르고 그린다. **운영 기본은 꺼짐**(켜는 결정 = PM, 그 전 관문 = 64px 5×5 사람 3명 시험),
+   * 개발 빌드는 `DEV_BUILD_ON`으로 기본 켜짐.
    */
   dreamContent: false,
   /**
@@ -70,6 +71,17 @@ export const FEATURE_DEFAULTS = {
 } as const;
 
 export type FeatureId = keyof typeof FEATURE_DEFAULTS;
+
+/**
+ * 개발 빌드(`__DEV__`)에서만 기본으로 켜는 기능 — 운영 기본(FEATURE_DEFAULTS)·원격 번들 값(`remoteBundled`)은 그대로.
+ * 개발 메뉴·쿼리로 끌 수 있다. 테스트 환경은 `__DEV__`가 없어 운영 기본을 본다
+ */
+export const DEV_BUILD_ON: readonly FeatureId[] = ['dreamContent'];
+
+/** 이 빌드의 번들 기본값: 운영 기본, 개발 빌드면 DEV_BUILD_ON도 켬 */
+export function bundledDefault(id: FeatureId, dev = typeof __DEV__ !== 'undefined' && __DEV__ === true): boolean {
+  return FEATURE_DEFAULTS[id] || (dev && DEV_BUILD_ON.includes(id));
+}
 
 let overrides: Partial<Record<FeatureId, boolean>> = fromQuery(typeof window !== 'undefined' && window.location ? window.location.search : '');
 
@@ -129,7 +141,7 @@ export function resolveFeature(dev: boolean | undefined, remote: boolean | undef
 export function isOn(id: FeatureId): boolean {
   // 새 컨셉 v3 세로 조각은 맡겨 두기와 아직 잇지 않았다: 둘이 함께 켜지면 옛 v2 본이 올라가므로 v3가 켜져 있으면 맡겨 두기를 끈다(리뷰 M5)
   if (id === 'cloud' && isOn('conceptV3')) return false;
-  return resolveFeature(overrides[id], isRemoteFeature(id) ? remoteLayer?.(id) : undefined, FEATURE_DEFAULTS[id]);
+  return resolveFeature(overrides[id], isRemoteFeature(id) ? remoteLayer?.(id) : undefined, bundledDefault(id));
 }
 
 /** 개발 메뉴·테스트에서만 켜고 끈다(저장하지 않음 — 재시작하면 기본값) */

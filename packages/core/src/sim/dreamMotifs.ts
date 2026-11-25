@@ -4,6 +4,7 @@
 //   docs/design/content-v1/dreams-sim.mjs와 같은 결과를 내야 한다 — test/dream-rules.test.ts가 그 시뮬을 직접 불러 한 밤씩 대조한다.
 // - 난수: 한 밤에 균등값 u 하나(세이브 rng에서 뽑아 넘긴다). Math.random·시각 없음.
 import type { MotifPathData } from '../moon/motifs';
+import { MOTIF_SHAPES } from './dreamMotifShapes';
 import type { AxisRecord, DreamCard } from './types';
 
 export type MotifZone = 'near-alone' | 'near-with' | 'far-alone' | 'far-with' | 'center';
@@ -17,25 +18,32 @@ export interface Motif {
   /** 현상한 카드 수(`cards.length`)가 이 값 이상이면 풀에 든다. 0 = 빌드 1부터 있던 10개 */
   unlockAtCards: number;
   /**
-   * 형상이 아직 없다(아트 레인 C14 — 1-2 64px 5×5 시험 뒤 `paths`로 들어온다). 제품 빌드는 고르지도 그리지도 않고,
-   * 개발 빌드만 같은 구역의 기존 형상으로 임시로 그린다(`visual/dreamCard.ts` `dreamMotifShape`). 빌드 1의 10개는 꿈 카드 v1.1의
-   * 절차 형상이 있어 false다.
+   * 형상이 아직 없다. 제품 빌드는 고르지도 그리지도 않고, 개발 빌드만 같은 구역의 기존 형상으로 임시로 그린다
+   * (`visual/dreamCard.ts` `dreamMotifShape`). 빌드 1의 10개는 꿈 카드 v1.1의 절차 형상(마블링 조작)이, C6의 15개는 C14b의
+   * 붓 형상(`paths`, `dreamMotifShapes.ts`)이 있어 모두 false다. 원격·새 모티프가 형상 없이 들어오면 true로 둔다.
    */
   placeholder: boolean;
-  /** 경로 형상(스키마 1 `paths`와 같은 모양). 들어오면 64px 구별 틀(`test/motif-distinct.test.ts`)의 대상이 된다 */
+  /**
+   * 경로 형상(스키마 1 `paths`와 같은 모양, C14b). 있으면 카드가 이 붓 형상을 그리고(`visual/motifInk.ts`), 64px 구별 틀
+   * (`test/motif-distinct.test.ts`)의 대상이 된다. 빌드 1의 10개는 빈 배열 — 마블링 조작으로 그린다
+   */
   paths: readonly MotifPathData[];
+  /** 몽망이 자리(그림 좌표 0..100). `paths`가 있을 때만 */
+  seat?: readonly [number, number];
+  /** 곁의 다른 방울 [x, y, 몸 배율](그림 좌표). 눈 없는 방울 — '함께'는 나란함·맞댐으로만 */
+  friend?: readonly [number, number, number];
+  /** 'clear' = 먹으로 그리지 않고 점마다 맑은 물방울을 떨군다(소리 없는 눈) */
+  water?: 'clear';
   /** 정본에 없어 개발이 쓴 초안 문구 슬롯(i18n 키 기준). 검수로 확정되면 지운다 — `motifBlockers`가 제품 출시를 막는다 */
   draft?: readonly ('ko.title' | 'ko.line' | 'ko.scene' | 'en.title' | 'en.line' | 'en.scene')[];
 }
 
-const m = (id: string, zone: MotifZone, family: string, unlockAtCards: number): Motif => ({
-  id,
-  zone,
-  family,
-  unlockAtCards,
-  placeholder: unlockAtCards > 0,
-  paths: [],
-});
+/** 형상: 해금 0(빌드 1의 10개) = 마블링 절차 형상, 나머지 = C14b 붓 형상(`MOTIF_SHAPES`). 붓 형상이 없으면 자리표시 */
+const m = (id: string, zone: MotifZone, family: string, unlockAtCards: number): Motif => {
+  const shape = MOTIF_SHAPES[id];
+  if (unlockAtCards === 0 || !shape) return { id, zone, family, unlockAtCards, placeholder: unlockAtCards > 0, paths: [] };
+  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}) };
+};
 
 /**
  * 1-3 표 그대로(순서도 표 순서 — 빌드 1의 10개는 서로의 상대 순서가 옛 목록과 같아 `pickCard` 결과가 바뀌지 않는다).

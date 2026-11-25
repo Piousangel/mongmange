@@ -57,13 +57,14 @@ describe('모티프 25 표(1-3) = 정본 시뮬 표', () => {
     }
   });
 
-  it('형상: 빌드 1의 10개만 있고 15개는 자리표시(C14) → 제품 출시 차단 목록에 걸린다', () => {
-    expect(sim.MOTIFS.filter((m) => !m.placeholder).map((m) => m.unlockAtCards)).toEqual(Array(10).fill(0));
-    const blocked = sim.MOTIFS.flatMap((m) => sim.motifBlockers(m.id));
-    expect(blocked).toHaveLength(15);
+  it('형상(C14b): 빌드 1의 10개 = 마블링 절차 형상(경로 없음), 새 15개 = 붓 경로 → 자리표시 0, 제품 출시 차단 0', () => {
+    expect(sim.MOTIFS.filter((m) => m.paths.length === 0).map((m) => m.unlockAtCards)).toEqual(Array(10).fill(0));
+    expect(sim.MOTIFS.filter((m) => m.paths.length > 0).every((m) => m.unlockAtCards > 0 && m.seat)).toBe(true);
+    expect(sim.MOTIFS.filter((m) => m.placeholder)).toEqual([]);
+    expect(sim.MOTIFS.flatMap((m) => sim.motifBlockers(m.id))).toEqual([]);
     for (const m of sim.MOTIFS) {
       expect(sim.motifUsable(m.id, true)).toBe(true);
-      expect(sim.motifUsable(m.id, false)).toBe(!m.placeholder);
+      expect(sim.motifUsable(m.id, false)).toBe(true);
     }
   });
 
