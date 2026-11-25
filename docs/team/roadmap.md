@@ -114,7 +114,7 @@
   - [ ] 조회 롤 `metrics_reader` 생성 후 `20261120130000_metric_view`의 GRANT 다시 실행(원표 비공개, 5 미만 칸 숨긴 뷰만), `METRIC_APP_VERSIONS` 설정
   - [ ] 배포 뒤 `curl https://mongmang.ink/.well-known/{apple-app-site-association,assetlinks.json}` 200·JSON 확인 + Apple AASA 검증 도구
 - [ ] B7 부하 시험(링크 하나 하루 10만 조회)·느린 서버 경계 테스트·스테이징 환경·업타임 알림
-- [ ] B7a 부하 시험 후속(서버): 조회 비콘 메모리 모아 쓰기·throttler 상한 저장소·run.app 직접 호출 차단·DB 쿼리 제한 시간 + 준비 상태 반영·/get 429 사용자 처리·429 Cache-Control — DV-3 · 서버 · 2 · B6 전 · `docs/design/server-v1/B7-report.md`
+- [x] B7a 부하 시험 후속(서버): 조회 비콘 메모리 모아 쓰기·throttler 상한 저장소·run.app 직접 호출 차단·DB 쿼리 제한 시간 + 준비 상태 반영·/get 429 사용자 처리·429 Cache-Control — DV-3 · 서버 · 2 · B6 전 · `docs/design/server-v1/B7-report.md` — 657c9c4
 - [ ] B8 개인정보처리방침 ko·en 재작성 + Data safety·App Privacy·store-listing 7절 갱신 + 네트워크 기록 대조(빌드 2 제출 전) — [D-26: + 손글씨 획 좌표·결 id(기기 안), 맡겨 두기 고지, '쓴 말 보이기', ML Kit 모델 내려받기(V15와 함께, RC 전)] — [11-25 법률 리뷰 H1] 빌드 2 테스터판 방침(`docs/release/privacy-policy-tester.ko.md`·`en.md`) 게시 준비 12-15까지(web-static 출시 전 /privacy 연결 = `docs/release/README.md` 작업 목록)
 
 ## C. 앱 (~~빌드 2·3, 소프트런칭 중 OTA~~ [D-26: 빌드 2 12-19·RC 01-05, 소프트런칭 01-12 뒤 OTA])
