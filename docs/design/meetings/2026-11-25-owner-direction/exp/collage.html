@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- 실험 B(비용 0): 미리 만든 Gemini 조각(C14b 손질본 후보)을 결정적 자리 규칙으로 겹친 '누적 꿈' 3밤.
+     조각은 한지 바탕이 있어 multiply로 겹친다. 자리 규칙: 1밤=위 가운데 큰 자리, 2밤=왼쪽 위, 3밤=오른쪽 위, 돌봄=아래 작은 자리, 몽망이=맨 아래 잠. -->
+<html><head><meta charset="utf-8"><style>
+  body{margin:0;background:#e9e2d4;display:flex;gap:24px;padding:24px;font-family:sans-serif}
+  .card{position:relative;width:400px;height:500px;background:#efe8da;overflow:hidden;box-shadow:0 2px 8px #0002}
+  .card img{position:absolute;mix-blend-mode:multiply;filter:grayscale(1) brightness(1.18) contrast(1.35)}
+  .cloud{position:absolute;left:30px;top:20px;width:340px;height:330px;border-radius:50%;background:radial-gradient(#f6f1e6 40%,#efe8da00 70%)}
+  .mong{position:absolute;left:150px;top:400px;width:100px;mix-blend-mode:multiply;filter:brightness(1.25) contrast(1.6)}
+  .zz{position:absolute;left:236px;top:378px;color:#8a8070;font:16px serif;letter-spacing:4px}
+  .cap{position:absolute;bottom:6px;width:100%;text-align:center;font:12px sans-serif;color:#6b6356}
+</style></head><body>
+  <div class="card"><div class="cloud"></div>
+    <img src="../../../../creative/c14b-ref/umbrella-o1.jpg" style="left:90px;top:40px;width:220px">
+    <img class="mong" src="ref-mong.png"><span class="zz">z z</span><div class="cap">1밤 · '비'</div></div>
+  <div class="card"><div class="cloud"></div>
+    <img src="../../../../creative/c14b-ref/umbrella-o1.jpg" style="left:110px;top:60px;width:190px">
+    <img src="../../../../creative/c14b-ref/kite-o3.jpg" style="left:-10px;top:0px;width:170px">
+    <img class="mong" src="ref-mong.png"><span class="zz">z z</span><div class="cap">2밤 · '비' + '바람'</div></div>
+  <div class="card"><div class="cloud"></div>
+    <img src="../../../../creative/c14b-ref/umbrella-o1.jpg" style="left:110px;top:60px;width:190px">
+    <img src="../../../../creative/c14b-ref/kite-o3.jpg" style="left:-10px;top:0px;width:170px">
+    <img src="../../../../creative/c14b-ref/boat-o1.jpg" style="left:240px;top:150px;width:170px">
+    <img src="../../../../creative/c14b-ref/teacup-o1.jpg" style="left:40px;top:300px;width:110px">
+    <img class="mong" src="ref-mong.png"><span class="zz">z z</span><div class="cap">3밤 · + '바다' + 돌봄(차 한 잔)</div></div>
+</body></html>
