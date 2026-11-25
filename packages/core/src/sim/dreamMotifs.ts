@@ -151,6 +151,14 @@ export interface DreamPoolOptions {
   usable?: (id: string) => boolean;
   /** 시험용 모티프 표(기본 `MOTIFS`) */
   motifs?: readonly Motif[];
+  /**
+   * 이미 본 모티프 id(현상한 카드 기록의 `motifId`, V9b). 여기 든 모티프는 해금 값과 상관없이 풀에 남는다 —
+   * '본 꿈은 닫히지 않는다'(daily-loop v1.1 5-1). 원격 `unlock`은 앞당기기만 하므로 해금이 늦춰지는 길은 번들 표를 바꾸는
+   * 업데이트(앱·JS 번들)뿐이고, 이 규칙은 그때 이미 만난 꿈이 빠지지 않게 하는 보험이다. 원격 앞당기기가 거둬질 때(값 삭제·
+   * 크래시 탈출)도 그동안 본 꿈은 남는다. 구역·보름 창·사용 가능 거름은 그대로 적용한다. 고정 번들 값이고 앞당기기 철회가
+   * 없으면 결과가 바뀌지 않는다(본 모티프는 늘 이미 해금됨)
+   */
+  seen?: readonly string[];
 }
 
 /** 해금 값: 원격 값은 번들보다 작을 때만 쓴다(늦추는 값·숫자 아닌 값 무시) */
@@ -164,10 +172,11 @@ export function quadrantOf(v: AxisRecord): MotifQuadrant {
   return `${v.curiosity >= 0 ? 'far' : 'near'}-${v.closeness >= 0 ? 'with' : 'alone'}`;
 }
 
-/** 풀(2-5 순서 1): 내 사분면 + 가운데 중 해금된 것 × 구도 3, **모티프 id 오름차순 → 구도 오름차순** */
+/** 풀(2-5 순서 1): 내 사분면 + 가운데 중 해금됐거나 이미 본 것(V9b) × 구도 3, **모티프 id 오름차순 → 구도 오름차순** */
 export function dreamPool(quadrant: MotifQuadrant, developed: number, opts: DreamPoolOptions = {}): Scene[] {
+  const seen = new Set(opts.seen ?? []);
   const list = (opts.motifs ?? MOTIFS)
-    .filter((x) => (x.zone === quadrant || x.zone === 'center') && unlockAt(x, opts.unlock) <= developed)
+    .filter((x) => (x.zone === quadrant || x.zone === 'center') && (unlockAt(x, opts.unlock) <= developed || seen.has(x.id)))
     .filter((x) => !(opts.moonWindow && x.id === 'center.moon'))
     .filter((x) => !opts.usable || opts.usable(x.id))
     .sort((a, b) => (a.id < b.id ? -1 : 1));

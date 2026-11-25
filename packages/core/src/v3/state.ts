@@ -166,20 +166,22 @@ export interface V3Step {
   effects: V3Effect[];
 }
 
-export function emptyV3Block(): V3Block {
+/** 빈 v3 블록. `birthSeed` = 타고남 씨앗(`sim.birth.seed`) — 좋아하는 것 예외(V9b T-2)로 처음 공방이 갈린다 */
+export function emptyV3Block(birthSeed: number): V3Block {
   return {
     version: V3_VERSION,
     words: [],
     life: { slept: 0, snapshots: [null, null, null, null], final: null },
     meal: { spoons: 0, treats: 0, nudgeOptIn: false },
-    pantry: startPantry(),
+    pantry: startPantry(likedItemOf(birthSeed)),
     tonightCounted: false,
   };
 }
 
 /** 1일차(첫 밤 전)에서 시작 */
 export function createV3(now: Millis, tzOffsetMin: number, seed: number, opts: InitialOptions = {}): V3State {
-  return { sim: createInitial(now, tzOffsetMin, seed, opts), v3: emptyV3Block() };
+  const sim = createInitial(now, tzOffsetMin, seed, opts);
+  return { sim, v3: emptyV3Block(sim.birth.seed) };
 }
 
 // ── 선택자 ──
@@ -318,7 +320,9 @@ function follow(s: V3State, simEffects: SimEffect[], ev: V3Event, out: V3Effect[
   simEffects.forEach((e, i) => {
     if (e.type === 'woke') {
       // 깸 경계: 이번 깸 칸만 비운다(nudgeOptIn·pantry는 그대로). 공방 열림은 이 순간에만 본다(진행 = 밤·정, 밥과 무관)
-      const o = openPantry(v3.pantry, boundaryProgress({ life: v3.life, tonightCounted: false }, s.sim)); // 깸 = 경계: 셌던 밤은 이제 지난 몫
+      // 좋아하는 것 예외(V9b)는 처음 블록(emptyV3Block)과 읽기 이행(validateV3)이 이미 채운다 — 여기서는 효과 없이 더해질 뿐이고
+      // 아래 `o.opened.length ? …` 때문에 예외만으로는 공방을 바꾸지 않는다(불변식: 예외 종류는 경계 전에 이미 들어 있다)
+      const o = openPantry(v3.pantry, boundaryProgress({ life: v3.life, tonightCounted: false }, s.sim), likedItemOf(s.sim.birth.seed)); // 깸 = 경계: 셌던 밤은 이제 지난 몫
       v3 = { ...v3, meal: { ...v3.meal, spoons: 0, treats: 0 }, pantry: o.opened.length ? o.pantry : v3.pantry, tonightCounted: false };
       for (const x of o.opened) out.push({ type: 'pantryOpened', kind: x.kind, item: x.item });
       if (v3.life.slept >= LIFE_NIGHTS && v3.life.final === null) {
@@ -590,7 +594,7 @@ function validateV3(b: unknown, sim: SimState): V3Block {
     if (typeof w.lexVer !== 'string' || (w.source !== 'keyboard' && w.source !== 'ink') || !ids.has(w.strokeId as string)) bad('word');
   }
   const block = v as unknown as V3Block;
-  const { pantry: opened } = openPantry(block.pantry, boundaryProgress(block, sim));
+  const { pantry: opened } = openPantry(block.pantry, boundaryProgress(block, sim), likedItemOf(sim.birth.seed));
   // captionsShown: 없으면 없는 채로(M4 이전 v3 세이브와 바이트 같음), 있으면 사본
   return v.captionsShown === undefined ? { ...block, pantry: opened } : { ...block, pantry: opened, captionsShown: [...(block.captionsShown as number[])] };
 }

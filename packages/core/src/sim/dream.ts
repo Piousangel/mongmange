@@ -131,6 +131,7 @@ export function pickNightCard(input: NightCardInput): { card: DreamCard; rng: nu
       moonWindow: moon !== null,
       unlock: dream.unlock,
       usable: (id) => motifUsable(id, dream.dev === true),
+      seen: history.map((h) => h.motifId), // V9b: 본 꿈은 닫히지 않는다(켜짐에서만 — 꺼짐은 아래 빌드 1 pickCard 그대로)
     });
     const u = rngNext(input.rng);
     const got = chooseScene(pool, history, u.value);

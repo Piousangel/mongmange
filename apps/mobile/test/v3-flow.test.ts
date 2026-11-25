@@ -95,6 +95,23 @@ describe('store v3 경로', () => {
     expect(kv.m.get(v3.V3_KEYS.archiveV2)).toBe(v2);
   });
 
+  it('설치 = 타고남 씨앗으로 처음 공방(V9b T-2 좋아하는 것 예외) — 다시 켜도 같은 공방(리뷰 L2)', () => {
+    boot();
+    let liking = 0;
+    for (let i = 0; i < 300 && liking < 3; i++) {
+      install();
+      const st = getSnapshot().state!;
+      const block = getV3()!.v3;
+      expect(block).toEqual(v3.emptyV3Block(st.birth.seed));
+      expect(v3.parseV3(kv.m.get(v3.V3_KEYS.main)!).v3.pantry).toEqual(block.pantry);
+      if (v3.likedItemOf(st.birth.seed) === 'dewdrop') {
+        liking++;
+        expect(block.pantry.treat).toEqual(['pattern', 'dewdrop']);
+      } else expect(block.pantry.treat).toEqual(['pattern']);
+      devRestartV3();
+    }
+    expect(liking).toBe(3);
+  });
   it('맡겨 두기 복원은 v3 모드에서 거부, 맡겨 두기 플래그는 v3와 함께 켜지지 않는다(M5)', () => {
     boot();
     install();

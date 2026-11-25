@@ -441,9 +441,19 @@ describe('플래그 jeong 꺼짐 = M4 이전 v3와 바이트 동일(리뷰 M2)',
     let s = v3.createV3(PRE_M4_START, KST, 7, { birth: { x: 0.1, y: -0.2, ms: PRE_M4_START, installAt: PRE_M4_START, entropy: 0x1234 } });
     const sha: string[] = [];
     let last = '';
+    // V9b T-2(이슬 한 방울 정 4 → 18번째 아침)는 이 고정본 뒤의 의도된 공방 변경이다. 공방만 V27 규칙으로 되돌려 비교하고,
+    // 그 밖의 모든 바이트는 그대로 묶는다. 이 사건열은 9밤뿐이라(이슬 먹 11·14밤 전) 차이는 이슬 한 방울 하나뿐이다.
+    expect(v3.likedItemOf(s.sim.birth.seed)).not.toBe('dewdrop');
+    const asV27 = (st: S, at: number) => {
+      const o = JSON.parse(v3.serializeV3(st, at)) as { v3: v3.V3Block };
+      expect(o.v3.life.slept).toBeLessThan(11);
+      expect(o.v3.pantry.treat).not.toContain('dewdrop');
+      if (v3.jeongOf(st) >= 4) o.v3.pantry = { ...o.v3.pantry, treat: [...o.v3.pantry.treat, 'dewdrop'] };
+      return JSON.stringify(o);
+    };
     for (const e of preM4Events((t) => word(t))) {
       s = v3.reduceV3(s, e as E).state;
-      last = v3.serializeV3(s, (e as { at: number }).at);
+      last = asV27(s, (e as { at: number }).at);
       sha.push(v3.sha256Hex(last));
     }
     expect(sha.length).toBe(fx.sha.length);
