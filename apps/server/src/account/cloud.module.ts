@@ -28,6 +28,7 @@ import { CloudSaveService } from '../saves/cloud-save.service';
 import { CloudSavesController } from '../saves/cloud-saves.controller';
 import { AccountController } from './account.controller';
 import { AccountService } from './account.service';
+import { MyDataService } from './my-data.service';
 import { RecoveryPepper } from './recovery-pepper';
 
 @Module({
@@ -41,6 +42,7 @@ import { RecoveryPepper } from './recovery-pepper';
     ActivityTracker,
     RecoveryPepper,
     AccountService,
+    MyDataService,
     CloudSaveService,
     DeletionService,
     GcService,

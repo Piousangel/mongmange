@@ -1,12 +1,13 @@
-// 계정 API(architecture.md v2.2 3-2 B2 행): bootstrap·recovery-code·recover·DELETE /me. 모두 JWT, 응답 no-store.
+// 계정 API(architecture.md v2.2 3-2 B2 행): bootstrap·recovery-code·recover·DELETE /me·GET /me/data(C12f 맡긴 것 보기). 모두 JWT, 응답 no-store.
 // 글귀가 오가는 요청·응답 본문은 로그에 남지 않는다(logging.ts 규칙 4 — 본문은 어떤 로그에도 직렬화하지 않는다).
-import { Body, Controller, Delete, Header, HttpCode, NotFoundException, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, NotFoundException, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   bootstrapRequestSchema,
   recoverRequestSchema,
   type BootstrapResponse,
   type DeleteMeResponse,
+  type MyData,
   type RecoverResponse,
   type RecoveryCodeResponse,
 } from '@mong/contract';
@@ -16,6 +17,7 @@ import { openApiSchema } from '../common/openapi-schema';
 import { parseBody } from '../common/parse';
 import { DeletionService } from '../deletion/deletion.service';
 import { AccountService } from './account.service';
+import { MyDataService } from './my-data.service';
 
 @ApiTags('account')
 @ApiBearerAuth()
@@ -26,6 +28,7 @@ export class AccountController {
     private readonly account: AccountService,
     private readonly deletion: DeletionService,
     private readonly ips: ClientIpService,
+    private readonly myData: MyDataService,
   ) {}
 
   @Post('me/bootstrap')
@@ -64,6 +67,16 @@ export class AccountController {
   recover(@Auth() a: AuthContext, @Req() req: IpRequest, @Body() raw: unknown): Promise<RecoverResponse> {
     const b = parseBody(recoverRequestSchema, raw);
     return this.account.recover(a, this.ipKey(req), b.code, b.ageGate);
+  }
+
+  @Get('me/data')
+  @Header('cache-control', 'no-store')
+  @ApiResponse({ status: 200, description: 'MyData — 서버에 맡긴 것의 메타(본문·이름·글귀·sub 없음). 처리방침 12절 열람(C12f)' })
+  @ApiResponse({ status: 401, description: 'unauthorized(토큰) · no_account(이 로그인에 맡긴 것이 없음)' })
+  @ApiResponse({ status: 410, description: 'moved — 다른 기기로 옮겨 감' })
+  @ApiResponse({ status: 429, description: 'rate_limited — 사용자당 MY_DATA_PER_HOUR/시간' })
+  data(@Auth() a: AuthContext): Promise<MyData> {
+    return this.myData.view(linkedUser(a));
   }
 
   @Delete('me')

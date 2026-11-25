@@ -22,6 +22,7 @@ describe('B2 경로 — 인증 없이는 닫혀 있다', () => {
     ['post', '/api/v1/recovery-code'],
     ['post', '/api/v1/recover'],
     ['delete', '/api/v1/me'],
+    ['get', '/api/v1/me/data'],
     ['get', '/api/v1/saves/main'],
     ['get', '/api/v1/saves/main/meta'],
     ['put', '/api/v1/saves/main'],

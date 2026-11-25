@@ -36,6 +36,8 @@ export interface FakeFaults {
   dropAfterCommit: boolean;
   /** 다음 한 번: 이 상태 코드로 실패 */
   failNext: { status: number; code: string } | null;
+  /** GET me/data가 계약 밖 칸(세이브 본문)을 실어 보낸다 — 앱이 받아 주지 않는지(C12f) */
+  leakMyData?: boolean;
 }
 
 export interface FakeServer {
@@ -154,6 +156,21 @@ export function createFakeServer(sha256: (s: string) => Promise<string>, seed = 
           s.gone = true;
         }
       return res(202, { receipt: 'r'.repeat(22) });
+    }
+    if (route === 'GET me/data') {
+      // C12f 맡긴 것 보기: 메타만(크기 = 본문 UTF-8 바이트 — 가짜 서버는 압축하지 않는다)
+      const bytes = (x: string) => new TextEncoder().encode(x).length;
+      const at = new Date(Date.UTC(2026, 10, 20)).toISOString();
+      const linked = [...subs.values()].filter((x) => x.user === sess.user);
+      return res(200, {
+        account: { createdAt: at, lastActiveMonth: '2026-11', ageGateVersion: 2, ageConfirmedOn: '2026-11-20', logins: linked.filter((x) => !x.revoked).length, movedLogins: linked.filter((x) => x.revoked).length, deletionPendingUntil: null },
+        creatures: 1,
+        creature: { code: user.creature, createdAt: at, recoveryCodeSet: user.code16 !== null, link: { enabled: false, nameVisible: false, nameShown: false, pageState: null, publishedAt: null } },
+        save: user.save
+          ? { rev: user.save.rev, clientSavedAt: user.save.clientSavedAt, lastSavedAt: user.save.clientSavedAt, dayIndex: dayOf(user.save.body), strokesTotal: strokesOf(user.save.body), validated: true, bytes: bytes(user.save.body), ...(faults.leakMyData ? { body: user.save.body } : {}) }
+          : null,
+        versions: user.conflicts.map((c) => ({ reason: 'conflict', createdAt: c.clientSavedAt, clientSavedAt: c.clientSavedAt, dayIndex: dayOf(c.body), strokesTotal: strokesOf(c.body), bytes: bytes(c.body) })),
+      });
     }
     if (route === 'GET saves/main/meta') return user.save ? res(200, meta(user.save)) : err(404, 'no_save');
     if (route === 'GET saves/main') return user.save ? res(200, { ...meta(user.save), body: user.save.body }) : err(404, 'no_save');

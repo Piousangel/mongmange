@@ -940,6 +940,67 @@ export const recoverResponseSchema = z.object({
 });
 export type RecoverResponse = z.infer<typeof recoverResponseSchema>;
 
+/**
+ * `GET /me/data` — '맡긴 것 보기'(C12f, 처리방침 12절 열람 요구). 인증 필수, 본인 것만, no-store.
+ * **메타만** 내려 준다: 세이브·이력 본문, 이름(링크 메타의 name 포함), 글귀(해시 포함), sub·userId·IP, sha는 칸 자체가 없다(strict —
+ * 서버가 칸을 더 붙이면 앱이 읽지 못해 'server' 실패로 드러난다). 크기 bytes = 서버에 보관된 압축(gzip) 본문 바이트.
+ * creatures = 이 계정의 몽망이 수(0·1). lastSavedAt = 서버가 마지막으로 받은 때(서버 시각), clientSavedAt = 기기가 저장한 때(표시용).
+ */
+const isoMonth = str(/^\d{4}-\d{2}$/);
+const isoDay = str(/^\d{4}-\d{2}-\d{2}$/);
+/** 사용자당 시간 한도(전역 IP 분당 한도와 별개) — 화면을 여닫는 정도로는 닿지 않는 값 */
+export const MY_DATA_PER_HOUR = 30;
+export const myDataSchema = z.strictObject({
+  account: z.strictObject({
+    createdAt: z.string(),
+    lastActiveMonth: z.nullable(isoMonth),
+    ageGateVersion: z.nullable(int(1, 999)),
+    ageConfirmedOn: z.nullable(isoDay),
+    /** 이 계정에 붙은 로그인 수(지금 쓰는 것) / 되찾기로 옮겨 가 끊긴 로그인 수 */
+    logins: int(0),
+    movedLogins: int(0),
+    deletionPendingUntil: z.nullable(z.string()),
+  }),
+  creatures: int(0, 1),
+  creature: z.nullable(
+    z.strictObject({
+      code: str(CREATURE_CODE_RE),
+      createdAt: z.string(),
+      recoveryCodeSet: z.boolean(),
+      link: z.strictObject({
+        enabled: z.boolean(),
+        nameVisible: z.boolean(),
+        /** 지금 공개 페이지에 이름이 실려 있나(이름 글자는 내려 주지 않는다) */
+        nameShown: z.boolean(),
+        pageState: z.nullable(z.enum(['live', 'off', 'quarantined', 'removed'])),
+        publishedAt: z.nullable(z.string()),
+      }),
+    }),
+  ),
+  save: z.nullable(
+    z.strictObject({
+      rev: int(1),
+      clientSavedAt: z.string(),
+      lastSavedAt: z.string(),
+      dayIndex: z.nullable(int(0)),
+      strokesTotal: z.nullable(int(0)),
+      validated: z.boolean(),
+      bytes: int(0),
+    }),
+  ),
+  versions: z.array(
+    z.strictObject({
+      reason: z.enum(SAVE_VERSION_REASONS),
+      createdAt: z.string(),
+      clientSavedAt: z.string(),
+      dayIndex: z.nullable(int(0)),
+      strokesTotal: z.nullable(int(0)),
+      bytes: int(0),
+    }),
+  ),
+});
+export type MyData = z.infer<typeof myDataSchema>;
+
 /** 삭제 영수증(3-8): 128비트 난수 base64url 22자. 서버는 해시만, 24시간 */
 export const DELETION_RECEIPT_RE = /^[A-Za-z0-9_-]{22}$/;
 export const DELETION_RECEIPT_TTL_HOURS = 24;

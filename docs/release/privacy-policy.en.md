@@ -226,12 +226,13 @@ You may ask to access, correct, delete, or stop the processing of your personal 
 | To do this | How |
 |---|---|
 | Delete everything on our server | In the App: Studio Notebook > "Delete what's kept on the server" (processed right away). The on-device copies (section 2) are not removed by this; clear them separately in the Studio Notebook |
+| See what is kept on our server (access) | In the App: Studio Notebook > "See what's kept on the server" (on the device where Keep it safe is on; shown right away). It lists what our server holds — the number of Mongmangi and the seal code, the size and dates of the game record and earlier copies, when it was last kept, the state of the recovery phrase and share link, and the account's creation date, last month of use, and age-check date. What's inside the record (such as the name or stroke points) is not copied onto the screen |
 | Delete without the App | Web deletion page `https://mongmang.ink/delete` — processed right away **when both your share link code and your recovery phrase match**. Accounts are anonymous, so the phrase is our only way to confirm it is you. To limit excessive attempts, we count your IP address (for IPv6, the first 64 bits) in server memory for up to one hour, without storing it |
 | Stop a public page | Turn off "Share by link" in the App |
 | Hide only the name | Turn off name visibility in the App and tap "Make it again" |
 | Stop usage statistics | Turn off "Send usage statistics" in Settings |
 | Delete on-device data | Uninstall the App |
-| Access, correction, other requests | Email in section 17 |
+| Correction, other requests (including access the App cannot show) | Email in section 17 |
 
 - **How we handle email requests**: emails and messages are **read only by the operator (a person) and are not passed to AI tools.** Accounts are anonymous, so an email address alone cannot show that a request comes from you. For deletion, we point you to in-App deletion or the web deletion page. **Please do not put your recovery phrase in an email** — it would then remain in our mailbox and with our email provider. For other requests (access, correction, stopping processing), using the App linked to your account (table above) is itself how we confirm it is you. An email address and a share link code (a value that is public in the link) cannot show that a request comes from you, so we do not send or change what is kept on our server on the strength of an email alone; we point you to the way to do it in the App. If a request cannot be done in the App, we reply with the reason and how to object.
 - If you have lost your recovery phrase and uninstalled the App, we may have no way to confirm your identity and may be unable to act on a request; this protects you from someone else deleting your record. In that case, what you left on our server will be deleted by the 2-year inactivity rule in section 6.

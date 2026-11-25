@@ -53,7 +53,7 @@ export function NoteSheet({
   /** M2 이름 짓기·바꾸기(플래그 naming): 노트를 닫고 이름 짓기 창을 연다. 없으면 이름 줄·이름표 줄을 그리지 않는다 */
   onName?: () => void;
   /** C12 맡겨 두기(플래그 cloud + 서버·로그인 포트): 노트를 닫고 맡겨 두기 시트를 연다. 없으면 절을 그리지 않는다 */
-  cloud?: { state: 'on' | 'off' | 'paused' | 'attention'; open: () => void; /** 바꾸기 전 몽망이로 되돌리기(30일, 리뷰 H1). 기한 날짜 표기·열기 */ revert: { until: string; expired: boolean; open: () => void } | null; /** '이 기기'를 골라 기기 칸(30일)에 따로 둔 몽망이들 다시 고르기 */ parked: { id: string; until: string; expired: boolean; open: () => void }[]; /** 확인하지 못한 지우기가 남았을 때 웹 삭제 안내(인장 코드) — 지워졌다는 확인 전까지 늘 남긴다 */ oldNote: string | null };
+  cloud?: { state: 'on' | 'off' | 'paused' | 'attention'; open: () => void; /** C12f '서버에 맡긴 것 보기'(처리방침 12절 열람). 켜짐 기록일 때만 — 없으면 행을 그리지 않는다 */ view?: () => void; /** 바꾸기 전 몽망이로 되돌리기(30일, 리뷰 H1). 기한 날짜 표기·열기 */ revert: { until: string; expired: boolean; open: () => void } | null; /** '이 기기'를 골라 기기 칸(30일)에 따로 둔 몽망이들 다시 고르기 */ parked: { id: string; until: string; expired: boolean; open: () => void }[]; /** 확인하지 못한 지우기가 남았을 때 웹 삭제 안내(인장 코드) — 지워졌다는 확인 전까지 늘 남긴다 */ oldNote: string | null };
   /** C11 '이용 통계 보내기'(METRICS_SETTING_CONNECTED일 때만 GameApp이 넘긴다): 노트를 닫고 통계 시트를 연다. 없으면 절을 그리지 않는다 */
   metrics?: { on: boolean; open: () => void };
 }) {
@@ -140,6 +140,11 @@ export function NoteSheet({
             <KText style={styles.rowText}>{t('note.cloud')}</KText>
             <KText style={[styles.rowText, styles.rowValue]}>{t(`note.cloud.${cloud.state}`)}</KText>
           </Pressable>
+          {cloud.view && (
+            <Pressable style={[styles.row, styles.rowWrap]} onPress={cloud.view} accessibilityRole="button" accessibilityLabel={t('note.cloud.view.a11y')} testID="note-cloud-view">
+              <KText style={styles.rowText}>{t('note.cloud.view')}</KText>
+            </Pressable>
+          )}
           {cloud.oldNote !== null && (
             <KText style={[styles.status, { marginTop: 6 }]} testID="note-cloud-old">
               {t('note.cloud.oldWeb', { code: cloud.oldNote })}

@@ -10,6 +10,7 @@ import { IntroScreen, type IntroBeat } from '../screens/IntroScreen';
 import { MorningScreen } from '../screens/MorningScreen';
 import { NoteSheet } from '../screens/NoteSheet';
 import { CloudSheetHost, cloudRowState } from '../screens/CloudSheet';
+import { MyDataSheet } from '../screens/MyDataSheet';
 import { useCloudDeps } from '../cloud';
 import { PARKED_DAYS, PRE_RESTORE_DAYS, readParkedList, readPreRestore, readRecord, readUnconfirmedDelete } from '../cloud/record';
 import type { CloudEntry } from '../cloud/useCloud';
@@ -116,6 +117,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const [line, setLine] = useState('');
   const [noteOpen, setNoteOpen] = useState(false);
   const [cloudOpen, setCloudOpen] = useState<false | 'default' | CloudEntry>(false);
+  const [dataOpen, setDataOpen] = useState(false);
   const cloudFlag = useFeature('cloud');
   const cloudDeps = useCloudDeps();
   const [metricsOpen, setMetricsOpen] = useState(false);
@@ -693,6 +695,13 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
                     setNoteOpen(false);
                     setCloudOpen('default');
                   },
+                  // C12f 맡긴 것 보기: 켜짐 기록일 때만(옮겨 감·지우기 확인 중에는 맡겨 두기 시트가 먼저다)
+                  view: readRecord(kv)?.state === 'on'
+                    ? () => {
+                        setNoteOpen(false);
+                        setDataOpen(true);
+                      }
+                    : undefined,
                   oldNote: (() => {
                     const m = readUnconfirmedDelete(kv);
                     return m ? (m.creature ?? '?') : null;
@@ -743,6 +752,18 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         />
       )}
       {METRICS_SETTING_CONNECTED && <MetricsSheet visible={metricsOpen} onClose={() => setMetricsOpen(false)} kv={kv} now={now} tzOffsetMin={tzOffsetNow} />}
+      {cloudFlag && cloudDeps && (
+        <MyDataSheet
+          visible={dataOpen}
+          onClose={() => setDataOpen(false)}
+          onDelete={() => {
+            setDataOpen(false);
+            setCloudOpen('delete');
+          }}
+          deps={cloudDeps}
+          tzOffsetMin={tzOffsetNow}
+        />
+      )}
       {cloudFlag && cloudDeps && <CloudSheetHost visible={cloudOpen !== false} entry={cloudOpen === false || cloudOpen === 'default' ? undefined : cloudOpen} onClose={() => setCloudOpen(false)} deps={cloudDeps} tzOffsetMin={tzOffsetNow} />}
       {nameSheet && state && (
         <NameSheet

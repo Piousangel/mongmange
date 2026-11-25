@@ -6,13 +6,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ageStatus, judgeAge, recordAge, type AgeInput, type AgeInputError, checkAgeInput } from './ageGate';
 import { ageEvents, deleteToken, initialView, reduce, startEvents, type CloudEvent, type Purpose, type View } from './model';
 import { readPreRestore, readRecord, readUnconfirmedDelete, writeRecord } from './record';
+import { myDataEntry } from './myData';
 import { markCodeConfirmed, runTask, sideOf, type TaskDeps } from './tasks';
 
 /** 이보다 오래 걸리면 '서버가 조금 느려요'를 보인다(ms) */
 export const SLOW_MS = 4000;
 
-/** 시트를 여는 입구: 되돌리기 확인, 또는 parked 칸 하나(`parked:<id>`) */
-export type CloudEntry = 'revert' | `parked:${string}`;
+/** 시트를 여는 입구: 되돌리기 확인, 지우기 확인('맡긴 것 보기'에서 — C12f), 또는 parked 칸 하나(`parked:<id>`) */
+export type CloudEntry = 'revert' | 'delete' | `parked:${string}`;
 
 export interface CloudController {
   view: View;
@@ -88,7 +89,8 @@ export function useCloud(deps: TaskDeps | null, opts: { initial?: View; tzOffset
         // 맞바꾸기 확인에 두 몽망이(지금·바꾸기 전)를 나란히
         const pre = readPreRestore(deps.kv, deps.now());
         set(reduce(init, { e: 'askRevert', now: sideOf(deps.local.raw()), before: pre ? sideOf(pre.raw) : null }));
-      } else if (entry?.startsWith('parked:')) set(reduce(init, { e: 'openParked', slot: entry.slice('parked:'.length) }));
+      } else if (entry === 'delete') set(myDataEntry(init, readRecord(deps.kv)));
+      else if (entry?.startsWith('parked:')) set(reduce(init, { e: 'openParked', slot: entry.slice('parked:'.length) }));
       else set(init);
     },
     [deps, set],

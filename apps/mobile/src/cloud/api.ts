@@ -5,6 +5,7 @@ import {
   AUTH_ERROR,
   bootstrapResponseSchema,
   deleteMeResponseSchema,
+  myDataSchema,
   recoverResponseSchema,
   recoveryCodeResponseSchema,
   saveConflictDetailsSchema,
@@ -12,6 +13,7 @@ import {
   saveWithBodySchema,
   saveWriteResponseSchema,
   type AgeGate,
+  type MyData,
   type RecoverResponse,
   type SaveMeta,
   type SaveWithBody,
@@ -154,6 +156,8 @@ export interface CloudApi {
   putSave(body: string, clientSavedAt: string, pre: Precondition, keepMine?: boolean): Promise<ApiResult<SaveWriteResponse>>;
   addConflict(body: string, clientSavedAt: string): Promise<ApiResult<{ id: string }>>;
   deleteMe(): Promise<ApiResult<{ receipt: string }>>;
+  /** GET /me/data — '맡긴 것 보기'(C12f). 메타만(계약이 strict라 본문·이름 칸이 실려 오면 'server') */
+  myData(): Promise<ApiResult<MyData>>;
 }
 
 export function createCloudApi(deps: CloudApiDeps): CloudApi {
@@ -210,6 +214,9 @@ export function createCloudApi(deps: CloudApiDeps): CloudApi {
     },
     async deleteMe() {
       return read(await call('DELETE', 'me'), deleteMeResponseSchema);
+    },
+    async myData() {
+      return read(await call('GET', 'me/data'), myDataSchema);
     },
   };
 }
