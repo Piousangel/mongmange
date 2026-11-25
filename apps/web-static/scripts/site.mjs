@@ -52,7 +52,7 @@ export const FACTS = {
     name: '몽망이 키우기',
     tagline: '먹으로 쓴 한 마디, 스물여덟 밤.', // F1 D-26
     summary: '한지 위의 먹 한 방울, 몽망이를 키우는 모바일 게임이에요. 날마다 붓으로 낱말 하나를 쓰면 몽망이가 그 글자를 마시고 몸으로 대답해요. 스물여덟 밤 동안 그렇게 자라요.', // F2 D-26
-    day: ['벼루에 먹을 갈아요. 간 만큼 먹의 양과 진하기가 정해져요.', '붓으로 오늘의 한 마디, 낱말 하나를 써요. 글씨의 가장 긴 획은 몸에 남아요.', '연적에 내려놓아요. 물이 말을 풀어 그날 밤 꿈이 돼요.'], // F3 D-26
+    day: ['벼루에 먹을 갈아요. 간 만큼 먹의 양과 진하기가 정해져요.', '붓으로 오늘의 한 마디, 낱말 하나를 써요. 글씨의 가장 긴 획은 몸에 남아요.', '밤에는 연적에서 물 한 방울을 떨어뜨려 재워요. 물이 말을 풀어 그날 밤 꿈이 돼요.'], // F3 D-26 (스토어 v0.5 3-1과 같은 문장)
     rows: [
       ['플랫폼', 'iOS, Android'], // F5
       ['언어', '한국어, 영어'], // F6
@@ -62,10 +62,13 @@ export const FACTS = {
       ['만든 사람', '1인 개발'], // F10
       ['문의', CONTACT], // F11
     ],
-    // F12: 지금 사실(테스트 판·이 사이트)
+    // F12: 지금 사실(이 사이트·빌드 2 테스터판 방침 1-1·1-2·4절). 사이트 게시일 = 빌드 2 배포일 전제
     privacyNow: [
       '이 사이트는 쿠키와 분석 도구를 쓰지 않아요.',
-      '지금 받는 개인정보는 테스트 신청 메일뿐이에요. 정식 출시 30일 뒤 지워요.',
+      'Android 테스트 빌드는 두 번째 실행부터 하루 한 번 운영자의 업데이트 서버에 새 버전이 있는지 물어요. 이 요청으로는 설치나 기기를 구별할 수 없어요.',
+      '테스트 빌드는 손글씨를 Google ML Kit으로 기기 안에서 읽어요. 처음 쓸 때 인식 모델을 Google에서 내려받고, 기능이 도는 동안 Google에 진단 정보가 가요. 쓴 글씨와 인식 결과는 Google이나 운영자에게 보내지 않아요.',
+      '이용 통계, 링크로 공유, 맡겨 두기는 테스트 빌드에서 꺼져 있어 계정이 만들어지지 않아요.',
+      '테스트 신청 메일은 테스터 등록과 연락에만 쓰고, 정식 출시 30일 뒤 지워요.',
     ],
     // F12b: 준비 중인 원칙(처리방침 v3.1 1절 — 구현 확인 K1·K9·K11·K25 전이라 현재형 사실로 쓰지 않음)
     privacyPlan: [
@@ -73,13 +76,13 @@ export const FACTS = {
       '이용 통계는 기본으로 꺼 두고, 만 14세 확인을 통과한 분이 직접 켰을 때만 보내도록 만들고 있어요.',
       '공유 링크와 클라우드 보관은 켠 분에게만 생기고, 앱 안에서 지울 수 있게 만들고 있어요.',
     ],
-    not: ['확률형 아이템', '화면을 가리는 광고', '에너지 제한', '키운 결과(획·먹·결)를 파는 것', '모르는 사람의 그림이 흐르는 피드', '앱 안에서 생성형 AI가 그림이나 글을 만드는 것'], // F13 D-05 금지 목록 + 피드·AI
+    not: ['확률형 아이템', '화면을 가리는 광고', '에너지 제한', '키운 결과(모습·먹·결)를 파는 것', '모르는 사람의 그림이 흐르는 피드', '앱 안에서 생성형 AI가 그림이나 글을 만드는 것'], // F13 D-05 금지 목록 + 피드·AI
     faq: [
       ['몽망이 키우기는 어떤 게임인가요?', '한지 위의 먹 한 방울을 스물여덟 밤 동안 키우는 모바일 게임이에요. 날마다 붓으로 낱말 하나를 쓰면 몽망이가 그 글자를 마시고 몸으로 대답하고, 아침마다 꿈 카드가 한 장 남아요.'],
       ['언제 나오나요?', '준비 중이에요. 날짜는 테스트를 마친 뒤 정해요. 지금은 Android 비공개 테스트를 준비하고 있어요.'],
       ['무료인가요?', '무료로 내려받아요. 확률형 아이템과 화면을 가리는 광고는 넣지 않아요.'],
       ['어떤 기기에서 할 수 있나요?', 'iPhone(iOS)과 Android 폰이에요. 한국어와 영어를 지원해요.'],
-      ['제가 쓴 글씨가 서버로 가나요?', '글씨는 기기 안에서 읽도록 만들고 있어요. 손글씨 기능은 아직 만드는 중이라, 확정된 내용은 출시 때 개인정보처리방침에 적어요.'],
+      ['제가 쓴 글씨가 서버로 가나요?', '아니요. 테스트 빌드는 글씨를 Google ML Kit으로 기기 안에서 읽고, 쓴 글씨와 인식 결과는 Google이나 운영자에게 보내지 않아요. 정식 출시판의 내용은 출시 때 개인정보처리방침에 적어요.'],
       ['AI가 그림을 그려 주나요?', '아니요. 몽망이의 몸과 꿈은 앱이 정해진 규칙으로 그려요.'],
       ['몇 살부터 할 수 있나요?', '만 14세 이상을 대상으로 만들어요.'],
       ['누가 만드나요?', '혼자 만들고 있어요. 문의는 hello@mongmang.ink로 보내 주세요.'],
@@ -89,7 +92,7 @@ export const FACTS = {
     name: 'Mongmangi',
     tagline: 'One word in ink, twenty-eight nights.',
     summary: 'A mobile game about raising Mongmangi, a drop of ink on paper. Each day you write one word with a brush, and Mongmangi drinks the letters and answers with its body. It grows this way over twenty-eight nights.',
-    day: ['Grind ink on the inkstone. How long you grind sets how much ink there is and how dark it is.', 'Write the word of the day with the brush, a single word. The longest stroke of your writing stays on its body.', 'Set it down at the water dropper. The water loosens the word into that night’s dream.'],
+    day: ['Grind ink on the inkstone. How long you grind sets how much ink there is and how dark it is.', 'Write the word of the day with the brush: a single word. The longest stroke of your writing stays on its body.', 'At night, let a drop of water fall from the water dropper to put it to sleep. The water loosens the word into that night’s dream.'],
     rows: [
       ['Platforms', 'iOS, Android'],
       ['Languages', 'Korean, English'],
@@ -101,20 +104,23 @@ export const FACTS = {
     ],
     privacyNow: [
       'This site uses no cookies and no analytics tools.',
-      'The only personal information we receive now is test sign-up email. It is deleted 30 days after the official launch.',
+      'From its second launch, the Android test build asks our update server once a day whether a new version exists. An update check cannot tell installations or devices apart.',
+      'The test build reads handwriting on your device with Google’s ML Kit. It downloads a recognition model from Google the first time you write, and the feature sends Google diagnostic data while it works. Your handwriting and the recognition result are not sent to Google or to us.',
+      'Usage statistics, Share by link and Keep it safe are off in the test build, so no account is created.',
+      'Test sign-up email is used only to register and contact testers, and is deleted 30 days after the official launch.',
     ],
     privacyPlan: [
       'The word you write each day is being built to be read on your device.',
       'Usage statistics are being built to be off by default and sent only if you pass the age check and turn them on yourself.',
       'Share links and cloud backup are being built to exist only if you turn them on, and to be deletable in the app.',
     ],
-    not: ['Loot boxes', 'Ads that cover the screen', 'Energy limits', 'Selling what you raised (strokes, ink, grain)', 'A feed of strangers’ drawings', 'Generative AI making pictures or text in the app'],
+    not: ['Loot boxes', 'Ads that cover the screen', 'Energy limits', 'Selling looks or growth (its body, ink or nature)', 'A feed of strangers’ drawings', 'Generative AI making pictures or text in the app'],
     faq: [
       ['What is Mongmangi?', 'A mobile game about raising a drop of ink on paper for twenty-eight nights. Each day you write one word with a brush, Mongmangi drinks the letters and answers with its body, and each morning leaves a dream card.'],
       ['When does it come out?', 'It is in development. The date is set after testing. Right now we are preparing a closed test on Android.'],
       ['Is it free?', 'It is free to download. We do not put in loot boxes or ads that cover the screen.'],
       ['Which devices does it run on?', 'iPhone (iOS) and Android phones. It is available in Korean and English.'],
-      ['Does my handwriting go to a server?', 'We are building it so your handwriting is read on your device. The handwriting feature is still being made, so the confirmed details will be in the Privacy Policy at launch.'],
+      ['Does my handwriting go to a server?', 'No. The test build reads your handwriting on your device with Google’s ML Kit, and your handwriting and the recognition result are not sent to Google or to us. The details for the full release will be in the Privacy Policy at launch.'],
       ['Does AI draw the pictures?', 'No. The app draws Mongmangi’s body and dreams by fixed rules.'],
       ['What age is it for?', 'It is made for people aged 14 and over.'],
       ['Who makes it?', 'One person makes it. Please write to hello@mongmang.ink.'],
@@ -143,12 +149,12 @@ const UI = {
     nav: [['/en', 'About'], ['/en/facts', 'Facts'], ['/en/press', 'Press kit'], ['/en/privacy', 'Privacy']],
     other: '한국어', skip: 'Skip to content', navLabel: 'Site',
     real: 'Actual app screen',
-    winter: 'See you in winter', winterBody: 'It is still being made. Once testing is done, it will be on the stores.',
+    winter: 'Still in the making', winterBody: 'Once testing is done, it will be on the stores.',
     testerH: 'Help us test',
     tester: ['We are looking for people to join a closed test on Android. Keep the app installed for 14 days. Opening it once a day helps even more.', 'You need to be 14 or over, with an Android phone and a Gmail address signed in to Google Play.', 'Email the address below to say you would like to join. We use your address only to register you as a tester and to contact you, and delete it 30 days after the official launch.'],
     iphone: 'Testing on iPhone has not opened yet.',
     more: 'More', delete: 'Delete what you stored',
-    factsH: 'Facts about Mongmangi', checked: 'Last checked', what: 'What it is', how: 'How a day goes', howNote: 'After 28 nights, a Mongmangi grown from the words you wrote remains. No scores or numbers appear on screen. It is still in development, so the details are being refined through testing.', basics: 'Basics', privacyH: 'Privacy', privacyNowH: 'Now', privacyPlanH: 'Principles we are building to', privacyMore: 'Read the test build privacy policy', privacyMoreLaunch: 'Read the Privacy Policy', notH: 'What it does not have', faqH: 'Frequently asked questions', source: 'The facts on this page come from our development records. When a fact changes, this page is updated first.',
+    factsH: 'Facts about Mongmangi', checked: 'Last checked', what: 'What it is', how: 'How a day goes', howNote: 'After 28 nights, you have a Mongmangi grown from the words you wrote. No scores or numbers appear on screen. It is still in development, so the details are being refined through testing.', basics: 'Basics', privacyH: 'Privacy', privacyNowH: 'Now', privacyPlanH: 'Principles we are building to', privacyMore: 'Read the test build privacy policy', privacyMoreLaunch: 'Read the Privacy Policy', notH: 'What it does not have', faqH: 'Frequently asked questions', source: 'The facts on this page come from our development records. When a fact changes, this page is updated first.',
     pressH: 'Press kit', pressLead: 'Materials for articles and features, in one place.', shots: 'Screenshots', shotsNote: 'All are actual app screens. Select an image to download the original.', logoH: 'Logo and icon', logoBody: 'In preparation. The icon will be posted here after it is chosen in testing.', videoH: 'Video', videoBody: 'In preparation.', makerH: 'Who makes it', makerBody: 'One independent developer.', contactH: 'Contact', contactBody: 'Send interview and material requests to the address below.',
     toc: 'Contents',
     download: 'Download original',

@@ -240,3 +240,34 @@
 3. `sleeps`로 밤 세기 — 아이 말투로 들리는가(NZ·CA)
 4. `gourd dipper`, `Violet-smoke ink` 이해도
 5. 이름 발음(7-4 ①)
+
+---
+
+## 9. 반영 기록 — web-static (2026-11-25, DV-1)
+
+범위: `apps/web-static/scripts/site.mjs`(FACTS·UI)·`test/site.test.mjs`·`docs/strategy/geo-v1.md`(v1.2). web-static에 해당하는 높음·중간 항목과 FACTS '지금'(빌드 2 테스터판 정합), 스토어 v0.5 대조를 반영했다. 낮음 항목은 스토어 문장과 겹치는 것만 맞췄다.
+
+| # | 자리 | 이전 | 이후 | 근거 |
+|---|---|---|---|---|
+| 1 | UI.en.winter · winterBody | `See you in winter` / `It is still being made. Once testing is done, it will be on the stores.` | `Still in the making` / `Once testing is done, it will be on the stores.` (제목과 겹치는 앞 문장은 뺌) | H2, 3-1 site.mjs:146 |
+| 2 | FACTS.en.day[2] | `Set it down at the water dropper. The water loosens the word into that night’s dream.` | `At night, let a drop of water fall from the water dropper to put it to sleep. The water loosens the word into that night’s dream.` | H5, 3-1 site.mjs:92. 제안 문장 대신 store-listing v0.5 3-2(115행)와 **같은 문장**을 택함(사이트·스토어 한 문장 원칙) |
+| 3 | FACTS.ko.day[2] | `연적에 내려놓아요. 물이 말을 풀어 그날 밤 꿈이 돼요.` | `밤에는 연적에서 물 한 방울을 떨어뜨려 재워요. 물이 말을 풀어 그날 밤 꿈이 돼요.` | H5와 같은 뿌리, store-listing v0.5 3-1(73행)과 같은 문장 |
+| 4 | FACTS.en.day[1] | `…with the brush, a single word.` | `…with the brush: a single word.` | 3-1 site.mjs:92 (낮음) — store-listing 3-2(114행)과 같게 |
+| 5 | UI.en.howNote | `After 28 nights, a Mongmangi grown from the words you wrote remains.` | `After 28 nights, you have a Mongmangi grown from the words you wrote.` | 3-1 site.mjs:151 (중간) |
+| 6 | FACTS.en.not[3] | `Selling what you raised (strokes, ink, grain)` | `Selling looks or growth (its body, ink or nature)` | 3-1 site.mjs:111 (중간), 용어집 '결 = nature' |
+| 7 | FACTS.ko.not[3] | `키운 결과(획·먹·결)를 파는 것` | `키운 결과(모습·먹·결)를 파는 것` | 6과 짝. '획'은 v2 '하루 한 획'의 잔재(H6 취지) |
+| 8 | FACTS.ko.privacyNow[1] | `지금 받는 개인정보는 테스트 신청 메일뿐이에요. 정식 출시 30일 뒤 지워요.` | 4줄로 나눔: 업데이트 확인(두 번째 실행부터 하루 한 번, 설치·기기 구별 불가) / ML Kit 기기 안 인식·모델 내려받기·Google 진단 정보·글씨와 결과는 안 보냄 / 이용 통계·링크로 공유·맡겨 두기 꺼짐, 계정 없음 / 신청 메일은 등록·연락에만, 출시 30일 뒤 삭제 | 작업 지시 2. 테스터판 방침 1-1·1-2·1절 머리·4절과 같은 사실. 게시일 = 빌드 2 배포일 전제 |
+| 9 | FACTS.en.privacyNow[1] | `The only personal information we receive now is test sign-up email. It is deleted 30 days after the official launch.` | 8과 같은 4줄(en): `From its second launch, the Android test build asks our update server once a day…` / `The test build reads handwriting on your device with Google’s ML Kit…` / `Usage statistics, Share by link and Keep it safe are off in the test build, so no account is created.` / `Test sign-up email is used only to register and contact testers, and is deleted 30 days after the official launch.` | 작업 지시 2, 테스터판 en 1-1·1-2. 기능명은 용어집(Share by link·Keep it safe) |
+| 10 | FACTS.ko.faq[4] 답 | `글씨는 기기 안에서 읽도록 만들고 있어요. 손글씨 기능은 아직 만드는 중이라…` | `아니요. 테스트 빌드는 글씨를 Google ML Kit으로 기기 안에서 읽고, 쓴 글씨와 인식 결과는 Google이나 운영자에게 보내지 않아요. 정식 출시판의 내용은 출시 때 개인정보처리방침에 적어요.` | 8과 같은 사실(빌드 2에 손글씨 기능이 들어감) |
+| 11 | FACTS.en.faq[4] 답 | `We are building it so your handwriting is read on your device. The handwriting feature is still being made…` | `No. The test build reads your handwriting on your device with Google’s ML Kit, and your handwriting and the recognition result are not sent to Google or to us. The details for the full release will be in the Privacy Policy at launch.` | 10과 짝 |
+
+**고치지 않은 것과 이유**
+
+- washi·`하루 한 획`(H1·H6): web-static에는 없다(grep 0건). 화면에 남은 '획'은 v3에서도 쓰는 '글씨의 가장 긴 획'·얼굴 그림 alt의 획(그림 묘사)뿐.
+- `answers with its body`(FACTS summary·faq[0]): 스토어 v0.5 짧은 설명·홍보 문구·설명이 같은 말을 쓰고, 8절 질문 2(원어민 검수)로 넘어가 있다. 사이트가 먼저 바꾸면 스토어와 갈라지므로 **스토어가 바뀔 때 같은 날 함께** 바꾼다.
+- 태그라인(`먹으로 쓴 한 마디, 스물여덟 밤.` / `One word in ink, twenty-eight nights.`)과 짧은 설명 첫 문장: store-listing v0.5 1~2절과 글자까지 같다 — 바꿀 것 없음.
+- 3-2 delete/index.html:69 `Delete what's kept on the server`(중간): 처리방침 en 223행 정본이 같은 글자를 쓴다(docs/release는 이 작업 범위 밖). 리뷰의 첫째 처방대로 **앱 키를 만들 때 이 문구로 맞춘다**(앱 담당에게 넘김).
+- 이미지 alt의 `The First Seven Days`: 캡처 속 앱 제목을 그대로 읽는 문장이라, 앱이 `The First Seven Nights`로 바뀌고 캡처를 다시 뜰 때 함께 바꾼다.
+- 3-1 낮음(privacyPlan 문장 정리·`put in`·Gmail 문장): 이번 범위 밖. 다음 문구 정리 때.
+
+**검증**: `npx vitest run`(web-static) 84개 통과 — 새 시험 '영문 검수 11-25 반영'(옛 문구 부재·하루 셋째 줄 = 스토어 문장·'지금' = 테스터판 1-1·1-2). 변이 1개(en privacyNow에 옛 '메일뿐' 문장을 되살림) → 그 시험만 실패 확인 후 원복. `pnpm verify --only static-empty,lint` 통과.

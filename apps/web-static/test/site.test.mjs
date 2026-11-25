@@ -59,7 +59,7 @@ describe('출시 전 판 페이지', () => {
     expect(text(ko)).toContain('먹으로 쓴 한 마디, 스물여덟 밤.');
     expect(text(en)).toContain('One word in ink, twenty-eight nights.');
     expect(text(ko)).toContain('겨울에 만나요');
-    expect(text(en)).toContain('See you in winter');
+    expect(text(en)).toContain('Still in the making'); // 계절 없는 말(영문 검수 H2 — NZ·PH)
     expect(text(ko)).toContain('정식 출시 30일 뒤 지워요');
     expect(text(en)).toContain('30 days after the official launch');
     for (const h of [ko, en]) {
@@ -126,6 +126,23 @@ describe('출시 전 판 페이지', () => {
     expect(FACTS.en.not).toEqual(expect.arrayContaining(['Loot boxes', 'Ads that cover the screen']));
     const en = text(read('en/facts/index.html'));
     for (const s of [...FACTS.en.day, ...FACTS.en.privacyNow, ...FACTS.en.privacyPlan, ...FACTS.en.not]) expect(en).toContain(s);
+  });
+
+  it('영문 검수 11-25 반영: 오역·계절·v2 내부어 없음, 하루 셋째 줄은 스토어 v0.5와 같은 문장, \'지금\'은 빌드 2 테스터판 1-1·1-2와 같은 사실', () => {
+    const { read } = built();
+    const en = [read('en/index.html'), read('en/facts/index.html'), read('en/press/index.html')].map(text).join(' ');
+    const ko = [read('index.html'), read('facts/index.html')].map(text).join(' ');
+    expect(en).not.toMatch(/See you in winter|Set it down at the water dropper|washi|grain\)|a Mongmangi grown from the words you wrote remains/i);
+    expect(ko).not.toMatch(/연적에 내려놓아요|하루 한 획|\(획·먹·결\)/);
+    expect(FACTS.en.day[2]).toBe('At night, let a drop of water fall from the water dropper to put it to sleep. The water loosens the word into that night’s dream.');
+    expect(FACTS.ko.day[2]).toBe('밤에는 연적에서 물 한 방울을 떨어뜨려 재워요. 물이 말을 풀어 그날 밤 꿈이 돼요.');
+    const facts = { ko: text(read('facts/index.html')), en: text(read('en/facts/index.html')) };
+    expect(`${facts.ko} ${facts.en}`).not.toMatch(/테스트 신청 메일뿐|The only personal information we receive now/);
+    expect(facts.ko).toMatch(/두 번째 실행부터 하루 한 번[^.]*업데이트 서버/);
+    expect(facts.ko).toMatch(/ML Kit으로 기기 안에서 읽어요[^]*진단 정보/);
+    expect(facts.en).toMatch(/From its second launch[^.]*update server once a day/);
+    expect(facts.en).toMatch(/ML Kit[^.]*\. It downloads a recognition model[^.]*diagnostic data/);
+    for (const t of Object.values(facts)) expect(t).toMatch(/30일 뒤 지워요|30 days after the official launch/);
   });
 
   it('영어 alt는 그림 속 글·장면과 맞다(리뷰 L3)', () => {
