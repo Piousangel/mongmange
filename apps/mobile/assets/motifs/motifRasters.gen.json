@@ -1,0 +1,50 @@
+{
+  "near-with.letter": {
+    "src": "letter-o2",
+    "w": 640,
+    "h": 568,
+    "aspect": 1.1268,
+    "paper": 250,
+    "ink": 107
+  },
+  "far-alone.kite": {
+    "src": "kite-o3",
+    "w": 494,
+    "h": 640,
+    "aspect": 0.7719,
+    "paper": 248,
+    "ink": 34
+  },
+  "near-with.umbrella": {
+    "src": "umbrella-o1",
+    "w": 586,
+    "h": 640,
+    "aspect": 0.9156,
+    "paper": 245,
+    "ink": 29
+  },
+  "far-alone.paper-boat": {
+    "src": "boat-o1",
+    "w": 640,
+    "h": 451,
+    "aspect": 1.4191,
+    "paper": 240,
+    "ink": 86
+  },
+  "near-with.palm": {
+    "src": "palm-o3",
+    "w": 640,
+    "h": 421,
+    "aspect": 1.5202,
+    "paper": 241,
+    "ink": 35
+  },
+  "near-with.window-hand": {
+    "src": "window-o3",
+    "w": 633,
+    "h": 640,
+    "aspect": 0.9891,
+    "paper": 246,
+    "ink": 84
+  }
+}

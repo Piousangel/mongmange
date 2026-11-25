@@ -89,6 +89,26 @@ describe('형상 데이터 구조(스키마 1 paths와 같은 꼴)', () => {
   });
 });
 
+describe('4차 혼합안 — 사물 한 겹 래스터 자리', () => {
+  it('래스터는 사물형 5장(+ 기존 창가 손은 앱 그릇)에만, 상자는 그림 안, keep은 있는 경로 번호이고 먹 획만(장 쪽 획)', () => {
+    const rs = NEW.filter((m) => m.raster).map((m) => m.id).sort();
+    expect(rs).toEqual(['far-alone.kite', 'far-alone.paper-boat', 'near-with.letter', 'near-with.palm', 'near-with.umbrella']);
+    for (const m of NEW) {
+      if (!m.raster) continue;
+      const [x, y, w, h] = m.raster.box;
+      expect(x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= 100 && y + h <= 100, m.id).toBe(true);
+      for (const k of m.raster.keep) {
+        expect(m.paths[k], m.id).toBeDefined();
+        expect(m.paths[k]!.layer, m.id).toBe('ink');
+      }
+      // 장 조작은 래스터여도 코드(장의 반응)
+      expect((m.field ?? []).length, m.id).toBeGreaterThan(0);
+      const sc = buildDreamScene({ card: card(m.id), strokes: day7Records() });
+      expect(sc.motifInk!.raster, m.id).toEqual(m.raster);
+    }
+  });
+});
+
 describe('붓 리본 — 결정성(D-13)', () => {
   it('같은 경로 → 같은 리본(두 번·깊은 복제 입력), 15개 리본 해시 고정', () => {
     const got: Record<string, string> = {};
@@ -232,7 +252,7 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
         expect(p.flip).toBe(composition === 1);
         expect(p.box.size).toBeCloseTo(MOTIF_INK_COMPOSITION[composition]!.size * R, 9);
         expect(p.box.x <= 0 && p.box.x + p.box.size >= 0 && p.box.y <= 0 && p.box.y + p.box.size >= 0, m.id).toBe(true);
-        if (m.water !== 'clear') expect(sc.motifInk, m.id).toEqual({ ...p.box, flip: p.flip, paths: m.paths });
+        if (m.water !== 'clear') expect(sc.motifInk, m.id).toEqual({ ...p.box, flip: p.flip, paths: m.paths, ...(m.raster ? { raster: m.raster } : {}) });
       }
   });
 
@@ -284,4 +304,4 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
 });
 
 const RIBBON_SNAPSHOT = 'e5cdfc8f';
-const SCENE_SNAPSHOT = 'f7b93d46';
+const SCENE_SNAPSHOT = 'ba890627';

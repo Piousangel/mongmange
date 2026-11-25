@@ -24,7 +24,24 @@
 
 - 확인 필요: rival 문서 머리말은 "9장 중 8장 gpt, 1장 gemini"라고 적었는데 파일은 10장·노드 10개다. `A4-in-engine`·`B4-in-engine`이 생성 이미지인지 코드 렌더인지 작성자(경쟁 디렉터)가 이 표를 고친다. 그전까지는 생성 이미지로 취급한다.
 - Figma 에셋 URL은 7일 뒤 만료된다. 로컬 사본이 원본이다. 프롬프트 원문은 각 Figma 노드 생성 기록에 있다.
-- 합계: AI 생성 이미지 86장(7 + 10 + 17 + 10 + 42), 출시물 사용 0장. C14b 레퍼런스 처음 10장은 Figma AI로 만들다 크레딧 한도(11-25)에 걸려, 나머지는 Gemini API로 직접 만들었다. **Gemini API 생성물 약관도 출시 전 할 일 1번에 함께 확인한다.**
+- 합계: AI 생성 이미지 104장(7 + 10 + 17 + 10 + 42 + 18), 출시물 사용 6장(1-1 표, 손질본·4차 아트 리뷰 통과 조건). C14b 레퍼런스 처음 10장은 Figma AI로 만들다 크레딧 한도(11-25)에 걸려, 나머지는 Gemini API로 직접 만들었다. **Gemini API 생성물 약관도 출시 전 할 일 1번에 함께 확인한다.**
+
+## 1-1. 앱 에셋으로 쓰는 AI 생성물(손질본) — C14b 4차 혼합안
+
+- 근거: 오너 11-25 결정 '손질하고 아트 리뷰를 통과한 Gemini 생성 이미지는 앱 에셋으로 써도 된다'(main DECISIONS·이 원장 머리말), PM 혼합안(C). **4차 아트 리뷰 통과 전에는 출시 빌드에 켜지 않는다**(`dreamContent` 꺼짐).
+- 공통 손질(`scripts/motif-raster.mjs`, 재현 가능): 원본(2048px PNG → 저장소 1536px JPG q92)에서 한지 배경 제거(테두리 중앙값 = 종이, 가장 짙은 0.5% = 먹) → 밝기를 알파로(먹 한 색, 검정 + 알파) → 알파 0.06 아래 0(종이 결·얼룩 지움), 중간 농담 감마 0.8 → 최대 농도 0.72 → 사물 경계로 자르기(여백 3%, 멀리 떨어진 티끌 버림) → 긴 변 640px WebP(알파). 색·종이 결은 앱이 그릴 때 입힌다(테마 토큰, 공통 FractalNoise). 번들 예산: 장당 200KB·6장 700KB(시험 고정).
+- 공통 프롬프트 요약: '한지 위 먹 사물 하나만, 젖은 테·과립·비백, 마블링·배경·글자·인물·생물 없음, 정사각'. 모델 gemini-3-pro-image(Gemini API 직접, 2K), 날짜 11-25. 원본 18장(장마다 3안) = `docs/creative/c14b-ref/<모티프>-o1~o3.jpg`.
+
+| 앱 에셋 | 원본(고른 안) | 프롬프트 요약 | 손질 | 출시 사용 |
+|---|---|---|---|---|
+| `apps/mobile/assets/motifs/near-with.letter.webp` | `letter-o2.jpg` | 비스듬한 한지 한 장, 한 모서리 접힘(농담·두께), 봉투·글자 없음 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/far-alone.kite.webp` | `kite-o3.jpg` | 가오리연, 위 꼭짓점 먹 고임, 댓살 자국, 꼬리 두 가닥, 구멍·줄 없음 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/near-with.umbrella.webp` | `umbrella-o1.jpg` | 옆에서 본 지우산, 살 끝 물결 가장자리 고임 + 먹 줄기, 막대가 덮개 위로 안 솟음 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/far-alone.paper-boat.webp` | `boat-o1.jpg` | 종이배(밝은 돛·짙은 몸통 농담), 배 밑 짧은 물살 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/near-with.palm.webp` | `palm-o3.jpg` | 오목한 손바닥 그림자 = 넓은 붓 한 번 U자, 바닥 먹 고임, 손가락 갈래 없음 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/near-with.window-hand.webp` | `window-o3.jpg` | 창호지 한 장 + 굵기 다른 세로 틈 + 창 너머 손 그림자, 격자 아님 | 공통 | 앱 |
+
+- 안 고른 원본 12장(`-o1~o3` 중 나머지)은 탐색 전용(출시 사용 금지).
 
 ## 2. 팀이 만든 것 (AI 생성 아님)
 

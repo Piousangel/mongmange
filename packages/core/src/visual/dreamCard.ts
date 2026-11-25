@@ -430,7 +430,7 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
       else late.push({ k: 'curl', x: at.x, y: at.y, angle: f.angle * fl, radius: f.radius * k });
     }
     // ②·③ 면·획(소리 없는 눈은 그리지 않는다 — 경로는 기록)
-    if (inkDef.water !== 'clear') motifInk = { ...box, paths: inkDef.paths };
+    if (inkDef.water !== 'clear') motifInk = { ...box, paths: inkDef.paths, ...(inkDef.raster ? { raster: inkDef.raster } : {}) };
     if (inkDef.friend) {
       const [fx, fy, fr] = inkDef.friend;
       const q = motifInkPoint(box, fx, fy);

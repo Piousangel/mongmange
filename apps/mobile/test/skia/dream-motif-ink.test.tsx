@@ -5,7 +5,7 @@
 // RENDER_HEAVY=1: 카드 전체(마블링·몽망이·글 제외)를 64pt로 그려, 마블링 결(flowSeed)만 바꾼 같은 꿈이 기존 10 + 새 15 = 25장 중
 // 자기 꿈에 가장 가까운지(정답률) 본다 — 한 화면에 섞인 썸네일에서 새 꿈이 기존 꿈·서로와 갈리는지의 회귀 가드(사람 3명 시험이 관문).
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 vi.mock('react-native-reanimated', async () => (await import('./mocks')).reanimatedMock());
@@ -16,6 +16,7 @@ vi.mock('react-native', async () => ({
   StyleSheet: { create: <T,>(x: T) => x },
   Text: () => null,
   View: () => null,
+  Image: { resolveAssetSource: () => null },
 }));
 // 카드 글꼴(expo-font)은 글 배치에만 쓴다 — 그림만 그리는 이 시험에는 배율 상수 하나면 된다
 vi.mock('../../src/ui/type', () => ({ EN_SERIF_SCALE: 1.16 }));
@@ -23,11 +24,25 @@ vi.mock('../../src/ui/type', () => ({ EN_SERIF_SCALE: 1.16 }));
 type Core = typeof import('@mong/core');
 let core: Core;
 let DC: typeof import('../../src/render/dreamCard/DreamCard');
+let MR: typeof import('../../src/render/dreamCard/motifRasters');
+const ASSETS = path.resolve(__dirname, '../../assets/motifs');
+/** 래스터 에셋을 파일 바이트로 디코드해 앱과 같은 캐시에 넣는다(헤드리스에는 번들 로더가 없다) */
+function loadRasters(on = true) {
+  for (const id of MR.MOTIF_RASTER_IDS) {
+    if (!on) {
+      MR.setMotifRaster(id, null);
+      continue;
+    }
+    const img = Sk.Skia.Image.MakeImageFromEncoded(Sk.Skia.Data.fromBytes(new Uint8Array(readFileSync(path.join(ASSETS, `${id}.webp`)))));
+    MR.setMotifRaster(id, img);
+  }
+}
 let Sk: typeof import('@shopify/react-native-skia');
 let hashRgba: (a: Uint8Array) => string;
 beforeAll(async () => {
   core = await import('@mong/core');
   DC = await import('../../src/render/dreamCard/DreamCard');
+  MR = await import('../../src/render/dreamCard/motifRasters');
   Sk = await import('@shopify/react-native-skia');
   hashRgba = (await import('./render')).hashRgba;
 }, 120000);
@@ -161,8 +176,48 @@ describe('우산 막대 농도(2차 아트 리뷰 6 — 눈으로는 몸과 같�
   }, 120000);
 });
 
+describe('4차 혼합안 — 사물 한 겹 래스터 에셋(번들 예산·먹 상한·결정성)', () => {
+  it('6장: 장당 ≤ 200KB·합계 ≤ 700KB, 긴 변 ≤ 640px, 검정 + 알파이고 알파 최대 ≤ 0.72(먹 상한)', () => {
+    let total = 0;
+    for (const id of MR.MOTIF_RASTER_IDS) {
+      const f = path.join(ASSETS, `${id}.webp`);
+      const bytes = statSync(f).size;
+      total += bytes;
+      expect(bytes, id).toBeLessThanOrEqual(200 * 1024);
+      const img = Sk.Skia.Image.MakeImageFromEncoded(Sk.Skia.Data.fromBytes(new Uint8Array(readFileSync(f))))!;
+      expect(img, id).not.toBeNull();
+      expect(Math.max(img.width(), img.height()), id).toBeLessThanOrEqual(640);
+      const px = img.readPixels(0, 0, { width: img.width(), height: img.height(), colorType: 4, alphaType: 3 }) as Uint8Array;
+      let maxA = 0;
+      let maxRgb = 0;
+      for (let p = 0; p < px.length; p += 4) {
+        maxA = Math.max(maxA, px[p + 3]!);
+        if (px[p + 3]! > 32) maxRgb = Math.max(maxRgb, (px[p]! * 255) / px[p + 3]!);
+      }
+      expect(maxA / 255, id).toBeLessThanOrEqual(core.MOTIF_INK_MAX + 1 / 255);
+      expect(maxA / 255, id).toBeGreaterThan(0.5);
+      expect(maxRgb, id).toBeLessThan(24); // 먹 한 색(검정) — 색은 그릴 때 토큰으로
+    }
+    expect(total).toBeLessThanOrEqual(700 * 1024);
+  });
+
+  it('래스터가 있으면 카드가 그것으로 그려지고(코드판과 픽셀이 다름), 같은 입력 = 같은 픽셀', async () => {
+    for (const id of MR.MOTIF_RASTER_IDS) {
+      loadRasters(true);
+      const a = await shootCard(card(id));
+      const b = await shootCard(card(id));
+      expect(hashRgba(b.rgba), id).toBe(hashRgba(a.rgba));
+      loadRasters(false);
+      const code = await shootCard(card(id));
+      expect(hashRgba(code.rgba), id).not.toBe(hashRgba(a.rgba));
+    }
+    loadRasters(true);
+  }, 300000);
+});
+
 describe.skipIf(!process.env.RENDER_HEAVY)('카드 64pt — 기존 10 + 새 15가 한 화면에서 갈린다(회귀 가드)', () => {
-  it('마블링 결만 바꾼 같은 꿈의 최근접은 늘 자기 꿈(새 15개 정답률 100%)', async () => {
+  it('마블링 결만 바꾼 같은 꿈의 최근접은 늘 자기 꿈(새 15개 정답률 100%) — 사물형은 래스터판', async () => {
+    loadRasters(true);
     const ids = core.sim.MOTIFS.map((m) => m.id);
     const gallery: Uint8Array[] = [];
     for (const id of ids) gallery.push((await shootCard(card(id))).rgba);

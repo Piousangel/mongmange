@@ -2,6 +2,7 @@ import { ImageFormat, drawAsImage, type SkImage } from '@shopify/react-native-sk
 import { PALETTE } from '@mong/core';
 import { footerSpot, ireScrollLayout } from '../../share/layout';
 import { CARD_TEXT_W, DreamCardArt, cardFontFor, cardTextBoxes, defaultLabels, makeDreamArt, textOf, type DreamCardInput } from './DreamCard';
+import { loadMotifRasters } from './motifRasters';
 import { SHARE_INK, type DreamCardImage, type DreamCardImageOptions, type IreScrollInput } from './renderImage.types';
 
 export type { DreamCardImage, DreamCardImageOptions, IreScrollInput } from './renderImage.types';
@@ -27,6 +28,7 @@ function text(g: Ctx, s: string, x: number, y: number, size: number, family: str
  */
 export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCardImageOptions): Promise<DreamCardImage> {
   const width = opts.width ?? 1080;
+  await loadMotifRasters(); // 사물 한 겹 래스터(4차 혼합안) — 공유 이미지는 늘 래스터판
   const art = makeDreamArt(input, opts.aspect, width, 4);
   const height = Math.round(art.H);
   const img = await drawAsImage(<DreamCardArt art={art} />, { width, height });

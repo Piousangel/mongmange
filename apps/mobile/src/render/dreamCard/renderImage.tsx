@@ -4,6 +4,7 @@ import { footerSpot, ireScrollLayout } from '../../share/layout';
 import { Image } from 'react-native';
 import { FONT_FILES } from '../../ui/type';
 import { CARD_FONT, CARD_FONT_EN, CARD_FONT_EN_ITALIC, CARD_TEXT_W, DreamCardArt, cardFontFor, cardTextBoxes, defaultLabels, makeDreamArt, type DreamCardInput } from './DreamCard';
+import { loadMotifRasters } from './motifRasters';
 import { SHARE_INK, type DreamCardImage, type DreamCardImageOptions, type IreScrollInput } from './renderImage.types';
 
 export type { DreamCardImage, DreamCardImageOptions, IreScrollInput } from './renderImage.types';
@@ -55,6 +56,7 @@ export function drawText(canvas: SkCanvas, fonts: SkTypefaceFontProvider | null,
  */
 export async function renderDreamCardImage(input: DreamCardInput, opts: DreamCardImageOptions): Promise<DreamCardImage> {
   const width = opts.width ?? 1080;
+  await loadMotifRasters(); // 사물 한 겹 래스터(4차 혼합안) — 공유 이미지는 늘 래스터판
   const art = makeDreamArt(input, opts.aspect, width, 4);
   const height = Math.round(art.H);
   const fonts = await cardFonts();

@@ -3,6 +3,7 @@
 //  - sheet-comp.png  새 15개 × 구도 a·b·c(성향 a·b·c를 번갈아) — 자리·뒤집기·잘림 확인
 //  - sheet-mixed.png 기존 10 + 새 15 = 25장(5×5) — 한 화면에 섞였을 때
 //  - sheet-64pt.png  같은 25장을 카드 폭 64pt(2x)로 줄인 판독 시트(아트 바이블 7-6 ⑦)
+//  - sheet-dark.png  는 서버 없이 scripts/c14b-dark-sheet.mjs가 만든다
 //  - compare-ref.png 3차 대상 7장: Gemini 레퍼런스(docs/creative/c14b-ref, ★ = 고른 안)와 결과 카드를 한 줄에 나란히
 // 사용: node scripts/c14b-capture.mjs [baseUrl=http://localhost:8147] [outDir=docs/app/c14b]
 // 개발 서버(expo start --web)는 metro 감시가 멈추는 일이 있어 캡처 전에 `-c`로 새로 띄운다(11-25 확인: 고친 파일이 번들에 안 들어감).
@@ -85,12 +86,13 @@ await sheet('sheet-64pt', mixed.map(([f, l]) => [f, l.replace(/^[a-z-]+\./, '').
 // 레퍼런스 ↔ 결과 비교(3차 아트 리뷰용)
 const REF = path.resolve('docs/creative/c14b-ref');
 const CMP = [
-  ['near-with.letter', ['letter-f2', 'letter-f1', 'letter-p1', 'letter-1'], 'letter-f2'],
-  ['near-with.palm', ['palm-f4', 'palm-p1', 'palm-f1', 'palm-3'], 'palm-f4'],
-  ['near-with.window-hand', ['window-f2', 'window-f4', 'window-p2', 'window-2'], 'window-f2'],
-  ['far-alone.kite', ['kite-f3', 'kite-f1', 'kite-p2', 'kite-1'], 'kite-f3'],
-  ['far-alone.paper-boat', ['boat-p1', 'boat-f2', 'boat-f4'], 'boat-p1'],
-  ['near-with.umbrella', ['umbrella-f3', 'umbrella-f1', 'umbrella-p1'], 'umbrella-f3'],
+  // 4차: ★ = 앱 에셋으로 손질한 사물 원본(-o), 나머지 = 다른 안·3차 장 레퍼런스
+  ['near-with.letter', ['letter-o2', 'letter-o1', 'letter-o3', 'letter-f2'], 'letter-o2'],
+  ['far-alone.kite', ['kite-o3', 'kite-o1', 'kite-o2', 'kite-f3'], 'kite-o3'],
+  ['near-with.umbrella', ['umbrella-o1', 'umbrella-o2', 'umbrella-o3', 'umbrella-f3'], 'umbrella-o1'],
+  ['far-alone.paper-boat', ['boat-o1', 'boat-o2', 'boat-o3', 'boat-p1'], 'boat-o1'],
+  ['near-with.palm', ['palm-o3', 'palm-o1', 'palm-o2', 'palm-f4'], 'palm-o3'],
+  ['near-with.window-hand', ['window-o3', 'window-o1', 'window-o2', 'window-f2'], 'window-o3'],
   ['far-alone.path', ['path-f3', 'path-f1', 'path-p1'], 'path-f3'],
 ];
 const cmpHtml = `<html><body style="margin:0;background:#141A2C;color:#E9E2D2;font:13px -apple-system,sans-serif;padding:14px">
@@ -99,7 +101,7 @@ ${CMP.map(([m, refs, pick]) => {
   const cells = refs.length
     ? refs.map((r) => `<div><img src="file://${REF}/${r}.jpg" style="height:220px;display:block;${r === pick ? 'outline:3px solid #C9A45C' : ''}"><div>${r}${r === pick ? ' ★' : ''}</div></div>`).join('')
     : '<div style="width:200px;height:260px;display:flex;align-items:center;justify-content:center;border:1px dashed #555">레퍼런스 없음<br>(Figma AI 크레딧 한도)</div>';
-  return `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px"><div style="width:150px">${m}</div>${cells}<div style="margin-left:24px"><img src="file://${path.join(TMP, card)}" style="height:260px;display:block"><div>결과(3차)</div></div></div>`;
+  return `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px"><div style="width:150px">${m}</div>${cells}<div style="margin-left:24px"><img src="file://${path.join(TMP, card)}" style="height:260px;display:block"><div>결과(4차)</div></div></div>`;
 }).join('')}</body></html>`;
 await writeFile(path.join(TMP, 'compare.html'), cmpHtml);
 {

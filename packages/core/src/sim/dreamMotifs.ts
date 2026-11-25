@@ -35,6 +35,8 @@ export interface Motif {
   seat?: readonly [number, number];
   /** 곁의 다른 방울 [x, y, 몸 배율](그림 좌표). 눈 없는 방울 — '함께'는 나란함·맞댐으로만 */
   friend?: readonly [number, number, number];
+  /** C14b 4차: 사물 한 겹 래스터 자리(`dreamMotifShapes.ts` MotifShape.raster) */
+  raster?: { box: readonly [number, number, number, number]; keep: readonly number[] };
   /** 'clear' = 경로를 먹으로 그리지 않는다(소리 없는 눈 — 그림은 `field`의 맑은 방울) */
   water?: 'clear';
   /** 정본에 없어 개발이 쓴 초안 문구 슬롯(i18n 키 기준). 검수로 확정되면 지운다 — `motifBlockers`가 제품 출시를 막는다 */
@@ -45,7 +47,7 @@ export interface Motif {
 const m = (id: string, zone: MotifZone, family: string, unlockAtCards: number): Motif => {
   const shape = MOTIF_SHAPES[id];
   if (unlockAtCards === 0 || !shape) return { id, zone, family, unlockAtCards, placeholder: unlockAtCards > 0, paths: [] };
-  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, field: shape.field, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}) };
+  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, field: shape.field, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}), ...(shape.raster ? { raster: shape.raster } : {}) };
 };
 
 /**

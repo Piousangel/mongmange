@@ -321,6 +321,8 @@ export interface DreamMotifInk {
   /** 좌우 뒤집기(구도 b) — 상자 안에서 x → 100 − x */
   flip: boolean;
   paths: readonly MotifPathData[];
+  /** 사물 한 겹 래스터(4차 혼합안) — 렌더가 모티프 id의 에셋을 이 상자(그림 좌표)에 넣고, keep 밖의 경로는 그리지 않는다 */
+  raster?: { box: readonly [number, number, number, number]; keep: readonly number[] };
 }
 
 /**

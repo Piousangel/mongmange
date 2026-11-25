@@ -1,4 +1,5 @@
 import {
+  BlendColor,
   BlendMode,
   BlurMask,
   Canvas,
@@ -16,6 +17,7 @@ import {
   Skia,
   Vertices,
   vec,
+  type SkImage,
   type SkPath,
   type SkPoint,
 } from '@shopify/react-native-skia';
@@ -49,6 +51,7 @@ import {
   hexRgb,
   type MotifInkLayer,
 } from '@mong/core';
+import { Image as SkImageNode } from '@shopify/react-native-skia';
 import { useMemo } from 'react';
 import { PixelRatio, Platform, StyleSheet, Text, View } from 'react-native';
 import { useFeature } from '../../features';
@@ -57,6 +60,7 @@ import { sealPath } from '../sealPath';
 import { dayName, getLocale, t } from '../../i18n';
 import { EN_SERIF_SCALE } from '../../ui/type';
 import { getMarbleFx, marbleUniforms } from './marble';
+import { fitRect, motifRaster, useMotifRasters } from './motifRasters';
 
 /** 카드 위 글(문장은 앱이 언어별로 만들어 넘긴다 — 시스템 2.6) */
 export interface DreamCardLabels {
@@ -172,6 +176,8 @@ export interface MotifInkArt {
   bleed: number;
   /** 그림 1단위 = px(transform 배율). 블러는 transform 안에서 그리므로 px 값을 이 값으로 나눠 넘긴다 */
   unit: number;
+  /** 4차 혼합안: 사물 한 겹 래스터(그림 좌표 사각형). 있으면 keep 밖 경로는 그리지 않았다 */
+  raster: { image: SkImage; rect: { x: number; y: number; width: number; height: number }; seed: number } | null;
 }
 
 /** 카드 그림 단위와 화면의 관계(썸네일 LOD·블러 하한). 기본 = 화면 Canvas(그림 단위 = pt) */
@@ -297,6 +303,8 @@ interface WindowArt {
   pane: SkPath;
   /** 밝은 바탕 틈 두 줄(굵기·기울기가 다름 — 같은 격자 금지, 3차 아트 리뷰) */
   gaps: { path: SkPath; w: number }[];
+  /** 4차 혼합안: 창호지 + 손 그림자 래스터(불러왔을 때). 있으면 판·틈 대신 이것을 그린다 */
+  raster: { image: SkImage; rect: { x: number; y: number; width: number; height: number } } | null;
 }
 type VesselArt = QuiltArt | CupArt | WindowArt;
 
@@ -330,7 +338,10 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
       { path: line(cx - w * 0.2, top - u(0.004), cx - w * 0.12, top + h + u(0.004)), w: w * 0.04 },
       { path: line(cx + w * 0.2, top - u(0.004), cx + w * 0.15, top + h + u(0.004)), w: w * 0.022 },
     ];
-    return { kind: 'window', pane, gaps };
+    const img = motifRaster('near-with.window-hand');
+    // 래스터는 창 자리보다 조금 크게(창 너머 손 그림자까지) — 창 가운데에 맞춘다
+    const raster = img ? { image: img, rect: fitRect(img, [cx - w * 0.95, top - h * 0.45, w * 1.9, h * 1.9]) } : null;
+    return { kind: 'window', pane, gaps, raster };
   }
   if (v.kind === 'quilt') {
     // 누빔 이불: 물결진 윗단 + 둥근 아랫단, 마름모 바늘땀, 윗단 접힌 그늘
@@ -448,10 +459,12 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
       : deckleRect(u(sl.x), u(sl.y), u(sl.size), u(sl.size), u(0.0016), u(0.003), scene.seed & 0xff);
   const fig = bodyGeometry(0, 1.0, true, shape);
   const mi = scene.motifInk;
+  // 사물 한 겹 래스터(불러왔을 때만 — 아니면 같은 형상의 경로 코드판)
+  const rasterImg = mi?.raster ? motifRaster(scene.motifId) : null;
   const motifInk: MotifInkArt | null = mi
     ? {
         t: [{ translateX: c0.x + u(mi.x) }, { translateY: c0.y + u(mi.y) }, { scale: u(mi.size) / 100 }, ...(mi.flip ? [{ translateX: 100 }, { scaleX: -1 }] : [])],
-        layers: motifInkLayers(mi.paths).map((l) => ({
+        layers: motifInkLayers(rasterImg && mi.raster ? mi.paths.filter((_, i) => mi.raster!.keep.includes(i)) : mi.paths).map((l) => ({
           layer: l.layer,
           verts: toVerts(l.ribbons),
           bleed: toVerts(l.bleed),
@@ -461,6 +474,7 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
         yLim,
         bleed: blurFloorPt(u(mi.size) * 0.006, opts.devicePerUnit ?? 1),
         unit: u(mi.size) / 100,
+        raster: rasterImg && mi.raster ? { image: rasterImg, rect: fitRect(rasterImg, mi.raster.box), seed: scene.seed % 997 } : null,
       }
     : null;
   const night = Math.max(1, input.card.night);
@@ -536,6 +550,21 @@ export function MotifInkArtView({ ink, W }: { ink: MotifInkArt; W: number }) {
   return (
     <Group clip={{ x: 0, y: 0, width: W, height: ink.yLim }}>
       <Group layer={blendPaint('multiply')}>
+        {ink.raster && (
+          <Group layer={dk}>
+            <Group transform={ink.t as never}>
+              {/* 손질한 먹 한 겹: 알파(≤ 0.72)에 테마 먹 색을 입힌다 + 공통 종이 결 */}
+              <Group layer>
+                <SkImageNode image={ink.raster.image} rect={ink.raster.rect} fit="fill">
+                  <BlendColor color={INK_LAYER.ink.color} mode="srcIn" />
+                </SkImageNode>
+                <Fill blendMode="srcATop" opacity={WASH_FACE.grain}>
+                  <FractalNoise freqX={0.9} freqY={0.6} octaves={2} seed={ink.raster.seed} />
+                </Fill>
+              </Group>
+            </Group>
+          </Group>
+        )}
         {ink.layers.map(({ layer, verts, bleed, faces }) => {
           const st = INK_LAYER[layer];
           return (
@@ -669,6 +698,12 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
               <Path path={v.front} style="stroke" strokeWidth={lw} color={PALETTE.day.body} opacity={0.75} />
               <Path path={v.frontRim} style="stroke" strokeWidth={lw * 1.3} color={PALETTE.day.body} opacity={0.85} />
               <Path path={v.handle} style="stroke" strokeWidth={W * 0.007} strokeCap="round" color={PALETTE.day.body} opacity={0.8} />
+            </Group>
+          ) : v.kind === 'window' && v.raster ? (
+            <Group key={`w${i}`} layer>
+              <SkImageNode image={v.raster.image} rect={v.raster.rect} fit="fill">
+                <BlendColor color={PALETTE.day.body} mode="srcIn" />
+              </SkImageNode>
             </Group>
           ) : v.kind === 'window' ? (
             <Group key={`w${i}`}>
@@ -841,7 +876,9 @@ export function DreamCard({
   sealSeed,
 }: DreamCardInput & { width: number; aspect?: DreamAspect; /** 스크린리더 설명(모티프·아침 문장). 없으면 이름·문장 */ a11yLabel?: string }) {
   const lod = useFeature('thumbLod');
-  const art = useMemo(() => makeDreamArt({ card, strokes, look, sealSeed }, aspect, width, 2, { lod, devicePerUnit: PixelRatio.get() }), [card, strokes, aspect, width, look, lod, sealSeed]);
+  const rasters = useMotifRasters();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- rasters는 래스터 사물을 불러온 뒤 다시 그리라는 신호(makeDreamArt가 캐시를 읽는다)
+  const art = useMemo(() => makeDreamArt({ card, strokes, look, sealSeed }, aspect, width, 2, { lod, devicePerUnit: PixelRatio.get() }), [card, strokes, aspect, width, look, lod, sealSeed, rasters]);
   const lb = labels ?? defaultLabels(card);
   const H = art.H;
   return (
