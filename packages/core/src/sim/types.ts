@@ -99,6 +99,11 @@ export interface DreamCard {
    * 나중에 다시 계산할 수 없어서(성향은 매일 바뀐다) 고를 때 정해 둔다.
    */
   cause?: string | null;
+  /**
+   * 그림 판(artRev, C14b 5차 — PM 11-25 채택). 꿈 콘텐츠 카드(C6 새 모티프)를 받은 때의 그림 판 번호. 렌더는 이 판의 그림(래스터·형상)으로
+   * 그려 그림을 바꿔도 이미 받은 카드는 그대로다(D-13). 없으면 1판(`cardArtRev`). 빌드 1 카드에는 싣지 않는다(세이브 문자열 그대로)
+   */
+  artRev?: number;
 }
 
 export type LineKind = 'change' | 'deepen' | 'observation' | 'seven-day';

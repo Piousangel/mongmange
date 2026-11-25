@@ -4,6 +4,8 @@
 //   docs/design/content-v1/dreams-sim.mjs와 같은 결과를 내야 한다 — test/dream-rules.test.ts가 그 시뮬을 직접 불러 한 밤씩 대조한다.
 // - 난수: 한 밤에 균등값 u 하나(세이브 rng에서 뽑아 넘긴다). Math.random·시각 없음.
 import type { MotifPathData } from '../moon/motifs';
+import type { MotifFieldOp } from '../visual/motifInk';
+import { MOTIF_SHAPES } from './dreamMotifShapes';
 import type { AxisRecord, DreamCard } from './types';
 
 export type MotifZone = 'near-alone' | 'near-with' | 'far-alone' | 'far-with' | 'center';
@@ -17,25 +19,36 @@ export interface Motif {
   /** 현상한 카드 수(`cards.length`)가 이 값 이상이면 풀에 든다. 0 = 빌드 1부터 있던 10개 */
   unlockAtCards: number;
   /**
-   * 형상이 아직 없다(아트 레인 C14 — 1-2 64px 5×5 시험 뒤 `paths`로 들어온다). 제품 빌드는 고르지도 그리지도 않고,
-   * 개발 빌드만 같은 구역의 기존 형상으로 임시로 그린다(`visual/dreamCard.ts` `dreamMotifShape`). 빌드 1의 10개는 꿈 카드 v1.1의
-   * 절차 형상이 있어 false다.
+   * 형상이 아직 없다. 제품 빌드는 고르지도 그리지도 않고, 개발 빌드만 같은 구역의 기존 형상으로 임시로 그린다
+   * (`visual/dreamCard.ts` `dreamMotifShape`). 빌드 1의 10개는 꿈 카드 v1.1의 절차 형상(마블링 조작)이, C6의 15개는 C14b의
+   * 붓 형상(`paths`, `dreamMotifShapes.ts`)이 있어 모두 false다. 원격·새 모티프가 형상 없이 들어오면 true로 둔다.
    */
   placeholder: boolean;
-  /** 경로 형상(스키마 1 `paths`와 같은 모양). 들어오면 64px 구별 틀(`test/motif-distinct.test.ts`)의 대상이 된다 */
+  /**
+   * 경로 형상(스키마 1 `paths`와 같은 모양, C14b). 있으면 카드가 이 붓 형상을 그리고(`visual/motifInk.ts`), 64px 구별 틀
+   * (`test/motif-distinct.test.ts`)의 대상이 된다. 빌드 1의 10개는 빈 배열 — 마블링 조작으로 그린다
+   */
   paths: readonly MotifPathData[];
+  /** 마블링 장 조작(그림 좌표, C14b v2 — 띠가 형상을 받아들임). `paths`가 있을 때만 */
+  field?: readonly MotifFieldOp[];
+  /** 몽망이 자리(그림 좌표 0..100). `paths`가 있을 때만 */
+  seat?: readonly [number, number];
+  /** 곁의 다른 방울 [x, y, 몸 배율](그림 좌표). 눈 없는 방울 — '함께'는 나란함·맞댐으로만 */
+  friend?: readonly [number, number, number];
+  /** C14b 4차: 사물 한 겹 래스터 자리(`dreamMotifShapes.ts` MotifShape.raster) */
+  raster?: { box: readonly [number, number, number, number]; keep: readonly number[]; cover: number };
+  /** 'clear' = 경로를 먹으로 그리지 않는다(소리 없는 눈 — 그림은 `field`의 맑은 방울) */
+  water?: 'clear';
   /** 정본에 없어 개발이 쓴 초안 문구 슬롯(i18n 키 기준). 검수로 확정되면 지운다 — `motifBlockers`가 제품 출시를 막는다 */
   draft?: readonly ('ko.title' | 'ko.line' | 'ko.scene' | 'en.title' | 'en.line' | 'en.scene')[];
 }
 
-const m = (id: string, zone: MotifZone, family: string, unlockAtCards: number): Motif => ({
-  id,
-  zone,
-  family,
-  unlockAtCards,
-  placeholder: unlockAtCards > 0,
-  paths: [],
-});
+/** 형상: 해금 0(빌드 1의 10개) = 마블링 절차 형상, 나머지 = C14b 붓 형상(`MOTIF_SHAPES`). 붓 형상이 없으면 자리표시 */
+const m = (id: string, zone: MotifZone, family: string, unlockAtCards: number): Motif => {
+  const shape = MOTIF_SHAPES[id];
+  if (unlockAtCards === 0 || !shape) return { id, zone, family, unlockAtCards, placeholder: unlockAtCards > 0, paths: [] };
+  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, field: shape.field, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}), ...(shape.raster ? { raster: shape.raster } : {}) };
+};
 
 /**
  * 1-3 표 그대로(순서도 표 순서 — 빌드 1의 10개는 서로의 상대 순서가 옛 목록과 같아 `pickCard` 결과가 바뀌지 않는다).
@@ -275,4 +288,31 @@ export function pickCause(v: AxisRecord, zone: MotifZone, prev: Pick<DreamCard, 
   const ok = causeVariants(v, zone).filter((n) => `${zone}.${n}` !== prevCause);
   if (ok.length === 0) return null;
   return `${zone}.${ok[Math.abs(flowSeed) % ok.length]!}`;
+}
+
+// ── 그림 판(artRev, C14b 5차) ─────────────────────────────
+
+/**
+ * 지금 그림 판. 새 꿈 카드는 이 번호를 싣는다. **그림(래스터 에셋·형상 데이터)을 바꾸면 판을 올리고, 이전 판의 래스터 폴더
+ * (`apps/mobile/assets/motifs/r<판>`)는 지우지 않는다** — 이미 받은 카드가 그 판으로 그려져야 한다(시험이 판마다 에셋·예산을 고정).
+ */
+export const DREAM_ART_REV = 1;
+/** 판마다 래스터 사물을 쓰는 모티프(앱 에셋 `r<판>/<id>.webp` + `.mask.webp`) */
+export const ART_REV_RASTERS: Readonly<Record<number, readonly string[]>> = {
+  1: ['near-with.letter', 'far-alone.kite', 'near-with.umbrella', 'far-alone.paper-boat', 'near-with.palm', 'near-with.window-hand'],
+};
+/**
+ * 카드의 그림 판. 판 0 = 빌드 1 그림(꿈 콘텐츠가 꺼진 밤의 카드 — 판 번호 없음, 코드 리뷰 H1). 새 모티프(C6) 카드는 판 번호가 없어도
+ * 1(판 번호가 생기기 전 개발 빌드 카드 — 세이브 이행 `withArtRev`와 같은 규칙). 렌더·장면은 이 값으로 그 판의 형상·래스터를 고른다
+ */
+export function dreamArtRevOf(c: Pick<DreamCard, 'artRev' | 'motifId'>): number {
+  if (typeof c.artRev === 'number' && c.artRev >= 1) return Math.floor(c.artRev);
+  return (motifById(c.motifId)?.unlockAtCards ?? 0) > 0 ? 1 : 0;
+}
+/**
+ * 세이브 이행(멱등): 판 번호가 없는 C6 새 모티프 카드에 1을 적는다. 빌드 1 모티프·보름 카드는 건드리지 않아 세이브 문자열이 같고,
+ * 두 번 돌려도 결과가 같다
+ */
+export function withArtRev(cards: readonly DreamCard[]): DreamCard[] {
+  return cards.map((c) => (c.artRev === undefined && (motifById(c.motifId)?.unlockAtCards ?? 0) > 0 ? { ...c, artRev: 1 } : c));
 }

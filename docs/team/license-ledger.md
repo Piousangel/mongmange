@@ -19,10 +19,33 @@
 | `docs/creative/img/C2-ink-home.png` | 같음 | 같은 파일 1:7 | 11-19 | C 홈 목업 | 금지 |
 | `docs/creative/rival/img/*.png` 10장(A1-day0-day30, A1-…-v1-rejected, A2-home, A3-variants, A4-in-engine, B1-day0-day30, B2-home, B3-variants, B4-in-engine, B1-…-gemini) | Figma MCP `generate_image` · gpt-image-2.5-flare, `B1-day0-day30-gemini.png`만 gemini-3.1-flash-image | `rLODpdydp9cdDRLPRZIceN` 1:2~1:11 | 11-19 | 경쟁 디렉션 시안 | 금지 |
 | `docs/creative/v1/img/*.png` 17장(01a~06c) | Figma MCP `generate_image` · gpt-image-2.5-flare 16장, `01b-day0-expressions-gemini.png`만 gemini-3.1-flash-image | `AIt2sfjDp4IHeRLcswb3mJ` 1:2~1:18 | 11-19 | 아트 바이블 v1 탐색 | 금지 |
+| `docs/creative/c14b-ref/*.jpg` 10장(letter-1~3, palm-1~3, window-1~3, kite-1 — 원본 PNG를 640px JPG로 줄임) | Figma MCP `generate_image` · gemini-3.1-flash-image | `iSFrS9WX2yICuXVJbctIHN` 1:2~1:11 | 11-25 | C14b 꿈 모티프 3차 수묵·마블링 레퍼런스(참고용, **앱 번들 금지** — 붓맛은 셰이더·경로로 다시 만든다) | 금지 |
+| `docs/creative/c14b-ref/<모티프>-f1~f4.jpg`·`-p1~p2.jpg` 42장(letter·palm·window·kite·boat·umbrella·path 각 6, 640px JPG) | Gemini API 직접(`scripts/gemini-ref.mjs`, 키 = env `GEMINI_API_KEY`) · f = gemini-3.1-flash-image, p = gemini-3-pro-image | — | 11-25 | C14b 3차 수묵·마블링 레퍼런스(참고용, **앱 번들 금지**). 고른 안은 `docs/app/c14b/compare-ref.png` ★ | 금지 |
 
 - 확인 필요: rival 문서 머리말은 "9장 중 8장 gpt, 1장 gemini"라고 적었는데 파일은 10장·노드 10개다. `A4-in-engine`·`B4-in-engine`이 생성 이미지인지 코드 렌더인지 작성자(경쟁 디렉터)가 이 표를 고친다. 그전까지는 생성 이미지로 취급한다.
 - Figma 에셋 URL은 7일 뒤 만료된다. 로컬 사본이 원본이다. 프롬프트 원문은 각 Figma 노드 생성 기록에 있다.
-- 합계: AI 생성 이미지 34장(7 + 10 + 17), 출시물 사용 0장.
+- 합계: AI 생성 이미지 104장(7 + 10 + 17 + 10 + 42 + 18), 출시물 사용 6장(1-1 표, 손질본·4차 아트 리뷰 통과 조건). C14b 레퍼런스 처음 10장은 Figma AI로 만들다 크레딧 한도(11-25)에 걸려, 나머지는 Gemini API로 직접 만들었다. **Gemini API 생성물 약관도 출시 전 할 일 1번에 함께 확인한다.**
+
+## 1-1. 앱 에셋으로 쓰는 AI 생성물(손질본) — C14b 4차 혼합안
+
+- 근거: 위 머리말의 오너 11-25 결정(조건 ①~⑥)과 PM 혼합안(C). 4차 아트 리뷰는 **조건부**(편지·창가 손·우산 수정 + 블라인드 판정) — 그 둘이 끝나기 전에는 출시 빌드에 켜지 않는다(`dreamContent` 꺼짐). 블라인드 시트 `docs/app/c14b/blind/sheet-25.png`(정답표는 리뷰어에게 주지 않음).
+- **운영 노출 범위(코드 리뷰 H1 반영, 6차)**: 아래 6장은 **판 1 카드(꿈 콘텐츠 `dreamContent`가 켜진 밤에 받은 카드)**에만 그려진다. 플래그가 꺼진 카드(판 번호 없음 = 판 0)는 빌드 1의 10개 그림이 main과 바이트 같게 그대로다(창가 손 래스터 포함 AI 생성물 0 — 시험 고정). 그래서 조건부 아트 리뷰·블라인드 판정 전까지 운영 화면·공유 이미지에 AI 생성물이 나가지 않는다.
+- 판(artRev): 에셋은 `apps/mobile/assets/motifs/r<판>/`에 둔다. 그림을 바꾸면 판을 올리고 이전 판 폴더는 지우지 않는다(이미 받은 카드가 그 판으로 그려진다 — 시험 고정). 아래 표는 1판.
+- 공통 손질(`scripts/motif-raster.mjs`, 재현 가능): 원본(2048px PNG → 저장소 1536px JPG q92)에서 한지 배경 제거(테두리 중앙값 = 종이, 가장 짙은 0.5% = 먹) → 밝기를 알파로(먹 한 색, 검정 + 알파) → 알파 0.06 아래 0(종이 결·얼룩 지움), 중간 농담 감마 0.8 → 최대 농도 0.72 → 사물 경계로 자르기(여백 3%, 멀리 떨어진 티끌 버림) → 긴 변 640px WebP(알파). 5차: 가림 마스크(사물 실루엣, 속 채움) `.mask.webp`를 함께 뽑고(앱이 종이 토큰 × 가림 농도로 사물 밑에 깐다), 편지는 −28° 돌려 덜 기울이고, 종이배는 밑 25%(장식 물결)를 지운다. 색·종이 결은 앱이 그릴 때 입힌다(테마 토큰, 공통 FractalNoise). 번들 예산: 먹 장당 200KB·가림 장당 24KB·판당 760KB·모든 판 2MB(시험 고정).
+- 공통 프롬프트 요약: '한지 위 먹 사물 하나만, 젖은 테·과립·비백, 마블링·배경·글자·인물·생물 없음, 정사각'. 모델 gemini-3-pro-image(Gemini API 직접, 2K), 날짜 11-25. 원본 18장(장마다 3안) = `docs/creative/c14b-ref/<모티프>-o1~o3.jpg`.
+
+| 앱 에셋 | 원본(고른 안) | 프롬프트 요약 | 손질 | 출시 사용 |
+|---|---|---|---|---|
+| `apps/mobile/assets/motifs/r1/near-with.letter.webp` | `letter-o2.jpg` | 비스듬한 한지 한 장, 한 모서리 접힘(농담·두께), 봉투·글자 없음 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/r1/far-alone.kite.webp` | `kite-o3.jpg` | 가오리연, 위 꼭짓점 먹 고임, 댓살 자국, 꼬리 두 가닥, 구멍·줄 없음 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/r1/near-with.umbrella.webp` | `umbrella-o1.jpg` | 옆에서 본 지우산, 살 끝 물결 가장자리 고임 + 먹 줄기, 막대가 덮개 위로 안 솟음 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/r1/far-alone.paper-boat.webp` | `boat-o1.jpg` | 종이배(밝은 돛·짙은 몸통 농담), 배 밑 짧은 물살 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/r1/near-with.palm.webp` | `palm-o3.jpg` | 오목한 손바닥 그림자 = 넓은 붓 한 번 U자, 바닥 먹 고임, 손가락 갈래 없음 | 공통 | 앱 |
+| `apps/mobile/assets/motifs/r1/near-with.window-hand.webp` | `window-o3.jpg` | 창호지 한 장 + 굵기 다른 세로 틈 + 창 너머 손 그림자, 격자 아님 | 공통 | 앱 |
+
+- 안 고른 원본 12장(`-o1~o3` 중 나머지)은 탐색 전용(출시 사용 금지).
+- **⑤ 스토어 AI 생성 콘텐츠 고지 — 확인 필요**: 위 6장(꿈 카드 6모티프의 사물 한 겹)이 AI 생성물을 손질한 앱 에셋이다. App Store·Google Play의 AI 생성 콘텐츠 고지 항목에 해당하는지, 고지 문구 범위를 출시 전에 정한다(PM·출시 담당).
+- **⑥ 스토어·마케팅 규칙**: 스토어 스크린샷·미리보기 영상·마케팅의 아침 카드는 **코드로만 그린 카드(판 0의 빌드 1 10장, 판 1의 장형 9장)**로 고른다 — 위 6모티프 카드와 판 1 창가 손은 쓰지 않는다(오너 조건 ⑥, 아트 7-5 홍보 주연 ③과 함께 적용). 최종은 PM·오너 확인.
 
 ## 2. 팀이 만든 것 (AI 생성 아님)
 

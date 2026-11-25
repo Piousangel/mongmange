@@ -1,24 +1,38 @@
 // 64px 흑백 구별 틀(dreams-30days 1-2, 아트 1-4) — **형상(`paths`)이 들어온 모티프만** 대상.
-// 지금(C6)은 형상이 0개라 '대상이 비어 있음'을 단언하고, 틀 자체가 맞게 거르는지는 합성 형상으로 본다. 형상(아트 레인 C14)이
-// 들어오면 그 단언이 실패해 관문 목록 갱신을 강제하고, 그 모티프들을 시트(25 = 5×5, 보름 12 = 4×3)로 모아 헷갈리는 쌍 3쌍 이하를 요구한다.
-// 사람 3명 시험이 관문이고(통과 전에는 placeholder를 풀지 않는다), 이 틀은 그 앞에서 같은 기준으로 한 번 거른다.
+// C14b(11-25)에 새 꿈 15개의 붓 형상이 들어왔다 — 관문 목록 = 그 15개. 빌드 1의 10개는 경로가 아니라 마블링 조작으로 그려
+// 이 틀 밖이다(카드 렌더 자체의 구별은 apps/mobile `test/skia/dream-motif-ink` 64pt 시험이 본다).
+// 사람 3명 시험(오답 쌍 3쌍 이하)이 `dreamContent`를 운영에서 켜기 전 PM 관문이고, 이 틀은 그 앞에서 같은 기준으로 한 번 거른다.
 import { describe, expect, it } from 'vitest';
 import { BUNDLED_MOON_MOTIFS, sim, type MotifPathData } from '../src/index';
-import { MAX_CONFUSABLE_PAIRS, THUMB_PX, confusablePairs, contactSheet, flattenPath, rasterize, thumbDistance } from './motif-raster';
+import { CONFUSABLE_BELOW, MAX_CONFUSABLE_PAIRS, THUMB_PX, confusablePairs, contactSheet, flattenPath, rasterize, thumbDistance } from './motif-raster';
 
-const shapedMotifs = () => sim.MOTIFS.filter((m) => m.paths.length > 0).map((m) => ({ id: m.id, paths: m.paths }));
+const shapedMotifs = () => sim.MOTIFS.filter((m) => m.paths.length > 0).map((m) => ({ id: m.id, paths: m.paths, field: m.field ?? [] }));
 const shapedMoons = () => BUNDLED_MOON_MOTIFS.filter((m) => m.paths.length > 0).map((m) => ({ id: m.id, paths: m.paths }));
 
 describe('형상이 들어온 모티프 — 64px 시트에서 헷갈리는 쌍 3쌍 이하', () => {
-  // 빈 관문 방지(리뷰 참고): C14 전에는 대상이 **비어 있음**을 단언한다. 형상이 들어오면 이 단언이 실패한다 —
-  // 그때 아래 목록에 들어온 id를 적어(사람 3명 시험 통과분만) 갱신하면, 그 모티프들이 헷갈리는 쌍 검사를 받는다
-  const GATED_MOTIFS: readonly string[] = [];
+  // 빈 관문 방지(리뷰 참고): 형상이 들어온 목록을 그대로 적는다. 형상이 늘거나 빠지면 이 단언이 실패해 목록 갱신을 강제한다
+  const GATED_MOTIFS: readonly string[] = sim.MOTIFS.filter((m) => m.unlockAtCards > 0).map((m) => m.id);
   const GATED_MOONS: readonly string[] = [];
 
-  it('모티프 25(5×5 시트): 형상이 들어온 목록 = 관문 통과 목록, 헷갈리는 쌍 3쌍 이하', () => {
+  it('모티프 25(5×5 시트): 형상이 들어온 목록 = 관문 목록(새 15개), 헷갈리는 쌍 3쌍 이하 — C14b 실측 0쌍', () => {
     const items = shapedMotifs();
+    expect(GATED_MOTIFS).toHaveLength(15);
     expect(items.map((x) => x.id)).toEqual(GATED_MOTIFS);
     expect(confusablePairs(items).length).toBeLessThanOrEqual(MAX_CONFUSABLE_PAIRS);
+    // 여유: 15개 중 가장 가까운 쌍(C14b 실측 은하수 다리~눈 0.036)도 문턱의 1.5배 넘게 떨어진다 — 형상을 고칠 때 문턱 바로 위로
+    // 미끄러지지 않게. 이 거리는 성긴 그림(점·ㅅ자)일수록 먹 양에 끌려 작아지므로 점 모티프끼리가 늘 가장 가깝다
+    expect(confusablePairs(items, CONFUSABLE_BELOW * 1.5)).toEqual([]);
+  });
+
+  it('블라인드 판정(11-25)이 64px에서 헷갈린다고 한 쌍(경로 형상끼리): 징검다리↔은하수 다리, 벼루↔징검다리↔길 — 문턱 1.5배 넘게 떨어진다', () => {
+    const by = new Map(shapedMotifs().map((x) => [x.id, x]));
+    const PAIRS: [string, string][] = [
+      ['far-with.stepping-stones', 'far-with.star-bridge'],
+      ['near-alone.inkstone', 'far-with.stepping-stones'],
+      ['near-alone.inkstone', 'far-alone.path'],
+      ['far-with.stepping-stones', 'far-alone.path'],
+    ];
+    for (const [a, b] of PAIRS) expect(confusablePairs([by.get(a)!, by.get(b)!], CONFUSABLE_BELOW * 1.5), `${a} ↔ ${b}`).toEqual([]);
   });
 
   it('보름 번들(4×3 시트, 번들 3개 먼저)', () => {
@@ -27,8 +41,11 @@ describe('형상이 들어온 모티프 — 64px 시트에서 헷갈리는 쌍 3
     expect(confusablePairs(items).length).toBeLessThanOrEqual(MAX_CONFUSABLE_PAIRS);
   });
 
-  it('형상이 들어온 모티프는 자리표시가 풀려 있어야 한다(관문을 넘은 것만 placeholder 해제)', () => {
-    for (const m of sim.MOTIFS) if (m.placeholder) expect(m.paths, m.id).toEqual([]);
+  it('형상이 들어온 모티프는 자리표시가 풀려 있고, 자리표시는 형상이 없다', () => {
+    for (const m of sim.MOTIFS) {
+      if (m.placeholder) expect(m.paths, m.id).toEqual([]);
+      if (m.paths.length > 0) expect(m.placeholder, m.id).toBe(false);
+    }
   });
 });
 

@@ -57,13 +57,14 @@ describe('모티프 25 표(1-3) = 정본 시뮬 표', () => {
     }
   });
 
-  it('형상: 빌드 1의 10개만 있고 15개는 자리표시(C14) → 제품 출시 차단 목록에 걸린다', () => {
-    expect(sim.MOTIFS.filter((m) => !m.placeholder).map((m) => m.unlockAtCards)).toEqual(Array(10).fill(0));
-    const blocked = sim.MOTIFS.flatMap((m) => sim.motifBlockers(m.id));
-    expect(blocked).toHaveLength(15);
+  it('형상(C14b): 빌드 1의 10개 = 마블링 절차 형상(경로 없음), 새 15개 = 붓 경로 → 자리표시 0, 제품 출시 차단 0', () => {
+    expect(sim.MOTIFS.filter((m) => m.paths.length === 0).map((m) => m.unlockAtCards)).toEqual(Array(10).fill(0));
+    expect(sim.MOTIFS.filter((m) => m.paths.length > 0).every((m) => m.unlockAtCards > 0 && m.seat)).toBe(true);
+    expect(sim.MOTIFS.filter((m) => m.placeholder)).toEqual([]);
+    expect(sim.MOTIFS.flatMap((m) => sim.motifBlockers(m.id))).toEqual([]);
     for (const m of sim.MOTIFS) {
       expect(sim.motifUsable(m.id, true)).toBe(true);
-      expect(sim.motifUsable(m.id, false)).toBe(!m.placeholder);
+      expect(sim.motifUsable(m.id, false)).toBe(true);
     }
   });
 
@@ -122,7 +123,7 @@ describe('한 밤씩 대조 — 같은 기록·같은 난수 → 같은 장면·
           }
         }
     expect(nights).toBeGreaterThan(30000);
-  });
+  }, 30000); // 무거운 전수 시험 — 기계가 바쁠 때(다른 작업 병렬) 기본 5초를 넘는 일이 있어 넉넉히(C14b, 바꾸기 전 코드에서도 같게 걸림)
 });
 
 /** 문서 2-6 표(구역 | 밤 | 보름 | R1 | R2 | R3 | R4 | 재등장 | 공백)를 문서 파일에서 읽는다 */

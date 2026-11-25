@@ -7,7 +7,7 @@ const NQ = DREAM_LIMITS.post;
 const NS = DREAM_LIMITS.segs;
 
 export const MARBLE_SKSL = /* sksl */ `
-// 스칼라 묶음 4 vec4 + 색 2 vec4: u0 = (origin.xy, unit, aa), u1 = (shift.xy, grain, yLim), u2 = (fade.xyz, -), u3 = (npre, npost, nseg, -)
+// 스칼라 묶음 4 vec4 + 색 2 vec4: u0 = (origin.xy, unit, aa), u1 = (shift.xy, grain, yLim), u2 = (fade.xyz, 결 판 0|1), u3 = (npre, npost, nseg, -)
 uniform float4 u0;
 uniform float4 u1;
 uniform float4 u2;
@@ -39,7 +39,12 @@ float2 undoOp(float2 p, float4 A, float4 B, inout float4 res) {
   if (ty < 0.5) {
     float2 d = p - A.xy;
     float l2 = dot(d, d);
-    float r2 = A.z * A.z;
+    // 방울 가장자리를 붓맛으로(블라인드 판정: 달·눈이 칼같이 매끈한 흰 원) — 각도 따라 반경이 조금 흔들린다. 맑은 방울은 더,
+    // 몽망이 자리(B.y)는 그대로. 안 판정과 밀어내기에 같은 반경을 써서 이음이 없다
+    float wob = (u2.w < 0.5 || B.y > 0.5) ? 0.0 : (A.w < 0.02 ? 0.09 : 0.035);
+    float2 dn = d / max(sqrt(l2), 1e-6);
+    float rr = A.z * (1.0 + wob * (vnoise(dn * 2.6 + A.xy * 37.0) - 0.5) + wob * 0.5 * (vnoise(dn * 7.0 + A.xy * 53.0) - 0.5));
+    float r2 = rr * rr;
     if (l2 < r2) { res = float4(1.0, A.w, B.x + 2.0 * B.y, l2 / r2); return p; }
     return A.xy + d * sqrt(1.0 - r2 / l2);
   } else if (ty < 1.5) {
@@ -130,8 +135,19 @@ half4 main(float2 xy) {
       } else {
         float t2 = r.w;
         float edge = smoothstep(0.8, 1.0, t2) + 0.55 * smoothstep(0.12, 0.0, t2);
-        float dens = r.y * (1.0 + 0.32 * edge);
-        dens *= 0.9 + 0.1 * vnoise(p * 140.0) + 0.12 * (vnoise(p * 18.0) - 0.5);
+        // 띠 안 먹 농담(블라인드 판정: 띠마다 회색 한 톤) — 가장자리 먹 고임을 키우고, 띠를 따라 먹이 고였다 마른 얼룩(낮은 주파수)과
+        // 번진 결(중간 주파수)을 넣는다. 결정적(장면 좌표의 함수)
+        float dens;
+        if (u2.w < 0.5) {
+          // 판 0(빌드 1) 그대로
+          dens = r.y * (1.0 + 0.32 * edge);
+          dens *= 0.9 + 0.1 * vnoise(p * 140.0) + 0.12 * (vnoise(p * 18.0) - 0.5);
+        } else {
+          float pool = vnoise(p * 9.0 + r.y * 17.0);
+          dens = r.y * (1.0 + 0.5 * edge);
+          dens *= 0.72 + 0.56 * pool;
+          dens *= 0.9 + 0.1 * vnoise(p * 140.0) + 0.16 * (vnoise(p * 34.0 + 5.3) - 0.5);
+        }
         // 찍을 때 먹이 덜 묻은 작은 반점(탁본 결)
         float hole = smoothstep(0.7, 0.95, vnoise(p * 260.0 + 3.1)) * 0.22 * smoothstep(0.3, 0.8, r.y);
         dens *= 1.0 - hole;
