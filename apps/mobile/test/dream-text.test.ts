@@ -86,7 +86,7 @@ describe('캡션 조립', () => {
   it('ko: 원인 + 결과, en: 결과 — 원인', () => {
     expect(dreamCaption(card('near-with.umbrella', { cause: 'near-with.2' }))).toBe('요즘 손가락에 몸을 비비더니 간밤 꿈엔 우산 하나를 같이 썼어요');
     setLanguagePref('en');
-    expect(dreamCaption(card('near-with.umbrella', { cause: 'near-with.2' }))).toBe('Last night it shared one umbrella — it nuzzles your finger lately');
+    expect(dreamCaption(card('near-with.umbrella', { cause: 'near-with.2' }))).toBe('Last night it shared one umbrella — lately it’s been nuzzling your finger');
   });
 
   it('원인이 없으면(성향이 약함·빌드 1 카드) 결과만', () => {

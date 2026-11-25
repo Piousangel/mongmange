@@ -37,7 +37,7 @@ describe('영어 아침 문장(원작 — 결과 먼저, 까닭 뒤)', () => {
   });
   it('관찰·이레', () => {
     expect(morningLine({ kind: 'observation', axis: null, keys: [] }, card)).toBe('Last night it dreamed of a full moon');
-    expect(morningLine({ kind: 'seven-day', axis: null, keys: [] }, card)).toMatch(/^Seven days have passed/);
+    expect(morningLine({ kind: 'seven-day', axis: null, keys: [] }, card)).toMatch(/^Seven nights have passed/);
   });
   it('모르는 키도 빈칸이 아니다', () => {
     expect(morningLine({ kind: 'change', axis: 'tempo', keys: ['cause.zzz.plus', 'effect.zzz.plus.x'] }, card)).toBe('Something in the grain of the ink has shifted');

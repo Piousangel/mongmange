@@ -713,3 +713,8 @@
   - N2: `gateRemoteFlag`가 undefined가 아닌 false를 내는 것을 번들 true 경우로 고정(`resolveFeature` 순수 함수로 층 합치기). `sendAll` 끝의 동의 재확인은 마지막 await 뒤라 동의가 바뀔 틈이 없는 죽은 줄이라 지웠다(요청 뒤 확인이 같은 일을 한다).
   - C10b 맞물림: **충족**(C11 재리뷰 2 확인) — C10b 92116a6의 `withSessionBackupExclusion.js`가 최종 산출물 검증 뒤 `extra.mongSessionBackupExcluded = true`를 쓰고 c10b-backup 시험이 고정, nativeFlags와 이름·타입·조건 일치. 12-12 리허설에서 빌드 산출물 `expoConfig.extra` 값 한 번 확인.
   - 증거: `pnpm verify` 7단계 통과, cloud 72·net-auth·net-features 18 등 통과. 변이 6개(가드가 못 받음도 orphan·어댑터가 갱신 실패를 none·no_account 뒤 확인 실패를 orphan·못 받음이면 signup·던짐을 none·cloud 문 undefined) 모두 잡힘, 복원 cmp 일치.
+
+## 2026-11-25 오너 결정 — ML Kit 연령·열람 화면 (법률 v2 뒤)
+
+- [오너 11-25] 손글씨 인식(ML Kit)은 **만 14세 확인 전에도 모두에게** 쓴다. 처리방침에 받는 자·항목·목적·보유 기간을 고지(법률 v2: 위탁·제3자 제공 아님). 사람 전문가가 H-1을 다르게 판단하면 V0-5 '연령 미확인 기기만 키보드' 갈래(v0-5-amendments)로 바꾼다.
+- [오너 11-25] '서버에 맡긴 것 보기'(열람) 화면은 **맡겨 두기를 켜는 판**에 넣는다. 그 전에는 서버에 개인정보가 거의 없어 hello@ 메일 처리로 충분 — 로드맵 C12f.

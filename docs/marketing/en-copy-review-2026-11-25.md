@@ -271,3 +271,63 @@
 - 3-1 낮음(privacyPlan 문장 정리·`put in`·Gmail 문장): 이번 범위 밖. 다음 문구 정리 때.
 
 **검증**: `npx vitest run`(web-static) 84개 통과 — 새 시험 '영문 검수 11-25 반영'(옛 문구 부재·하루 셋째 줄 = 스토어 문장·'지금' = 테스터판 1-1·1-2). 변이 1개(en privacyNow에 옛 '메일뿐' 문장을 되살림) → 그 시험만 실패 확인 후 원복. `pnpm verify --only static-empty,lint` 통과.
+
+---
+
+## 10. 반영 기록(앱) — `apps/mobile/src/i18n/en.ts` (2026-11-25, 영문 작가 + DV-1)
+
+범위: en.ts만 고쳤다(ko는 그대로). 앱 안 다른 파일(위젯·플러그인·app.json·tsx)에는 해당 영어 문구가 없었다(grep 0건). 위기 '이야기 나눌 곳'·밥(D-27) 문구는 아직 앱에 키가 없어 해당 없음. 시험 기대값 2곳(`test/dream-text.test.ts`·`test/text.test.ts`)은 바뀐 문장에 맞췄다.
+
+| # | 키 | 이전 | 이후 | 검수 항목 |
+|---|---|---|---|---|
+| 1 | motif.near-alone.washing-line | `washi on the line` | `hanji on the line` | H1, 1절 en.ts:213 |
+| 2 | scene.near-alone.washing-line | `Two sheets of washi paper sway on a line` | `Two sheets of hanji sway on a line` | H1, 1절 en.ts:228 |
+| 3 | caption.line.near-alone.washing-line | `Sheets of washi swayed on a line` | `Sheets of hanji swayed on a line` | H1, 1절 en.ts:272 |
+| 4 | intro.a11yHint | `Double-tap to touch it` | `Touches the drop of ink` | 1절 en.ts:19 |
+| 5 | home.mong.hint | `Double-tap to pet` | `Pets ${M}` | 1절 en.ts:52 |
+| 6 | sheet.handle.hint | `Double-tap to close` | `Closes the sheet` | 1절 en.ts:124 |
+| 7 | obj.list.hold | `{name} · {label} (press and hold)` | `{name} · {label} (touch and hold)` | 1절 en.ts:48 |
+| 8 | tag.seal.a11y | `Seal. Its own chipped edge. Long press for the pattern letters` | `Seal, with its own chipped edge. Touch and hold to see its seal pattern` | 1절 en.ts:363, 용어집 '인장 무늬 = seal pattern' |
+| 9 | cloud.code.copyHint (C12) | `Press and hold the phrase to copy it` | `Touch and hold the phrase to copy it` | 1절 en.ts:48과 같은 용어 통일 |
+| 10 | ink.stick.hint | `…${M}'s strokes will take this ink` | `…${M}'s strokes will be in this ink` | 1절 en.ts:40 (낮음) |
+| 11 | ink.changed.a11y | `…New strokes take this ink` | `…New strokes will be in this ink` | 10과 같은 표현 |
+| 12 | home.seal.a11y | `Studio notebook` | `Studio Notebook` | 1절 en.ts:56·131, 용어집 |
+| 13 | tag.back.a11y | `Back to the studio notebook` | `Back to the Studio Notebook` | 12와 같음 |
+| 14 | line.lostSave | `…the original is kept safe on this device` | `…the original is still on this device` | 1절 en.ts:70 |
+| 15 | scroll.title | `The First Seven Days` | `The First Seven Nights` | 1절 en.ts:114, 용어집 '이레' |
+| 16 | share.ire | `Share the seven-day scroll` | `Share the seven-night scroll` | 용어집 '이레'(seven-day 쓰지 않음) |
+| 17 | poem.sevenDay | `Seven days have passed. Your first stroke…` | `Seven nights have passed. Your first stroke…` | 용어집 '생애는 nights로 센다' |
+| 18 | scene.near-alone.inkstone | `${M} sleeps curled beside an inkstone, a stone for grinding ink, pooled with water` | `${M} sleeps curled beside an inkstone pooled with water` | 1절 en.ts:227 (낮음) |
+| 19 | caption.cause.near-alone.1 | `it watches small things lately` | `lately it’s watched small things` | 1절 en.ts:254~268 `lately` 비문 |
+| 20 | caption.cause.near-with.1 | `it keeps close to things lately` | `lately it’s kept close to things` | 같음 |
+| 21 | caption.cause.near-with.2 | `it nuzzles your finger lately` | `lately it’s been nuzzling your finger` | 같음 |
+| 22 | caption.cause.far-alone.1 | `it gazes far off lately` | `lately it’s been gazing far off` | 같음 |
+| 23 | caption.cause.far-alone.3 | `its gaze rests far away lately` | `lately its gaze has rested far away` | 같음 |
+| 24 | caption.cause.far-with.1 | `it looks far, then near, lately` | `lately it’s looked far, then near` | 같음 |
+| 25 | caption.cause.center.1 | `it favors no direction lately` | `lately it leans no particular way` | 같음(favors/favours 철자 갈림도 피함) |
+| 26 | poem.cause.tapSpread.plus | `you showed it all around yesterday` | `you tapped all around it yesterday` | 1절 en.ts:322 |
+| 27 | poem.cause.tapSpread.minus | `you showed it just one spot yesterday` | `you tapped just one spot yesterday` | 1절 en.ts:323 |
+| 28 | note.tag | `Our ${M}` | `Name tag` | 1절 en.ts:356 |
+| 29 | note.tag.a11y | `Open our ${M}'s name tag` | `Open ${M}'s name tag` | 1절 en.ts:357 |
+| 30 | name.input.hint · name.err.length | `Up to 12 letters, or 6 Hangul syllables` | `Up to 12 characters, or 6 Hangul syllables` | 1절 en.ts:336·343 (낮음) |
+| 31 | note.metrics.a11y (C11) | `Open send usage statistics. Now {state}` | `Open Send usage statistics. Now {state}` | 용어집 원칙 ③(기능 이름 대문자, `Open Keep it safe`와 같은 꼴) |
+| 32 | metrics.under (C11) | `…can’t be turned on on this device.…` | `…can’t be turned on for this device.…` | 'on on' 겹침 — 뜻 같음 |
+| 33 | cloud.failed.server (C12) | `…so this didn’t happen yet.` | `…so it hasn’t gone through yet.` | 시제 비문 — 뜻 같음 |
+| 34 | cloud.code.private (C12) | `…Don’t send it to anyone, or by email.` | `…Don’t give it to anyone or send it by email.` | 어색한 병렬 — 뜻 같음 |
+| 35 | cloud.confirm.mismatch (C12) | `…Look at the phrase again and check.` | `…Please check the phrase again.` | 중복 — 뜻 같음 |
+| 36 | cloud.choose.conflict (C12) | `The Mongmangi left from another device…` | `The Mongmangi left with us from another device…` | 용어 통일('left with us' = 맡겨 둔) |
+| 37 | cloud.on.held.quota (C12) | `Today’s share is used up.…` | `You’ve reached today’s limit.…` | 'share'가 기능 Share by link와 겹침 — 뜻 같음 |
+
+- 캡션 길이 상한(en 80자, `dream-text.test.ts` 3-6 산식)에 걸려 19·20·24는 검수 제안(`lately it's been …ing`) 대신 현재완료 단순형으로 줄였다(가장 긴 결과 줄 40자 + ' — ' + 원인 ≤ 80).
+
+**고치지 않은 것과 이유**
+
+- **H6 '하루 한 획' → '한 마디'(obj.brush.*·line.*·note.stroke*·assist.*·poem.cause.speed/len/dist/novel 등)**: 지금 앱은 여전히 획을 긋는 화면(손·버튼 긋기, 획 씻기)이다. 쓰기 화면(로드맵 V3)과 획 씻기 제거(V8)가 들어오기 전에 영어만 'word'로 바꾸면 화면과 문구가 어긋나고 ko와도 갈린다. 검수 H6 처방도 'v3 키 작업 때'이고, 로드맵 **V14 문구 '한 마디'**(PL-2, 빌드 2/RC)가 바로 이 일이다 → V14 때 용어집으로 ko·en 함께.
+- **결 이름 8(temper.name, 1절 en.ts:119)**: 서버 `apps/server/src/pages/m-copy.ts`와 `test/ire-video.test.ts`가 같은 이름을 쓰고, D-17 원어민 2명 평정 전이다. 8절 질문 1 결과 뒤 앱·서버를 같은 날 바꾼다.
+- **Plum-smoke → Violet-smoke(용어집)**: 원어민 평정 항목(8절 4), 서버 m-copy와 같은 이름.
+- **C11·C12 문구의 하드코딩 `Mongmangi`(50곳)**: 다른 문구는 brand.ts `MONG_EN`(`${M}`)을 쓰는데 C11·C12는 이름을 글자로 박았다. 영어 이름이 바뀌면(7절, 12-05) 이 문구들이 따라가지 않고, 복수형(`Three Mongmangi`)도 이름마다 달라진다. 뜻은 그대로지만 문장 틀을 바꾸는 일이라 이번엔 손대지 않음 → 이름 확정 직후 한 번에.
+- **3-2 delete 페이지 메뉴 이름**: 앱은 `Erase what we keep`(C12), web·처리방침 en은 `Delete what's kept on the server`. 앱 라벨을 바꾸면 C12 '지우기'(erase) 계열 문구 20여 곳의 동사가 함께 바뀌어야 해 이번 범위를 넘음 → 웹·처리방침 쪽을 앱 라벨에 맞추는 안을 출시·정책에 제안.
+- 낮음 중 선택 항목(`notif.ask`의 Shall we, `gourd dipper`)과 `tag.days.a11y`의 `Seven-day dots`: 그대로(원어민 검수·V14 때).
+- **ko에도 같은 문제(목록만, 고치지 않음)**: ① `poem.cause.tapSpread.*` '어제 여기저기 보여 줘서'·'어제 한곳을 보여 줘서' — 실제 뜻(여기저기 톡톡 건드림)과 달리 '구경시켜 줌'으로 읽힘 ② '오늘의 한 획' 계열 v2 문구 전부(H6, V14).
+
+**검증**: `apps/mobile` vitest 537개 중 530 통과·7 건너뜀(i18n 키 일치·한글/영문 섞임·광고체 금지어·캡션 길이 상한 포함), `tsc --noEmit` 통과. `pnpm verify` 7단계 전부 통과(첫 실행 때 web-static 6건 실패는 같은 시각 다른 담당의 미커밋 처리방침 수정 때문이었고, 그 커밋 0a31f63 뒤 다시 돌려 통과). 글자 200%·320폭: `scripts/c12-capture.mjs`(포트 8144) ko·en 넘침 0·가로 스크롤 0·오류 0, `scripts/c11-capture.mjs`(포트 8144) ko·en × 100·200%·320폭 넘침 0·가로 스크롤 0·오류 0, 흐름(통계 켜기·끄기·14세 미만·링크 알리기) 통과. 캡처는 저장소에 넣지 않았다(기존 `docs/app/c11`·`c12` 그대로). 서버는 끝난 뒤 껐다.
