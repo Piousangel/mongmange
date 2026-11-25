@@ -21,10 +21,18 @@
 | `docs/creative/v1/img/*.png` 17장(01a~06c) | Figma MCP `generate_image` · gpt-image-2.5-flare 16장, `01b-day0-expressions-gemini.png`만 gemini-3.1-flash-image | `AIt2sfjDp4IHeRLcswb3mJ` 1:2~1:18 | 11-19 | 아트 바이블 v1 탐색 | 금지 |
 | `docs/creative/c14b-ref/*.jpg` 10장(letter-1~3, palm-1~3, window-1~3, kite-1 — 원본 PNG를 640px JPG로 줄임) | Figma MCP `generate_image` · gemini-3.1-flash-image | `iSFrS9WX2yICuXVJbctIHN` 1:2~1:11 | 11-25 | C14b 꿈 모티프 3차 수묵·마블링 레퍼런스(참고용, **앱 번들 금지** — 붓맛은 셰이더·경로로 다시 만든다) | 금지 |
 | `docs/creative/c14b-ref/<모티프>-f1~f4.jpg`·`-p1~p2.jpg` 42장(letter·palm·window·kite·boat·umbrella·path 각 6, 640px JPG) | Gemini API 직접(`scripts/gemini-ref.mjs`, 키 = env `GEMINI_API_KEY`) · f = gemini-3.1-flash-image, p = gemini-3-pro-image | — | 11-25 | C14b 3차 수묵·마블링 레퍼런스(참고용, **앱 번들 금지**). 고른 안은 `docs/app/c14b/compare-ref.png` ★ | 금지 |
+| `docs/creative/meal-ref/{clear-ink,pine-pollen-ink,dew-ink}-f1~f3.jpg` 9장 | Gemini API 직접(`scripts/gemini-meal-ref.mjs`) · gemini-3.1-flash-image | — (프롬프트 원문 `docs/creative/meal-ref/prompts.json`) | 11-25 | V30 선행 밥 3종 아이콘 탐색 | **탐색 — 앱 사용 전 손질·리뷰 필요** |
+| `docs/creative/meal-ref/{clear-ink,pine-pollen-ink,dew-ink}-p1.jpg` 3장 | 같음 · gemini-3-pro-image | 같음 | 11-25 | 같음 | 탐색 — 앱 사용 전 손질·리뷰 필요 |
+| `docs/creative/meal-ref/{patterned-chip,ink-ribbon,dewdrop}-f1~f3.jpg` 9장 | 같음 · gemini-3.1-flash-image | 같음 | 11-25 | V30 선행 간식 3종 아이콘 탐색 | 탐색 — 앱 사용 전 손질·리뷰 필요 |
+| `docs/creative/meal-ref/{patterned-chip,ink-ribbon,dewdrop}-p1.jpg` 3장 | 같음 · gemini-3-pro-image | 같음 | 11-25 | 같음 | 탐색 — 앱 사용 전 손질·리뷰 필요 |
+| `docs/creative/meal-ref/{inkstone-empty,inkstone-spoon,inkstone-clear}-f1~f3.jpg` 9장 | 같음 · gemini-3.1-flash-image | 같음 | 11-25 | V30 선행 벼루 연지 상태 3종 탐색(V12b 굽기 목표 이미지) | 탐색 — 앱 사용 전 손질·리뷰 필요 |
+| `docs/creative/meal-ref/{inkstone-empty,inkstone-spoon,inkstone-clear}-p1.jpg` 3장 | 같음 · gemini-3-pro-image | 같음 | 11-25 | 같음 | 탐색 — 앱 사용 전 손질·리뷰 필요 |
+| `docs/creative/meal-ref/sheet.png` | 팀 작성 코드(`scripts/meal-ref-sheet.mjs`)가 위 생성물을 배치·축소·알파 손질 1차 | — | 11-25 | 고른 안 비교 시트(64·128pt·다크) | 탐색 |
 
 - 확인 필요: rival 문서 머리말은 "9장 중 8장 gpt, 1장 gemini"라고 적었는데 파일은 10장·노드 10개다. `A4-in-engine`·`B4-in-engine`이 생성 이미지인지 코드 렌더인지 작성자(경쟁 디렉터)가 이 표를 고친다. 그전까지는 생성 이미지로 취급한다.
 - Figma 에셋 URL은 7일 뒤 만료된다. 로컬 사본이 원본이다. 프롬프트 원문은 각 Figma 노드 생성 기록에 있다.
-- 합계: AI 생성 이미지 104장(7 + 10 + 17 + 10 + 42 + 18), 출시물 사용 6장(1-1 표, 손질본·4차 아트 리뷰 통과 조건). C14b 레퍼런스 처음 10장은 Figma AI로 만들다 크레딧 한도(11-25)에 걸려, 나머지는 Gemini API로 직접 만들었다. **Gemini API 생성물 약관도 출시 전 할 일 1번에 함께 확인한다.**
+- 밥·간식 36장(11-25): Gemini 2K(2048px) 출력을 1536px JPG(품질 90)로 줄인 사본이다. 앱에 쓰려면 머리말 오너 결정 11-25 조건 ①~⑥을 거쳐 1-1 같은 손질본 행(`출시 사용: 앱`, 손질 내용 포함)을 새로 만든다. 판정은 `docs/creative/meal-ref/README.md`.
+- 합계: AI 생성 이미지 140장(7 + 10 + 17 + 10 + 42 + 18 + 밥·간식 36), 출시물 사용 6장(1-1 표, 손질본·4차 아트 리뷰 통과 조건). C14b 레퍼런스 처음 10장은 Figma AI로 만들다 크레딧 한도(11-25)에 걸려, 나머지는 Gemini API로 직접 만들었다. **Gemini API 생성물 약관도 출시 전 할 일 1번에 함께 확인한다.**
 
 ## 1-1. 앱 에셋으로 쓰는 AI 생성물(손질본) — C14b 4차 혼합안
 

@@ -1,0 +1,9 @@
+[{"item":"clear-ink","file":"clear-ink-p1","label":"밥 · 맑은 먹"},
+{"item":"pine-pollen-ink","file":"pine-pollen-ink-f3","label":"밥 · 송화 먹"},
+{"item":"dew-ink","file":"dew-ink-f1","label":"밥 · 이슬 먹"},
+{"item":"patterned-chip","file":"patterned-chip-f1","label":"간식 · 무늬 먹 조각"},
+{"item":"ink-ribbon","file":"ink-ribbon-f1","label":"간식 · 늘인 먹 한 가락"},
+{"item":"dewdrop","file":"dewdrop-f2","label":"간식 · 이슬 한 방울"},
+{"item":"inkstone-empty","file":"inkstone-empty-f2","label":"연지 · 비어 있음"},
+{"item":"inkstone-spoon","file":"inkstone-spoon-f3","label":"연지 · 한 숟갈"},
+{"item":"inkstone-clear","file":"inkstone-clear-f3","label":"연지 · 맑은 먹"}]
