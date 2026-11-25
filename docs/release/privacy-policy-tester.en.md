@@ -25,7 +25,8 @@ The only information this test build sends to our server or to other companies i
 - What the request carries: platform, app runtime version and update channel, the identifiers of the update currently in use and of the update built into the App (the same values for every tester on the same version), your IP address, and basic connection information such as the User-Agent.
 - What is not sent: the random per-installation identifier, the identifiers of failed updates and the error message that stopped the App, which the update component adds as standard, are replaced with the same fixed value (or an empty value) for every tester. So an update check cannot tell installations or devices apart.
 - We use only the values needed to pick the right update, in the moment, and do not keep them in our database or our server records (app logs). To block excessive requests, the server uses your IP address (for IPv6, the first 64 bits) in memory for about one minute only to count requests.
-- The cloud provider's (Google Cloud Run's) access logs record the IP address, User-Agent, request path, time and similar details, and are deleted after 7 days.
+- The cloud provider (Google Cloud Run) creates an access log for each request with the IP address, User-Agent, request path, time and similar details, but we have set things up so that we do not receive or keep these logs. We may receive them briefly only while investigating an outage, and anything received then is deleted after at most 7 days. Our own server records (app logs and error logs) are kept for 7 days and do not include IP addresses or User-Agents.
+- We have not turned on the feature that sends Firebase Hosting's request logs for update requests to our logs, so we do not receive them. Any records Google keeps itself to run the service follow Google's policy.
 - A downloaded update is applied the next time the App starts fresh; it never changes while you are using the App.
 
 ### 1-2. Handwriting recognition (every tester)
@@ -64,7 +65,8 @@ The following is stored only on your device and is not sent to us. It is deleted
 | Item | Kept for |
 |---|---|
 | Values in update checks | Not stored |
-| Cloud access logs (IP address, User-Agent, request path, time and similar details) | 7 days |
+| Cloud access logs (Cloud Run request logs — IP address, User-Agent, request path, time and similar details) | Not received. We receive them briefly only while investigating an outage, and anything received then is kept at most 7 days |
+| Our own server records (app logs and error logs) | 7 days. They do not include IP addresses or User-Agents |
 | Emails asking to join the test and addresses in the tester list | Deleted 30 days after the official launch (right away if you ask) |
 | On-device information (section 2) | Until you uninstall the App (on your device only) |
 
@@ -76,7 +78,7 @@ We use the following providers. Because they are foreign companies or use facili
 
 | Recipient (contact) | Country | Items | When and how | Purpose | Retention |
 |---|---|---|---|---|---|
-| Google LLC (https://support.google.com/policies?p=privpol_privts) — Cloud Run, Cloud Logging | United States (company). Processed and stored in the Seoul region. The encrypted connection may be handled at a Google network edge location in a country near you | Request data in 1-1 (IP, User-Agent, request path, time) | During update checks; TLS | Running the update server, access logs | Access logs 7 days |
+| Google LLC (https://support.google.com/policies?p=privpol_privts) — Cloud Run, Cloud Logging | United States (company). Processed and stored in the Seoul region. The encrypted connection may be handled at a Google network edge location in a country near you | Request data in 1-1 (IP, User-Agent, request path, time) | During update checks; TLS | Running the update server, server records | Our app and error logs 7 days (no IP or User-Agent). Request access logs not received (at most 7 days, only while investigating an outage) |
 | Google LLC — Firebase Hosting | Countries near where you connect (worldwide delivery network) | IP address, update checks and update files | During update checks; TLS | Passing on update requests, delivering files | No logs kept by us; per Google's policy |
 | Google LLC — ML Kit (handwriting recognition) | United States (company) | Diagnostic data in 1-2, IP address when downloading the model | When the model is downloaded and while recognition runs; TLS | Model delivery, ML Kit diagnostics and usage analytics | Per Google's policy |
 | Google LLC — Google Play Console | United States (company) | Tester email address | When you are added as a tester | Managing the closed test's testers | Removed from the list 30 days after the official launch |
@@ -96,7 +98,7 @@ We use the following providers. Because they are foreign companies or use facili
 
 - You may ask to access, correct, delete, or stop the processing of your personal information at any time by emailing hello@mongmang.ink.
 - We delete test request emails and your address in the tester list right away if you ask.
-- On-device information is deleted when you uninstall the App. Update checks are not stored, so there is no record to delete, and cloud access logs are deleted automatically after 7 days.
+- On-device information is deleted when you uninstall the App. Update checks are not stored, so there is no record to delete, and we do not receive cloud access logs; any received while investigating an outage are deleted automatically after at most 7 days.
 
 ## 9. Cookies and tracking
 
