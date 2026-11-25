@@ -2,7 +2,7 @@
 // 앱이 더하는 것은 ① 시각(now, 개발 메뉴 시간 가속 오프셋) ② 저장(MMKV 슬롯) ③ 효과(effects) 구독자에게 나눠 주기 ④ 앱 메타(설정).
 // 설치됨 = 세이브가 있음, 하나로만 판정한다(메타 플래그와 이원화하지 않음, 리뷰 C7).
 // 저장소 예외는 던지지 않는다: 쓰기 실패면 saveError만 세우고 메모리 상태로 계속 간다(리뷰 C4).
-import { readSave, sim, writeSave, clearSave, type KV } from '@mong/core';
+import { readSave, sim, v3, writeSave, clearSave, type KV } from '@mong/core';
 import { useSyncExternalStore } from 'react';
 import { DEFAULT_SOUND_SETTINGS, type SoundSettings } from '../audio/soundMap';
 import { setLanguagePref, type LanguagePref } from '../i18n';
@@ -12,8 +12,9 @@ import { ensureNameTimingGroup } from './abGroup';
 import { isOn } from '../features';
 
 type State = sim.State;
-type Effect = sim.Effect;
-type Event = sim.Event;
+/** v3 효과는 sim 효과의 상위 집합(새 컨셉이 꺼져 있으면 sim 효과만 온다) */
+type Effect = v3.V3Effect;
+type Event = v3.V3Event;
 /** at을 뺀 이벤트(시각은 저장소가 붙인다) */
 export type EventInput = Event extends infer E ? (E extends { at: number } ? Omit<E, 'at'> : never) : never;
 
@@ -70,6 +71,11 @@ export const DEFAULT_META: Meta = {
 
 export interface Snapshot {
   state: State | null;
+  /**
+   * 새 컨셉 v3 블록(플래그 conceptV3로 부팅했을 때만). 있으면 세이브는 v3 키에 쓰고 이벤트는 core v3.reduceV3를 거친다.
+   * sim 상태(state)는 그대로 두어 기존 화면(밤·아침 카드·획)이 같은 값을 읽는다
+   */
+  v3: v3.V3Block | null;
   meta: Meta;
   /** 복원 경로(디버그·리포트용) */
   restoredFrom: 'main' | 'backup' | 'none' | 'fresh';
@@ -82,7 +88,13 @@ export interface Snapshot {
 
 let kv: KV = defaultKV;
 let clockFn: () => number = () => Date.now();
-let snap: Snapshot = { state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null };
+let snap: Snapshot = { state: null, v3: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null };
+/** 부팅 때 정한 모드(새 컨셉 v3로 도는가). 바꾸려면 다시 부팅(개발 메뉴) */
+let v3Mode = false;
+export function isV3Mode(): boolean {
+  return v3Mode;
+}
+const full = (): v3.V3State | null => (snap.state && snap.v3 ? { sim: snap.state, v3: snap.v3 } : null);
 const subs = new Set<() => void>();
 type EffectFn = (effects: Effect[], ev: Event | null, state: State) => void;
 const effectSubs = new Set<EffectFn>();
@@ -91,7 +103,8 @@ const effectSubs = new Set<EffectFn>();
 export function __configureForTest(opts: { kv: KV; now?: () => number }) {
   kv = opts.kv;
   clockFn = opts.now ?? (() => Date.now());
-  snap = { state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null };
+  snap = { state: null, v3: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null };
+  v3Mode = false;
   effectSubs.clear();
 }
 
@@ -133,8 +146,8 @@ export function setMeta(patch: Partial<Meta>) {
   emit({ meta });
 }
 
-function persist(state: State, rotateBackup: boolean) {
-  const r = writeSave(kv, state, now(), { rotateBackup });
+function persist(state: State, rotateBackup: boolean, block: v3.V3Block | null = snap.v3) {
+  const r = v3Mode && block ? v3.writeSaveV3(kv, { sim: state, v3: block }, now(), { rotateBackup }) : writeSave(kv, state, now(), { rotateBackup });
   if (!r.ok) {
     // 검증·저장소 실패: 본·백업은 그대로 둔다. 화면은 계속 메모리 상태로 돈다
     console.warn('[save] 쓰지 못함:', r.error);
@@ -142,18 +155,26 @@ function persist(state: State, rotateBackup: boolean) {
   } else if (snap.saveError) emit({ saveError: null });
 }
 
-function apply(step: sim.Step, ev: Event | null, save: boolean) {
-  emit({ state: step.state });
+function apply(step: { state: State; effects: Effect[] }, ev: Event | null, save: boolean, block: v3.V3Block | null = snap.v3) {
+  emit({ state: step.state, v3: block });
   // 백업 = 어제의 몽망이: 깬 직후(이번 걸음에 woke가 있으면) 직전 본을 백업으로 민다
-  if (save) persist(step.state, step.effects.some((e) => e.type === 'woke'));
+  if (save) persist(step.state, step.effects.some((e) => e.type === 'woke'), block);
   if (step.effects.length > 0) effectSubs.forEach((f) => f(step.effects, ev, step.state));
+}
+function applyV3(step: v3.V3Step, ev: Event | null, save: boolean) {
+  apply({ state: step.state.sim, effects: step.effects }, ev, save, step.state.v3);
 }
 
 /** 콜드 스타트: 메타·세이브 복원 → 있으면 appForeground(그 시각까지 정산). 없으면 state=null(설치 전 = 인트로) */
 export function boot() {
   const meta = loadMeta();
   setLanguagePref(meta.lang);
-  snap = { ...snap, meta };
+  snap = { ...snap, meta, v3: null };
+  v3Mode = isOn('conceptV3');
+  if (v3Mode) {
+    bootV3();
+    return;
+  }
   const r = readSave(kv);
   if (r.error) console.warn('[save] 본 세이브 손상 → ', r.source, r.error);
   if (r.futureVersion) {
@@ -169,6 +190,22 @@ export function boot() {
   apply(sim.reduce(r.state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow(), ...nightFields() }), null, true);
 }
 
+/** 새 컨셉 v3 부팅: v3 키만 읽는다. 옛 세이브(v2)는 읽지 않고(1일차부터) 보관 키에 한 번 복사해 둔다(core readSaveV3) */
+function bootV3() {
+  const r = v3.readSaveV3(kv);
+  if (r.error) console.warn('[save v3] 본 세이브 손상 → ', r.source, r.error);
+  if (r.futureVersion) {
+    emit({ state: null, v3: null, restoredFrom: 'none', lostSave: false, futureSave: true });
+    return;
+  }
+  if (!r.state) {
+    emit({ state: null, v3: null, restoredFrom: r.source, lostSave: r.hadSave, futureSave: false });
+    return;
+  }
+  emit({ restoredFrom: r.source, lostSave: false, futureSave: false });
+  applyV3(v3.reduceV3(r.state, { type: 'appForeground', at: now(), tzOffsetMin: tzOffsetNow(), ...nightFields() }), null, true);
+}
+
 /** 설치(첫 탭 순간). 깨어 있고 앱이 앞에 있다. 첫 탭 좌표(W, 핵 원점)는 타고남 씨앗 재료(C-integrated 2-1) */
 export function install(firstTap?: { x: number; y: number }) {
   // 새 버전 세이브가 있는 옛 빌드에서는 설치하지 않는다(본을 덮어쓰지 않음, 리뷰 M-5)
@@ -178,8 +215,9 @@ export function install(firstTap?: { x: number; y: number }) {
   const birth: sim.BirthInput = { x: firstTap?.x ?? 0, y: firstTap?.y ?? 0, ms: at, installAt: at, entropy: entropy32().value };
   const state = sim.createInitial(at, tzOffsetNow(), seed, { birth });
   ensureNameTimingGroup(kv); // 설치 순간 이름 A/B 군을 정한다(통계 켜짐과 무관, B0 리뷰 I7)
-  emit({ state, restoredFrom: 'fresh', lostSave: false });
-  persist(state, false);
+  const block = v3Mode ? v3.emptyV3Block() : null;
+  emit({ state, v3: block, restoredFrom: 'fresh', lostSave: false });
+  persist(state, false, block);
 }
 
 /**
@@ -188,7 +226,8 @@ export function install(firstTap?: { x: number; y: number }) {
  * 호출 전 기기 본 원문 보존(PRE_RESTORE_KEY)과 서버 conflict 칸 업로드는 cloud/tasks.ts가 먼저 끝낸다.
  */
 export function adoptState(state: State): boolean {
-  if (snap.futureSave) return false;
+  // 새 컨셉 v3 세로 조각은 맡겨 두기와 아직 잇지 않았다(업로드 모양만 core v3.uploadWords로 고정)
+  if (snap.futureSave || v3Mode) return false;
   const r = writeSave(kv, state, now(), { rotateBackup: true });
   if (!r.ok) return false;
   // 정산 저장은 백업을 다시 밀지 않는다: 이 정산에서 깸이 나도(밤 사이 맡긴 본) 백업 칸 = 바꾸기 전 기기 본 그대로(리뷰 H1)
@@ -216,15 +255,33 @@ export function dispatch(input: EventInput): Effect[] {
   if (!s) return [];
   const night = input.type === 'putToSleep' || input.type === 'appForeground' ? nightFields() : {};
   const ev = { ...input, ...night, at: now() } as Event;
+  const f = full();
+  if (v3Mode && f) {
+    const step = v3.reduceV3(f, ev);
+    applyV3(step, ev, true);
+    return step.effects;
+  }
+  if (ev.type === 'write' || ev.type === 'feed') return [];
   const step = sim.reduce(s, ev);
   apply(step, ev, true);
   return step.effects;
+}
+
+/** 지금의 v3 전체 상태(새 컨셉으로 돌 때만) */
+export function getV3(): v3.V3State | null {
+  return v3Mode ? full() : null;
 }
 
 /** 앞에 있는 동안의 주기 정산(깸 등). 효과가 있을 때만 저장 */
 export function tickNow(): Effect[] {
   const s = snap.state;
   if (!s) return [];
+  const f = full();
+  if (v3Mode && f) {
+    const step = v3.tickV3(f, now());
+    applyV3(step, null, step.effects.length > 0);
+    return step.effects;
+  }
   const step = sim.tick(s, now());
   apply(step, null, step.effects.length > 0);
   return step.effects;
@@ -281,13 +338,44 @@ export function devNextMorning() {
   goForeground();
 }
 
+/**
+ * 연적으로 재우고 다음 아침까지(개발 메뉴 '밤 건너뛰기'): 졸리지 않으면 재울 수 있는 때까지 시계를 당긴다 → 연적 → 다음 아침 → 꿈 카드 건져 올림.
+ * 규칙은 sim이 정한다(canPutToSleep·nextTransition). 한 마디는 쓰지 않는다
+ */
+export function devSleepCycle() {
+  const s = snap.state;
+  if (!s) return;
+  if (s.phase === 'awake' && !sim.canPutToSleep(s, now())) {
+    const need = s.lastWakeAt + sim.TIME.sleepAfterWakeMs + 60_000 - now();
+    if (need > 0) setMeta({ devOffsetMs: snap.meta.devOffsetMs + need });
+    tickNow();
+  }
+  if (snap.state?.phase === 'awake') dispatch({ type: 'putToSleep' });
+  devNextMorning();
+  if (snap.state?.pendingCard) dispatch({ type: 'developCard' });
+}
+
+/** 개발 메뉴 '처음부터 다시'(새 컨셉): v3 세이브만 지우고 1일차 인트로로. 옛 세이브(v2)·보관본·설정은 그대로 */
+export function devRestartV3() {
+  v3.clearSaveV3(kv);
+  setMeta({ devOffsetMs: 0, firstNightShown: false });
+  emit({ state: null, v3: null, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null });
+}
+
+/** 개발 메뉴: 모드를 바꾼 뒤 다시 부팅(플래그 conceptV3) */
+export function devReboot() {
+  emit({ state: null, v3: null });
+  boot();
+}
+
 /** 세이브·메타 초기화 → 설치 전(인트로부터, 설치는 다시 첫 탭에) */
 export function devReset() {
+  if (v3Mode) v3.clearSaveV3(kv);
   clearSave(kv);
   try {
     kv.remove(META_KEY);
   } catch {
     /* 무시 */
   }
-  emit({ state: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null });
+  emit({ state: null, v3: null, meta: DEFAULT_META, restoredFrom: 'none', lostSave: false, futureSave: false, saveError: null });
 }

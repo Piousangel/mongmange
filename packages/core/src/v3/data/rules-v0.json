@@ -1,0 +1,987 @@
+{
+ "rulesVer": "0.4.0",
+ "note": "사전 정규화·대조 규칙(기계용). 사람용 설명은 README 3·4·5절. 순서가 곧 우선순위다. v0.2 = 독립 리뷰 C1·H2·H3·M2, v0.3 = 안전 검수(2026-11-24) 범주 반영: 조합 규칙·음운 접기·가림·초성 strong·무망감/짐/갇힘/작별·영어 구문·수단어 해시·캠페인 낮춤 / v0.4 = 보류 세트 v2 결과 문서 권고 6개를 범주 단위로 반영(완곡 핵·[대상]×[서술] 조합·자해 조합·영어 끼움/접미/삭제 오타·스포츠 예외·정규화 순서 명시). 보류 세트 v1·v2는 열지 않음",
+ "common": {
+  "unicode": "NFC",
+  "stripChars": " \t\n.,!?~…·:;\"'`()[]{}-_/\\|*^",
+  "keepAsEmoticonFirst": [
+   ":(",
+   ":-(",
+   ":)",
+   ":-)",
+   ":d",
+   ":-d",
+   "xd",
+   "<3",
+   "t_t",
+   ";(",
+   ");",
+   "^^",
+   "^_^",
+   "-_-"
+  ],
+  "emoticonMap": {
+   ":)": "bright.in.joy",
+   ":-)": "bright.in.joy",
+   "^^": "bright.in.joy",
+   "^_^": "bright.in.joy",
+   "-_-": "warm.in.languid",
+   ";(": "low.in.sad"
+  },
+  "repeatCollapse": {
+   "minRun": 3,
+   "collapseTo": [
+    2,
+    1
+   ],
+   "boostIfRunAtLeast": 5,
+   "boost": 1
+  },
+  "intensityRange": [
+   1,
+   3
+  ],
+  "compound": {
+   "split": "앞에서부터 모든 자리",
+   "mainPreference": "마음 가족(bright·warm·spiky·low)이 주 결, 둘 다 같은 종류면 뒤 말(서술어)이 주 결",
+   "crisisNeverFromSplit": true
+  },
+  "lowercaseLatin": true
+ },
+ "ko": {
+  "lengthLimit": 6,
+  "intensifierPrefixes": [
+   "완전",
+   "진짜",
+   "너무",
+   "엄청",
+   "되게",
+   "겁나",
+   "존나",
+   "졸라",
+   "개",
+   "존",
+   "핵",
+   "왕",
+   "킹",
+   "찐",
+   "넘"
+  ],
+  "attenuatorPrefixes": [
+   "조금",
+   "약간",
+   "살짝",
+   "좀"
+  ],
+  "trailingToneRuns": {
+   "ㅋ": "laugh",
+   "ㅎ": "laugh",
+   "ㅠ": "sad",
+   "ㅜ": "sad",
+   "ㄷ": "scared"
+  },
+  "suffixes": [
+   "했어요",
+   "했어",
+   "해요",
+   "하다",
+   "이야",
+   "이다",
+   "해",
+   "요",
+   "다",
+   "어",
+   "아",
+   "야",
+   "네",
+   "지",
+   "음",
+   "함",
+   "당",
+   "잉",
+   "용"
+  ],
+  "maxSuffixRounds": 2,
+  "minStemLength": 1,
+  "hyperboleTails": [
+   "죽겠어",
+   "죽겠다",
+   "죽겠네",
+   "죽겠당",
+   "죽겠음"
+  ],
+  "prefixMinRemainder": 2,
+  "prefixStripExceptions": [
+   "개강",
+   "개학",
+   "개인",
+   "개미",
+   "왕자",
+   "핵심",
+   "존경",
+   "찐빵",
+   "넘어"
+  ],
+  "hyperboleHeads": [
+   "죽겠다",
+   "죽겠어",
+   "죽겠네"
+  ],
+  "repeatUnits": [
+   1,
+   2
+  ]
+ },
+ "en": {
+  "lengthLimit": 15,
+  "lowercase": true,
+  "intensifierPrefixes": [
+   "so",
+   "very",
+   "super",
+   "really",
+   "too"
+  ],
+  "attenuatorPrefixes": [
+   "abit",
+   "kinda",
+   "little",
+   "slightly"
+  ],
+  "suffixes": [
+   "ing",
+   "ed",
+   "es",
+   "s",
+   "y",
+   "ly"
+  ],
+  "maxSuffixRounds": 1,
+  "minStemLength": 3
+ },
+ "order": [
+  "1 정규화(NFC·로마자 소문자·문장부호 제거, 이모티콘 토큰은 먼저 떼어 둠)",
+  "2 위기 대조(crisis 절차 ①~⑥, 공격형 정규화). 다른 어떤 규칙보다 먼저. 꼬리·접두·끼운 글자가 있어도 약해지지 않는다",
+  "3 이름 일치(기본 이름 표 + 세이브의 유저 이름) → x.call",
+  "4 가림 목록(muted, 운영 파일) 완전 일치 → x.unknown + muted",
+  "5 표면형 완전 일치(표제어 + forms)",
+  "6 반복 접기(1글자·2글자 단위, 2개 → 1개 순) 뒤 다시 5. 5번 이상 반복이면 강도 +1",
+  "7 강조·약화 접두 벗기기(남는 줄기 ko 2자 이상, 예외 목록 제외) 뒤 다시 5. 강도 ±1",
+  "8 끝 자모 꼬리 벗기기 뒤 다시 5",
+  "9 어미 벗기기(최대 2번) 뒤 다시 5",
+  "10 이모티콘 표",
+  "11 다른 언어 사전 표면형 일치",
+  "12 과장: (상태어)+'죽겠-' 또는 '죽겠-'+(상태어) → 상태어 결, 강도 3, hyperbole",
+  "13 두 말 합성 분할. 조각 하나라도 x.stay면 분할을 멈추고 x.stay soft. 아니면 마음 가족 쪽이 주 결, 다른 쪽은 secondary(꿈 가중 ×2만)",
+  "14 profane이면 강도 상한 2",
+  "15 모두 실패 → x.unknown(모르는 말)"
+ ],
+ "crisis": {
+  "note": "위기 대조 전용 공격형 정규화. 다른 단계에는 쓰지 않는다(결정성). 놓침 0이 먼저, 오탐은 그다음. 수단·방법 낱말은 평문 없이 해시로만 싣는다(법률 E-5). 모든 목록은 사람 확인 전 초안",
+  "exceptions": [
+   "그만살찌",
+   "그만살쪄",
+   "그만살찐",
+   "그만살빼",
+   "자살골",
+   "자해공갈",
+   "suicidesquad",
+   "suicidesqueeze",
+   "suicidesprint",
+   "suicidesprints",
+   "suiciderun",
+   "suicideruns",
+   "suicidedrill",
+   "suicidedrills",
+   "suicidepass",
+   "suicidekings",
+   "suicidedive",
+   "killshot",
+   "killstreak",
+   "suddendeath",
+   "deathmatch",
+   "deadball"
+  ],
+  "ko": {
+   "strong": [
+    "죽고싶",
+    "죽고시퍼",
+    "죽고십",
+    "죽구싶",
+    "죽구시퍼",
+    "주거싶",
+    "죽고파",
+    "뒤지고싶",
+    "디지고싶",
+    "뒈지고싶",
+    "죽어버리",
+    "죽어버릴",
+    "죽어야지",
+    "자살",
+    "자해",
+    "살기싫",
+    "사는게싫",
+    "살고싶지않",
+    "살고싶지안",
+    "살아서뭐",
+    "숨쉬기싫",
+    "안태어났",
+    "태어나지말",
+    "태어나지않",
+    "사라지고싶",
+    "사라질래",
+    "없어지고싶",
+    "없어질래",
+    "그만살래",
+    "그만살고",
+    "극단적선택",
+    "유서쓰",
+    "유서썼",
+    "유서써",
+    "유서남기",
+    "목숨끊",
+    "생을마감",
+    "나를해치",
+    "날해치",
+    "내몸을해치",
+    "내몸해치",
+    "유서남겼",
+    "유서남길",
+    "다치고싶",
+    "상처내고싶",
+    "상처내고파"
+   ],
+   "soft": [
+    "죽을까",
+    "그만하고싶",
+    "쓸모없",
+    "나같은건",
+    "포기할래",
+    "다포기",
+    "끝내고싶",
+    "죽을것같",
+    "죽을거같",
+    "살기힘들",
+    "희망이없",
+    "희망없",
+    "앞이안보",
+    "살이유",
+    "사는이유없",
+    "소용없",
+    "짐이야",
+    "짐이되",
+    "짐만되",
+    "짐덩어리",
+    "민폐만",
+    "못버티",
+    "버틸수없",
+    "견딜수없",
+    "더는못버",
+    "출구가없",
+    "출구없",
+    "갇힌기분",
+    "갇혔",
+    "왜태어났",
+    "나없으면",
+    "나없어도",
+    "나만없으면",
+    "마지막인사",
+    "마지막편지",
+    "마지막일기",
+    "그동안고마웠",
+    "그동안미안했",
+    "다들안녕",
+    "다들잘있",
+    "모두안녕",
+    "잘있어",
+    "물건정리",
+    "다나눠줬",
+    "인생로그아웃",
+    "현생로그아웃",
+    "인생하차",
+    "존재삭제",
+    "나는짐",
+    "난짐이"
+   ],
+   "softExact": [
+    "살자",
+    "유서",
+    "죽겠다",
+    "죽겠어",
+    "죽을래",
+    "ㅈㅅ",
+    "다싫어",
+    "다싫다"
+   ],
+   "choseongSoft": [
+    "ㅈㄱㅅ",
+    "ㅈㄱㅍ",
+    "ㅅㄱㅅ",
+    "ㅈㅅㅎ"
+   ],
+   "combo": {
+    "note": "핵(죽음·사라짐 계열) × 주어 없는 의도·소망·결심·미래 어미. '~'는 한 음절, '≈'는 두 음절까지 끼움 허용. 핵이 열린 음절로 끝나면 축약형(지+어→져, 지+을→질)도 자동으로 만든다. 비교는 음운 키(pk) 위에서 한다",
+    "strong": {
+     "cores": [
+      "죽",
+      "뒤지",
+      "디지",
+      "뒈지",
+      "사라지",
+      "없어지"
+     ],
+     "intents": [
+      "고~싶",
+      "고~파",
+      "어야겠",
+      "어야지",
+      "어야돼",
+      "어야되",
+      "어야함",
+      "을거야",
+      "을거임",
+      "을거다",
+      "을거예",
+      "을게",
+      "기로",
+      "어버리",
+      "어버릴",
+      "으려고",
+      "을려고",
+      "고말거"
+     ]
+    },
+    "soft": {
+     "cores": [
+      "죽",
+      "뒤지",
+      "디지",
+      "끝내",
+      "사라지",
+      "없어지"
+     ],
+     "intents": [
+      "을까",
+      "을래",
+      "을것같",
+      "을거같",
+      "고~싶",
+      "기로",
+      "면좋",
+      "면편"
+     ]
+    },
+    "strong2": {
+     "cores": [
+      "살기",
+      "사는게",
+      "사는거",
+      "죽고"
+     ],
+     "intents": [
+      "≈싫",
+      "≈싶"
+     ]
+    },
+    "strong3": {
+     "note": "완곡 핵: 1인칭·의도 어미와 붙을 때만 strong(단독은 soft 쪽에서)",
+     "cores": [
+      "세상떠나",
+      "세상을떠나",
+      "하늘나라가",
+      "하늘나라로가",
+      "영원히잠들",
+      "영원히떠나",
+      "영원히사라지",
+      "생을끝내",
+      "삶을끝내",
+      "인생끝내",
+      "목숨을끊",
+      "생을마감",
+      "삶을마감",
+      "이번생끝내"
+     ],
+     "intents": [
+      "고~싶",
+      "고~파",
+      "을게",
+      "을거야",
+      "을거임",
+      "을거다",
+      "기로",
+      "려고",
+      "으려고",
+      "어야겠",
+      "겠어",
+      "겠다",
+      "을래"
+     ]
+    },
+    "soft2": {
+     "note": "soft 핵에도 미래·의도 어미",
+     "cores": [
+      "끝내",
+      "다끝내",
+      "멀리떠나",
+      "조용히떠나",
+      "조용히사라지",
+      "다내려놓",
+      "그만두",
+      "먼저가"
+     ],
+     "intents": [
+      "을게",
+      "을거야",
+      "을거임",
+      "기로",
+      "려고",
+      "어야겠",
+      "고~싶",
+      "고~파",
+      "을래"
+     ]
+    }
+   },
+   "strongPhonetic": [
+    "죽고싶",
+    "죽고파",
+    "살기싫",
+    "사는게싫",
+    "자살",
+    "뒤지고싶",
+    "죽어버리",
+    "사라지고싶",
+    "없어지고싶",
+    "살고싶지않"
+   ],
+   "softPhonetic": [
+    "희망없",
+    "살이유없",
+    "못버티"
+   ],
+   "choseongStrong": [
+    "ㅈㄱㅅㄷ",
+    "ㅈㄱㅅㅇ",
+    "ㅈㅅㅎㄱㅅ",
+    "ㅅㄱㅅㅇ",
+    "ㄷㅈㄱㅅ"
+   ],
+   "phoneticFold": "pk: 음절→자모, 겹받침 풀기, ㄷ+ㅠ/ㅕ→ㅈ, 된소리·거센소리→예사소리, 모음 혼동(ㅠ→ㅜ·ㅗ→ㅜ·ㅕ→ㅓ·ㅐ/ㅒ/ㅖ→ㅔ·ㅟ/ㅞ/ㅚ/ㅢ→ㅣ 등), ㅎ·ㅇ 제거, 열린 음절 뒤 된소리 첫소리는 받침+첫소리로 나눔(주꼬→죽고)",
+   "editDistance1": "음운 키 편집 거리 1(조합 원형, 키 6자모 이상) → soft",
+   "editDistanceMinJamo": 8,
+   "pairs": [
+    {
+     "level": "soft",
+     "name": "무망감 [대상]×[부정·소멸]",
+     "A": [
+      "희망",
+      "미래",
+      "앞날",
+      "앞이",
+      "살이유",
+      "사는이유",
+      "살아갈이유",
+      "살아갈힘",
+      "살힘",
+      "버틸힘",
+      "사는의미",
+      "삶의의미",
+      "나아질",
+      "좋아질",
+      "기대할거",
+      "출구",
+      "답이"
+     ],
+     "B": [
+      "없",
+      "안보",
+      "사라졌",
+      "끝났",
+      "안생기",
+      "않을"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "짐 [1인칭]×[짐·소멸 서술]",
+     "A": [
+      "나는",
+      "난",
+      "내가",
+      "나같은게",
+      "나같은건"
+     ],
+     "B": [
+      "짐",
+      "민폐",
+      "방해",
+      "걸림돌",
+      "골칫거리",
+      "없어야",
+      "없는게",
+      "사라져야",
+      "사라지는게"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "없으면 나음 [소멸]×[나음]",
+     "A": [
+      "없는게",
+      "사라지는게",
+      "내가없으면",
+      "나없으면",
+      "나만없으면",
+      "내가사라지면"
+     ],
+     "B": [
+      "나아",
+      "낫",
+      "편하",
+      "편할",
+      "좋을",
+      "행복",
+      "편해",
+      "나을"
+     ]
+    },
+    {
+     "level": "strong",
+     "name": "죽는 게 나음",
+     "A": [
+      "죽는게",
+      "죽는것이",
+      "죽어버리는게"
+     ],
+     "B": [
+      "나아",
+      "낫",
+      "편하",
+      "편할",
+      "좋을"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "갇힘 [더는]×[견딤 동사]",
+     "A": [
+      "못",
+      "더는",
+      "더이상",
+      "이제못"
+     ],
+     "B": [
+      "버티",
+      "견디",
+      "살겠",
+      "견뎌",
+      "버텨"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "작별 [대상]×[작별 말]",
+     "A": [
+      "모두",
+      "다들",
+      "그동안",
+      "여러분",
+      "엄마",
+      "아빠",
+      "친구들"
+     ],
+     "B": [
+      "안녕",
+      "고마웠",
+      "미안했",
+      "잘있",
+      "사랑했",
+      "잘지내"
+     ]
+    },
+    {
+     "level": "soft",
+     "name": "정리 [소유물]×[나눔·정리 완료]",
+     "A": [
+      "물건",
+      "내물건",
+      "내것",
+      "내꺼",
+      "다"
+     ],
+     "B": [
+      "나눠줬",
+      "나눠주",
+      "정리했",
+      "정리끝",
+      "줘버렸",
+      "버렸어"
+     ]
+    },
+    {
+     "level": "strong",
+     "name": "자해 [1인칭 목적어]×[손상 동사+의도]",
+     "A": [
+      "나를",
+      "날",
+      "내몸을",
+      "내몸",
+      "나자신을",
+      "스스로",
+      "자신을"
+     ],
+     "B": [
+      "해치고싶",
+      "해칠래",
+      "해칠거",
+      "해칠게",
+      "다치게하고싶",
+      "다치게할",
+      "상처내고싶",
+      "상처낼래",
+      "상처낼거",
+      "아프게하고싶",
+      "망가뜨리고싶",
+      "망가뜨릴",
+      "벌주고싶",
+      "때리고싶"
+     ]
+    }
+   ]
+  },
+  "en": {
+   "strong": [
+    "suicid",
+    "killmyself",
+    "killingmyself",
+    "wanttodie",
+    "wannadie",
+    "wantodie",
+    "wishiwasdead",
+    "wishiweredead",
+    "betteroffdead",
+    "shouldjustdie",
+    "ishoulddie",
+    "takemylife",
+    "takemyownlife",
+    "endmylife",
+    "endingmylife",
+    "offmyself",
+    "selfharm",
+    "harmmyself",
+    "hurtmyself",
+    "cutmyself",
+    "unalive",
+    "sewerslide",
+    "dontwanttolive",
+    "dontwannalive",
+    "dontwanttobealive",
+    "enditall"
+   ],
+   "boundaryStrong": [
+    "kms"
+   ],
+   "soft": [
+    "killme",
+    "ihatemyself",
+    "hatemyself",
+    "deadinside",
+    "wanttodisappear",
+    "noreasontoliv",
+    "nothingtolive",
+    "pointofliving",
+    "nopointinliving",
+    "lifeispointless",
+    "imaburden",
+    "burdentoeveryone",
+    "cantgoon",
+    "cantdothisanymore",
+    "cantdoitanymore",
+    "tiredofliving",
+    "tiredoflife",
+    "donewithlife",
+    "nowayout",
+    "feeltrapped",
+    "imtrapped",
+    "hatebeingalive",
+    "hatemylife",
+    "betteroffwithoutme",
+    "dontwanttowakeup",
+    "neverwakeup",
+    "sleepforever",
+    "wishiwasnever",
+    "neverbeenborn",
+    "wanttovanish",
+    "goodbyeforever",
+    "finalgoodbye",
+    "lastgoodbye",
+    "wanttosh",
+    "shagain",
+    "imgoingtodie",
+    "hopeless",
+    "reasonstoliv",
+    "reasontoliv",
+    "aburden",
+    "burdenon",
+    "burdento",
+    "sotrapped"
+   ],
+   "boundarySoft": [
+    "kys",
+    "endit",
+    "imdone",
+    "nolife",
+    "giveup"
+   ],
+   "leet": {
+    "1": "i",
+    "!": "i",
+    "3": "e",
+    "0": "o",
+    "4": "a",
+    "@": "a",
+    "5": "s",
+    "$": "s",
+    "7": "t"
+   },
+   "twoAsTo": true,
+   "typoTransposition": "강한 줄기(6자 이상)에 이웃 글자 자리바꿈 1회 허용 → strong",
+   "anagramSoft": "강한 줄기(6자 이상)와 같은 길이 창에서 글자 구성이 같으면(순서만 다름) soft",
+   "pairs": [
+    {
+     "level": "strong",
+     "A": [
+      "want",
+      "wanna",
+      "wish",
+      "plan",
+      "planning",
+      "ready",
+      "decided",
+      "deserve",
+      "should",
+      "needto",
+      "tryingto"
+     ],
+     "B": [
+      "die",
+      "bedead",
+      "killmyself",
+      "killingmyself",
+      "endit",
+      "endmylife",
+      "endingmylife",
+      "endthings",
+      "takemylife",
+      "takemyownlife",
+      "takingmylife",
+      "offmyself",
+      "hurtmyself",
+      "hurtingmyself",
+      "harmmyself",
+      "harmingmyself",
+      "cutmyself",
+      "cuttingmyself",
+      "unalive",
+      "disappearforever"
+     ]
+    },
+    {
+     "level": "strong",
+     "A": [
+      "going",
+      "gonna",
+      "will",
+      "ill",
+      "imma",
+      "gotta"
+     ],
+     "B": [
+      "killmyself",
+      "endit",
+      "endmylife",
+      "takemylife",
+      "takemyownlife",
+      "offmyself",
+      "hurtmyself",
+      "harmmyself",
+      "cutmyself",
+      "unalive"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "going",
+      "gonna",
+      "will",
+      "ill",
+      "imma",
+      "about"
+     ],
+     "B": [
+      "die"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "done",
+      "tired",
+      "sick",
+      "exhausted",
+      "over"
+     ],
+     "B": [
+      "withlife",
+      "withliving",
+      "ofliving",
+      "oflife",
+      "ofbeingalive",
+      "ofexisting",
+      "beingalive"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "im",
+      "iam",
+      "imjust",
+      "imonly"
+     ],
+     "B": [
+      "burden",
+      "waste",
+      "mistake",
+      "worthless",
+      "useless"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "no",
+      "nothing",
+      "nopoint",
+      "noreason",
+      "nothingleft",
+      "whyshouldi"
+     ],
+     "B": [
+      "tolivefor",
+      "toliv",
+      "livingfor",
+      "inliving",
+      "keepgoing",
+      "goon"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "goodbye",
+      "bye",
+      "farewell"
+     ],
+     "B": [
+      "forever",
+      "everyone",
+      "world",
+      "all",
+      "foreverr"
+     ]
+    },
+    {
+     "level": "soft",
+     "A": [
+      "thisis",
+      "itsmy"
+     ],
+     "B": [
+      "lastday",
+      "lastmessage",
+      "lastpost",
+      "goodbye",
+      "end"
+     ]
+    }
+   ],
+   "pairGap": "[a-z]{0,7} — 낱말 하나(그리고 to·so·just 같은 짧은 말 둘)까지 끼움",
+   "typoDeletion": "강한 줄기(6자 이상)에서 글자 하나가 빠진 꼴 → strong(자리바꿈과 같은 대우)"
+  },
+  "steps": [
+   "① 캠페인 낮춤·예외",
+   "② 변형(ko 기본→자모 결합→음절만→반복 접기 / 가림 *=?)",
+   "③ ko 표준 줄기 → strong",
+   "④ ko 조합 규칙·음운 줄기(음운 키) → strong",
+   "⑤ 초성 4자 이상 → strong",
+   "⑥ 수단어 해시(모든 부분 문자열) → 해시에 적힌 단계",
+   "⑦ en 줄기·자리바꿈·경계 → strong",
+   "⑧ soft: ko 줄기·조합·음운·완전 일치·초성 3자 / en 줄기·경계",
+   "⑨ ko 음운 거리 1 → soft",
+   "⑩ 손글씨 2·3위 후보에서만 걸리면 soft"
+  ],
+  "weakMarkers": {
+   "ko": [
+    "죽",
+    "살기",
+    "살고",
+    "자살",
+    "자해",
+    "사라지",
+    "없어지",
+    "뒤지",
+    "디지"
+   ],
+   "en": [
+    "die",
+    "dead",
+    "kill",
+    "suicid",
+    "hurt",
+    "cut",
+    "alive",
+    "endit"
+   ],
+   "note": "익은 말 끄덕임 금지 표지. 수단어 표지는 평문으로 두지 않는다(수단어 해시 대조가 대신함)"
+  },
+  "downgradeToSoft": [
+   "자살예방",
+   "자살방지",
+   "자해방지",
+   "자해예방",
+   "suicideprevention",
+   "preventsuicide"
+  ],
+  "hashPepper": "mong-crisis-v1|",
+  "meansHashes": {
+   "strong": [
+    "243b1c2ed9854294",
+    "2feb2438a85a709e",
+    "99df5b916a4ccf7f",
+    "d761f0f3ee12d40e",
+    "a058e6f08e523acc",
+    "d794b40950d0c6e7",
+    "279ff1a32bddc3c2"
+   ],
+   "soft": [
+    "dd0542651b48f58b",
+    "ef8aba7be5baafd3",
+    "d7c6f06b3506226a",
+    "6de753131e59bed3",
+    "1fa06ce4f0a0d58c"
+   ]
+  },
+  "masking": "* 는 지우기 전에 한 글자 자리(?)로 본다",
+  "normalizationOrder": [
+   "① NFC, 소문자",
+   "② 가림 문자 * ＊ 를 '?'(한 글자 자리)로 바꾼다",
+   "③ (en 경로) leet 치환: 로마자 사이·끝의 ! 1 3 0 4 @ 5 $ 7 을 i i e o a a s s t 로 바꾼다 — 반드시 문장부호 제거(stripChars)보다 먼저. 그래서 '!'는 지워지지 않고 i가 된다",
+   "④ 캠페인 낮춤 판정·예외 낱말 제거",
+   "⑤ stripChars 제거(로마자·한글·자모·숫자·? 만 남김)",
+   "⑥ 변형 만들기(자모 결합·음절만·반복 접기 / en 2→to·겹글자 접기)",
+   "⑦ 음운 키(ko)"
+  ]
+ }
+}

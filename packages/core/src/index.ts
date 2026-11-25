@@ -43,3 +43,5 @@ export * from './moon/motifs';
 export * as sim from './sim/index';
 /** 공개 스냅숏 snap:1 읽기·정규화(B3, architecture 3-5-1) — 서버 검증·웹 뷰어가 같은 함수 */
 export * from './snap/publicSnapshot';
+/** 새 컨셉 v3(D-26·D-27): 세이브 v3·한 마디·28밤·밥 한 숟갈 + 낱말 사전 v0.4·위기 대조(V5d 최소판) */
+export * as v3 from './v3/index';

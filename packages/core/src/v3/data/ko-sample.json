@@ -1,0 +1,5226 @@
+{
+ "lexVer": "0.1.0",
+ "lang": "ko",
+ "sensesVer": "0.1.0",
+ "lengthLimit": 6,
+ "generated": "2026-11-24",
+ "entries": [
+  {
+   "id": "ko.0001",
+   "lemma": "기쁨",
+   "forms": [
+    "기뻐",
+    "기쁘다",
+    "기쁜",
+    "기뻤어",
+    "기뻐요"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0002",
+   "lemma": "행복",
+   "forms": [
+    "행복해",
+    "행복하다",
+    "행복함",
+    "행복했어",
+    "행복해요"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0003",
+   "lemma": "좋아",
+   "forms": [
+    "좋다",
+    "좋음",
+    "좋았어",
+    "조아",
+    "좋네",
+    "좋아요"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'좋아해'(다정)와 구분: '해'가 붙으면 다정"
+  },
+  {
+   "id": "ko.0004",
+   "lemma": "야호",
+   "forms": [
+    "야호오"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0005",
+   "lemma": "즐거워",
+   "forms": [
+    "즐겁다",
+    "즐거움",
+    "즐거웠어"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0006",
+   "lemma": "히히",
+   "forms": [
+    "히히히",
+    "헤헤"
+   ],
+   "sense": "bright.in.joy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0007",
+   "lemma": "설렘",
+   "forms": [
+    "설레",
+    "설렌다",
+    "설레임",
+    "설렜어",
+    "설레요"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0008",
+   "lemma": "두근",
+   "forms": [
+    "두근두근",
+    "두근거려",
+    "두근대"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "무서움 쪽 해석도 가능, 기본은 설렘"
+  },
+  {
+   "id": "ko.0009",
+   "lemma": "기대",
+   "forms": [
+    "기대돼",
+    "기대된다",
+    "기대중",
+    "기대해"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0010",
+   "lemma": "고백",
+   "forms": [
+    "고백할래",
+    "고백했어"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0011",
+   "lemma": "뿌듯",
+   "forms": [
+    "뿌듯해",
+    "뿌듯하다",
+    "뿌듯함"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0012",
+   "lemma": "해냈다",
+   "forms": [
+    "해냈어",
+    "해냄",
+    "해냈당"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 3,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0013",
+   "lemma": "성공",
+   "forms": [
+    "성공했어",
+    "성공함",
+    "성공이다"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0014",
+   "lemma": "최고",
+   "forms": [
+    "최고야",
+    "짱",
+    "킹왕짱",
+    "짱이야"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0015",
+   "lemma": "칭찬",
+   "forms": [
+    "칭찬받음",
+    "칭찬받았어"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0016",
+   "lemma": "합격",
+   "forms": [
+    "합격했어",
+    "붙었다",
+    "붙었어"
+   ],
+   "sense": "bright.in.pride",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0017",
+   "lemma": "신나",
+   "forms": [
+    "신난다",
+    "신남",
+    "신났어",
+    "신나요"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0018",
+   "lemma": "대박",
+   "forms": [
+    "대박이다",
+    "ㄷㅂ",
+    "대박사건"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0019",
+   "lemma": "축하",
+   "forms": [
+    "축하해",
+    "축하해요",
+    "ㅊㅋ",
+    "ㅊㅋㅊㅋ",
+    "축하축하"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0020",
+   "lemma": "생일",
+   "forms": [
+    "생일이야",
+    "생축",
+    "생일축하"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0021",
+   "lemma": "파티",
+   "forms": [
+    "파뤼"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0022",
+   "lemma": "개꿀",
+   "forms": [
+    "꿀",
+    "꿀이다",
+    "꿀잼"
+   ],
+   "sense": "bright.out.glee",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'개-' 접두는 강조로 벗기지 않는다(굳은 말)"
+  },
+  {
+   "id": "ko.0023",
+   "lemma": "ㅋㅋ",
+   "forms": [
+    "ㅋ",
+    "ㅋㅋㅋ",
+    "크크",
+    "ㅋㅋㅋㅋ"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [],
+   "pos": "jamo",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "반복 길이 규칙: 5자 이상이면 강도 +1"
+  },
+  {
+   "id": "ko.0024",
+   "lemma": "ㅎㅎ",
+   "forms": [
+    "ㅎ",
+    "ㅎㅎㅎ",
+    "흐흐"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [],
+   "pos": "jamo",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0025",
+   "lemma": "웃겨",
+   "forms": [
+    "웃기다",
+    "웃김",
+    "개웃겨",
+    "웃긴다"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0026",
+   "lemma": "하하",
+   "forms": [
+    "하하하",
+    "호호"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0027",
+   "lemma": "재밌어",
+   "forms": [
+    "재밌다",
+    "재미",
+    "재밌음",
+    "잼있어",
+    "재미있어"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0028",
+   "lemma": "똥",
+   "forms": [
+    "똥똥",
+    "응가"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [
+    "silly"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "장난 말 → 웃음(silly)"
+  },
+  {
+   "id": "ko.0029",
+   "lemma": "방구",
+   "forms": [
+    "방귀",
+    "뿡"
+   ],
+   "sense": "bright.out.laugh",
+   "intensity": 1,
+   "flags": [
+    "silly"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "장난 말 → 웃음(silly)"
+  },
+  {
+   "id": "ko.0030",
+   "lemma": "안녕",
+   "forms": [
+    "안녕하세요",
+    "안뇽",
+    "ㅎㅇ",
+    "하이",
+    "안녕안녕"
+   ],
+   "sense": "bright.out.welcome",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0031",
+   "lemma": "반가워",
+   "forms": [
+    "반가움",
+    "반갑다",
+    "반가워요"
+   ],
+   "sense": "bright.out.welcome",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0032",
+   "lemma": "좋은아침",
+   "forms": [
+    "굿모닝",
+    "좋은아침이야"
+   ],
+   "sense": "bright.out.welcome",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0033",
+   "lemma": "왔어",
+   "forms": [
+    "나왔어",
+    "다녀왔어",
+    "왔다"
+   ],
+   "sense": "bright.out.welcome",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0034",
+   "lemma": "어서와",
+   "forms": [
+    "어서와요"
+   ],
+   "sense": "bright.out.welcome",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0035",
+   "lemma": "고요",
+   "forms": [
+    "고요해",
+    "고요하다"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0036",
+   "lemma": "평화",
+   "forms": [
+    "평화로워",
+    "평화롭다"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0037",
+   "lemma": "편안",
+   "forms": [
+    "편안해",
+    "편하다",
+    "편해"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0038",
+   "lemma": "차분",
+   "forms": [
+    "차분해"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0039",
+   "lemma": "조용",
+   "forms": [
+    "조용해",
+    "조용히",
+    "쉿"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0040",
+   "lemma": "쉼",
+   "forms": [
+    "쉬자",
+    "쉬어",
+    "휴식",
+    "쉬고싶다"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0041",
+   "lemma": "나른",
+   "forms": [
+    "나른해",
+    "나른하다"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0042",
+   "lemma": "귀찮아",
+   "forms": [
+    "귀찮다",
+    "귀찮음",
+    "귀찮",
+    "귀차나"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0043",
+   "lemma": "뒹굴",
+   "forms": [
+    "뒹굴뒹굴",
+    "뒹굴거려"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0044",
+   "lemma": "느긋",
+   "forms": [
+    "느긋해",
+    "느긋하게"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0045",
+   "lemma": "멍",
+   "forms": [
+    "멍때림",
+    "멍하다",
+    "멍때려"
+   ],
+   "sense": "warm.in.languid",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0046",
+   "lemma": "졸려",
+   "forms": [
+    "졸리다",
+    "졸림",
+    "졸려요",
+    "졸령"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0047",
+   "lemma": "잠",
+   "forms": [
+    "잠와",
+    "잠온다",
+    "자고싶다",
+    "자자"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0048",
+   "lemma": "잘자",
+   "forms": [
+    "잘자요",
+    "굿나잇",
+    "잘자라"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0049",
+   "lemma": "꿈",
+   "forms": [
+    "꿈꿔",
+    "좋은꿈",
+    "꿈꿨어"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0050",
+   "lemma": "하품",
+   "forms": [],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0051",
+   "lemma": "낮잠",
+   "forms": [],
+   "sense": "warm.in.sleepy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0052",
+   "lemma": "사랑해",
+   "forms": [
+    "사랑",
+    "사랑한다",
+    "사랑해요",
+    "사랑행",
+    "싸랑해"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 3,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0053",
+   "lemma": "좋아해",
+   "forms": [
+    "좋아한다",
+    "좋아해요"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0054",
+   "lemma": "귀여워",
+   "forms": [
+    "귀엽다",
+    "귀염",
+    "귀욤",
+    "귀여움",
+    "커여워"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0055",
+   "lemma": "예뻐",
+   "forms": [
+    "예쁘다",
+    "이뻐",
+    "예쁨",
+    "이쁘다"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0056",
+   "lemma": "소중",
+   "forms": [
+    "소중해",
+    "소중하다"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0057",
+   "lemma": "미안",
+   "forms": [
+    "미안해",
+    "미안해요",
+    "쏘리",
+    "미안미안"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "사과를 다정으로 받는다(서운으로 받지 않음)"
+  },
+  {
+   "id": "ko.0058",
+   "lemma": "안아줘",
+   "forms": [
+    "안아",
+    "포옹",
+    "꼭"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0059",
+   "lemma": "고마워",
+   "forms": [
+    "고맙다",
+    "고마움",
+    "고마워요"
+   ],
+   "sense": "warm.out.thanks",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0060",
+   "lemma": "감사",
+   "forms": [
+    "감사해",
+    "감사합니다",
+    "ㄱㅅ",
+    "ㄳ"
+   ],
+   "sense": "warm.out.thanks",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0061",
+   "lemma": "땡큐",
+   "forms": [
+    "땡스",
+    "땡큐땡큐"
+   ],
+   "sense": "warm.out.thanks",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0062",
+   "lemma": "덕분",
+   "forms": [
+    "덕분에"
+   ],
+   "sense": "warm.out.thanks",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0063",
+   "lemma": "다행",
+   "forms": [
+    "다행이다",
+    "다행이야",
+    "다행히"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0064",
+   "lemma": "휴",
+   "forms": [
+    "휴우",
+    "후유"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0065",
+   "lemma": "안심",
+   "forms": [
+    "안심이야",
+    "안심돼"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0066",
+   "lemma": "괜찮아",
+   "forms": [
+    "괜찮다",
+    "ㄱㅊ",
+    "괜춘",
+    "괜찮아요"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0067",
+   "lemma": "됐다",
+   "forms": [
+    "됐어",
+    "됐당"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0068",
+   "lemma": "살았다",
+   "forms": [
+    "살았어"
+   ],
+   "sense": "warm.out.relief",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0069",
+   "lemma": "짜증",
+   "forms": [
+    "짜증나",
+    "짜증남",
+    "짜증났어",
+    "짱나",
+    "짜증난다",
+    "짜증나요",
+    "ㅉㅈ"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0070",
+   "lemma": "개짜증",
+   "forms": [],
+   "sense": "spiky.out.irritated",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "강조 접두 결합형을 표제로 둔 예"
+  },
+  {
+   "id": "ko.0071",
+   "lemma": "성가셔",
+   "forms": [
+    "성가시다"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0072",
+   "lemma": "싫어",
+   "forms": [
+    "싫다",
+    "시러",
+    "싫음",
+    "싫어요"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0073",
+   "lemma": "아오",
+   "forms": [
+    "아오씨",
+    "아으"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0074",
+   "lemma": "에휴",
+   "forms": [
+    "에효",
+    "하아"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0075",
+   "lemma": "화나",
+   "forms": [
+    "화남",
+    "화났어",
+    "화난다",
+    "화",
+    "화나요"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0076",
+   "lemma": "열받아",
+   "forms": [
+    "열받네",
+    "열받음",
+    "킹받네",
+    "킹받아",
+    "킹받음"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'킹받-' = 열받다 신조어"
+  },
+  {
+   "id": "ko.0077",
+   "lemma": "빡쳐",
+   "forms": [
+    "빡침",
+    "빡치네",
+    "개빡",
+    "빡",
+    "빡친다"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 3,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0078",
+   "lemma": "분노",
+   "forms": [],
+   "sense": "spiky.out.angry",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0079",
+   "lemma": "씨발",
+   "forms": [
+    "시발",
+    "ㅅㅂ",
+    "씨바",
+    "씨팔",
+    "ㅆㅂ"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 2,
+   "flags": [
+    "profane"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "공유 '쓴 말 보이기'에서 가림. 결은 받는다"
+  },
+  {
+   "id": "ko.0080",
+   "lemma": "젠장",
+   "forms": [
+    "제길",
+    "젠장할"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0081",
+   "lemma": "미친",
+   "forms": [
+    "미쳤어",
+    "ㅁㅊ",
+    "미쳤다"
+   ],
+   "sense": "spiky.out.angry",
+   "intensity": 2,
+   "flags": [
+    "profane"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'미쳤다(감탄)'도 있으나 기본은 화"
+  },
+  {
+   "id": "ko.0082",
+   "lemma": "억울",
+   "forms": [
+    "억울해",
+    "억울하다"
+   ],
+   "sense": "spiky.out.wronged",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0083",
+   "lemma": "치사",
+   "forms": [
+    "치사해",
+    "치사하다"
+   ],
+   "sense": "spiky.out.wronged",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0084",
+   "lemma": "불공평",
+   "forms": [
+    "불공평해"
+   ],
+   "sense": "spiky.out.wronged",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0085",
+   "lemma": "왜나만",
+   "forms": [
+    "왜나만이래"
+   ],
+   "sense": "spiky.out.wronged",
+   "intensity": 2,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0086",
+   "lemma": "너무해",
+   "forms": [
+    "너무하다",
+    "너무해요"
+   ],
+   "sense": "spiky.out.wronged",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0087",
+   "lemma": "걱정",
+   "forms": [
+    "걱정돼",
+    "걱정된다",
+    "걱정임",
+    "걱정이야"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0088",
+   "lemma": "불안",
+   "forms": [
+    "불안해",
+    "불안하다"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0089",
+   "lemma": "긴장",
+   "forms": [
+    "긴장돼",
+    "긴장된다"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0090",
+   "lemma": "떨려",
+   "forms": [
+    "떨린다",
+    "덜덜"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0091",
+   "lemma": "초조",
+   "forms": [
+    "초조해"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0092",
+   "lemma": "어떡해",
+   "forms": [
+    "어떡하지",
+    "어쩌지",
+    "어떡해요",
+    "어카지"
+   ],
+   "sense": "spiky.in.worry",
+   "intensity": 2,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0093",
+   "lemma": "답답",
+   "forms": [
+    "답답해",
+    "답답하다",
+    "답답함"
+   ],
+   "sense": "spiky.in.stuffy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0094",
+   "lemma": "막막",
+   "forms": [
+    "막막해",
+    "막막하다"
+   ],
+   "sense": "spiky.in.stuffy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0095",
+   "lemma": "스트레스",
+   "forms": [
+    "스트레스받아",
+    "스트"
+   ],
+   "sense": "spiky.in.stuffy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0096",
+   "lemma": "갑갑",
+   "forms": [
+    "갑갑해"
+   ],
+   "sense": "spiky.in.stuffy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0097",
+   "lemma": "몰라",
+   "forms": [
+    "모르겠어",
+    "몰라몰라",
+    "몰랑"
+   ],
+   "sense": "spiky.in.stuffy",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0098",
+   "lemma": "하기싫어",
+   "forms": [
+    "하기싫다"
+   ],
+   "sense": "spiky.in.stuffy",
+   "intensity": 2,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0099",
+   "lemma": "무서워",
+   "forms": [
+    "무섭다",
+    "무서움",
+    "무섭",
+    "무셔"
+   ],
+   "sense": "spiky.in.scared",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0100",
+   "lemma": "겁나",
+   "forms": [
+    "겁난다",
+    "겁먹었어"
+   ],
+   "sense": "spiky.in.scared",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'겁나 좋아'(아주)는 6자 안에서 드묾, 무시"
+  },
+  {
+   "id": "ko.0101",
+   "lemma": "소름",
+   "forms": [
+    "소름돋아",
+    "소름돋음",
+    "ㄷㄷ"
+   ],
+   "sense": "spiky.in.scared",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0102",
+   "lemma": "귀신",
+   "forms": [
+    "유령"
+   ],
+   "sense": "spiky.in.scared",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0103",
+   "lemma": "깜짝",
+   "forms": [
+    "깜놀",
+    "놀랐어",
+    "놀람"
+   ],
+   "sense": "spiky.in.scared",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0104",
+   "lemma": "공포",
+   "forms": [],
+   "sense": "spiky.in.scared",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0105",
+   "lemma": "보고싶어",
+   "forms": [
+    "보고싶다",
+    "보구싶어",
+    "보고파",
+    "보고싶당"
+   ],
+   "sense": "low.out.longing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0106",
+   "lemma": "그리워",
+   "forms": [
+    "그립다",
+    "그리움"
+   ],
+   "sense": "low.out.longing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0107",
+   "lemma": "생각나",
+   "forms": [
+    "생각난다",
+    "생각났어"
+   ],
+   "sense": "low.out.longing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0108",
+   "lemma": "추억",
+   "forms": [],
+   "sense": "low.out.longing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0109",
+   "lemma": "옛날",
+   "forms": [
+    "그때"
+   ],
+   "sense": "low.out.longing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0110",
+   "lemma": "서운",
+   "forms": [
+    "서운해",
+    "서운하다",
+    "서운함"
+   ],
+   "sense": "low.out.hurt",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0111",
+   "lemma": "섭섭",
+   "forms": [
+    "섭섭해"
+   ],
+   "sense": "low.out.hurt",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0112",
+   "lemma": "속상해",
+   "forms": [
+    "속상하다",
+    "속상",
+    "속상함"
+   ],
+   "sense": "low.out.hurt",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0113",
+   "lemma": "서러워",
+   "forms": [
+    "서럽다"
+   ],
+   "sense": "low.out.hurt",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0114",
+   "lemma": "삐짐",
+   "forms": [
+    "삐졌어",
+    "흥",
+    "칫"
+   ],
+   "sense": "low.out.hurt",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0115",
+   "lemma": "외로워",
+   "forms": [
+    "외롭다",
+    "외로움"
+   ],
+   "sense": "low.out.lonely",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0116",
+   "lemma": "쓸쓸",
+   "forms": [
+    "쓸쓸해"
+   ],
+   "sense": "low.out.lonely",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0117",
+   "lemma": "혼자",
+   "forms": [
+    "혼자야",
+    "나혼자"
+   ],
+   "sense": "low.out.lonely",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0118",
+   "lemma": "슬퍼",
+   "forms": [
+    "슬프다",
+    "슬픔",
+    "슬펐어"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0119",
+   "lemma": "우울",
+   "forms": [
+    "우울해",
+    "우울하다",
+    "우울함"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "감정 낱말일 뿐 위기 아님(위기 묶음에 넣지 않음)"
+  },
+  {
+   "id": "ko.0120",
+   "lemma": "ㅠㅠ",
+   "forms": [
+    "ㅜㅜ",
+    "ㅠ",
+    "ㅜ",
+    "ㅠㅠㅠ",
+    "ㅜㅠ"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 1,
+   "flags": [],
+   "pos": "jamo",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0121",
+   "lemma": "눈물",
+   "forms": [
+    "눈물나",
+    "눈물난다"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0122",
+   "lemma": "울고싶다",
+   "forms": [
+    "울고싶어",
+    "울었어",
+    "울어",
+    "엉엉"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0123",
+   "lemma": "힘들어",
+   "forms": [
+    "힘들다",
+    "힘듦",
+    "힘드러",
+    "힘들당"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0124",
+   "lemma": "지쳐",
+   "forms": [
+    "지친다",
+    "지침",
+    "지쳤어"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 2,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0125",
+   "lemma": "피곤",
+   "forms": [
+    "피곤해",
+    "피곤하다",
+    "피곤함"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0126",
+   "lemma": "아파",
+   "forms": [
+    "아프다",
+    "아픔",
+    "배아파",
+    "머리아파",
+    "아퍼"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0127",
+   "lemma": "기운없어",
+   "forms": [
+    "기운없다"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 2,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0128",
+   "lemma": "녹초",
+   "forms": [],
+   "sense": "low.in.weary",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0129",
+   "lemma": "감기",
+   "forms": [
+    "콧물",
+    "기침"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0130",
+   "lemma": "힘들어죽겠어",
+   "forms": [
+    "피곤해죽겠어"
+   ],
+   "sense": "low.in.weary",
+   "intensity": 3,
+   "flags": [
+    "hyperbole"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'(상태)+죽겠-' = 과장. 위기 아님(경계 사례, 2-3절)"
+  },
+  {
+   "id": "ko.0131",
+   "lemma": "심심",
+   "forms": [
+    "심심해",
+    "심심하다",
+    "심심함"
+   ],
+   "sense": "low.in.bored",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0132",
+   "lemma": "지루",
+   "forms": [
+    "지루해",
+    "지루하다"
+   ],
+   "sense": "low.in.bored",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0133",
+   "lemma": "노잼",
+   "forms": [
+    "노잼이야"
+   ],
+   "sense": "low.in.bored",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0134",
+   "lemma": "할거없어",
+   "forms": [
+    "할게없어"
+   ],
+   "sense": "low.in.bored",
+   "intensity": 1,
+   "flags": [],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0135",
+   "lemma": "비",
+   "forms": [
+    "비와",
+    "비온다",
+    "비가와",
+    "비가"
+   ],
+   "sense": "nature.in.rain",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0136",
+   "lemma": "소나기",
+   "forms": [],
+   "sense": "nature.in.rain",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0137",
+   "lemma": "장마",
+   "forms": [],
+   "sense": "nature.in.rain",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0138",
+   "lemma": "우산",
+   "forms": [],
+   "sense": "nature.in.rain",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0139",
+   "lemma": "빗소리",
+   "forms": [],
+   "sense": "nature.in.rain",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0140",
+   "lemma": "천둥",
+   "forms": [
+    "번개",
+    "우르릉"
+   ],
+   "sense": "nature.in.rain",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0141",
+   "lemma": "눈",
+   "forms": [
+    "눈와",
+    "눈온다",
+    "눈이와"
+   ],
+   "sense": "nature.in.snow",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "동음이의(눈 eye). 한 마디 맥락에서는 '눈(雪)'이 기본"
+  },
+  {
+   "id": "ko.0142",
+   "lemma": "첫눈",
+   "forms": [],
+   "sense": "nature.in.snow",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0143",
+   "lemma": "눈사람",
+   "forms": [],
+   "sense": "nature.in.snow",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0144",
+   "lemma": "겨울",
+   "forms": [],
+   "sense": "nature.in.snow",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0145",
+   "lemma": "추워",
+   "forms": [
+    "춥다",
+    "추움",
+    "얼음",
+    "꽁꽁"
+   ],
+   "sense": "nature.in.snow",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0146",
+   "lemma": "꽃",
+   "forms": [
+    "꽃잎",
+    "꽃이야"
+   ],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0147",
+   "lemma": "나무",
+   "forms": [],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0148",
+   "lemma": "벚꽃",
+   "forms": [],
+   "sense": "nature.in.plant",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0149",
+   "lemma": "단풍",
+   "forms": [],
+   "sense": "nature.in.plant",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0150",
+   "lemma": "풀",
+   "forms": [
+    "잔디",
+    "풀잎"
+   ],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "동음이의(glue·풀다). 기본 = 풀(草)"
+  },
+  {
+   "id": "ko.0151",
+   "lemma": "봄",
+   "forms": [
+    "봄이다"
+   ],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0152",
+   "lemma": "새싹",
+   "forms": [
+    "싹"
+   ],
+   "sense": "nature.in.plant",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0153",
+   "lemma": "바다",
+   "forms": [
+    "바다가자"
+   ],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0154",
+   "lemma": "파도",
+   "forms": [],
+   "sense": "nature.out.sea",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0155",
+   "lemma": "강",
+   "forms": [
+    "냇물",
+    "시냇물"
+   ],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0156",
+   "lemma": "호수",
+   "forms": [],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0157",
+   "lemma": "물",
+   "forms": [
+    "물방울"
+   ],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'물 마시다'는 마실 것이 아니라 여기(한 마디 '물'은 물 자체)"
+  },
+  {
+   "id": "ko.0158",
+   "lemma": "여름",
+   "forms": [],
+   "sense": "nature.out.sea",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0159",
+   "lemma": "하늘",
+   "forms": [],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0160",
+   "lemma": "구름",
+   "forms": [
+    "뭉게구름"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0161",
+   "lemma": "바람",
+   "forms": [
+    "바람분다"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0162",
+   "lemma": "노을",
+   "forms": [
+    "저녁노을"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0163",
+   "lemma": "산",
+   "forms": [],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0164",
+   "lemma": "무지개",
+   "forms": [],
+   "sense": "nature.out.sky",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0165",
+   "lemma": "해",
+   "forms": [
+    "햇살",
+    "햇빛",
+    "햇볕"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "동음이의(해 year/do). 기본 = 해(太陽)"
+  },
+  {
+   "id": "ko.0166",
+   "lemma": "가을",
+   "forms": [],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0167",
+   "lemma": "달",
+   "forms": [
+    "보름달",
+    "반달",
+    "달님"
+   ],
+   "sense": "nature.out.night",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0168",
+   "lemma": "별",
+   "forms": [
+    "별빛",
+    "별똥별",
+    "별님"
+   ],
+   "sense": "nature.out.night",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0169",
+   "lemma": "밤",
+   "forms": [
+    "밤하늘",
+    "밤이야"
+   ],
+   "sense": "nature.out.night",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "동음이의(밤 chestnut). 기본 = 밤(夜)"
+  },
+  {
+   "id": "ko.0170",
+   "lemma": "우주",
+   "forms": [
+    "은하수"
+   ],
+   "sense": "nature.out.night",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0171",
+   "lemma": "밥",
+   "forms": [
+    "밥먹자",
+    "밥먹어",
+    "밥줘",
+    "밥먹었어"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0172",
+   "lemma": "배고파",
+   "forms": [
+    "배고프다",
+    "배고픔",
+    "배고팡",
+    "꼬르륵"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0173",
+   "lemma": "라면",
+   "forms": [
+    "라멘"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0174",
+   "lemma": "치킨",
+   "forms": [
+    "치킨치킨"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0175",
+   "lemma": "떡볶이",
+   "forms": [
+    "떡뽀끼",
+    "떡볶"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0176",
+   "lemma": "고기",
+   "forms": [
+    "삼겹살"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0177",
+   "lemma": "맛있어",
+   "forms": [
+    "맛있다",
+    "존맛",
+    "jmt",
+    "맛나"
+   ],
+   "sense": "home.in.meal",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0178",
+   "lemma": "귤",
+   "forms": [
+    "귤이다",
+    "감귤"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0179",
+   "lemma": "과자",
+   "forms": [],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0180",
+   "lemma": "빵",
+   "forms": [
+    "빵빵"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'빵(웃음 터짐)'도 있으나 기본은 음식"
+  },
+  {
+   "id": "ko.0181",
+   "lemma": "케이크",
+   "forms": [
+    "케잌",
+    "케익"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0182",
+   "lemma": "초코",
+   "forms": [
+    "초콜릿",
+    "초콜렛"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0183",
+   "lemma": "딸기",
+   "forms": [],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0184",
+   "lemma": "사탕",
+   "forms": [],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0185",
+   "lemma": "아이스크림",
+   "forms": [
+    "아이스"
+   ],
+   "sense": "home.in.sweet",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0186",
+   "lemma": "차",
+   "forms": [
+    "찻잔"
+   ],
+   "sense": "home.in.drink",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "동음이의(차 car). 먹·한지 세계라 기본 = 차(茶)"
+  },
+  {
+   "id": "ko.0187",
+   "lemma": "커피",
+   "forms": [
+    "아아",
+    "라떼"
+   ],
+   "sense": "home.in.drink",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0188",
+   "lemma": "우유",
+   "forms": [],
+   "sense": "home.in.drink",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0189",
+   "lemma": "녹차",
+   "forms": [],
+   "sense": "home.in.drink",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0190",
+   "lemma": "목말라",
+   "forms": [
+    "목마르다"
+   ],
+   "sense": "home.in.drink",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0191",
+   "lemma": "집",
+   "forms": [
+    "집에",
+    "집이다",
+    "우리집"
+   ],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0192",
+   "lemma": "방",
+   "forms": [
+    "내방"
+   ],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0193",
+   "lemma": "이불",
+   "forms": [
+    "이불속"
+   ],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0194",
+   "lemma": "침대",
+   "forms": [],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0195",
+   "lemma": "창문",
+   "forms": [
+    "창"
+   ],
+   "sense": "home.out.house",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0196",
+   "lemma": "책",
+   "forms": [],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0197",
+   "lemma": "폰",
+   "forms": [
+    "핸드폰",
+    "휴대폰",
+    "스마트폰"
+   ],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0198",
+   "lemma": "연필",
+   "forms": [],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0199",
+   "lemma": "붓",
+   "forms": [
+    "붓글씨"
+   ],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0200",
+   "lemma": "선물",
+   "forms": [
+    "선물이야"
+   ],
+   "sense": "home.out.thing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0201",
+   "lemma": "편지",
+   "forms": [],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0202",
+   "lemma": "옷",
+   "forms": [],
+   "sense": "home.out.wear",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0203",
+   "lemma": "신발",
+   "forms": [
+    "운동화"
+   ],
+   "sense": "home.out.wear",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0204",
+   "lemma": "머리",
+   "forms": [
+    "머리카락",
+    "미용실"
+   ],
+   "sense": "home.out.wear",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'머리아파'는 지침(활용형 쪽이 먼저 맞음)"
+  },
+  {
+   "id": "ko.0205",
+   "lemma": "모자",
+   "forms": [],
+   "sense": "home.out.wear",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0206",
+   "lemma": "죽겠다",
+   "forms": [
+    "죽겠어",
+    "죽을래"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "단독이면 과장·위기 구별 불가 → soft. 상태어가 앞·뒤에 붙으면(힘들어죽겠어·죽겠다배고파) 과장 규칙이 먼저 맞음"
+  },
+  {
+   "id": "ko.0207",
+   "lemma": "엄마",
+   "forms": [
+    "엄마가",
+    "엄마아",
+    "어머니",
+    "엄빠"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0208",
+   "lemma": "아빠",
+   "forms": [
+    "아빠야",
+    "아버지"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0209",
+   "lemma": "할머니",
+   "forms": [
+    "할매",
+    "할미"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0210",
+   "lemma": "할아버지",
+   "forms": [
+    "할배"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0211",
+   "lemma": "언니",
+   "forms": [],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0212",
+   "lemma": "오빠",
+   "forms": [],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0213",
+   "lemma": "형",
+   "forms": [
+    "형아"
+   ],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0214",
+   "lemma": "누나",
+   "forms": [],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0215",
+   "lemma": "동생",
+   "forms": [],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0216",
+   "lemma": "가족",
+   "forms": [],
+   "sense": "kin.in.family",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0217",
+   "lemma": "친구",
+   "forms": [
+    "친구야",
+    "칭구",
+    "친구들"
+   ],
+   "sense": "kin.in.friend",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0218",
+   "lemma": "베프",
+   "forms": [
+    "절친",
+    "베프야"
+   ],
+   "sense": "kin.in.friend",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0219",
+   "lemma": "짝꿍",
+   "forms": [
+    "짝"
+   ],
+   "sense": "kin.in.friend",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0220",
+   "lemma": "우리",
+   "forms": [],
+   "sense": "kin.in.friend",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0221",
+   "lemma": "최애",
+   "forms": [
+    "최애야"
+   ],
+   "sense": "kin.in.beloved",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0222",
+   "lemma": "남친",
+   "forms": [
+    "남자친구"
+   ],
+   "sense": "kin.in.beloved",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0223",
+   "lemma": "여친",
+   "forms": [
+    "여자친구"
+   ],
+   "sense": "kin.in.beloved",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0224",
+   "lemma": "짝사랑",
+   "forms": [],
+   "sense": "kin.in.beloved",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0225",
+   "lemma": "애인",
+   "forms": [],
+   "sense": "kin.in.beloved",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0226",
+   "lemma": "고양이",
+   "forms": [
+    "냥이",
+    "야옹",
+    "냐옹",
+    "냥"
+   ],
+   "sense": "kin.out.furry",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0227",
+   "lemma": "강아지",
+   "forms": [
+    "멍멍",
+    "댕댕이",
+    "멍뭉이",
+    "댕댕"
+   ],
+   "sense": "kin.out.furry",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0228",
+   "lemma": "토끼",
+   "forms": [],
+   "sense": "kin.out.furry",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0229",
+   "lemma": "햄스터",
+   "forms": [
+    "햄찌"
+   ],
+   "sense": "kin.out.furry",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0230",
+   "lemma": "곰",
+   "forms": [
+    "곰돌이"
+   ],
+   "sense": "kin.out.furry",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0231",
+   "lemma": "새",
+   "forms": [
+    "참새",
+    "짹짹"
+   ],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "동음이의(새 new). 기본 = 새(鳥)"
+  },
+  {
+   "id": "ko.0232",
+   "lemma": "물고기",
+   "forms": [
+    "금붕어"
+   ],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0233",
+   "lemma": "나비",
+   "forms": [],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0234",
+   "lemma": "오리",
+   "forms": [
+    "꽥꽥"
+   ],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0235",
+   "lemma": "고래",
+   "forms": [],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0236",
+   "lemma": "아기",
+   "forms": [
+    "애기",
+    "아가"
+   ],
+   "sense": "kin.out.baby",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0237",
+   "lemma": "조카",
+   "forms": [],
+   "sense": "kin.out.baby",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0238",
+   "lemma": "병아리",
+   "forms": [
+    "삐약"
+   ],
+   "sense": "kin.out.baby",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0239",
+   "lemma": "시험",
+   "forms": [
+    "시험기간",
+    "시험공부",
+    "시험망",
+    "시험끝"
+   ],
+   "sense": "days.in.study",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'망'·'끝'은 결은 같고 강도만 다를 수 있음(v1에서 분리 검토)"
+  },
+  {
+   "id": "ko.0240",
+   "lemma": "공부",
+   "forms": [
+    "공부해",
+    "공부중",
+    "공부하기"
+   ],
+   "sense": "days.in.study",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0241",
+   "lemma": "숙제",
+   "forms": [
+    "과제",
+    "숙제해"
+   ],
+   "sense": "days.in.study",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0242",
+   "lemma": "학교",
+   "forms": [
+    "등교"
+   ],
+   "sense": "days.in.study",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0243",
+   "lemma": "학원",
+   "forms": [],
+   "sense": "days.in.study",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0244",
+   "lemma": "수능",
+   "forms": [],
+   "sense": "days.in.study",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0245",
+   "lemma": "출근",
+   "forms": [
+    "출근길"
+   ],
+   "sense": "days.in.work",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0246",
+   "lemma": "회사",
+   "forms": [],
+   "sense": "days.in.work",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0247",
+   "lemma": "일",
+   "forms": [
+    "일해",
+    "일하기싫어",
+    "일한다"
+   ],
+   "sense": "days.in.work",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "동음이의(일 one). 기본 = 일(work)"
+  },
+  {
+   "id": "ko.0248",
+   "lemma": "알바",
+   "forms": [],
+   "sense": "days.in.work",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0249",
+   "lemma": "퇴근",
+   "forms": [
+    "퇴근했어",
+    "칼퇴"
+   ],
+   "sense": "days.in.work",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0250",
+   "lemma": "야근",
+   "forms": [],
+   "sense": "days.in.work",
+   "intensity": 3,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0251",
+   "lemma": "아침",
+   "forms": [],
+   "sense": "days.in.time",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0252",
+   "lemma": "월요일",
+   "forms": [
+    "월요병"
+   ],
+   "sense": "days.in.time",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0253",
+   "lemma": "주말",
+   "forms": [
+    "불금"
+   ],
+   "sense": "days.in.time",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0254",
+   "lemma": "오늘",
+   "forms": [
+    "오늘은"
+   ],
+   "sense": "days.in.time",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0255",
+   "lemma": "내일",
+   "forms": [],
+   "sense": "days.in.time",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0256",
+   "lemma": "방학",
+   "forms": [],
+   "sense": "days.in.time",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0257",
+   "lemma": "놀자",
+   "forms": [
+    "놀고싶다",
+    "놀래",
+    "놀아줘",
+    "놀자아"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "verb",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0258",
+   "lemma": "게임",
+   "forms": [
+    "겜",
+    "롤"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0259",
+   "lemma": "축구",
+   "forms": [
+    "농구",
+    "야구"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0260",
+   "lemma": "운동",
+   "forms": [
+    "헬스",
+    "달리기"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0261",
+   "lemma": "그림",
+   "forms": [
+    "그리기"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0262",
+   "lemma": "노래",
+   "forms": [
+    "노래해",
+    "노래방"
+   ],
+   "sense": "days.out.song",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0263",
+   "lemma": "음악",
+   "forms": [],
+   "sense": "days.out.song",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0264",
+   "lemma": "춤",
+   "forms": [
+    "춤춰"
+   ],
+   "sense": "days.out.song",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0265",
+   "lemma": "콘서트",
+   "forms": [
+    "공연"
+   ],
+   "sense": "days.out.song",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0266",
+   "lemma": "랄라",
+   "forms": [
+    "라라",
+    "룰루랄라"
+   ],
+   "sense": "days.out.song",
+   "intensity": 1,
+   "flags": [],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0267",
+   "lemma": "여행",
+   "forms": [
+    "여행가자"
+   ],
+   "sense": "days.out.outing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0268",
+   "lemma": "산책",
+   "forms": [],
+   "sense": "days.out.outing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0269",
+   "lemma": "소풍",
+   "forms": [],
+   "sense": "days.out.outing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0270",
+   "lemma": "기차",
+   "forms": [],
+   "sense": "days.out.outing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0271",
+   "lemma": "비행기",
+   "forms": [],
+   "sense": "days.out.outing",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0272",
+   "lemma": "몽망이",
+   "forms": [
+    "몽망",
+    "망이",
+    "몽몽",
+    "몽망아"
+   ],
+   "sense": "x.call",
+   "intensity": 1,
+   "flags": [],
+   "pos": "name",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "유저가 지은 이름은 세이브 name과 런타임 비교(사전에 넣지 않음)"
+  },
+  {
+   "id": "ko.0273",
+   "lemma": "죽고싶다",
+   "forms": [
+    "죽고싶어",
+    "죽고파",
+    "죽고싶음"
+   ],
+   "sense": "x.stay",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0274",
+   "lemma": "자살",
+   "forms": [
+    "자살할래",
+    "자살각"
+   ],
+   "sense": "x.stay",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0275",
+   "lemma": "자해",
+   "forms": [
+    "자해했어",
+    "자해하고싶다"
+   ],
+   "sense": "x.stay",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0276",
+   "lemma": "살기싫어",
+   "forms": [
+    "살기싫다",
+    "살기싫음"
+   ],
+   "sense": "x.stay",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0277",
+   "lemma": "사라지고싶어",
+   "forms": [
+    "사라지고싶다"
+   ],
+   "sense": "x.stay",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0278",
+   "lemma": "없어지고싶어",
+   "forms": [
+    "없어지고싶다"
+   ],
+   "sense": "x.stay",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0279",
+   "lemma": "그만살래",
+   "forms": [
+    "그만살고싶다"
+   ],
+   "sense": "x.stay",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "7자 형은 6자 제한 밖이나 키보드 입력(D-08) 대비"
+  },
+  {
+   "id": "ko.0280",
+   "lemma": "태어나지말걸",
+   "forms": [],
+   "sense": "x.stay",
+   "intensity": 3,
+   "flags": [
+    "crisis_strong"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0281",
+   "lemma": "ㅈㅅ",
+   "forms": [],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "jamo",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "'죄송' 초성과 겹침. 쪽지 없이 곁 대답 몸짓만(heart-grain 8-1)"
+  },
+  {
+   "id": "ko.0282",
+   "lemma": "포기할래",
+   "forms": [
+    "다포기",
+    "다포기할래"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0283",
+   "lemma": "끝내고싶어",
+   "forms": [
+    "끝내고싶다"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "일·숙제 맥락이 흔함 → soft"
+  },
+  {
+   "id": "ko.0284",
+   "lemma": "죽을것같아",
+   "forms": [
+    "죽을거같아"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "과장·실제 고통 모두 → soft"
+  },
+  {
+   "id": "ko.0285",
+   "lemma": "신기해",
+   "forms": [
+    "신기하다",
+    "신기",
+    "우와",
+    "와"
+   ],
+   "sense": "bright.in.flutter",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0286",
+   "lemma": "뽀뽀",
+   "forms": [
+    "뽀뽀해",
+    "쪽"
+   ],
+   "sense": "warm.out.tender",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0287",
+   "lemma": "아쉬워",
+   "forms": [
+    "아쉽다",
+    "아쉬움"
+   ],
+   "sense": "low.in.sad",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0288",
+   "lemma": "시끄러워",
+   "forms": [
+    "시끄럽다",
+    "시끄"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0289",
+   "lemma": "안개",
+   "forms": [],
+   "sense": "nature.in.rain",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0290",
+   "lemma": "새벽",
+   "forms": [],
+   "sense": "nature.out.night",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0291",
+   "lemma": "젤리",
+   "forms": [],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0292",
+   "lemma": "수박",
+   "forms": [],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0293",
+   "lemma": "사과",
+   "forms": [],
+   "sense": "home.in.sweet",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "동음이의(사과 apology). 한 마디 '사과'는 과일 기본, '사과해'는 다정(미안) 쪽으로 v1 검수"
+  },
+  {
+   "id": "ko.0294",
+   "lemma": "인형",
+   "forms": [
+    "곰인형"
+   ],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0295",
+   "lemma": "장난감",
+   "forms": [],
+   "sense": "home.out.thing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0296",
+   "lemma": "펭귄",
+   "forms": [],
+   "sense": "kin.out.wing",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0297",
+   "lemma": "숨바꼭질",
+   "forms": [
+    "술래"
+   ],
+   "sense": "days.out.play",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0298",
+   "lemma": "저녁",
+   "forms": [],
+   "sense": "days.in.time",
+   "intensity": 1,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0299",
+   "lemma": "크리스마스",
+   "forms": [
+    "성탄절",
+    "메리크리스"
+   ],
+   "sense": "days.in.time",
+   "intensity": 2,
+   "flags": [],
+   "pos": "noun",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0300",
+   "lemma": "포근",
+   "forms": [
+    "포근해",
+    "포근하다"
+   ],
+   "sense": "warm.in.still",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   }
+  },
+  {
+   "id": "ko.0301",
+   "lemma": "졸려죽겠어",
+   "forms": [
+    "잠와죽겠어"
+   ],
+   "sense": "warm.in.sleepy",
+   "intensity": 3,
+   "flags": [
+    "hyperbole"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "과장. 위기 아님"
+  },
+  {
+   "id": "ko.0302",
+   "lemma": "엄마야",
+   "forms": [],
+   "sense": "kin.in.family",
+   "intensity": 1,
+   "flags": [
+    "homonym"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "놀람 감탄('엄마야!')과 겹침. 한 마디로는 가족 쪽 기본 [원어민 검수]"
+  },
+  {
+   "id": "ko.0303",
+   "lemma": "존나",
+   "forms": [
+    "ㅈㄴ",
+    "졸라"
+   ],
+   "sense": "spiky.out.irritated",
+   "intensity": 2,
+   "flags": [
+    "profane"
+   ],
+   "pos": "interj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "단독일 때. 앞에 붙으면 강조 접두로 벗김"
+  },
+  {
+   "id": "ko.0304",
+   "lemma": "죽을까",
+   "forms": [
+    "죽을까봐"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "[전문가 확인]"
+  },
+  {
+   "id": "ko.0305",
+   "lemma": "그만하고싶어",
+   "forms": [
+    "그만하고싶다"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "일·공부 맥락이 흔함 [전문가 확인]"
+  },
+  {
+   "id": "ko.0306",
+   "lemma": "쓸모없어",
+   "forms": [
+    "쓸모없다",
+    "나같은건"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "자기 비하(경고 신호) [전문가 확인]"
+  },
+  {
+   "id": "ko.0307",
+   "lemma": "다싫어",
+   "forms": [
+    "다싫다"
+   ],
+   "sense": "x.stay",
+   "intensity": 1,
+   "flags": [
+    "crisis_soft"
+   ],
+   "pos": "phrase",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "오탐 많음, 몸짓만 [전문가 확인]"
+  },
+  {
+   "id": "ko.0308",
+   "lemma": "더워",
+   "forms": [
+    "덥다",
+    "더움",
+    "더워요"
+   ],
+   "sense": "nature.out.sky",
+   "intensity": 1,
+   "flags": [],
+   "pos": "adj",
+   "source": "hand-v0",
+   "review": {
+    "status": "draft",
+    "by": []
+   },
+   "note": "날씨(덥다). 과장 꼬리 앞말로도 쓰임"
+  }
+ ]
+}

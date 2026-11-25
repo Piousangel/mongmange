@@ -1,10 +1,10 @@
 // i18n-ignore-file: 개발 빌드 전용 메뉴(__DEV__에서만 그린다) — 사용자 문구가 아니다
 // 개발 메뉴(개발 빌드에서만, __DEV__): 시간 가속 · 세이브 초기화 · 스파이크 화면 바로가기.
-import { sim } from '@mong/core';
+import { sim, v3 } from '@mong/core';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HOUR_MS, devAdvance, devNextMorning, devReset, now, setMeta, useGame } from './store';
+import { HOUR_MS, devAdvance, devNextMorning, devReboot, devReset, devRestartV3, devSleepCycle, now, setMeta, useGame } from './store';
 import { setFeature, useFeature } from '../features';
 import { measureIreLoop } from '../share/ireVideoDev';
 
@@ -18,7 +18,9 @@ const SPIKES = [
 export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; onReset: () => void }) {
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
-  const { state, meta, restoredFrom } = useGame();
+  const { state, meta, restoredFrom, v3: block } = useGame();
+  const ffV3 = useFeature('conceptV3');
+  const full = state && block ? { sim: state, v3: block } : null;
   // 빌드 2 M1(타고남 + 먹 고르기): 기본 꺼짐, 여기서 켜서 확인(재시작하면 기본값)
   const ffTraits = useFeature('birthTraits');
   const ffInk = useFeature('inkChoice');
@@ -39,7 +41,45 @@ export function DevPanel({ onSpike, onReset }: { onSpike: (q: string) => void; o
             {state.pendingCard ? ' · 현상 대기' : ''} · 복원 {restoredFrom}
             {state.phase === 'asleep' ? ` · 깸 ${fmt(sim.wakeableAt(state))}` : ''}
           </Text>
+          {full && (
+            <Text style={styles.info} testID="dev-v3-info">
+              새 컨셉 v3 · {v3.nightOf(full)}번째 밤(잔 밤 {block!.life.slept}) · 이레 {v3.ireOf(full)} · 먹 {v3.inkCells(full)}칸 · 말 {block!.words.length} · 숟갈 {block!.meal.spoons}/작은 것 {block!.meal.treats}
+              {v3.isComplete(full) ? ' · 완성(곁에 남음)' : ''}
+            </Text>
+          )}
           {loopMsg && <Text style={styles.info}>{loopMsg}</Text>}
+          <View style={styles.row}>
+            <Btn
+              label={ffV3 ? '새 컨셉 끄기' : '새 컨셉 켜기'}
+              id="dev-v3-toggle"
+              onPress={() => {
+                setFeature('conceptV3', !ffV3);
+                onReset();
+                devReboot();
+              }}
+            />
+            {full && (
+              <>
+                <Btn
+                  label="처음부터 다시"
+                  id="dev-v3-restart"
+                  onPress={() => {
+                    onReset();
+                    devRestartV3();
+                    setOpen(false);
+                  }}
+                />
+                <Btn label="밤 넘기기" id="dev-v3-night" onPress={devSleepCycle} />
+                <Btn
+                  label="밤 ×7"
+                  id="dev-v3-night7"
+                  onPress={() => {
+                    for (let i = 0; i < 7; i++) devSleepCycle();
+                  }}
+                />
+              </>
+            )}
+          </View>
           <View style={styles.row}>
             <Btn label="+1h" id="dev-1h" onPress={() => devAdvance(HOUR_MS)} />
             <Btn label="+8h" id="dev-8h" onPress={() => devAdvance(8 * HOUR_MS)} />

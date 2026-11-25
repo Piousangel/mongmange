@@ -1,5 +1,5 @@
-import { Canvas, Group, Path, Rect, Shader } from '@shopify/react-native-skia';
-import { BASE_LOOK, COMB_REST, PALETTE, grammarOf, selectVisual, sim, type MongLook } from '@mong/core';
+import { Canvas, Circle, Group, Path, Rect, Shader } from '@shopify/react-native-skia';
+import { BASE_LOOK, COMB_REST, EYE, PALETTE, grammarOf, selectVisual, sim, type MongLook } from '@mong/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue } from 'react-native-reanimated';
@@ -16,6 +16,7 @@ import { ObjectIcons, Paper, SANS, SERIF, VerticalTitle, inkPool, layout, styles
 import { InkList, InkSticks, KeptStick } from './InkSticks';
 import { NameTitle } from './NameTitle';
 import { inkPickerOpen } from '../game/look';
+import { DRINK_MS, NO_CUE, answerPose, type CueValue } from '../render/answer';
 
 const RM = PARAMS.rm;
 const TIDE_MS = RM ? 400 : 2400;
@@ -39,6 +40,23 @@ export interface HomeActions {
   onInkName?: (ink: sim.InkId) => void;
 }
 
+/** 새 컨셉 v3 홈(플래그 conceptV3): 'n번째 밤' 제목, 먹 양, 마시고 대답, 벼루 탭 = 벼루 시트 */
+export interface V3Home {
+  /** 1~28 */
+  night: number;
+  /** 이레 밤(7·14·21·28)이면 그 이레 번호 */
+  ire: number | null;
+  complete: boolean;
+  /** 먹 양 0~6 */
+  ink: number;
+  /** 대답 신호(key가 바뀔 때마다 한 번) */
+  cue: (Omit<CueValue, 'at'> & { key: number }) | null;
+  /** 벼루 탭(300ms 미만) */
+  onInkstoneTap: () => void;
+}
+/** 벼루 탭 판정(care-rituals 2-1: 300ms 미만) */
+const INKSTONE_TAP_MS = 300;
+
 /** 첫 30초 뒤 사물이 차례로 나온다(아트 11절, 리뷰 U6): 'first' = 첫 획 전(붓만), 'all' = 그 뒤 */
 export type RevealStage = 'first' | 'all';
 
@@ -60,6 +78,7 @@ export function GameHome({
   inkChanging = false,
   strokeInks,
   naming = null,
+  v3 = null,
 }: {
   state: sim.State;
   now: number;
@@ -85,6 +104,7 @@ export function GameHome({
    * onCall = 대답 종류(core callReply)를 돌려준다 — 고개 돌림은 늘, 가락이면 빗 튕김(+120ms)
    */
   naming?: { name: string | null; onCall: () => 'turn' | 'melody' } | null;
+  v3?: V3Home | null;
 }) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -129,6 +149,13 @@ export function GameHome({
   const soakAt = useSharedValue(-1e9);
   // M2 부르기 대답의 빗 튕김 시각(가락일 때만)
   const flickAt = useSharedValue(-1e9);
+  // v3 마시고 대답(V7 최소판): 신호가 올 때마다 시작 시각을 잡는다
+  const cue = useSharedValue<CueValue>(NO_CUE);
+  const cueKey = v3?.cue?.key ?? -1;
+  useEffect(() => {
+    const c = v3?.cue;
+    if (c) cue.value = { ...c, at: clock.value };
+  }, [cueKey]); // eslint-disable-line react-hooks/exhaustive-deps -- key가 바뀔 때만 한 번(같은 신호로 다시 그릴 때 재생하지 않는다)
   const soakKey = state.dayIndex === 0 && state.ink.id !== null && !state.ink.seeded ? `${state.ink.id}|${state.ink.chosenAt}` : '';
   const prevSoak = useRef(soakKey);
   useEffect(() => {
@@ -144,8 +171,12 @@ export function GameHome({
     const sd0 = t - soakAt.value;
     const soakK = RM || sd0 < 0 || sd0 > 1200 ? 0 : sd0 < 150 ? sd0 / 150 : 1 - (sd0 - 150) / 1050;
     const nk = nightK.value;
-    const b = RM ? 0 : breathAt(t, nk > 0.5 ? 4400 : 3200);
+    const ap = answerPose(cue.value, t - cue.value.at, RM);
+    const b = RM ? 0 : breathAt(t, ap.breathMs > 0 ? ap.breathMs : nk > 0.5 ? 4400 : 3200);
     const g = gazeOffset(gaze.value, t, ox, oy, L.wpx);
+    // 대답 시선은 gazeMax 비율(몸 크기·비율은 건드리지 않는다 — QA-3 R8·R9)
+    const agx = Math.max(-1, Math.min(1, ap.gx)) * EYE.gazeMax;
+    const agy = Math.max(-1, Math.min(1, ap.gy)) * EYE.gazeMax;
     const bl = nk > 0.5 ? 0 : blinkAt(t);
     const bob = nk * Math.sin(t / 1400) * 0.012;
     let sx = 1 - 0.01 * b + 0.04 * nk;
@@ -166,25 +197,33 @@ export function GameHome({
     // 부르기 대답(가락): 빗 튕김 +120ms(아트 8절). 모션 줄이기도 빗은 움직인다('눈·빗만')
     const fd = t - flickAt.value - 120;
     const fl = fd >= 0 && fd < 1400 ? wobble(fd, 3.2, 2.2) : 0;
+    const answering = ap.eyeMix > 0 && nk === 0 && rub === 0;
     return {
       ...REST_FRAME,
       ox,
-      oy: oy - bob * L.wpx,
+      oy: oy - bob * L.wpx + ap.settle * L.wpx,
       wpx: L.wpx,
       s,
       combN: records.length,
-      comb: { ...COMB_REST, angle: COMB_REST.angle - 18 * nk + 14 * Math.max(fl, 0), wobble0: b * 1.2 + 8 * fl, wobble1: b * 0.9 + 8 * (fd >= 30 ? wobble(fd - 30, 3.2, 2.2) : 0), wobble2: b * 0.6 + 8 * (fd >= 60 ? wobble(fd - 60, 3.2, 2.2) : 0) },
+      comb: {
+        ...COMB_REST,
+        angle: COMB_REST.angle - 18 * nk + 14 * Math.max(fl, 0) + ap.combAngle,
+        wobble0: b * 1.2 + 8 * fl + ap.combWobble,
+        wobble1: b * 0.9 + 8 * (fd >= 30 ? wobble(fd - 30, 3.2, 2.2) : 0) + ap.combWobble * 0.8,
+        wobble2: b * 0.6 + 8 * (fd >= 60 ? wobble(fd - 60, 3.2, 2.2) : 0) + ap.combWobble * 0.6,
+      },
       sx,
       sy,
-      tilt: g.tilt + shake,
-      gx: g.gx * (1 - nk),
-      gy: g.gy * (1 - nk),
-      blink: bl,
+      hop: ap.hop,
+      tilt: g.tilt + shake + ap.tilt,
+      gx: Math.max(-EYE.gazeMax, Math.min(EYE.gazeMax, g.gx + agx)) * (1 - nk),
+      gy: Math.max(-EYE.gazeMax, Math.min(EYE.gazeMax, g.gy + agy)) * (1 - nk),
+      blink: answering ? 0 : bl,
       eyeA: 'open',
-      eyeB: nk > 0 ? 'closed' : 'joy',
-      eyeMix: nk > 0 ? nk : rub,
+      eyeB: nk > 0 ? 'closed' : answering ? ap.eyeB : 'joy',
+      eyeMix: nk > 0 ? nk : answering ? ap.eyeMix : rub,
       night: nk,
-      bleed,
+      bleed: bleed * ap.bleed,
       ringAlpha: 1 - nk,
       attachK: records.map(() => 1),
       // 첫날 먹 고르기 = 이미 그은 획이 고른 먹으로 다시 스민다: 짧은 번짐 1200ms 한 번(아트 판정 항목, 모션 줄이기면 없음)
@@ -214,12 +253,13 @@ export function GameHome({
 
   const tideU = useDerivedValue(() => ({ res: [width, height], level: level.value, time: clock.value / 1000 }));
   const dim = useDerivedValue(() => nightK.value);
-  const grindK = sim.grindLevel(state);
+  const grindK = v3 ? v3.ink / 6 : sim.grindLevel(state);
   const xs = [width * 0.2, width * 0.5, width * 0.8];
   // 사물 중심 간격 = 폭 30% → 터치 영역이 겹치지 않게(폭 320에서 92)
   const objW = Math.min(116, width * 0.3 - 4);
   const sleepy = !asleep && sim.canPutToSleep(state, now);
-  const title = reveal === 'all' ? t('day.title', { day: dayName(state.dayIndex) }) : '';
+  const v3Label = v3 ? (v3.complete ? t('v3.complete') : v3.ire ? `${t('v3.night', { n: v3.night })} · ${t('v3.ire', { n: v3.ire })}` : t('v3.night', { n: v3.night })) : null;
+  const title = v3 ? (v3.complete ? v3Label! : t('day.title', { day: v3Label! })) : (reveal === 'all' ? t('day.title', { day: dayName(state.dayIndex) }) : '');
   const bodyR = 0.75 * s * L.wpx;
 
   const look = (x: number, y: number, holdMs = 1500) => {
@@ -284,11 +324,17 @@ export function GameHome({
     } else actions.onBrush();
   };
 
-  const objs = [
-    { id: 'brush', name: t('obj.brush'), label: t('obj.brush.label'), a11y: blocked ? t('obj.brush.a11yDone') : t('obj.brush.a11y') },
-    { id: 'inkstone', name: t('obj.inkstone'), label: t('obj.inkstone.label'), a11y: t('obj.inkstone.a11y') },
-    { id: 'dropper', name: t('obj.dropper'), label: t('obj.dropper.label'), a11y: sleepy ? t('obj.dropper.a11ySleepy') : t('obj.dropper.a11y') },
-  ];
+  const objs = v3
+    ? [
+        { id: 'brush', name: t('obj.brush'), label: t('v3.brush.label'), a11y: blocked ? t('v3.brush.a11yDone') : t('v3.brush.a11y') },
+        { id: 'inkstone', name: t('obj.inkstone'), label: t('v3.inkstone.label'), a11y: t('v3.inkstone.a11y') },
+        { id: 'dropper', name: t('obj.dropper'), label: t('v3.dropper.label'), a11y: sleepy ? t('obj.dropper.a11ySleepy') : t('obj.dropper.a11y') },
+      ]
+    : [
+        { id: 'brush', name: t('obj.brush'), label: t('obj.brush.label'), a11y: blocked ? t('obj.brush.a11yDone') : t('obj.brush.a11y') },
+        { id: 'inkstone', name: t('obj.inkstone'), label: t('obj.inkstone.label'), a11y: t('obj.inkstone.a11y') },
+        { id: 'dropper', name: t('obj.dropper'), label: t('obj.dropper.label'), a11y: sleepy ? t('obj.dropper.a11ySleepy') : t('obj.dropper.a11y') },
+      ];
   const grindHandlers = {
     onPressIn: () => {
       grindT.current = Date.now();
@@ -297,9 +343,28 @@ export function GameHome({
     },
     onPressOut: () => {
       look(xs[1]!, L.objectsY, 600);
-      actions.onGrindEnd(Date.now() - grindT.current);
+      const ms = Date.now() - grindT.current;
+      // v3: 짧게 누름(300ms 미만) = 벼루 시트(갈기·한 숟갈·작은 것). 갈기는 길게 누를 때만(D-27 PM 결정)
+      if (v3 && ms < INKSTONE_TAP_MS) {
+        actions.onGrindEnd(0);
+        v3.onInkstoneTap();
+        return;
+      }
+      actions.onGrindEnd(ms);
     },
   };
+  // 마시기: 먹 방울이 사물(붓·벼루)에서 몸으로 빨려 든다(1.2초)
+  const drop = useDerivedValue(() => {
+    const c = cue.value;
+    const dt = clock.value - c.at;
+    if (c.kind === 0 || dt < 0 || dt >= DRINK_MS) return { x: -99, y: -99, r: 0, o: 0 };
+    const e = ease(dt / DRINK_MS);
+    return { x: c.fromX + (ox - c.fromX) * e, y: c.fromY + (oy - c.fromY) * e - Math.sin(Math.PI * e) * L.wpx * 0.6, r: 9 * (1 - 0.65 * e), o: 0.85 * (1 - 0.3 * e) };
+  });
+  const dropX = useDerivedValue(() => drop.value.x);
+  const dropY = useDerivedValue(() => drop.value.y);
+  const dropR = useDerivedValue(() => drop.value.r);
+  const dropO = useDerivedValue(() => drop.value.o);
 
   const soothSt = useAnimatedStyle(() => {
     const dt = clock.value - nightAt.value;
@@ -330,6 +395,7 @@ export function GameHome({
         </Group>
         {asleep && <NightRings frameOx={ox} frameOy={oy} wpx={L.wpx} s={s} nightK={nightK} ripple={ripple} strokes={records.length} />}
         <Mongmangi frame={frame} records={records} mode={PARAMS.body} grammar={grammar} look={mong} strokeInks={strokeInks} />
+        {v3 && <Circle cx={dropX} cy={dropY} r={dropR} color={PALETTE.day.body} opacity={dropO} />}
         {!listView && <ObjectIcons width={width} y={L.objectsY} color={PALETTE.day.text} dim={dim} alpha={alpha} />}
         {!listView && !asleep && grindK > 0 && shown[1] && (
           <Group transform={[{ translateX: xs[1]! - 18 }, { translateY: L.objectsY - 18 }]}>
@@ -356,7 +422,7 @@ export function GameHome({
         style={{ position: 'absolute', left: ox - bodyR * 1.3, top: oy - bodyR, width: bodyR * 2.6, height: bodyR * 2 }}
         accessible
         accessibilityRole="button"
-        accessibilityLabel={t('home.mong.a11y', { day: dayName(state.dayIndex), state: asleep ? 'asleep' : sleepy ? 'sleepy' : 'awake' })}
+        accessibilityLabel={t('home.mong.a11y', { day: v3Label ?? dayName(state.dayIndex), state: asleep ? 'asleep' : sleepy ? 'sleepy' : 'awake' })}
         accessibilityHint={asleep ? t('home.mong.hintAsleep') : t('home.mong.hint')}
         accessibilityActions={[
           { name: 'activate', label: t('home.mong.pet') },
@@ -438,7 +504,7 @@ export function GameHome({
         <Animated.View style={[StyleSheet.absoluteFill, titleSt]} pointerEvents="box-none">
           <NameTitle
             name={naming.name}
-            day={dayName(state.dayIndex)}
+            day={v3Label ?? dayName(state.dayIndex)}
             color={PALETTE.day.text}
             top={insets.top + height * 0.1}
             onLayoutCenter={(x, y) => {
@@ -467,7 +533,7 @@ export function GameHome({
       {asleep && (
         <>
           <KText style={[ui.line, { top: insets.top + height * 0.1, color: PALETTE.night.text, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header" serif="title">
-            {nightName(state.dayIndex)}
+            {v3Label ?? nightName(state.dayIndex)}
           </KText>
           <Animated.View style={[styles.nightLine, soothSt]} pointerEvents="none">
             <KText style={[ui.line, styles.nightText]}>{t('night.soothe')}</KText>

@@ -1,6 +1,6 @@
 // 하루를 플레이하는 앱 흐름(MVP): 첫 실행 인트로 → 낮 홈(붓·벼루·연적) → 한 획 → 재우기 → 밤 → 아침 현상.
 // 화면은 sim 상태에서 고르고, 손이 한 일은 모두 sim 이벤트로 보낸다. 효과(effects)는 소리·햅틱·한 줄 문구·알림으로 나눈다.
-import { PALETTE, coreScale, sim, type AttachLevel, type RawPoint, type StrokeRecord } from '@mong/core';
+import { PALETTE, coreScale, sim, v3, type AttachLevel, type RawPoint, type StrokeRecord } from '@mong/core';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, AppState, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,7 +27,10 @@ import { PARAMS } from '../render/clock';
 import { useLater } from '../lib/useLater';
 import { DevPanel } from './DevPanel';
 import { cancelMorning, openSettings, permission, requestPermission, scheduleMorning } from './notify';
-import { boot, dispatch, getSnapshot, goBackground, goForeground, install, now, onEffects, setMeta, tickNow, tzOffsetNow, useGame } from './store';
+import { boot, dispatch, getSnapshot, getV3, goBackground, goForeground, install, isV3Mode, now, onEffects, setMeta, tickNow, tzOffsetNow, useGame } from './store';
+import { InkstoneSheet, WordSheet, type WordPick } from '../screens/V3Sheets';
+import { CUE } from '../render/answer';
+import type { V3Home } from '../screens/GameHome';
 import { rejectText } from './text';
 import { requestReview } from './review';
 import { createReviewAsker } from './reviewPolicy';
@@ -37,6 +40,19 @@ import { t } from '../i18n';
 import { useLocale } from '../i18n/react';
 
 const TICK_MS = 20_000;
+/** v3: 한 마디가 몸에 붙은 뒤 홈으로(씻기 창 없음 — V8) */
+const V3_RETURN_MS = 700;
+type V3Cue = NonNullable<V3Home['cue']>;
+
+/** 판정 → 대답 신호(V7 최소판). 곁 대답은 외로움의 '곁으로 오기' 계열, 넓은 그물은 돌아오기가 곁으로 */
+function cueOf(a: v3.Interpretation, fromX: number, fromY: number, key: number): V3Cue {
+  const base = { intensity: 2, net: false, fromX, fromY, key };
+  if (a.kind === 'stay') return { ...base, kind: CUE.stay };
+  if (a.kind === 'call') return { ...base, kind: CUE.call };
+  if (a.kind === 'unknown') return { ...base, kind: CUE.unknown };
+  const fam = v3.familyOf(a.sense);
+  return { ...base, kind: fam ? CUE[fam] : CUE.unknown, intensity: a.intensity, net: a.net };
+}
 /** 획을 받은 뒤 낮 홈으로 돌아가기까지(씻기 창 + 여유) */
 const STROKE_RETURN_MS = sim.WASH_WINDOW_MS + 600;
 /** 재우기 뒤 알림 사전 문구: 조수(2400ms) + 첫 밤 안심 문구(3400ms)가 끝난 다음 */
@@ -92,6 +108,14 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const insets = useSafeAreaInsets();
   const L = layout(width, height);
   const [mode, setMode] = useState<'home' | 'stroke'>('home');
+  // ── 새 컨셉 v3(플래그 conceptV3로 부팅했을 때만 snap.v3가 있다) ──
+  const v3On = !!snap.v3;
+  const [wordOpen, setWordOpen] = useState(false);
+  const [inkSheetOpen, setInkSheetOpen] = useState(false);
+  /** 판정이 끝난 한 마디(글자는 이미 버림) — 붓 한 획을 기다린다. 메모리에만 */
+  const pendingWord = useRef<WordPick | null>(null);
+  const [cue, setCue] = useState<V3Cue | null>(null);
+  const cueSeq = useRef(0);
   const [introPlaying, setIntroPlaying] = useState(false);
   const [developed, setDeveloped] = useState<{ card: sim.DreamCard; line: sim.MorningLine } | null>(null);
   const [line, setLine] = useState('');
@@ -165,7 +189,45 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         setNowT(now());
         for (const e of effects) {
           switch (e.type) {
+            case 'wordAccepted': {
+              // 한 마디 + 붓 한 획이 몸에 붙음 → 홈으로 돌아가 마시고 대답(먹 방울은 붓 쪽에서)
+              const pick = pendingWord.current;
+              pendingWord.current = null;
+              if (pick) {
+                const w = layout(width, height);
+                setCue(cueOf(pick.interpretation, width * 0.2, w.objectsY, ++cueSeq.current));
+                if (pick.interpretation.kind === 'stay') AccessibilityInfo.announceForAccessibility(t('v3.stay.a11y'));
+              }
+              if (st.strokesTotal === 1) later(() => flash(t('v3.line.firstWord'), 4000), 4400);
+              break;
+            }
+            case 'writeRejected':
+              if (e.reason !== 'tooShort') {
+                pendingWord.current = null;
+                setMode('home');
+              }
+              flash(e.reason === 'noInk' ? t('v3.line.noInk') : e.reason === 'done' ? t('v3.line.done') : e.reason === 'tooShort' ? rejectText('tooShort') : t('v3.line.used'));
+              break;
+            case 'fed': {
+              const w = layout(width, height);
+              setCue({ kind: e.kind === 'treat' ? CUE.treat : e.full ? CUE.mealFull : CUE.meal, intensity: 2, net: false, fromX: width * 0.5, fromY: w.objectsY, key: ++cueSeq.current });
+              AccessibilityInfo.announceForAccessibility(t('v3.fed.a11y', { item: t(e.item === 'pattern' ? 'v3.item.pattern' : 'v3.item.clear') }));
+              break;
+            }
+            case 'ireReached':
+              later(() => flash(t('v3.line.ire', { n: e.ire }), 4000), 2600);
+              break;
+            case 'lifeComplete':
+              later(() => flash(t('v3.line.complete'), 6000), 1200);
+              break;
             case 'strokeAccepted':
+              if (isV3Mode()) {
+                // V8: 획 씻기 없음. 마시고 대답은 홈에서
+                sound.play('strokeAttach');
+                if (returnTimer.current) clearTimeout(returnTimer.current);
+                returnTimer.current = setTimeout(() => setMode('home'), V3_RETURN_MS);
+                break;
+              }
               sound.play('strokeAttach');
               later(() => sound.play('mongJoy'), 900);
               setWashOpen(true);
@@ -215,7 +277,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           }
         }
       }),
-    [flash, later],
+    [flash, later, width, height],
   );
 
   /** 재우기 직후: 권한이 있으면 바로 예약. 처음이면 조수·안심 문구 뒤 앱 안 사전 문구 → (동의하면) OS 권한 창 */
@@ -346,7 +408,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   }, [hintNow, flash]);
 
   // 사물 등장 순서: 단계가 바뀐 뒤 처음 그리는 낮 홈에서만 차례로 나타난다
-  const reveal: RevealStage = state && state.strokesTotal === 0 && state.dayIndex === 0 ? 'first' : 'all';
+  // v3: 하루 의례가 벼루부터라 사물 셋이 처음부터 다 나온다
+  const reveal: RevealStage = !v3On && state && state.strokesTotal === 0 && state.dayIndex === 0 ? 'first' : 'all';
   const seenReveal = useRef<RevealStage | null>(null);
   const animateReveal = kind === 'day' && seenReveal.current !== reveal;
   useEffect(() => {
@@ -354,6 +417,18 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   }, [kind, reveal]);
 
   const toW = (x: number, y: number) => ({ x: (x - L.cx) / L.wpx, y: (y - L.oyFor(coreScale(state?.strokesTotal ?? 0), look.shape.core.h)) / L.wpx });
+
+  const full = state && snap.v3 ? { sim: state, v3: snap.v3 } : null;
+  const v3Home: V3Home | null = full
+    ? {
+        night: v3.nightOf(full),
+        ire: v3.nightOf(full) % v3.IRE_NIGHTS === 0 ? v3.nightOf(full) / v3.IRE_NIGHTS : null,
+        complete: v3.isComplete(full),
+        ink: v3.inkCells(full),
+        cue,
+        onInkstoneTap: () => setInkSheetOpen(true),
+      }
+    : null;
 
   let body: ReactNode;
   if (snap.futureSave) {
@@ -386,7 +461,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           },
           onDone: () => {
             setIntroPlaying(false);
-            flash(t('line.firstPrompt'), 4500);
+            flash(isV3Mode() ? t('v3.firstPrompt') : t('line.firstPrompt'), 4500);
           },
         }}
       />
@@ -412,8 +487,13 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     );
   } else if (kind === 'stroke') {
     const onStroke = (raw: RawPoint[], level: AttachLevel): StrokeRecord | null => {
-      // M1: 타고남 플래그가 켜져 있으면 그 개체의 체형으로 부착(D-12 개정 ①)
-      const eff = dispatch({ type: 'stroke', raw, level, birthShape: isOn('birthTraits') });
+      const pick = pendingWord.current;
+      // v3: 한 마디(판정 끝난 말결) + 붓 한 획을 한 이벤트로(R1 — 판정 뒤에만 영속화)
+      const eff =
+        v3On && pick
+          ? dispatch({ type: 'write', word: { ...v3.storedWordOf(pick.interpretation), lexVer: v3.LEX_VER, source: 'keyboard' }, chars: pick.chars, raw, level, birthShape: isOn('birthTraits') })
+          : // M1: 타고남 플래그가 켜져 있으면 그 개체의 체형으로 부착(D-12 개정 ①)
+            dispatch({ type: 'stroke', raw, level, birthShape: isOn('birthTraits') });
       if (!eff.some((e) => e.type === 'strokeAccepted')) return null;
       return getSnapshot().state!.strokes.at(-1) ?? null;
     };
@@ -426,10 +506,11 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           onStroke,
           onBrushTap: () => {
             if (returnTimer.current) clearTimeout(returnTimer.current);
+            pendingWord.current = null;
             setMode('home');
           },
-          washOpen,
-          onJarTap: () => dispatch({ type: 'washStroke' }),
+          washOpen: v3On ? false : washOpen,
+          onJarTap: () => !v3On && dispatch({ type: 'washStroke' }),
           assist: screenReader || meta.assistStroke,
           screenReader,
           wetMark: !state.ledger.strokeUsed,
@@ -459,8 +540,20 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         inkChanging={inkChanging}
         strokeInks={strokeInks}
         naming={namingOn ? { name: displayName(state), onCall: callName } : null}
+        v3={v3Home}
         actions={{
-          onBrush: () => setMode('stroke'),
+          onBrush: () => {
+            const f = getV3();
+            if (!f) {
+              setMode('stroke');
+              return;
+            }
+            const block = v3.writeBlock(f);
+            if (block === 'noInk') flash(t('v3.line.noInk'), 4000);
+            else if (block === 'done') flash(t('v3.line.done'), 4000);
+            else if (block === 'used') flash(t('v3.line.used'), 4000);
+            else if (!block) setWordOpen(true);
+          },
           onBrushBlocked: () => flash(t('line.brushBlocked'), 4000),
           onGrindStart: () => sound.play('inkGrind'),
           onGrindEnd: (ms) => {
@@ -508,6 +601,39 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   return (
     <View style={[styles.fill, { backgroundColor: PALETTE.day.bg }]}>
       {body}
+      {full && (
+        <>
+          <WordSheet
+            visible={wordOpen && kind === 'day'}
+            ink={v3.inkCells(full)}
+            names={state?.name?.text ? [state.name.text] : []}
+            onClose={() => setWordOpen(false)}
+            onPick={(p) => {
+              pendingWord.current = p;
+              setWordOpen(false);
+              setMode('stroke');
+              later(() => flash(t('v3.word.strokePrompt'), 3600), 300);
+            }}
+          />
+          <InkstoneSheet
+            visible={inkSheetOpen && kind === 'day'}
+            sheet={v3.mealSheet(full)}
+            onClose={() => setInkSheetOpen(false)}
+            onGrind={() => {
+              setInkSheetOpen(false);
+              flash(t('v3.inkstone.grindHint'), 3600);
+            }}
+            onSpoon={() => {
+              setInkSheetOpen(false);
+              dispatch({ type: 'feed', kind: 'meal', item: 'clear' });
+            }}
+            onTreat={() => {
+              setInkSheetOpen(false);
+              dispatch({ type: 'feed', kind: 'treat', item: 'pattern' });
+            }}
+          />
+        </>
+      )}
       {notifPrompt && kind === 'night' && (
         <View style={[styles.prompt, { bottom: insets.bottom + 28 }]} accessibilityViewIsModal testID="notif-prompt">
           <KText style={styles.promptText}>{t('notif.ask')}</KText>
