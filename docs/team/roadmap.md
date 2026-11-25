@@ -108,7 +108,7 @@
 - [ ] B6 배포: Cloud Run 서울 + Artifact Registry + Firebase Hosting(오너: 도메인·GCP·Supabase 계정) — [D-26: 소프트런칭 01-12 전, Supabase Pro 01-08 전]
 - [ ] B2b 맡겨 두기 서버 후속(C12 리뷰): recover 멱등(같은 사용자·같은 대상이면 성공 반환) + 401에서 '사용자 없음' 코드 분리 또는 DELETE /me 멱등 응답(이미 지워짐 → 202·410) — DV-3 · 서버 · 1 · C12 플래그 켜기 전
 - [x] B6a Supabase Storage 어댑터(운영 저장소 — 지금은 none·local뿐이라 링크 이미지·OTA 에셋이 운영에서 503) + DB TLS 검증용 Supabase CA + CDN 무효화 실제 호출 — DV-3 · 서버 · 2 · **12-15 첫 배포 전** · `docs/ops/b6-owner-guide.md` 넘길 것 목록 — 22f24c3·e9689d7 (CDN 무효화는 기본 꺼짐: 켜기 전 오너 선택 + 재리뷰 N1 `channels/live/releases`로 바꾸기)
-- [ ] B6b B6 후속: firebase.json `/api/v1/ota/**` rewrite(web-static), 복원 런북 4단계 손 호출로 정정, 첫날 실측(XFF 프록시 수·캐시 머리글 보존·콜드 스타트·업타임 U1~U6) — DV-1·DV-3·QA-2 · 1 · 12-15
+- [x] B6b B6 후속: firebase.json `/api/v1/ota/**` rewrite(web-static), 복원 런북 4단계 손 호출로 정정, 첫날 실측(XFF 프록시 수·캐시 머리글 보존·콜드 스타트·업타임 U1~U6) — DV-1·DV-3·QA-2 · 1 · 12-15 — 39d3a73(실측은 B6 첫날 체크리스트)
   - [ ] 로그 보존 7일: 서울 로그 버킷 `mong-logs` 보존 7일 + `_Default` 싱크 전환·수집 끄기 + `/m/` 요청 로그 제외 필터 — 처리방침 3-1·6절 '클라우드 접속 기록 7일'이 이 설정 뒤에야 참(B0 리뷰·v2.2-applied 4절 #5)
   - [ ] 집계 90일 말기 예약: `pg_cron` 매일 `select app.rollup_metric_daily()`(함수는 B0 마이그레이션에 있음) — 처리방침 6절 '90일 뒤 월 합계'
   - [ ] 조회 롤 `metrics_reader` 생성 후 `20261120130000_metric_view`의 GRANT 다시 실행(원표 비공개, 5 미만 칸 숨긴 뷰만), `METRIC_APP_VERSIONS` 설정
