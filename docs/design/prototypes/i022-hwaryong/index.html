@@ -10,6 +10,9 @@
   v1.1(11-25, 회의 1차 독립 검토 반영): 테스터 화면(#tester — 설명·질문·기록·갈림 규칙 숨김),
   여러 획으로 그린 닫힌 모양도 닫힘으로 판정, 시범은 기록에서 뺌, 떠오르기 전 기다림 1초 → 2초, '그냥 낙서' 표현 뺌.
   작업 시각: v1 11-25 11:58~12:12, v1.1 11-25 오후(약 0.1일).
+  v1.2(11-25, 내부 피드백 ④-1 반영 — prototypes/feedback-2026-11-25-internal.md 1-6): 테스터 화면에서 '눈 찍기' 이름·규칙 안내 숨김(접근성 단추 = '마무리'),
+  시도 = 연습지 한 번(살아난 뒤 덧그린 획 안 셈)·첫 성공까지 연 수 기록, 테스터 화면 밤에 쓴 적 없는 한 마디 글씨 안 띄움,
+  점 판정 20px 미끄러짐 허용, 시범·아침 단추에 '시제품 전용', 아래 1/3 띠는 진행자 화면만. 자동 점검 ?autotest=1(시제품 전용).
   진행자 화면 = index.html / 테스터 화면 = index.html#tester
 -->
 <style>
@@ -137,8 +140,8 @@
     <button class="chip" data-temp="bold" aria-pressed="false">대담</button>
   </div>
   <div class="row">
-    <button class="btn" id="demoBtn">몽망이 시범 보기(10번째 아침)</button>
-    <button class="btn" id="morningBtn" disabled>아침 — 다음 깸</button>
+    <button class="btn" id="demoBtn">몽망이 시범(시제품 전용)</button>
+    <button class="btn" id="morningBtn" disabled>아침으로(시제품 전용)</button>
   </div>
 
   <div class="log host-only" id="log" aria-live="polite">
@@ -171,7 +174,7 @@
         <button class="chip" data-shape="cloud">구름</button>
         <button class="chip" data-shape="ball">공</button>
         <button class="chip" data-shape="flower">꽃</button>
-        <button class="chip" id="eyeBtn">눈 찍기</button>
+        <button class="chip" id="eyeBtn">마무리</button>
       </div>
     </details>
   </div>
@@ -332,10 +335,10 @@
     const pts = [];
     const lw = Math.max(2.8, 3.6 * scale * (srcW / 320));
     for (const s of strokes) {
-      const isDot = pathLen(s) < DOT_LEN;
+      const dotLike = isDot(s);
       g.strokeStyle = INK; g.fillStyle = INK;
-      if (isDot) {
-        const p = s[0];
+      if (dotLike) {
+        const p = dotPt(s);
         const x = (p.x - minX) * scale + pad, y = (p.y - minY) * scale + pad;
         g.beginPath(); g.arc(x, y, Math.max(2.6, lw * 1.25), 0, Math.PI * 2); g.fill();
         pts.push({ x, y });
@@ -360,7 +363,7 @@
     d.alpha = 0; d.bornT = now; d.wanderT = 0; d.jig = 0;
     doodle = d;
     mong.phase = 'wary'; mong.phaseT = 0;
-    if (demo) demos++; else lived++;
+    if (demo) demos++; else { lived++; if (firstOk == null) firstOk = realOpens; if (demos > 0 && firstOkAfterDemo == null) firstOkAfterDemo = realOpens - opensAtDemo; }
     if (!captionShown) { showCaption('눈을 찍었더니 그림이 종이에서 떠올랐어요'); captionShown = true; }
     updateLog();
   }
@@ -377,6 +380,10 @@
 
   // ---------- 판정(결정적, 점열만) ----------
   const DOT_LEN = 14;   // 이보다 짧은 획 = 점
+  const DOT_SLIP = 20;  // 이 안에서 미끄러진 획도 점
+  // v1.2: 길이 14px 미만이거나 외접 상자 대각선이 20px 이하면 점(손 떨림·미끄러짐 허용)
+  function isDot(s) { if (pathLen(s) < DOT_LEN) return true; const b = bbox(s); return Math.hypot(b.w, b.h) <= DOT_SLIP; }
+  function dotPt(s) { const b = bbox(s); return { x: b.x + b.w / 2, y: b.y + b.h / 2 }; }
   function pathLen(s) { let L = 0; for (let i = 1; i < s.length; i++) L += Math.hypot(s[i].x - s[i - 1].x, s[i].y - s[i - 1].y); return L; }
   function bbox(s) { let a = 1e9, b = 1e9, c = -1e9, d = -1e9; for (const p of s) { a = Math.min(a, p.x); b = Math.min(b, p.y); c = Math.max(c, p.x); d = Math.max(d, p.y); } return { x: a, y: b, w: c - a, h: d - b }; }
   function isClosed(s) {
@@ -420,11 +427,11 @@
     return out;
   }
   function judge(strokes) {
-    const dots = strokes.filter((s) => pathLen(s) < DOT_LEN);
-    const lines = strokes.filter((s) => pathLen(s) >= DOT_LEN);
+    const dots = strokes.filter((s) => isDot(s));
+    const lines = strokes.filter((s) => !isDot(s));
     const closed = lines.filter(isClosed).concat(chains(lines).filter((c) => c.length && isClosed(c)));
     let eye = null;
-    for (const d of dots) for (const c of closed) if (inside(d[0], c)) { eye = d; break; }
+    for (const d of dots) for (const c of closed) if (inside(dotPt(d), c)) { eye = d; break; }
     if (closed.length && eye) return { kind: 'alive', closed: closed.length, dots: dots.length };
     if (!lines.length && dots.length >= 2) return { kind: 'melody', closed: 0, dots: dots.length };
     return { kind: 'doodle', closed: closed.length, dots: dots.length, dotOutside: closed.length > 0 && dots.length > 0 };
@@ -435,6 +442,9 @@
   const pad = document.getElementById('pad');
   const pctx = pad.getContext('2d');
   const judgeEl = document.getElementById('judge');
+  let demoOpening = false;
+  // v1.2: 테스터 화면에는 규칙을 알려 주는 안내를 띄우지 않는다
+  const hostSay = (t) => { judgeEl.textContent = document.body.classList.contains('tester') ? '' : t; };
   let strokes = [], cur = null, PW = 320, PH = 320, judgeTimer = 0, demoRunning = false;
 
   function sizePad() {
@@ -453,13 +463,13 @@
   }
   function drawStroke(g, s) {
     if (!s.length) return;
-    if (s !== cur && pathLen(s) < DOT_LEN) { g.beginPath(); g.arc(s[0].x, s[0].y, 4.2, 0, Math.PI * 2); g.fill(); return; }
+    if (s !== cur && isDot(s)) { const q = dotPt(s); g.beginPath(); g.arc(q.x, q.y, 4.2, 0, Math.PI * 2); g.fill(); return; }
     g.lineWidth = 3.4; g.beginPath();
     s.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
     g.stroke();
   }
   function ptOf(e) { const r = pad.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-  pad.addEventListener('pointerdown', (e) => { if (demoRunning) return; e.preventDefault(); pad.setPointerCapture(e.pointerId); clearTimeout(judgeTimer); cur = [ptOf(e)]; redrawPad(); });
+  pad.addEventListener('pointerdown', (e) => { if (demoRunning) return; e.preventDefault(); try { pad.setPointerCapture(e.pointerId); } catch (_) {} clearTimeout(judgeTimer); cur = [ptOf(e)]; redrawPad(); });
   pad.addEventListener('pointermove', (e) => { if (!cur) return; const p = ptOf(e); const l = cur[cur.length - 1]; if (Math.hypot(p.x - l.x, p.y - l.y) > 1.5) { cur.push(p); redrawPad(); } });
   const endStroke = () => { if (!cur) return; strokes.push(cur); cur = null; redrawPad(); afterStroke(); };
   pad.addEventListener('pointerup', endStroke);
@@ -469,7 +479,7 @@
     const j = judge(strokes);
     if (j.kind === 'alive') {
       judgeEl.textContent = '';
-      if (!fromDemo) attempts++;
+      countAttempt();
       judgeTimer = setTimeout(() => liftFromPad(), 2000); // v1.1: 마지막 획 뒤 2초(카드 1초 → 귀·꼬리를 그릴 틈)
     } else {
       judgeEl.textContent = '';
@@ -478,6 +488,9 @@
     }
   }
   let attempts = 0, lived = 0, lastJudge = null, captionShown = false, sheetOpens = 0, fromDemo = false, demos = 0;
+  // v1.2: 시도 = 연습지를 한 번 연 것(그 안에서 몇 획을 덧그려도 하나). 시범으로 연 연습지는 세지 않음
+  let openCounted = false, realOpens = 0, opensAtDemo = 0, firstOk = null, firstOkAfterDemo = null;
+  function countAttempt() { if (fromDemo || openCounted) return; openCounted = true; attempts++; }
 
   function liftFromPad() {
     const copy = strokes.map((s) => s.slice());
@@ -491,18 +504,19 @@
 
   function openSheet() {
     if (mong.sleeping) return;
-    sheet.classList.add('on'); sheetOpens++;
+    sheet.classList.add('on'); sheetOpens++; openCounted = false;
+    if (!demoOpening) realOpens++;
     requestAnimationFrame(sizePad);
   }
   function closeSheet() { sheet.classList.remove('on'); clearTimeout(judgeTimer); }
   document.getElementById('toolBrush').addEventListener('click', openSheet);
   document.getElementById('closeBtn').addEventListener('click', () => {
     // 접으면 판정 안 된 낙서는 그대로 낙서(사라짐 — 연습지는 저장 0)
-    if (strokes.length) { const j = judge(strokes); if (j.kind !== 'alive') { attempts++; lastJudge = j; } }
+    if (strokes.length) { const j = judge(strokes); if (j.kind !== 'alive') { countAttempt(); lastJudge = j; } }
     strokes = []; redrawPad(); closeSheet(); updateLog();
   });
   document.getElementById('clearBtn').addEventListener('click', () => {
-    if (strokes.length) { attempts++; lastJudge = judge(strokes); }
+    if (strokes.length) { countAttempt(); lastJudge = judge(strokes); }
     strokes = []; cur = null; redrawPad(); judgeEl.textContent = ''; updateLog();
   });
   sheet.addEventListener('click', (e) => { if (e.target === sheet) document.getElementById('closeBtn').click(); });
@@ -518,22 +532,22 @@
   function circlePts(cx, cy, rx, ry) { const p = []; for (let i = 0; i <= 48; i++) { const a = (i / 48) * Math.PI * 2; p.push({ x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry }); } return p; }
   document.querySelectorAll('[data-shape]').forEach((b) => b.addEventListener('click', () => {
     const s = SHAPES[b.dataset.shape](PW * 0.5, PH * 0.5, PW * 0.26);
-    strokes = [s]; redrawPad(); judgeEl.textContent = b.textContent + ' 그림을 놓았어요. 눈 찍기를 누르면 눈을 찍어요.';
+    strokes = [s]; redrawPad(); hostSay(b.textContent + ' 그림을 놓았어요. (진행자용) 마무리 = 눈 점 찍기.');
   }));
   document.getElementById('eyeBtn').addEventListener('click', () => {
     const closed = strokes.find((s) => isClosed(s));
-    if (!closed) { judgeEl.textContent = '먼저 그림을 하나 골라 주세요.'; return; }
+    if (!closed) { hostSay('먼저 그림을 하나 골라 주세요.'); return; }
     const bb = bbox(closed);
     let pt = { x: bb.x + bb.w * 0.32, y: bb.y + bb.h * 0.42 };
     if (!inside(pt, closed)) pt = { x: bb.x + bb.w / 2, y: bb.y + bb.h / 2 };
-    strokes.push([pt]); redrawPad(); judgeEl.textContent = '눈을 찍었어요.'; afterStroke();
+    strokes.push([pt]); redrawPad(); hostSay('눈을 찍었어요.'); afterStroke();
   });
 
   // 시범: 몽망이가 연습지에 동그라미를 그리고 눈 점을 찍음(10번째 아침 뒤 첫 깸 1번)
   document.getElementById('demoBtn').addEventListener('click', () => {
     if (mong.sleeping || demoRunning) return;
-    openSheet(); demoRunning = true; fromDemo = true; strokes = [];
-    judgeEl.textContent = '몽망이가 빗 끝으로 연습지에 무언가를 그려요.';
+    demoOpening = true; openSheet(); demoOpening = false; demoRunning = true; fromDemo = true; strokes = []; opensAtDemo = realOpens;
+    hostSay('몽망이가 빗 끝으로 연습지에 무언가를 그려요.');
     setTimeout(() => {
       const target = circlePts(PW * 0.5, PH * 0.5, PW * 0.22, PH * 0.18).map((p, i) => ({ x: p.x + Math.sin(i * 0.7) * 2.5, y: p.y + Math.cos(i * 0.5) * 2 }));
       let k = 0; cur = [];
@@ -606,7 +620,7 @@
         else if (lastJudge.dotOutside) last += '(점이 모양 밖)';
       }
     }
-    logLine.innerHTML = `시범 ${demos} · 연습지 연 수 ${sheetOpens} · 판정한 그림 ${attempts} · 살아난 그림 ${lived}(시범 뺌) · 지난 아침 ${mornings}${last}<br><span style="font-size:11.5px">진행자용 숫자예요. 실제 앱에는 어떤 숫자도 보이지 않아요(P4).</span>`;
+    logLine.innerHTML = `시범 ${demos} · 연습지 연 수 ${realOpens}(시범 뺌) · 시도 ${attempts}(연습지 한 번 = 한 시도, 살아난 뒤 덧그림 뺌) · 살아난 그림 ${lived}(시범 뺌) · 첫 성공까지 연 수 ${firstOk ?? '—'} · 시범 뒤 첫 성공까지 연 수 ${firstOkAfterDemo ?? '—'} · 지난 아침 ${mornings}${last}<br><span style="font-size:11.5px">진행자용 숫자예요. 실제 앱에는 어떤 숫자도 보이지 않아요(P4).</span>`;
   }
 
   // ---------- 루프 ----------
@@ -749,13 +763,13 @@
 
     // 아래 1/3 구역(진행자에게만 아주 옅게) — 실제 앱에는 없음
     const reg = regionY();
-    g.fillStyle = 'rgba(120,100,70,.035)'; g.fillRect(0, reg.top, W, reg.bot - reg.top);
+    if (!document.body.classList.contains('tester')) { g.fillStyle = 'rgba(120,100,70,.035)'; g.fillRect(0, reg.top, W, reg.bot - reg.top); }
 
     // 한 마디 글씨(밤 연출)
-    if (wordInk) {
+    if (wordInk && !document.body.classList.contains('tester')) { // v1.2: 테스터 화면에선 쓴 적 없는 글씨를 띄우지 않음
       g.save(); g.globalAlpha = wordInk.alpha; g.fillStyle = INK;
       g.font = `${Math.round(mong.R * 0.7)}px "Gowun Batang", serif`; g.textAlign = 'center';
-      g.fillText('봄비', wordInk.x + (1 - wordInk.alpha) * 6, wordInk.y + (1 - wordInk.alpha) * 10);
+      g.fillText('(한 마디)', wordInk.x + (1 - wordInk.alpha) * 6, wordInk.y + (1 - wordInk.alpha) * 10);
       g.restore();
     }
 
@@ -808,6 +822,39 @@
   sizeScene();
   updateLog();
   requestAnimationFrame(frame);
+
+  // ---------- 자동 점검(?autotest=1 — 시제품 전용) ----------
+  if (new URLSearchParams(location.search).get('autotest')) {
+    const errs = []; addEventListener('error', (e) => errs.push(e.message));
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const drawPts = (pts) => {
+      const r = pad.getBoundingClientRect(), ev = (type, p) => pad.dispatchEvent(new PointerEvent(type, { clientX: r.left + p.x, clientY: r.top + p.y, pointerId: 1, bubbles: true }));
+      ev('pointerdown', pts[0]); pts.slice(1).forEach((p) => ev('pointermove', p)); ev('pointerup', pts[pts.length - 1]);
+    };
+    (async () => {
+      const out = {};
+      try {
+        await wait(300);
+        document.getElementById('toolBrush').click(); await wait(200);
+        drawPts(circlePts(PW * 0.5, PH * 0.5, PW * 0.25, PH * 0.22));
+        drawPts([{ x: PW * 0.45, y: PH * 0.48 }, { x: PW * 0.45 + 9, y: PH * 0.48 + 6 }, { x: PW * 0.45 + 15, y: PH * 0.48 + 8 }]); // 15px 미끄러진 점
+        await wait(300);
+        drawPts([{ x: PW * 0.35, y: PH * 0.3 }, { x: PW * 0.3, y: PH * 0.18 }, { x: PW * 0.4, y: PH * 0.26 }]); // 귀(덧그림)
+        drawPts([{ x: PW * 0.6, y: PH * 0.3 }, { x: PW * 0.66, y: PH * 0.18 }, { x: PW * 0.62, y: PH * 0.28 }]);
+        await wait(2600);
+        out.after1 = { attempts, lived };
+        document.getElementById('toolBrush').click(); await wait(200);
+        document.querySelector('.a11y').open = true;
+        document.querySelector('[data-shape="fish"]').click(); out.hintAfterShape = judgeEl.textContent;
+        document.getElementById('eyeBtn').click(); out.hintAfterEye = judgeEl.textContent;
+        await wait(2600);
+        out.after2 = { attempts, lived };
+        if (!/night/.test(location.search)) { waterBtn.click(); await wait(5000); morningBtn.click(); await wait(300); }
+        else { waterBtn.click(); await wait(700); }
+      } catch (e) { errs.push(String(e)); }
+      document.title = 'AUTOTEST ' + (errs.length ? 'FAIL ' + errs.join(' | ') : 'OK') + ' ' + JSON.stringify(out) + ' overflow=' + (document.documentElement.scrollWidth > innerWidth);
+    })();
+  }
 })();
 </script>
 </body>
