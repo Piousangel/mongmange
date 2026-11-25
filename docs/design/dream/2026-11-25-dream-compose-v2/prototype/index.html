@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>꿈 조합 v2</title>
+<!-- 꿈 조합 2차 시제품(탐색, 앱 코드 아님). 마블링 장 + 물길 + 사물 관계 규칙(위·아래·감싸기·흐르기·비추기) + 덧말 + 몸 4획.
+     모든 그림은 씨앗·밤·말결 id에서 다시 그린다(저장 그림 0, D-13). 조각: 손질 래스터 11장(r1) + 원본 손질 2장(pieces/x.*), 나머지는 코드. -->
+<style>
+  :root { --paper:#EFE8DA; --ink:#1E1B18; --mute:#6b6356; --gold:#B8944A; --bg:#E6DED0; --panel:#F6F1E7; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.55 -apple-system, "Apple SD Gothic Neo", "Pretendard", sans-serif; }
+  header { padding:14px 20px 6px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:var(--mute); font-size:12.5px; }
+  .ctrl { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; padding:8px 20px 12px; }
+  .ctrl label { display:flex; gap:6px; align-items:center; }
+  input[type=range] { width:min(420px, 80vw); }
+  button { font:inherit; padding:5px 12px; border:1px solid #b8ae9c; background:var(--panel); border-radius:6px; cursor:pointer; }
+  button:disabled { opacity:.4; cursor:default; }
+  main { display:grid; grid-template-columns: 540px 1fr; gap:20px; padding:0 20px 24px; align-items:start; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+  .card { background:var(--panel); border-radius:10px; padding:10px; box-shadow:0 1px 6px #0001; }
+  .card h2 { font-size:13px; margin:2px 4px 8px; color:var(--mute); font-weight:600; }
+  canvas { display:block; max-width:100%; height:auto; border-radius:4px; }
+  .words { margin:8px 4px 2px; font-size:13px; }
+  .words .dm { color:var(--gold); font-weight:600; }
+  .note { color:var(--mute); font-size:12px; margin:6px 4px 0; }
+  .dev { color:#8a5a3a; font-size:11.5px; margin:4px; }
+  #nightLabel { font-weight:700; min-width:4.5em; display:inline-block; }
+  .cap #capHide { display:none; }
+</style>
+</head>
+<body>
+<header id="capHide">
+  <h1>꿈 조합 v2 — 말은 꿈이 되고, 몸은 대답한다</h1>
+  <div class="sub">결정적 조합기 시제품(탐색). 같은 씨앗·같은 말이면 늘 같은 그림입니다. 글자는 이 화면(앱 안 화첩 자리)에만 있고, 그림에는 들어가지 않습니다.</div>
+</header>
+<div class="ctrl" id="ctrl">
+  <label>아이 <select id="seed"><option value="11">씨앗 11 (들뜸·나날 많음)</option><option value="27">씨앗 27 (가라앉음·자연 많음, 위기 1밤 포함)</option><option value="64">씨앗 64 (살림·곁 많음)</option></select></label>
+  <label>밤 <input id="night" type="range" min="1" max="28" value="1"> <span id="nightLabel">1밤</span></label>
+  <label>조합 <select id="mode"><option value="v2">v2 관계 규칙</option><option value="v1">v1 스티커(비교용)</option></select></label>
+  <label>몸 4획 안 <select id="variant"><option value="A">A 네 자리</option><option value="B">B 두름 넷</option><option value="C">C 고리 넷</option><option value="D">D 몸 속 윤 획(블라인드 뒤)</option></select></label>
+  <button id="play" disabled>이레 한 획 새김 재생</button>
+</div>
+<main>
+  <section class="card">
+    <h2 id="cardTitle">아침 한 장</h2>
+    <canvas id="day" width="540" height="675"></canvas>
+    <div class="words" id="words"></div>
+    <div class="dev" id="dev"></div>
+  </section>
+  <section>
+    <div class="card">
+      <h2 id="weekTitle">이레 한 폭</h2>
+      <canvas id="week" width="1050" height="262"></canvas>
+      <div class="note">일곱 밤이 한 물길 위에 이어집니다. 먹 실은 그 이레의 말을 순서대로 잇고, 금빛 매듭은 꿈이 덧붙인 말(덧말)입니다. 왼쪽 끝의 옅은 조각은 지난 이레에서 넘어온 말입니다.</div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>28밤 두루마리 (끝난 이레만)</h2>
+      <canvas id="scroll" width="1050" height="300"></canvas>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>몸 4획 — 내 몽망이의 얼굴 (안 A·B·C, 몸 크기·비율 변화 0)</h2>
+      <canvas id="face" width="1050" height="250"></canvas>
+      <div class="note">위 줄: 고른 안으로 1~4획이 쌓인 모습. 아래 줄: 28밤 뒤 64px 썸네일(세 아이). 몸 윤곽·크기·받침 폭은 0획과 같습니다(점선 = 0획 윤곽).</div>
+    </div>
+  </section>
+</main>
+<script src="dutmal.js"></script>
+<script>
+'use strict';
+const D = globalThis.Dutmal;
+const PAPER = '#EFE8DA', INK = '#1E1B18', GOLD = '#B8944A', GOLD_SOFT = 'rgba(214,180,104,';
+const STROKE_INK = mix(INK, PAPER, 0.32);
+const KO = {
+  'bright.in.joy':'기쁨','bright.in.flutter':'설렘','bright.in.pride':'뿌듯','bright.out.glee':'신남','bright.out.laugh':'웃음','bright.out.welcome':'반가움',
+  'warm.in.still':'고요','warm.in.languid':'나른','warm.in.sleepy':'졸림','warm.out.tender':'다정','warm.out.thanks':'고마움','warm.out.relief':'안심',
+  'spiky.out.irritated':'짜증','spiky.out.angry':'화','spiky.out.wronged':'억울','spiky.in.worry':'걱정','spiky.in.stuffy':'답답','spiky.in.scared':'무서움',
+  'low.out.longing':'그리움','low.out.hurt':'서운','low.out.lonely':'외로움','low.in.sad':'슬픔','low.in.weary':'지침','low.in.bored':'심심',
+  'nature.in.rain':'비','nature.in.snow':'눈','nature.in.plant':'풀꽃','nature.out.sea':'바다','nature.out.sky':'하늘','nature.out.night':'달별',
+  'home.in.meal':'밥','home.in.sweet':'단것','home.in.drink':'마실 것','home.out.house':'집','home.out.thing':'물건','home.out.wear':'옷·꾸밈',
+  'kin.in.family':'가족','kin.in.friend':'친구','kin.in.beloved':'좋아하는 사람','kin.out.furry':'털 동물','kin.out.wing':'날개','kin.out.baby':'아기',
+  'days.in.study':'공부','days.in.work':'일','days.in.time':'때','days.out.play':'놀이','days.out.song':'노래','days.out.outing':'나들이',
+};
+
+// ── 조각 표: 그림 낱말(pic) → 그리는 법·앵커·장 동사 ─────────────────────
+// anchor: sky(위에 뜸) | water(물길 위) | ground(몽망이 곁) | back(몽망이 뒤)
+// verb: 장이 이 조각에 반응하는 방식(마블링 연산)
+const PIECES = {
+  umbrella:   { img:'near-with.umbrella', anchor:'shelter', verb:'void', size:.36 },
+  kite:       { img:'far-alone.kite', anchor:'sky', verb:'comb', size:.26 },
+  boat:       { img:'far-alone.paper-boat', anchor:'water', verb:'wake', size:.22 },
+  letter:     { img:'near-with.letter', anchor:'water', verb:'wake', size:.22 },
+  window:     { img:'near-with.window-hand', anchor:'back', verb:'void', size:.30 },
+  quilt:      { img:'near-alone.quilt', anchor:'wrap', verb:'swirl', size:.40 },
+  teacup:     { img:'near-alone.teacup', anchor:'ground', verb:'rise', size:.20 },
+  'teacup-two': { img:'near-with.teacup-two', anchor:'ground', verb:'rise', size:.26 },
+  inkstone:   { img:'near-alone.inkstone', anchor:'ground', verb:'pool', size:.24 },
+  stones:     { img:'far-with.stepping-stones', anchor:'water', verb:'steps', size:.30 },
+  'washing-line': { img:'near-alone.washing-line', anchor:'sky', verb:'comb', size:.34 },
+  path:       { img:'x.path', anchor:'water', verb:'follow', size:.30 },
+  rain:   { code:'rain', anchor:'sky', verb:'drops' },
+  snow:   { code:'snow', anchor:'sky', verb:'drops' },
+  moon:   { code:'moon', anchor:'sky', verb:'moon' },
+  stars:  { code:'stars', anchor:'sky', verb:'drops' },
+  sprout: { code:'sprout', anchor:'ground', verb:'rise' },
+  leaf:   { code:'leaf', anchor:'water', verb:'wake' },
+  wind:   { code:'wind', anchor:'sky', verb:'comb' },
+  sea:    { code:'sea', anchor:'water', verb:'wave' },
+  mountain:{ code:'mountain', anchor:'back', verb:'ridge' },
+  geese:  { code:'geese', anchor:'sky', verb:'comb' },
+};
+// 덧말 → 조각(래스터는 위 표, 코드는 code:*)
+function dutPiece(id) {
+  const p = D.DUT[id].piece;
+  if (p.startsWith('code:')) return { code: p.slice(5), anchor: ({lantern:'sky',fireflies:'sky',sparks:'sky',sunbeam:'sky',halo:'sky',leafroof:'shelter',leafboat:'water',ripples:'water',geese:'sky',shooting:'sky',snow:'sky',sprout:'ground',petals:'sky'})[p.slice(5)] || 'sky', verb:'none' };
+  const k = Object.keys(PIECES).find((k) => PIECES[k].img === p);
+  return { ...PIECES[k], dut: true };
+}
+
+// ── 결정적 난수 ───────────────────────────────────────────────
+function rng(str) { let a = D.hash(String(str)) || 1; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function mix(a, b, t) { const pa = [1,3,5].map((i) => parseInt(a.slice(i, i + 2), 16)), pb = [1,3,5].map((i) => parseInt(b.slice(i, i + 2), 16)); return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+
+// ── 표본 일기(씨앗마다 28밤). 앱에서는 유저가 쓴 말의 말결 id가 들어오는 자리 ─────────
+const PREF = {
+  11: ['bright','days','bright','nature','days','kin','warm'],
+  27: ['low','nature','low','warm','nature','spiky','kin'],
+  64: ['home','kin','warm','home','kin','nature','days'],
+};
+const START = new Date(2026, 11, 1); // 12-01 첫 밤
+const JEOLGI = [[2026,11,7,'winter'],[2026,11,22,'winter'],[2027,0,5,'winter'],[2027,0,20,'winter']]; // 대설·동지·소한·대한
+function diary(seed) {
+  const r = rng('diary' + seed);
+  const senses = Object.keys(D.SENSES);
+  const out = [];
+  for (let n = 1; n <= 28; n++) {
+    const written = r() < 0.82 || n === 1;
+    const fam = PREF[seed][Math.floor(r() * PREF[seed].length)];
+    const pool = senses.filter((s) => s.startsWith(fam + '.'));
+    let sense = written ? pool[Math.floor(r() * pool.length)] : null;
+    let crisis = false;
+    if (seed === 27 && n === 9) { crisis = true; sense = 'warm.in.still'; } // 위기 낱말 → 저장 단계에서 고요(흔적 0)
+    const date = new Date(START.getTime() + (n - 1) * 864e5);
+    const season = JEOLGI.find(([y, m, d]) => date.getFullYear() === y && date.getMonth() === m && date.getDate() === d)?.[3] || null;
+    out.push({ n, sense, crisis, meal: r() < 0.6, snack: r() < 0.3, season, date });
+  }
+  return out;
+}
+
+// ── 하루 장 조합(규칙) ──────────────────────────────────────────
+function composeNight(seed, days, n) {
+  const w = Math.floor((n - 1) / 7);
+  const weekDays = days.slice(w * 7, n);
+  const today = days[n - 1];
+  const earlier = weekDays.slice(0, -1).filter((d) => d.sense).reverse();
+  const prevs = [...new Set(earlier.map((d) => d.sense))].filter((x) => x !== today.sense).slice(0, 2);
+  let main = today.sense, rest = false;
+  if (!main) { rest = true; main = earlier[0]?.sense || carried(seed, days, w) || 'warm.in.still'; } // 빈 밤: 혼자 꾼 꿈(쉼표 장)
+  let dut = null, dutWith = null;
+  if (!rest) {
+    const avoid = n % 7 === 1 ? [] : weekDuts(seed, days, n - 1);
+    if (today.season) { dut = D.pick(seed, main, null, today.season, avoid); dutWith = 'season.' + today.season; }
+    else if (prevs.length) { dut = D.pick(seed, main, prevs[0], null, avoid); dutWith = prevs[0]; }
+  }
+  return { w, main, prevs: rest ? prevs.filter((p) => p !== main).slice(0, 1) : prevs, dut, dutWith, rest, meal: today.meal, snack: today.snack };
+}
+function weekDuts(seed, days, upto) { const out = []; const w0 = Math.floor((upto - 1) / 7) * 7 + 1; for (let m = w0; m <= upto; m++) { const c = composeNight(seed, days, m); if (c.dut) out.push(c.dut); } return out; }
+function carried(seed, days, w) { // 넘어가는 말: 지난 이레의 말 중 씨앗으로 하나(화첩에서 유저가 바꿀 수 있는 자리)
+  if (w === 0) return null;
+  const ws = days.slice((w - 1) * 7, w * 7).filter((d) => d.sense);
+  if (!ws.length) return null;
+  return ws[D.hash(`carry|${seed}|${w}`) % ws.length].sense;
+}
+
+// ── 이미지 ──────────────────────────────────────────────────
+const IMG = {};
+function load(id) { return new Promise((res) => { const i = new Image(); i.onload = () => { IMG[id] = i; res(); }; i.onerror = () => res(); i.src = `pieces/${id}.webp`; }); }
+const tintCache = new Map();
+function tinted(id, color) {
+  const key = id + color;
+  if (tintCache.has(key)) return tintCache.get(key);
+  const im = IMG[id]; if (!im) return null;
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+  const g = c.getContext('2d'); g.drawImage(im, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
+  tintCache.set(key, c); return c;
+}
+
+// ── 물길(흰 S자) ──────────────────────────────────────────────
+function waterPath(seed, w, W, H, horizontal) {
+  const r = rng(`path|${seed}|${w}`);
+  const pts = [];
+  if (horizontal) {
+    const ph = r() * 6.28, amp = H * (0.13 + r() * 0.06);
+    for (let i = 0; i <= 140; i++) { const t = i / 140; pts.push([t * W, H * 0.6 + Math.sin(t * Math.PI * 3.5 + ph) * amp]); }
+  } else {
+    const x0 = W * (0.3 + r() * 0.4), sway = W * (0.16 + r() * 0.08), ph = r() * 6.28;
+    for (let i = 0; i <= 100; i++) { const t = i / 100; const y = -H * 0.04 + t * H * 0.86; const x = x0 + (W * 0.5 - x0) * t + Math.sin(t * Math.PI * 1.6 + ph) * sway * (1 - t * 0.6); pts.push([x, y]); }
+  }
+  return pts;
+}
+function along(path, t) { const i = Math.min(path.length - 2, Math.floor(t * (path.length - 1))); const a = path[i], b = path[i + 1]; return { x: a[0], y: a[1], ang: Math.atan2(b[1] - a[1], b[0] - a[0]) }; }
+
+// ── 마블링 장(수학적 마블링: 띠 → 물길 빗질 → 조각 동사 연산) ─────────────
+function renderField(ctx, W, H, opts) {
+  const { seed, w, path, ops, sticker, horizontal } = opts;
+  const r = rng(`field|${seed}|${w}`);
+  const off = document.createElement('canvas'); off.width = W; off.height = H;
+  const g = off.getContext('2d');
+  if (sticker) { // v1 비교: 장 없음(한지 + 둥근 빛)
+    const gr = g.createRadialGradient(W * .5, H * .4, 10, W * .5, H * .4, W * .55); gr.addColorStop(0, '#F6F1E6'); gr.addColorStop(1, 'rgba(239,232,218,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H); ctx.drawImage(off, 0, 0); return;
+  }
+  const K = horizontal ? 13 : 15, N = horizontal ? 520 : 240;
+  const tilt = (r() - .5) * (horizontal ? .25 : .7);
+  const bands = [];
+  const y0 = -H * .35, y1 = H * 1.35, bh = (y1 - y0) / K;
+  const wav = [r() * 6.28, r() * 6.28, .6 + r() * .9];
+  for (let k = 0; k < K; k++) {
+    const top = [], bot = [];
+    for (let i = 0; i <= N; i++) {
+      const x = -W * .35 + (i / N) * W * 1.7;
+      const yt = y0 + k * bh + Math.sin(x / W * 4 * wav[2] + wav[0] + k * .3) * bh * .25;
+      const yb = y0 + (k + 1) * bh * (1 - (k % 3 === 1 ? .35 : 0)) + Math.sin(x / W * 4 * wav[2] + wav[1] + k * .3) * bh * .25;
+      top.push([x, yt]); bot.push([x, yb]);
+    }
+    bands.push(top.concat(bot.reverse()));
+  }
+  const cx = W / 2, cy = H / 2, ca = Math.cos(tilt), sa = Math.sin(tilt);
+  const T = [];
+  T.push((p) => { const dx = p[0] - cx, dy = p[1] - cy; return [cx + dx * ca - dy * sa, cy + dx * sa + dy * ca]; });
+  if (path) { // 물길 빗질: 가까운 물길 접선 방향으로 끌림 → 띠가 물길을 따라 흐름
+    const P = path.filter((_, i) => i % 3 === 0), lam = W * .07, amp = (horizontal ? W * .05 : W * .22);
+    const tg = P.slice(0, -1).map((q, i) => { const L = Math.hypot(P[i + 1][0] - q[0], P[i + 1][1] - q[1]) || 1; return [(P[i + 1][0] - q[0]) / L, (P[i + 1][1] - q[1]) / L]; });
+    T.push((p) => { let sx = 0, sy = 0, sw = 1e-9, best = 1e9; for (let i = 0; i < tg.length; i++) { const d2 = (P[i][0] - p[0]) ** 2 + (P[i][1] - p[1]) ** 2; if (d2 < best) best = d2; const wgt = Math.exp(-d2 / (lam * lam * 4)); sx += tg[i][0] * wgt; sy += tg[i][1] * wgt; sw += wgt; } const z = amp * lam / (Math.sqrt(best) + lam); const m = Math.hypot(sx, sy) / sw; return [p[0] + sx / sw * z * Math.min(1, m * 1.5), p[1] + sy / sw * z * Math.min(1, m * 1.5)]; });
+  }
+  for (const op of ops) {
+    if (op.t === 'drop') { const r2 = op.r * op.r; T.push((p) => { const dx = p[0] - op.x, dy = p[1] - op.y, d2 = dx * dx + dy * dy || 1e-6; const s = Math.sqrt(1 + r2 / d2); return [op.x + dx * s, op.y + dy * s]; }); }
+    if (op.t === 'swirl') T.push((p) => { const dx = p[0] - op.x, dy = p[1] - op.y; const a = op.s * Math.exp(-(dx * dx + dy * dy) / (op.r * op.r)); const c = Math.cos(a), s = Math.sin(a); return [op.x + dx * c - dy * s, op.y + dx * s + dy * c]; });
+    if (op.t === 'comb') T.push((p) => { const sd = (p[0] - op.x) * Math.sin(op.a) - (p[1] - op.y) * Math.cos(op.a); const along = (p[0] - op.x) * Math.cos(op.a) + (p[1] - op.y) * Math.sin(op.a); const z = op.amp * .5 * (1 + Math.cos(2 * Math.PI * sd / op.gap)) * Math.exp(-(along * along) / (op.gap * op.gap * 9)) * Math.exp(-(sd * sd) / (op.gap * op.gap * 4)); return [p[0] + Math.cos(op.a) * z, p[1] + Math.sin(op.a) * z]; });
+    if (op.t === 'wave') T.push((p) => p[1] > op.y - op.h ? [p[0], p[1] + Math.sin(p[0] / op.l + op.ph) * op.amp * Math.min(1, (p[1] - op.y + op.h) / op.h)] : p);
+    if (op.t === 'lift') T.push((p) => { const dx = p[0] - op.x, dy = p[1] - op.y; const f = Math.exp(-(dx * dx) / (op.r * op.r)) * Math.exp(-Math.max(0, dy) / op.r); return [p[0], p[1] - op.amp * f]; });
+  }
+  const tones = ['#EDE6D9', '#B3AB9D', '#DED6C7', '#857E73', '#CFC7B8', '#625C54', '#E6DED0', '#A29A8C'];
+  for (let k = 0; k < bands.length; k++) {
+    const pts = bands[k].map((p) => T.reduce((q, f) => f(q), p));
+    g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath();
+    g.fillStyle = tones[(k + (seed % 3)) % tones.length]; g.globalAlpha = .9; g.fill();
+    g.globalAlpha = .45; g.strokeStyle = '#4F4943'; g.lineWidth = 1.2; g.stroke(); g.globalAlpha = 1;
+  }
+  // 물길: 종이색으로 파낸 흰 물 + 젖은 테
+  if (path) {
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const base = horizontal ? H * .07 : W * .048;
+    const seg = (lw, color, blur) => { for (let i = 0; i < path.length - 1; i++) { const t = i / (path.length - 1); const k = horizontal ? 1 : .45 + .55 * t; g.beginPath(); g.moveTo(path[i][0], path[i][1]); g.lineTo(path[i + 1][0], path[i + 1][1]); g.lineWidth = lw * k; g.strokeStyle = color; g.shadowColor = PAPER; g.shadowBlur = blur; g.stroke(); } g.shadowBlur = 0; };
+    seg(base + 2.5, 'rgba(79,73,67,.4)', 0); seg(base, PAPER, 3);
+    g.globalAlpha = .25; g.beginPath(); path.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.strokeStyle = '#9a9184'; g.lineWidth = .8; g.stroke(); g.globalAlpha = 1;
+  }
+  // 바깥 가장자리: 한지로 번져 사라짐(여러 개 둥근 빛의 합 → 고르지 않은 덩어리)
+  const m = document.createElement('canvas'); m.width = W; m.height = H; const mg = m.getContext('2d');
+  const blobs = horizontal ? 9 : 5;
+  for (let i = 0; i < blobs; i++) {
+    const bx = horizontal ? W * (i + .5) / blobs : W * (.35 + r() * .3), by = horizontal ? H * (.48 + (r() - .5) * .15) : H * (.3 + r() * .3), rr = horizontal ? H * .62 : W * (.38 + r() * .12);
+    const gr = mg.createRadialGradient(bx, by, rr * .45, bx, by, rr); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    mg.fillStyle = gr; mg.fillRect(0, 0, W, H);
+  }
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(m, 0, 0); g.globalCompositeOperation = 'source-over';
+  ctx.drawImage(off, 0, 0);
+}
+
+// ── 붓 획(누름 → 배 → 빠짐 + 끝 비백) ────────────────────────────
+function brush(g, pts, w0, color, alpha, dry = .25) {
+  const n = pts.length; if (n < 2) return;
+  const L = [], R = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1), a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI / 2;
+    const w = w0 * (.3 + .7 * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.15 + .05)), .55)) * (t > .85 ? (1 - (t - .85) * 2.6) : 1);
+    L.push([pts[i][0] + Math.cos(ang) * w / 2, pts[i][1] + Math.sin(ang) * w / 2]); R.push([pts[i][0] - Math.cos(ang) * w / 2, pts[i][1] - Math.sin(ang) * w / 2]);
+  }
+  const cut = Math.floor(n * (1 - dry));
+  g.save(); g.globalAlpha = alpha; g.fillStyle = color;
+  g.beginPath(); for (let i = 0; i <= cut; i++) g.lineTo(L[i][0], L[i][1]); for (let i = cut; i >= 0; i--) g.lineTo(R[i][0], R[i][1]); g.closePath(); g.fill();
+  // 비백: 끝 구간은 가닥으로 갈라짐
+  g.strokeStyle = color; g.lineCap = 'round';
+  for (let k = 0; k < 4; k++) { const f = .15 + k * .23; g.lineWidth = w0 * .16 * (1 - k * .15); g.beginPath(); for (let i = cut; i < n; i++) { const x = L[i][0] + (R[i][0] - L[i][0]) * f, y = L[i][1] + (R[i][1] - L[i][1]) * f; i === cut ? g.moveTo(x, y) : g.lineTo(x, y); } g.globalAlpha = alpha * (k % 2 ? .6 : .9); g.stroke(); }
+  g.restore();
+}
+function curve(x0, y0, x1, y1, bend, n = 24) { const mx = (x0 + x1) / 2 - (y1 - y0) * bend, my = (y0 + y1) / 2 + (x1 - x0) * bend; const out = []; for (let i = 0; i <= n; i++) { const t = i / n; out.push([(1 - t) ** 2 * x0 + 2 * (1 - t) * t * mx + t * t * x1, (1 - t) ** 2 * y0 + 2 * (1 - t) * t * my + t * t * y1]); } return out; }
+function wash(g, x, y, rx, ry, color, a) { const gr = g.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry)); gr.addColorStop(0, color); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.save(); g.globalAlpha = a; g.translate(x, y); g.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry)); g.translate(-x, -y); g.fillStyle = gr; g.beginPath(); g.arc(x, y, Math.max(rx, ry), 0, 6.29); g.fill(); g.restore(); }
+
+// ── 코드 조각 ────────────────────────────────────────────────
+function drawCode(g, kind, x, y, s, r, ctx2) {
+  const ink = mix(INK, PAPER, .3);
+  switch (kind) {
+    case 'moon': { g.save(); g.globalAlpha = .9; g.fillStyle = '#F8F4EC'; g.beginPath(); g.arc(x, y, s * .2, 0, 6.29); g.fill(); g.globalAlpha = .35; g.strokeStyle = '#8f877b'; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, s * .2, .4, 5.9); g.stroke(); g.restore(); break; }
+    case 'halo': { g.save(); for (let i = 0; i < 3; i++) { g.globalAlpha = .28 - i * .07; g.strokeStyle = GOLD; g.lineWidth = s * (.02 - i * .004); g.beginPath(); g.arc(x, y, s * (.26 + i * .06), .2 + i, 5.6 + i * .3); g.stroke(); } g.restore(); break; }
+    case 'lantern': { wash(g, x, y, s * .2, s * .2, GOLD_SOFT + '.95)', .55); g.save(); g.globalAlpha = .7; g.strokeStyle = ink; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y - s * .25); g.lineTo(x, y - s * .07); g.stroke(); g.restore(); wash(g, x, y, s * .055, s * .07, ink, .55); wash(g, x, y + s * .01, s * .03, s * .045, '#F3D48A', .95); break; }
+    case 'fireflies': { for (let i = 0; i < 9; i++) { const a = r() * 6.28, d = s * (.05 + r() * .25); const px = x + Math.cos(a) * d * 1.3, py = y + Math.sin(a) * d * .7; wash(g, px, py, s * .04, s * .04, GOLD_SOFT + '.9)', .5); g.fillStyle = '#E9C46E'; g.globalAlpha = .9; g.beginPath(); g.arc(px, py, 1 + r() * 2.2, 0, 6.29); g.fill(); g.globalAlpha = 1; } break; }
+    case 'sparks': { for (let b = 0; b < 2; b++) { const bx = x + (b ? s * .18 : -s * .05), by = y + (b ? s * .08 : 0), R = s * (b ? .12 : .18); for (let i = 0; i < 11; i++) { const a = i / 11 * 6.28 + r() * .3; const l = R * (.6 + r() * .5); brush(g, curve(bx + Math.cos(a) * R * .25, by + Math.sin(a) * R * .25, bx + Math.cos(a) * l, by + Math.sin(a) * l, .08, 8), 2.6, i % 3 ? ink : GOLD, .75, .35); } } break; }
+    case 'sunbeam': { g.save(); const gr = g.createLinearGradient(x - s * .3, y - s * .4, x + s * .2, y + s * .4); gr.addColorStop(0, 'rgba(232,201,122,0)'); gr.addColorStop(.5, 'rgba(232,201,122,.45)'); gr.addColorStop(1, 'rgba(232,201,122,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(x - s * .1, y - s * .45); g.lineTo(x + s * .02, y - s * .45); g.lineTo(x + s * .25, y + s * .35); g.lineTo(x - s * .05, y + s * .35); g.closePath(); g.fill(); g.restore(); break; }
+    case 'leafroof': case 'leaf': case 'leafboat': { const big = kind === 'leafroof' ? 1.7 : 1; const L = s * .28 * big; const tilt = kind === 'leafroof' ? -.1 : -.35; g.save(); g.translate(x, y); g.rotate(tilt); const gr = g.createLinearGradient(-L, 0, L, 0); gr.addColorStop(0, mix(INK, PAPER, .55)); gr.addColorStop(.5, mix(INK, PAPER, .35)); gr.addColorStop(1, mix(INK, PAPER, .6)); g.fillStyle = gr; g.globalAlpha *= .8; g.beginPath(); g.moveTo(-L, 0); g.quadraticCurveTo(-L * .1, -L * .55, L, -L * .05); g.quadraticCurveTo(L * .1, L * .42, -L, 0); g.fill(); g.restore(); brush(g, curve(x - L * 1.05 * Math.cos(tilt), y - L * 1.05 * Math.sin(tilt), x + L * .9 * Math.cos(tilt), y + L * .9 * Math.sin(tilt) - L * .05, .04, 18), 1.6, mix(INK, PAPER, .2), .7, .3); if (kind === 'leafboat') for (let i = 0; i < 2; i++) brush(g, curve(x - L * 1.6, y + L * .3 + i * 4, x - L * .9, y + L * .25 + i * 3, .05, 8), 1.2, ink, .4, .4); break; }
+    case 'ripples': { g.save(); g.strokeStyle = ink; for (let i = 0; i < 3; i++) { const px = x + i * s * .14, rr = s * (.06 - i * .012); for (let j = 0; j < 2; j++) { g.globalAlpha = .45 - j * .2; g.lineWidth = 1.4; g.beginPath(); g.ellipse(px, y + i * s * .02, rr * (1 + j * .7), rr * .35 * (1 + j * .7), 0, .3, 2.9); g.stroke(); } } g.restore(); break; }
+    case 'geese': { for (let i = 0; i < 5; i++) { const px = x + (i - 2) * s * .1 + r() * 4, py = y + Math.abs(i - 2) * s * .05 + r() * 4, q = s * (.035 + r() * .02); brush(g, [[px - q, py + q * .2], [px - q * .4, py - q * .2], [px, py]], 2.4, ink, .75, .1); brush(g, [[px, py], [px + q * .5, py - q * .25], [px + q * 1.1, py + q * .1]], 2.4, ink, .75, .3); } break; }
+    case 'shooting': { brush(g, curve(x + s * .25, y - s * .15, x - s * .15, y + s * .12, .05, 20), 3, GOLD, .7, .5); wash(g, x - s * .15, y + s * .12, s * .03, s * .03, GOLD_SOFT + '1)', .8); break; }
+    case 'snow': case 'stars': { const n = kind === 'snow' ? 26 : 9; for (let i = 0; i < n; i++) { const px = x + (r() - .5) * s * (kind === 'stars' ? .8 : 1.1), py = y + (r() - .5) * s * .5, rr = kind === 'stars' ? 2.5 + r() * r() * 9 : 1.2 + r() * r() * 4.5; if (kind === 'stars') wash(g, px, py, rr * 3, rr * 3, i === 0 ? GOLD_SOFT + '1)' : 'rgba(255,255,255,1)', .5); g.globalAlpha = .9; g.fillStyle = kind === 'snow' ? '#FBF8F2' : (i === 0 ? '#E9C46E' : '#FBF8F2'); g.beginPath(); g.arc(px, py, rr, 0, 6.29); g.fill(); if (true) { g.globalAlpha = kind === 'snow' ? .3 : .45; g.strokeStyle = '#8f877b'; g.lineWidth = .7; g.stroke(); } } g.globalAlpha = 1; break; }
+    case 'rain': { for (let i = 0; i < 30; i++) { const px = x + (r() - .5) * s * 1.2, py = y + (r() - .5) * s * .8, l = s * (.03 + r() * .05); brush(g, [[px, py], [px - l * .15, py + l * .5], [px - l * .3, py + l]], 1.6 + r() * 1.4, ink, .55, .2); } break; }
+    case 'sprout': { brush(g, curve(x, y, x + s * .01, y - s * .14, .1, 14), 3.4, ink, .75, .3); brush(g, curve(x, y - s * .12, x - s * .09, y - s * .2, -.3, 14), s * .045, ink, .6, .2); brush(g, curve(x, y - s * .13, x + s * .1, y - s * .19, .3, 14), s * .04, ink, .6, .2); break; }
+    case 'petals': { for (let i = 0; i < 9; i++) { const px = x + (r() - .5) * s * .8, py = y + (r() - .5) * s * .4, a = r() * 6.28; g.save(); g.translate(px, py); g.rotate(a); wash(g, 0, 0, s * .03, s * .014, i % 4 ? mix(INK, PAPER, .55) : '#D9B98A', .7); g.restore(); } break; }
+    case 'wind': { for (let i = 0; i < 3; i++) brush(g, curve(x - s * .4, y + i * s * .07, x + s * .4, y - s * .08 + i * s * .06, .12 + i * .04, 30), 2.2 + i, ink, .45, .45); break; }
+    case 'sea': { for (let i = 0; i < 3; i++) brush(g, curve(x - s * .4 + i * 9, y + i * s * .05, x + s * .4 - i * 9, y + i * s * .05 + 2, .03 * (i % 2 ? 1 : -1), 30), 2.6, ink, .45, .4); break; }
+    case 'mountain': { g.save(); g.globalAlpha = .85; brush(g, [[x - s * .5, y + s * .1], [x - s * .25, y - s * .1], [x - s * .08, y - s * .26], [x + s * .05, y - s * .13], [x + s * .14, y - s * .18], [x + s * .32, y], [x + s * .5, y + s * .12]], 4, mix(INK, PAPER, .25), .8, .2); g.globalAlpha = .6; const gr = g.createLinearGradient(0, y - s * .25, 0, y + s * .2); gr.addColorStop(0, mix(INK, PAPER, .3)); gr.addColorStop(1, 'rgba(239,232,218,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(x - s * .5, y + s * .2); g.quadraticCurveTo(x - s * .25, y - s * .1, x - s * .08, y - s * .26); g.quadraticCurveTo(x + s * .05, y - s * .12, x + s * .14, y - s * .17); g.quadraticCurveTo(x + s * .32, y, x + s * .5, y + s * .2); g.closePath(); g.fill(); g.restore(); break; }
+  }
+}
+
+// ── 몽망이(코드 몸 — 아트 바이블 1-1 비율) + 몸 4획 ─────────────────────
+function bodyPath(g, W) { const H = W / 1.25; g.beginPath(); g.moveTo(-.35 * W, 0); g.lineTo(.35 * W, 0); g.bezierCurveTo(.52 * W, 0, .54 * W, -.55 * H, .4 * W, -.82 * H); g.bezierCurveTo(.3 * W, -.98 * H, .15 * W, -1.0 * H, .03 * W, -1.0 * H); g.bezierCurveTo(-.25 * W, -1.0 * H, -.5 * W, -.8 * H, -.52 * W, -.45 * H); g.bezierCurveTo(-.53 * W, -.15 * H, -.5 * W, 0, -.35 * W, 0); g.closePath(); }
+function surf(W, th, extra) { const H = W / 1.25; const rx = .52 * W + extra, ry = .5 * H + extra; return [Math.sin(th) * rx, -.5 * H - Math.cos(th) * ry]; }
+// 유저 손 획을 대신하는 합성 획(씨앗·이레마다 모양이 다름: 굽음·흔들림·누름 위치)
+function handStroke(seed, week) { const r = rng(`hand|${seed}|${week}`); return { bend: (r() - .5) * 2.2, wob: .2 + r() * .8, press: .3 + r() * .5, len: .55 + r() * .5, ph: r() * 6.28, width: .7 + r() * .6 }; }
+function strokeShape(W, hs, variant, k) {
+  // 반환: 중심선 점열(몸 좌표) + 굵기
+  const sectors = {
+    A: [[238, 312, 'wrap'], [92, 152, 'wrap'], [150, 212, 'base'], [255, 555, 'ring']],
+    B: [[250, 292, 'wrap'], [92, 128, 'wrap'], [292, 330, 'wrap'], [128, 160, 'wrap']],
+    C: [[200, 330, 'ringA'], [30, 150, 'ringB'], [150, 300, 'ringC'], [-60, 60, 'ringD']],
+    D: [[230, 320, 'in'], [95, 160, 'in'], [160, 230, 'in'], [300, 380, 'in']],
+  }[variant][k];
+  const [a0, a1, kind] = sectors; const pts = []; const N = 40;
+  const span = (a1 - a0) * hs.len; const st = a0 + (a1 - a0 - span) / 2;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, th = (st + span * t) * Math.PI / 180;
+    const wob = Math.sin(t * 5 + hs.ph) * hs.wob * .025 * W + hs.bend * Math.sin(t * Math.PI) * .04 * W;
+    if (kind === 'wrap') pts.push(surf(W, th, .085 * W + Math.max(-.02 * W, wob)));
+    else if (kind === 'base') { const x = (-.46 + .92 * t) * W * hs.len; pts.push([x, .1 * W + Math.sin(t * Math.PI) * hs.bend * .035 * W]); }
+    else if (kind === 'ring') { const H = W / 1.25; const R = .92 * W; pts.push([Math.sin(th) * R * 1.05, -.5 * H - Math.cos(th) * R * .82 + wob * .6]); }
+    else if (kind === 'in') pts.push(surf(W, th, -.17 * W + wob * .5));
+    else { const rad = { ringA: .2, ringB: .3, ringC: .4, ringD: .5 }[kind] * W; pts.push(surf(W, th, rad + wob)); }
+  }
+  const wBase = (kind === 'in' ? .09 : kind === 'base' ? .12 : kind === 'ring' ? .085 : kind.startsWith('ring') ? .08 : .12) * W * hs.width;
+  return { pts, w: wBase, kind };
+}
+function drawMong(g, x, y, W, o = {}) {
+  const { pose = 'sleep', strokes = 0, seed = 11, variant = 'A', look = 0, fresh = -1, glow = 0, ghost = false, night = false } = o;
+  const H = W / 1.25;
+  g.save(); g.translate(x, y);
+  // 번짐 고리(폭 1.3W 고정 — 획 수와 무관)
+  wash(g, 0, 0, .65 * W, .09 * W, 'rgba(30,27,24,.5)', .5);
+  // 몸 4획(몸 뒤 담묵, 몸과 종이 틈 0.05W — 아트 바이블 1-3-1)
+  for (let k = 0; k < strokes && variant !== 'D'; k++) {
+    const s = strokeShape(W, handStroke(seed, k), variant, k);
+    const isFresh = k === fresh;
+    if (glow) wash(g, s.pts[17][0], s.pts[17][1], W * .25, W * .18, GOLD_SOFT + '1)', .35 * glow);
+    brush(g, s.pts, s.w, isFresh ? mix(INK, PAPER, .12) : STROKE_INK, .95, .28);
+  }
+  // 몸: 종이 테(획과 떨어지게) → 몸
+  g.save(); bodyPath(g, W * 1.1); g.translate(0, 0); g.restore();
+  g.save(); g.scale(1.0, 1.0); bodyPath(g, W);  g.fillStyle = INK; g.shadowColor = 'rgba(0,0,0,.25)'; g.shadowBlur = 3; g.fill(); g.restore();
+  if (variant === 'D') { g.save(); bodyPath(g, W); g.clip(); for (let k = 0; k < strokes; k++) { const s = strokeShape(W, handStroke(seed, k), 'D', k); g.shadowColor = 'rgba(120,110,98,.6)'; g.shadowBlur = 2; brush(g, s.pts, s.w, k === fresh || glow ? '#6a6157' : '#4a443d', .95, .3); } g.restore(); }
+  if (ghost) { g.save(); bodyPath(g, W); g.setLineDash([3, 3]); g.strokeStyle = '#c0392b'; g.lineWidth = 1; g.stroke(); g.restore(); }
+  // 빗 세 가닥(정수리 오른쪽 1시)
+  const comb = [[1, 0], [.9, 1], [.75, 2]];
+  for (const [l, i] of comb) { const rx = .3 * W, ry = -.93 * H + i * .085 * W; brush(g, [[rx, ry], [rx + .1 * W * l, ry - .02 * W], [rx + .2 * W * l, ry - .01 * W + (pose === 'lookup' ? -.02 * W : 0)]], .06 * W, INK, 1, .18); }
+  // 눈(종이 두 점, 몸 높이 38%)
+  const ey = -.38 * H + (pose === 'lookup' ? -.07 * H : 0), ex = .21 * W, sh = .04 * W + look * .04 * W;
+  g.fillStyle = PAPER; g.strokeStyle = PAPER; g.lineWidth = .035 * W; g.lineCap = 'round';
+  for (const sx of [-1, 1]) { if (pose === 'sleep') { g.beginPath(); g.arc(sx * ex + sh, ey - .01 * W, .06 * W, .25, Math.PI - .25); g.stroke(); } else { g.beginPath(); g.arc(sx * ex + sh, ey, .08 * W, 0, 6.29); g.fill(); } }
+  g.restore();
+}
+
+// ── 장면 그리기(하루 장) ─────────────────────────────────────────
+function pieceDraw(g, p, x, y, scale, alpha, r, opts = {}) {
+  const W = opts.W || 540;
+  if (p.code) { const k = ({ sprout: 1.7, mountain: 1.5, geese: 1.7, moon: 1.15, stars: 1.6, leaf: 1.3, leafboat: 1.3, leafroof: 1.1, wind: 1.4, sea: 1.4, lantern: 1.3, sparks: 1.3, rain: 1.2, snow: 1.3 })[p.code] || 1; g.save(); g.globalAlpha = alpha; drawCode(g, p.code, x, y, W * .5 * scale * k, r); g.restore(); return; }
+  const im = IMG[p.img]; if (!im) return;
+  const s = W * (p.size || .25) * scale / Math.max(im.width, im.height);
+  const w = im.width * s, h = im.height * s;
+  g.save(); g.translate(x, y); if (opts.rot) g.rotate(opts.rot);
+  const mk = IMG[p.img + '.mask'];
+  if (mk && !opts.noMask) { g.globalAlpha = .85 * alpha; g.drawImage(tinted(p.img + '.mask', PAPER), -w / 2, -h / 2, w, h); }
+  if (opts.goldRim) { g.globalAlpha = 1; wash(g, 0, 0, w * .6, h * .6, GOLD_SOFT + '1)', .22 * alpha); }
+  g.globalAlpha = alpha; g.drawImage(tinted(p.img, opts.color || INK), -w / 2, -h / 2, w, h);
+  g.restore();
+  return { w, h };
+}
+
+const PL = { sky: [.25, -.17], water: [.48, 0], shelter: [.74, 0], wrap: [.86, 0], ground: [.8, .2], back: [.62, -.12] };
+function placeOn(path, p, slotT, side, W) { const a = along(path, slotT); const off = (PL[p.anchor] || [0, 0])[1] * W * side; const x = a.x + (p.anchor === 'water' ? 0 : off), y = a.y + (p.anchor === 'sky' ? -W * .06 : 0); return { x: Math.min(W * .8, Math.max(W * .2, x)), y: Math.max(W * .2, y), ang: a.ang }; }
+
+function renderDay(cv, seed, days, n, mode, anim) {
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const c = composeNight(seed, days, n);
+  const r = rng(`scene|${seed}|${n}`);
+  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  const path = waterPath(seed, c.w, W, H, false);
+  const mainP = PIECES[D.SENSES[c.main][1]];
+  const prevPs = c.prevs.map((s) => PIECES[D.SENSES[s][1]]);
+  const dutP = c.dut ? dutPiece(c.dut) : null;
+  const sticker = mode === 'v1';
+  // 자리: 주연은 앵커 자리, 곁 말은 물길 위쪽 자리, 덧말은 둘 사이
+  const mongAt = along(path, .985);
+  const side = mongAt.x < W / 2 ? 1 : -1;
+  const slots = sticker ? null : {
+    main: placeOn(path, mainP, PL[mainP.anchor]?.[0] ?? .5, side, W),
+    prevs: prevPs.map((p, i) => placeOn(path, p, [.12, .3][i], -side * (i ? 1 : -1), W)),
+  };
+  if (slots && dutP) { const t = ((PL[mainP.anchor]?.[0] ?? .5) + .12) / 2 + .06; slots.dut = placeOn(path, dutP, t, -side, W); }
+  if (sticker) { slots && 0; }
+  // 장 연산: 조각마다 동사 하나
+  const ops = [];
+  const addVerb = (p, at, k) => {
+    if (!at) return;
+    const R = W * (p.code ? .1 : (p.size || .25) * .42);
+    switch (p.verb) {
+      case 'void': ops.push({ t: 'drop', x: at.x, y: at.y, r: R * .9 }); break;
+      case 'moon': ops.push({ t: 'drop', x: at.x, y: at.y, r: W * .085 }); break;
+      case 'comb': ops.push({ t: 'comb', x: at.x, y: at.y, a: -.5 + r() * .3, amp: W * .1, lam: W * .04, gap: W * .12 }); break;
+      case 'wake': ops.push({ t: 'swirl', x: at.x, y: at.y, r: R * 1.4, s: .9 * (k % 2 ? 1 : -1) }); break;
+      case 'swirl': ops.push({ t: 'swirl', x: at.x, y: at.y - W * .05, r: W * .22, s: 1.5 }); break;
+      case 'rise': ops.push({ t: 'lift', x: at.x, y: at.y - R * .4, r: W * .08, amp: W * .12 }); break;
+      case 'pool': ops.push({ t: 'drop', x: at.x, y: at.y, r: R * .6 }); break;
+      case 'steps': for (let i = 0; i < 3; i++) ops.push({ t: 'drop', x: at.x - W * .06 + i * W * .06, y: at.y + (i - 1) * W * .03, r: W * .025 }); break;
+      case 'drops': for (let i = 0; i < 9; i++) ops.push({ t: 'drop', x: W * (.15 + r() * .7), y: H * (.08 + r() * .45), r: W * (.008 + r() * .02) }); break;
+      case 'wave': ops.push({ t: 'wave', y: H * .62, h: H * .25, l: W * .07, amp: W * .025, ph: r() * 6 }); break;
+      case 'ridge': ops.push({ t: 'lift', x: at.x, y: at.y + W * .1, r: W * .18, amp: W * .16 }); break;
+      case 'follow': ops.push({ t: 'swirl', x: at.x, y: at.y, r: W * .15, s: .6 }); break;
+    }
+  };
+  if (!sticker) { prevPs.forEach((p, i) => addVerb(p, slots.prevs[i], i)); addVerb(mainP, slots.main, 2); if (dutP && dutP.verb !== 'none') addVerb(dutP, slots.dut, 3); }
+  renderField(g, W, H, { seed, w: c.w, path: sticker ? null : path, ops, sticker });
+
+  if (sticker) { // v1: 고정 자리, 관계 없음
+    const fixed = [[W * .5, H * .22], [W * .22, H * .12], [W * .8, H * .36]];
+    [mainP, ...prevPs].forEach((p, i) => pieceDraw(g, p, fixed[i][0], fixed[i][1], i ? .7 : 1, i ? .5 : 1, rng('s' + i), { noMask: true }));
+    if (dutP) pieceDraw(g, dutP, W * .2, H * .5, .7, .9, rng('d'), { noMask: true });
+    drawMong(g, W * .5, H * .86, W * .14, { pose: 'sleep', strokes: Math.floor((n) / 7), seed, variant: curVariant() });
+    return c;
+  }
+  // ── 관계 규칙 ──
+  const all = [{ p: mainP, at: slots.main, role: 'main' }, ...prevPs.map((p, i) => ({ p, at: slots.prevs[i], role: 'prev' }))];
+  if (dutP) all.push({ p: dutP, at: slots.dut, role: 'dut' });
+  const has = (k) => all.some((o) => (o.p.code || o.p.img || '').includes(k));
+  const mong = { x: mongAt.x, y: H * .87 };
+  const shelter = all.find((o) => o.p.anchor === 'shelter');
+  const wrap = all.find((o) => o.p.anchor === 'wrap');
+  // 아래(감싸 덮기): 우산·잎 지붕은 몽망이(또는 주연) 위로 옮겨 덮는다
+  if (shelter) { shelter.at = { x: mong.x + W * .02, y: mong.y - W * .24, ang: 0 }; }
+  // 곁: 땅 조각(찻잔·벼루·새싹)은 몽망이 곁 바닥에 앉는다(물길 반대쪽)
+  all.filter((o) => o.p.anchor === 'ground').forEach((o, i) => { o.at = { x: mong.x - side * W * (.22 + i * .14), y: mong.y - W * (o.p.code ? 0 : .05), ang: 0 }; });
+  // 감싸기: 이불은 몽망이 뒤에서 감싼다
+  if (wrap) { wrap.at = { x: mong.x, y: mong.y - W * .07, ang: 0 }; }
+  // 바람: 가벼운 사물이 같은 쪽으로 기움
+  const windy = has('wind') || has('kite') || has('washing');
+  // 먹 실(연결고리): 지난 말 → 주연, 덧말은 금빛 매듭
+  g.save(); g.lineCap = 'round';
+  const chain = [...all.filter((o) => o.role === 'prev').reverse(), all[0]];
+  for (let i = 0; i < chain.length - 1; i++) { brush(g, curve(chain[i].at.x, chain[i].at.y, chain[i + 1].at.x, chain[i + 1].at.y, .18, 30), 1.6, mix(INK, PAPER, .45), .6, .3); }
+  if (dutP && c.prevs.length && !c.dutWith.startsWith('season')) {
+    const A = all[0].at, B = all[1]?.at, C = slots.dut;
+    if (B) { for (const S of [A, B]) brush(g, curve(S.x, S.y, C.x, C.y, -.12, 24), 1.3, GOLD, .75, .2); }
+  }
+  g.restore();
+  // 비추기: 빛(달·등불·창가 불빛·달무리)이 물길 위에 비침 — 아래쪽 물길에 옅은 뒤집힌 상
+  for (const o of all) {
+    const k = o.p.code || o.p.img || '';
+    if (/moon|lantern|halo|fireflies/.test(k)) {
+      const t = Math.min(.92, .2 + (o.at.y / H)); const wpt = along(path, Math.min(.9, t + .15));
+      g.save(); g.translate(wpt.x, wpt.y); g.scale(1, -.4); g.globalAlpha = .22;
+      if (o.p.code) drawCode(g, o.p.code, 0, 0, W * .3, rng('ref' + k)); else pieceDraw(g, o.p, 0, 0, .7, .5, r, { noMask: true });
+      g.restore();
+      // 물결이 상을 자름
+      g.save(); g.strokeStyle = PAPER; g.lineWidth = 1.2; g.globalAlpha = .9; for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(wpt.x - W * .06, wpt.y + i * 4 - 4); g.lineTo(wpt.x + W * .06, wpt.y + i * 4 - 4); g.stroke(); } g.restore();
+    }
+  }
+  // 그리기 순서: 하늘 → 뒤 → 물 → 감싸기 → 곁
+  const order = { back: 0, sky: 1, water: 2, wrap: 3, ground: 4, shelter: 6 };
+  const sorted = all.slice().sort((a, b) => (order[a.p.anchor] ?? 2) - (order[b.p.anchor] ?? 2));
+  let mongDrawn = false;
+  const strokesNow = Math.floor(n / 7);
+  const pose = shelter || wrap ? 'sleep' : mainP.anchor === 'sky' ? 'lookup' : mainP.anchor === 'water' ? 'sit' : 'sleep';
+  const drawM = () => { if (mongDrawn) return; mongDrawn = true; drawMong(g, mong.x, mong.y, W * .14, { pose, strokes: anim ? anim.strokesBefore : strokesNow, seed, variant: curVariant(), look: side * .5 }); };
+  for (const o of sorted) {
+    if ((order[o.p.anchor] ?? 2) >= 4) drawM();
+    const role = o.role, sc = role === 'main' ? 1.25 : role === 'dut' ? .78 : (c.prevs.indexOf(c.prevs[all.indexOf(o) - 1]) === 0 ? .62 : .5);
+    const alpha = role === 'main' ? (c.rest ? .55 : 1) : role === 'dut' ? .7 : .5;
+    const rot = windy && /kite|letter|washing|leaf|boat/.test(o.p.img || o.p.code || '') ? .14 : (o.p.anchor === 'water' ? o.at.ang * .25 : 0);
+    // 흐르기: 물 위 사물 뒤에 물살 두 줄
+    if (o.p.anchor === 'water') { const a = o.at.ang; for (let i = 0; i < 2; i++) brush(g, curve(o.at.x - Math.cos(a) * W * (.08 + i * .03), o.at.y - Math.sin(a) * W * (.08 + i * .03) + (i ? 5 : -3), o.at.x - Math.cos(a) * W * .02, o.at.y + (i ? 4 : -2), .1, 12), 1.6, mix(INK, PAPER, .4), .5, .4); }
+    // 연 실: 위 → 몽망이로 잇기
+    if ((o.p.img || '').includes('kite')) brush(g, curve(o.at.x, o.at.y + W * .1, mong.x + W * .05, mong.y - W * .1, .2, 40), 1.1, mix(INK, PAPER, .35), .7, .1);
+    pieceDraw(g, o.p, o.at.x, o.at.y, sc, alpha, rng(`pc|${seed}|${n}|${o.role}`), { rot, goldRim: role === 'dut' });
+    if (role === 'dut') { wash(g, o.at.x, o.at.y, W * .05, W * .05, GOLD_SOFT + '1)', .25); g.fillStyle = GOLD; g.beginPath(); g.arc(o.at.x + W * .07, o.at.y + W * .05, 3, 0, 6.29); g.fill(); }
+  }
+  drawM();
+  // 비: 우산이 있으면 우산 위에서 멈추고 가장자리로 흘러내림(아래 = 피함)
+  if (has('rain')) { const rr = rng('rain' + n); g.save(); for (let i = 0; i < 22; i++) { const px = W * (.12 + rr() * .76), py = H * (.05 + rr() * .5); if (shelter && Math.abs(px - shelter.at.x) < W * .17 && py > shelter.at.y - W * .1) continue; brush(g, [[px, py], [px - 2, py + 9], [px - 3, py + 16]], 1.6, mix(INK, PAPER, .3), .45, .2); } if (shelter) for (const sx of [-1, 1]) { const ex = shelter.at.x + sx * W * .16, ey = shelter.at.y + W * .06; for (let k = 0; k < 3; k++) { g.fillStyle = mix(INK, PAPER, .35); g.globalAlpha = .6; g.beginPath(); g.arc(ex + sx * k, ey + k * 9 + 6, 1.8, 0, 6.29); g.fill(); } } g.restore(); }
+  // 눈: 위쪽 가장자리에 쌓임
+  if (has('snow') || c.dut === 'firstsnow') { for (const o of all) if (!o.p.code) { g.fillStyle = '#FBF8F2'; for (let i = 0; i < 5; i++) { g.beginPath(); g.arc(o.at.x + (i - 2) * 7, o.at.y - W * .07 - Math.abs(i - 2) * 2, 2.2, 0, 6.29); g.fill(); } } }
+  // 돌봄 장식 층(내용·크기와 무관): 밥 = 하늘 귀퉁이 작은 등불, 간식 = 몽망이 곁 연적 물방울
+  if (c.meal) { drawCode(g, 'lantern', W * (side > 0 ? .86 : .14), H * .1, W * .22, rng('m')); }
+  if (c.snack && IMG['x.dewdrop']) pieceDraw(g, { img: 'x.dewdrop', size: .09 }, mong.x - side * W * .13, mong.y - W * .03, 1, .7, r, { noMask: true });
+  return c;
+}
+
+// ── 이레 한 폭(가로로 이어진 한 장) ─────────────────────────────────
+function renderWeek(cv, seed, days, w, upto, opts = {}) {
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  const path = waterPath(seed, w, W, H, true);
+  const nights = days.slice(w * 7, Math.min(upto, w * 7 + 7));
+  const ops = [];
+  const pw = W / 7;
+  const placed = [];
+  nights.forEach((d, i) => {
+    const t = (i + .5) / 7; const a = along(path, t);
+    if (!d.sense) { placed.push(null); return; }
+    const p = PIECES[D.SENSES[d.sense][1]];
+    const up = p.anchor === 'sky' || p.anchor === 'back' ? -H * .26 : p.anchor === 'water' ? 0 : -H * .1;
+    const at = { x: a.x, y: Math.max(H * .2, a.y + up), ang: a.ang };
+    placed.push({ p, at, d });
+    ops.push(p.verb === 'drops' ? { t: 'drop', x: at.x, y: at.y, r: H * .05 } : p.verb === 'comb' ? { t: 'comb', x: at.x, y: at.y, a: -.4, amp: H * .12, lam: H * .05, gap: H * .2 } : { t: 'swirl', x: at.x, y: at.y, r: H * .22, s: (i % 2 ? 1 : -1) * .9 });
+  });
+  renderField(g, W, H, { seed, w: w + 100, path, ops, horizontal: true });
+  // 넘어가는 말(왼쪽 끝 옅게)
+  const cs = carried(seed, days, w);
+  if (cs) { const p = PIECES[D.SENSES[cs][1]]; const a = along(path, .02); pieceDraw(g, p, a.x + 26, a.y - H * .12, .42, .3, rng('c'), { W: H * 1.25 }); brush(g, curve(a.x + 26, a.y - H * .12, placed.find(Boolean)?.at.x ?? a.x + 80, placed.find(Boolean)?.at.y ?? a.y, .15, 30), 1.4, GOLD, .5, .2); }
+  // 먹 실 + 덧말 매듭
+  const live = placed.filter(Boolean);
+  for (let i = 0; i < live.length - 1; i++) brush(g, curve(live[i].at.x, live[i].at.y, live[i + 1].at.x, live[i + 1].at.y, .12, 30), 1.6, mix(INK, PAPER, .42), .65, .3);
+  const knots = [];
+  nights.forEach((d, i) => { const n = w * 7 + i + 1; const c = composeNight(seed, days, n); if (c.dut && placed[i]) { const prevIdx = placed.slice(0, i).map((x, j) => x ? j : -1).filter((j) => j >= 0).pop(); const B = prevIdx != null ? placed[prevIdx].at : placed[i].at; knots.push({ x: (placed[i].at.x + B.x) / 2, y: Math.min(placed[i].at.y, B.y) - H * .12, dut: c.dut }); } });
+  live.forEach((o, i) => pieceDraw(g, o.p, o.at.x, o.at.y, .75, .95, rng(`wk${i}`), { W: H * 1.25 }));
+  for (const k of knots) { const dp = dutPiece(k.dut); pieceDraw(g, dp, k.x, k.y, .5, .6, rng('k' + k.x), { W: H * 1.25, goldRim: true }); }
+  // 몽망이: 그 이레의 마지막 밤 자리를 걷는 중
+  const lastI = nights.length - 1; const a = along(path, (lastI + .5) / 7);
+  drawMong(g, a.x, Math.min(H * .95, a.y + H * .2), H * .2, { pose: 'sit', strokes: Math.floor(Math.min(upto, w * 7 + 7) / 7), seed, variant: curVariant() });
+  return knots;
+}
+
+// ── 28밤 두루마리 ───────────────────────────────────────────────
+function renderScroll(cv, seed, days, n) {
+  const g = cv.getContext('2d'); g.fillStyle = '#F6F1E7'; g.fillRect(0, 0, cv.width, cv.height);
+  const done = Math.floor(n / 7);
+  g.fillStyle = '#9a917f'; g.font = '13px sans-serif';
+  if (!done) { g.fillText('첫 이레가 끝나는 7번째 아침부터 두루마리에 한 폭씩 이어 붙습니다.', 20, 30); return; }
+  const tmp = document.createElement('canvas'); tmp.width = 1050; tmp.height = 262;
+  for (let w = 0; w < done; w++) { renderWeek(tmp, seed, days, w, (w + 1) * 7); const x = (w % 2) * 525, y = Math.floor(w / 2) * 150; g.drawImage(tmp, x + 4, y + 8, 517, 129); }
+}
+
+// ── 몸 4획 얼굴판 ───────────────────────────────────────────────
+function renderFace(cv, seed, n, variant, glowT) {
+  const g = cv.getContext('2d'); g.fillStyle = PAPER; g.fillRect(0, 0, cv.width, cv.height);
+  const strokes = Math.floor(n / 7);
+  g.fillStyle = '#7d7466'; g.font = '12px sans-serif';
+  for (let k = 0; k <= 4; k++) { const x = 90 + k * 180; drawMong(g, x, 120, 80, { pose: 'open', strokes: k, seed, variant, ghost: k > 0 }); g.fillStyle = k <= strokes ? '#3b352e' : '#b0a796'; g.fillText(k ? `${k * 7}번째 아침 · ${k}획` : '0획', x - 34, 165); }
+  for (let i = 0; i < 3; i++) { const sd = [11, 27, 64][i]; const t = document.createElement('canvas'); t.width = 128; t.height = 128; const tg = t.getContext('2d'); tg.fillStyle = PAPER; tg.fillRect(0, 0, 128, 128); drawMong(tg, 64, 92, 52, { pose: 'open', strokes: 4, seed: sd, variant }); g.imageSmoothingEnabled = true; g.drawImage(t, 900 + 0, 10 + i * 78, 64, 64); g.fillStyle = '#7d7466'; g.fillText(`씨앗 ${sd} · 64px`, 970, 46 + i * 78); }
+}
+
+// ── 이레 한 획 새김(연출) ─────────────────────────────────────────
+let audio;
+function thump() { try { audio = audio || new AudioContext(); const t = audio.currentTime; const o = audio.createOscillator(), gn = audio.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(52, t + .35); gn.gain.setValueAtTime(.0001, t); gn.gain.exponentialRampToValueAtTime(.6, t + .012); gn.gain.exponentialRampToValueAtTime(.0001, t + .5); o.connect(gn).connect(audio.destination); o.start(t); o.stop(t + .55); const b = audio.createBuffer(1, audio.sampleRate * .14, audio.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 2 * .35; const s = audio.createBufferSource(); s.buffer = b; const f = audio.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2200; s.connect(f).connect(audio.destination); s.start(t); } catch (e) {} }
+function drawImpact(cv, seed, days, n, t) {
+  // t(ms): 0~450 들림 · 450~1050 날아감 · 1050 꽂힘(멈춤 90ms) · 1050~1900 스밈·물결 · 1900~2500 바라봄 · (28번째) 2500~3600 네 획 차례로 빛남
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const k = n / 7 - 1; const variant = curVariant();
+  const shake = t > 1050 && t < 1230 ? Math.sin((t - 1050) / 18) * 4 * (1 - (t - 1050) / 180) : 0;
+  g.save(); g.translate(shake, 0);
+  renderDay(cv, seed, days, n, 'v2', { strokesBefore: t >= 1050 ? k + 1 : k });
+  g.restore();
+  const path = waterPath(seed, Math.floor((n - 1) / 7), W, H, false); const mongAt = along(path, .985);
+  const mx = mongAt.x, my = H * .87, MW = W * .14;
+  const s = strokeShape(MW, handStroke(seed, k), variant, k);
+  if (t < 1050) {
+    // 꿈 한가운데에서 그 이레의 획이 크게 떠올라(옅음 → 짙음, 금빛 티끌) 몽망이 쪽으로 날아와 제자리 크기로 줄어듦
+    const lift = Math.min(1, t / 450), fly = Math.max(0, Math.min(1, (t - 450) / 600)); const e = fly * fly * fly;
+    const sc = 4.4 - 3.4 * e; const cx = W * .5 + (mx - W * .5) * e, cy = H * .4 + (my - H * .4) * e - Math.sin(e * Math.PI) * H * .1;
+    { const vg = g.createRadialGradient(mx, my - MW * .35, MW * .7, mx, my - MW * .35, MW * 1.6); const va = .6 * lift * (1 - e * .6); vg.addColorStop(0, 'rgba(239,232,218,0)'); vg.addColorStop(1, 'rgba(239,232,218,' + va + ')'); g.fillStyle = vg; g.fillRect(0, 0, W, H); }
+    const dust = rng('dust' + n); for (let i = 0; i < 16; i++) { const a = dust() * 6.28, d = MW * (1.2 + dust() * 1.8) * (1 - e * .7); wash(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d * .6 - MW * .3, 3 + dust() * 4, 3 + dust() * 4, GOLD_SOFT + '1)', .7 * lift); }
+    g.save(); g.translate(cx, cy); g.scale(sc, sc); g.rotate((1 - e) * -.35); { const c0 = s.pts.reduce((q, p) => [q[0] + p[0] / s.pts.length, q[1] + p[1] / s.pts.length], [0, 0]); g.translate(-c0[0] * (1 - e), -c0[1] * (1 - e)); }
+    brush(g, s.pts, s.w * 1.15, mix(INK, PAPER, .55 - .5 * lift), .35 + .65 * lift, .28); g.restore();
+  } else {
+    const u = Math.min(1, (t - 1050) / 900);
+    if (t < 1300) { const fg = g.createRadialGradient(mx, my - MW * .35, MW * .75, mx, my - MW * .35, MW * 2); const fa = .5 * (1 - (t - 1050) / 250); fg.addColorStop(0, 'rgba(255,253,246,0)'); fg.addColorStop(1, 'rgba(255,253,246,' + fa + ')'); g.fillStyle = fg; g.fillRect(0, 0, W, H); }
+    // 먹 물결 세 겹(굵게 → 가늘게) + 금빛 튐
+    for (let i = 0; i < 3; i++) { const uu = Math.max(0, u - i * .14); if (!uu) continue; g.save(); g.globalAlpha = .6 * (1 - uu); g.strokeStyle = i === 1 ? GOLD : mix(INK, PAPER, .25); g.lineWidth = 7 * (1 - uu) + 1; const rw = rng('rw' + i); const ph = [rw() * 6, rw() * 6]; g.beginPath(); for (let q = 0; q <= 72; q++) { const a = q / 72 * 6.29; const k = 1 + .07 * Math.sin(a * 3 + ph[0]) + .04 * Math.sin(a * 5 + ph[1]); const X = mx + Math.cos(a) * MW * (.7 + uu * 4.2) * k, Y = my - MW * .3 + Math.sin(a) * MW * (.35 + uu * 2.1) * k; q ? g.lineTo(X, Y) : g.moveTo(X, Y); } g.stroke(); g.restore(); }
+    const sp = rng('sp' + n); for (let i = 0; i < 14; i++) { const a = sp() * 6.28, d = MW * (.6 + u * (1.4 + sp() * 1.6)); wash(g, mx + Math.cos(a) * d, my - MW * .35 + Math.sin(a) * d * .55, 2.5 + sp() * 3, 2.5 + sp() * 3, GOLD_SOFT + '1)', .85 * (1 - u)); }
+    // 새 획: 젖은 테(진함·약간 굵음) → 마르며 제 농담으로, 금빛 테가 잠깐
+    g.save(); g.translate(mx, my); const wet = 1 - u; if (wet > 0) { brush(g, s.pts, s.w * (1 + wet * .5), GOLD, .5 * wet, .2); brush(g, s.pts, s.w * (1 + wet * .2), mix(INK, PAPER, .05), .8 * wet, .2); } g.restore();
+    if (n === 28 && t > 2500) { const gt = Math.min(1, (t - 2500) / 1100); g.save(); g.globalAlpha = Math.sin(gt * Math.PI) * .9; for (let j = 0; j < 4; j++) { if (gt * 4 < j) break; const sj = strokeShape(MW, handStroke(seed, j), variant, j); g.save(); g.translate(mx, my); brush(g, sj.pts, sj.w * .35, GOLD, .9, .2); g.restore(); } g.restore(); }
+  }
+}
+
+// ── 화면 묶음 ─────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const Q = new URLSearchParams(location.search);
+if (Q.get('seed')) $('seed').value = Q.get('seed');
+if (Q.get('n')) $('night').value = Q.get('n');
+if (Q.get('mode')) $('mode').value = Q.get('mode');
+if (Q.get('variant')) $('variant').value = Q.get('variant');
+if (Q.get('cap')) document.body.classList.add('cap');
+function curVariant() { return $('variant').value; }
+function famName(s) { return s.startsWith('season.') ? ({ spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' })[s.slice(7)] + '(절기)' : KO[s]; }
+function draw() {
+  const seed = +$('seed').value, n = +$('night').value, mode = $('mode').value;
+  $('nightLabel').textContent = `${n}밤`;
+  const days = diary(seed);
+  const c = renderDay($('day'), seed, days, n, mode);
+  const w = Math.floor((n - 1) / 7);
+  $('cardTitle').textContent = `${n}번째 아침 한 장 · ${w + 1}번째 이레 ${((n - 1) % 7) + 1}번째 밤` + (mode === 'v1' ? ' (v1 스티커)' : '');
+  const today = days[n - 1];
+  let html = today.sense ? `어젯밤 말: <b>${KO[today.sense]}</b>` : `어젯밤은 말 없이 잠듦 → <b>혼자 꾼 꿈</b>(쉼표 장)`;
+  if (c.prevs.length) html += ` · 곁에 남은 말: ${c.prevs.map((s) => KO[s]).join(', ')}`;
+  if (c.dut) html += `<br><span class="dm">꿈이 한 마디 덧붙였어요 — ‘${D.DUT[c.dut].ko}’</span> <span style="color:#8a8070">(${KO[c.main]} + ${famName(c.dutWith)})</span>`;
+  html += `<br><span style="color:#8a8070">돌봄 장식: ${today.meal ? '밥 → 하늘 귀퉁이 등불' : '밥 없음(기본 하늘, 어둡지 않음)'}${today.snack ? ' · 간식 → 곁의 연적 물방울' : ''}</span>`;
+  $('words').innerHTML = html;
+  $('dev').textContent = today.crisis ? '개발 표시: 이 밤은 위기 낱말 → 저장 단계에서 고요로 바뀜. 그림·덧말·이레 폭은 진짜 고요 밤과 같은 규칙으로 나온다(흔적 0).' : '';
+  const knots = renderWeek($('week'), seed, days, w, n);
+  $('weekTitle').textContent = `이레 한 폭 — ${w + 1}번째 이레, ${((n - 1) % 7) + 1}밤까지` + (knots.length ? ` · 덧말 ${knots.map((k) => D.DUT[k.dut].ko).join('·')}` : '');
+  renderScroll($('scroll'), seed, days, n);
+  renderFace($('face'), seed, n, curVariant());
+  $('play').disabled = n % 7 !== 0;
+  $('play').textContent = n % 7 === 0 ? `${n}번째 아침 — 이레 한 획 새김 재생` : '이레 한 획 새김(7·14·21·28번째 아침)';
+}
+let playing = 0;
+$('play').onclick = () => {
+  const seed = +$('seed').value, n = +$('night').value, days = diary(seed); const t0 = performance.now(); const id = ++playing; let hit = false;
+  const end = n === 28 ? 3700 : 2600;
+  const step = () => { if (id !== playing) return; let t = performance.now() - t0; if (t > 1050 && t < 1140) t = 1050; if (!hit && t >= 1050) { hit = true; thump(); try { navigator.vibrate && navigator.vibrate([0, 38, 70, 16]); } catch (e) {} } drawImpact($('day'), seed, days, n, t); if (performance.now() - t0 < end) requestAnimationFrame(step); else draw(); };
+  requestAnimationFrame(step);
+};
+['seed', 'night', 'mode', 'variant'].forEach((id) => $(id).addEventListener('input', () => { playing++; draw(); }));
+const ids = [...new Set(Object.values(PIECES).filter((p) => p.img).map((p) => p.img)), 'x.dewdrop'];
+Promise.all(ids.flatMap((id) => [load(id), id.startsWith('x.') ? null : load(id + '.mask')])).then(() => {
+  draw();
+  if (Q.get('anim')) drawImpact($('day'), +$('seed').value, diary(+$('seed').value), +$('night').value, +Q.get('anim'));
+  window.__ready = true;
+});
+</script>
+</body>
+</html>

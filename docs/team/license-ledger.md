@@ -28,10 +28,14 @@
 | `docs/creative/meal-ref/{inkstone-empty,inkstone-spoon,inkstone-clear}-f1~f3.jpg` 9장 | 같음 · gemini-3.1-flash-image | 같음 | 11-25 | V30 선행 벼루 연지 상태 3종 탐색(V12b 굽기 목표 이미지) | 탐색 — 앱 사용 전 손질·리뷰 필요 |
 | `docs/creative/meal-ref/{inkstone-empty,inkstone-spoon,inkstone-clear}-p1.jpg` 3장 | 같음 · gemini-3-pro-image | 같음 | 11-25 | 같음 | 탐색 — 앱 사용 전 손질·리뷰 필요 |
 | `docs/creative/meal-ref/sheet.png` | 팀 작성 코드(`scripts/meal-ref-sheet.mjs`)가 위 생성물을 배치·축소·알파 손질 1차 | — | 11-25 | 고른 안 비교 시트(64·128pt·다크) | 탐색 |
+| `docs/design/dream/2026-11-25-dream-compose-v2/prototype/pieces/*.webp` 22장(손질본 11장 + 가림 마스크 11장) | 새 생성 아님 — 1-1 표 손질본(`apps/mobile/assets/motifs/r1/`)의 **사본** | — | 11-25 | 꿈 조합 v2 시제품 조각(설계 탐색) | **탐색** — 사본은 앱 번들에 넣지 않음(원본 행은 1-1) |
+| `docs/design/dream/2026-11-25-dream-compose-v2/prototype/pieces/x.path.webp`·`x.dewdrop.webp` 2장 | 새 생성 아님 — 위 1절 원본 `c14b-ref/path-f3.jpg`(gemini-3.1-flash-image)·`meal-ref/dewdrop-p1.jpg`(gemini-3-pro-image)을 팀 코드(`prototype/tools/pieces.mjs`, motif-raster ①~④ 같은 식)로 알파 손질 | — | 11-25 | 꿈 조합 v2 시제품 조각(설계 탐색) | **탐색** — 블라인드·1-1 절차 전 앱 사용 금지 |
+| `docs/design/dream/2026-11-25-dream-compose-v2/captures/*.png`·`feedback/blind/*.png` | 팀 작성 코드 렌더(시제품 `index.html` 캔버스) — 위 조각을 포함한 합성 캡처 | — | 11-25 | 꿈 조합 v2 판정·블라인드 시트 | **탐색** |
 
 - 확인 필요: rival 문서 머리말은 "9장 중 8장 gpt, 1장 gemini"라고 적었는데 파일은 10장·노드 10개다. `A4-in-engine`·`B4-in-engine`이 생성 이미지인지 코드 렌더인지 작성자(경쟁 디렉터)가 이 표를 고친다. 그전까지는 생성 이미지로 취급한다.
 - Figma 에셋 URL은 7일 뒤 만료된다. 로컬 사본이 원본이다. 프롬프트 원문은 각 Figma 노드 생성 기록에 있다.
 - 밥·간식 36장(11-25): Gemini 2K(2048px) 출력을 1536px JPG(품질 90)로 줄인 사본이다. 앱에 쓰려면 머리말 오너 결정 11-25 조건 ①~⑥을 거쳐 1-1 같은 손질본 행(`출시 사용: 앱`, 손질 내용 포함)을 새로 만든다. 판정은 `docs/creative/meal-ref/README.md`.
+- 꿈 조합 v2(11-25 밤): Gemini 새 생성 **0장** — `exp/dream-compose.mjs` probe 1회가 402(선불 크레딧 소진)로 막혀 멈췄고, 몸 4획 시안 `gen/stroke4-gemini.mjs`는 실행하지 않았다. 충전 뒤 생성하면 이 절에 '탐색' 행을 더한다(`docs/design/dream/2026-11-25-dream-compose-v2/gen/README.md`).
 - 합계: AI 생성 이미지 161장(7 + 10 + 17 + 10 + 42 + 18 + 21 + 밥·간식 36), 출시물 사용 11장(1-1 표, 손질본·블라인드 판정 조건). C14b 레퍼런스 처음 10장은 Figma AI로 만들다 크레딧 한도(11-25)에 걸려, 나머지는 Gemini API로 직접 만들었다. **Gemini API 생성물 약관도 출시 전 할 일 1번에 함께 확인한다.**
 
 ## 1-1. 앱 에셋으로 쓰는 AI 생성물(손질본) — C14b 4차 혼합안
