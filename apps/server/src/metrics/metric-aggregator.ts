@@ -11,6 +11,7 @@
 import { Injectable, Logger, type BeforeApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { METRIC_CELL_KEYS, type MetricCell } from '@mong/contract';
+import { ShutdownBudget, within } from '../common/shutdown-budget';
 import type { Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -52,6 +53,7 @@ export class MetricAggregator implements BeforeApplicationShutdown {
   constructor(
     private readonly prisma: PrismaService,
     config: ConfigService<Env, true>,
+    private readonly budget: ShutdownBudget = new ShutdownBudget(),
   ) {
     this.newCellsPerDay = config.get('METRIC_NEW_CELLS_PER_DAY', { infer: true });
   }
@@ -162,10 +164,20 @@ export class MetricAggregator implements BeforeApplicationShutdown {
       DO UPDATE SET "count" = "metric_daily"."count" + EXCLUDED."count"`;
   }
 
-  /** 종료: 남은 칸이 없어질 때까지(실패해 되돌린 칸 포함) 최대 SHUTDOWN_FLUSH_TRIES번 */
-  async beforeApplicationShutdown(): Promise<void> {
-    for (let i = 0; i < SHUTDOWN_FLUSH_TRIES && (this.cells.size > 0 || this.inflight); i++) await this.flush();
-    if (this.dropped > 0) this.log.warn({ msg: '집계 칸 상한 초과로 버림', dropped: this.dropped });
-    this.logRejected();
+  /**
+   * 종료: 남은 칸이 없어질 때까지(실패해 되돌린 칸 포함) 최대 SHUTDOWN_FLUSH_TRIES번. 프로세스 하나의 종료 마감(ShutdownBudget 8초)을
+   * 링크 퍼널과 **병렬로** 나눠 쓰고 각 시도를 남은 시간으로 끊는다(B7a 리뷰 M1). 못 쓴 것은 개수만 로그(값 없음). 시작만 하고 돌아간다
+   */
+  beforeApplicationShutdown(): void {
+    this.budget.run(async () => {
+      for (let i = 0; i < SHUTDOWN_FLUSH_TRIES && (this.cells.size > 0 || this.inflight); i++) {
+        if (!(await within(this.flush(), this.budget.remaining()))) break;
+      }
+      if (this.dropped > 0) this.log.warn({ msg: '집계 칸 상한 초과로 버림', dropped: this.dropped });
+      this.logRejected();
+      let lost = 0;
+      for (const { n } of this.cells.values()) lost += n;
+      if (lost > 0 || this.inflight) this.log.error({ code: 'metric_flush_lost', count: lost, inflight: Boolean(this.inflight) }, '종료 전 집계 핑을 다 쓰지 못함');
+    });
   }
 }

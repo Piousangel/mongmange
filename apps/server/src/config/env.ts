@@ -49,8 +49,25 @@ export const envSchema = z
      * `/m/**`와 같은 길이다 → 비우면 TRUSTED_PROXY_HOPS_WEB 값을 쓴다(운영에서 WEB이 1 이상 필수이므로 OTA도 1 이상). 길이 다르면 따로 준다
      */
     TRUSTED_PROXY_HOPS_OTA: hops.optional(),
+    /**
+     * `/m/**` 직접 호출(`*.run.app`) 막기(B7a·B6 1안, common/web-edge.ts): XFF 맨 오른쪽 홉이 Google 자체 서비스 대역(goog − cloud) 안인지.
+     * off(검사 안 함) / log(통과 + 대역 밖 개수만 로그) / enforce(대역 밖 403). 비우면 운영 log·그 밖 off —
+     * **B6에서 Firebase 경유 요청의 맨 오른쪽 홉이 대역 안인지 실측한 뒤에만 enforce**(Firebase 출구 대역은 따로 공개되지 않음)
+     */
+    WEB_EDGE_CHECK: z.enum(['off', 'log', 'enforce']).optional(),
     /** 전역 레이트 리밋(IP 접두당 하나의 카운터, 60초 창). 경로별 더 낮은 한도는 각 B 항목에서 @Throttle로 */
     RATE_LIMIT_PER_MIN: z.coerce.number().int().min(1).max(10_000).default(120),
+    /**
+     * 전역 레이트 리밋 저장소의 키(IP 접두) 수 상한(B7a, common/throttler-storage.ts). 넘으면 가장 오래 안 쓴 키부터 버린다.
+     * 키 하나 약 200바이트 → 기본 10만 ≈ 20MB(512MiB 인스턴스 예산 안). 서로 다른 IP 홍수로 인한 OOM을 막는다(B7-report B2)
+     */
+    RATE_LIMIT_MAX_KEYS: z.coerce.number().int().min(1000).max(1_000_000).default(100_000),
+    /**
+     * DB 쿼리 하나의 **클라이언트 쪽** 제한 시간(pg query_timeout, B7a). statement_timeout은 DB 안 실행 시간만 재서 네트워크 멈춤(풀러 장애 조치·
+     * NAT 끊김)에는 걸리지 않는다 → 그 연결의 요청이 무기한 기다렸다(B7-report B3). DB_STATEMENT_TIMEOUT_MS보다 길어야 한다
+     * (정상적인 느린 쿼리는 DB가 먼저 끊어 오류 이유가 정확하게 남도록). 걸리면 그 연결은 버린다(prisma.service.ts)
+     */
+    DB_QUERY_TIMEOUT_MS: z.coerce.number().int().min(200).max(120_000).default(6000),
     /**
      * 집계 핑이 받는 출시 판 목록(쉼표, 예 `1.0,1.1`). 밖의 appVer는 조용히 버린다(B0 리뷰 I5: 칸 수 폭주 방지).
      * 새 판을 낼 때 이 값을 먼저 늘린다(배포 체크리스트).
@@ -149,6 +166,9 @@ export const envSchema = z
     if (new Set(e.RECOVERY_PEPPERS_PREVIOUS.map((p) => p.v)).size !== e.RECOVERY_PEPPERS_PREVIOUS.length) {
       ctx.addIssue({ code: 'custom', path: ['RECOVERY_PEPPERS_PREVIOUS'], message: '같은 판 번호가 두 번 있습니다' });
     }
+    if (e.DB_QUERY_TIMEOUT_MS <= e.DB_STATEMENT_TIMEOUT_MS) {
+      ctx.addIssue({ code: 'custom', path: ['DB_QUERY_TIMEOUT_MS'], message: 'DB_STATEMENT_TIMEOUT_MS보다 길어야 합니다' });
+    }
     if (e.DB_CONNECT_TIMEOUT_MS >= e.READY_TIMEOUT_MS) {
       ctx.addIssue({ code: 'custom', path: ['DB_CONNECT_TIMEOUT_MS'], message: 'READY_TIMEOUT_MS보다 짧아야 합니다' });
     }
@@ -172,6 +192,7 @@ export const envSchema = z
     TRUSTED_PROXY_HOPS_API: e.TRUSTED_PROXY_HOPS_API ?? 0,
     TRUSTED_PROXY_HOPS_WEB: e.TRUSTED_PROXY_HOPS_WEB ?? 0,
     TRUSTED_PROXY_HOPS_OTA: e.TRUSTED_PROXY_HOPS_OTA ?? e.TRUSTED_PROXY_HOPS_WEB ?? 0,
+    WEB_EDGE_CHECK: e.WEB_EDGE_CHECK ?? (e.NODE_ENV === 'production' ? ('log' as const) : ('off' as const)),
   }));
 
 export type Env = z.infer<typeof envSchema>;

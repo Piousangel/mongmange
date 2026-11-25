@@ -171,8 +171,10 @@ export class AccountService {
       { name: 'account_ip_day', key: ipKey, limit: LIMITS.accountPerIpDay, windowMs: DAY },
     ];
     if (this.limiter.take(rules)) throw tooMany();
+    // 그날(UTC) [0시, 다음 날 0시) — 위쪽 끝이 없으면 서버 시계가 뒤로 갔을 때(또는 시험이 시계를 되돌렸을 때) 미래 행까지 센다(B7a)
     const since = new Date(`${utcDay(this.clock.now())}T00:00:00Z`);
-    const today = await this.prisma.userAuth.count({ where: { linkedAt: { gte: since } } });
+    const until = new Date(since.getTime() + DAY);
+    const today = await this.prisma.userAuth.count({ where: { linkedAt: { gte: since, lt: until } } });
     if (today >= this.dailyCap) {
       this.log.error({ code: 'account_daily_cap', cap: this.dailyCap }, '하루 새 계정 상한 도달 — 운영 확인 필요');
       throw new ServiceUnavailableException({ code: 'account_cap', message: '잠시 뒤에 다시 해 주세요' });

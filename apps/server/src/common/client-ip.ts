@@ -24,6 +24,8 @@ export function routeGroupOf(path: string | undefined): RouteGroup {
 
 export interface IpRequest {
   url?: string;
+  /** Fastify가 고른 라우트 템플릿(`/m/:code/get`). 그룹 판정은 이것이 먼저다 — 원본 경로는 퍼센트 인코딩으로 다르게 보일 수 있다(B7a 리뷰 H1) */
+  routeOptions?: { url?: string };
   headers: Record<string, string | string[] | undefined>;
   socket?: { remoteAddress?: string };
   raw?: { url?: string; socket?: { remoteAddress?: string } };
@@ -42,7 +44,7 @@ export class ClientIpService {
   }
 
   /** 정본 3-8의 `clientIp(req, routeGroup)`. 그룹을 안 주면 경로로 고른다 */
-  clientIp(req: IpRequest, group: RouteGroup = routeGroupOf(req.raw?.url ?? req.url)): string | undefined {
+  clientIp(req: IpRequest, group: RouteGroup = routeGroupOf(req.routeOptions?.url ?? req.raw?.url ?? req.url)): string | undefined {
     const socketIp = req.raw?.socket?.remoteAddress ?? req.socket?.remoteAddress;
     return pickClientIp(req.headers['x-forwarded-for'], socketIp, this.hops[group]);
   }
@@ -96,7 +98,7 @@ export function reportKeyPrefix(ip: string | undefined): string {
 }
 
 /** IPv6 → 8개 16비트 그룹(소문자, 앞 0 제거). 존 ID(%eth0)는 버린다 */
-function expandV6(ip: string): string[] {
+export function expandV6(ip: string): string[] {
   const addr = ip.split('%')[0]!;
   const [head, tail] = addr.includes('::') ? addr.split('::') : [addr, undefined];
   const h = head ? head.split(':') : [];

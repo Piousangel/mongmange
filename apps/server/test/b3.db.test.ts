@@ -16,6 +16,7 @@ import type { CdnPurgeQueue, CountingInvalidator } from '../src/cdn/cdn-purge';
 import type { Clock } from '../src/common/clock';
 import { logSink } from '../src/common/logging';
 import type { GcService } from '../src/deletion/gc.service';
+import type { LinkCounter } from '../src/pages/link-counter';
 import type { PageService } from '../src/pages/page.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import type { LocalObjectStore } from '../src/storage/local-store';
@@ -31,6 +32,7 @@ let cdn: CountingInvalidator;
 let purge: CdnPurgeQueue;
 let pages: PageService;
 let gc: GcService;
+let counter: LinkCounter;
 const logs: string[] = [];
 const codesSeen = new Set<string>();
 const usedNames: string[] = [];
@@ -65,6 +67,7 @@ beforeAll(async () => {
   const { OBJECT_STORE } = await import('../src/storage/object-store');
   const { PageService } = await import('../src/pages/page.service');
   const { GcService } = await import('../src/deletion/gc.service');
+  const { LinkCounter } = await import('../src/pages/link-counter');
   app = await createApp({ bufferLogs: false });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
@@ -75,6 +78,7 @@ beforeAll(async () => {
   purge = app.get(CdnPurgeQueue);
   pages = app.get(PageService);
   gc = app.get(GcService);
+  counter = app.get(LinkCounter);
 });
 afterAll(async () => {
   await app?.close();
@@ -462,6 +466,8 @@ describe('링크 퍼널 — 비콘·스토어 이동, 30일 뒤 코드 없는 �
     expect(g.headers.location).toBe('https://apps.apple.com/app/id6739012345?ct=m_link');
     const ga = await web(http().get(`/m/${u.code}/get?p=android`)).expect(302);
     expect(ga.headers.location).not.toContain(u.code);
+    // 비콘·스토어 이동은 메모리에 모았다가 주기적으로 쓴다(B7a, link-counter.ts) — 시험은 바로 비운다
+    expect(await counter.drain(10_000)).toBe(true);
     const rows = await prisma.linkDaily.findMany({ where: { code: u.code }, orderBy: { event: 'asc' } });
     expect(rows.map((r) => [r.event, r.count])).toEqual([
       ['view', 1],
@@ -470,6 +476,7 @@ describe('링크 퍼널 — 비콘·스토어 이동, 30일 뒤 코드 없는 �
     ]);
     const other = await user();
     await web(http().post(`/m/${other.code}/seen`)).expect(204);
+    expect(await counter.drain(10_000)).toBe(true);
     expect(await prisma.linkDaily.count({ where: { code: other.code } })).toBe(0);
   });
   it('rollup_link_daily: 30일 지난 행은 코드 없이 link_funnel_daily로 옮기고 지운다', async () => {
@@ -496,6 +503,8 @@ describe('계정 삭제 — 공개·커밋 전·지난 판·격리 파일과 lin
     await putPage(u.d).expect(200); // 판 3 커밋 전(staging)
     const pending = (await pageRow(u.userId)).page.pendingPrefix!;
     await web(http().post(`/m/${u.code}/seen`)).expect(204);
+    expect(await counter.drain(10_000)).toBe(true); // link_daily 행이 생긴 상태로
+    await web(http().post(`/m/${u.code}/seen`)).expect(204); // 삭제 때 아직 메모리에 있는 조회(B7a)
     const c = (await pageRow(u.userId)).creature;
     expect(await store.list('public-pages', old)).not.toEqual([]);
     const before = await traces([u.code, c.id, old, live, pending]);
@@ -503,6 +512,8 @@ describe('계정 삭제 — 공개·커밋 전·지난 판·격리 파일과 lin
 
     await resetPurge();
     const r = await as(u.d, http().delete('/api/v1/me')).expect(202);
+    // 삭제 뒤 flush가 메모리의 조회를 써도 지운 코드의 행은 되살아나지 않는다(flush 문장의 live 확인)
+    expect(await counter.drain(10_000)).toBe(true);
     expect(await traces([u.code, c.id, old, live, pending, u.userId, u.d.sub])).toEqual({});
     for (const k of [old, live, pending]) {
       expect(await store.list('public-pages', k)).toEqual([]);
@@ -527,6 +538,7 @@ describe('계정 삭제 — 공개·커밋 전·지난 판·격리 파일과 lin
     const u = await user();
     await publish(u.d, { files: { loop: null } });
     await web(http().post(`/m/${u.code}/seen`)).expect(204);
+    expect(await counter.drain(10_000)).toBe(true);
     const key = (await pageRow(u.userId)).page.pathPrefix!;
     const phrase = (await as(u.d, http().post('/api/v1/recovery-code')).expect(200)).body.code as string;
     await http().post('/api/v1/deletion/web').set('x-forwarded-for', '10.77.0.1').send({ code: u.code, phrase }).expect(202);
@@ -710,13 +722,15 @@ describe('M1 — /m·/get·/seen 리밋(DB 조회 앞)', () => {
     const u = await user();
     await publish(u.d, { files: { loop: null } });
     for (let i = 0; i < 35; i++) await http().post(`/m/${u.code}/seen`).set('x-forwarded-for', ipN(3)).expect(204);
+    expect(await counter.drain(10_000)).toBe(true);
     expect((await prisma.linkDaily.findFirstOrThrow({ where: { code: u.code, event: 'view' } })).count).toBe(30);
   });
-  it('스토어 이동 30/분: 31번째 429, 센 값은 30', async () => {
+  it('스토어 이동 30/분: 31번째도 302(B7a — 사용자에게 429를 보이지 않음), 센 값은 30', async () => {
     const u = await user();
     await publish(u.d, { files: { loop: null } });
     for (let i = 0; i < 30; i++) await http().get(`/m/${u.code}/get?p=ios`).set('x-forwarded-for', ipN(4)).expect(302);
-    await http().get(`/m/${u.code}/get?p=ios`).set('x-forwarded-for', ipN(4)).expect(429);
+    await http().get(`/m/${u.code}/get?p=ios`).set('x-forwarded-for', ipN(4)).expect(302);
+    expect(await counter.drain(10_000)).toBe(true);
     expect((await prisma.linkDaily.findFirstOrThrow({ where: { code: u.code, event: 'store_ios' } })).count).toBe(30);
   });
 });

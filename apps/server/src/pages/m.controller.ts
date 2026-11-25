@@ -1,7 +1,8 @@
 // `/m/{code}` 웹 경로(architecture.md v2.2 3-2·3-5·3-6 '링크 퍼널'·3-9). 인증 없음, Firebase Hosting → Cloud Run(TRUSTED_PROXY_HOPS_WEB).
 //  GET  /m/{code}        HTML(고정 틀 + 이스케이프한 값, m-html.ts). live = public, max-age=60, s-maxage=300 / 사라진 링크 = s-maxage=60.
 //  POST /m/{code}/seen   페이지 로드 비콘 → link_daily(view). 204 no-store. IP 접두당 30/분, 넘으면 조용히 버림.
-//  GET  /m/{code}/get    스토어 302(코드 없는 고정 주소) + link_daily(store_*). no-store. IP 접두당 30/분.
+//  GET  /m/{code}/get    스토어 302(코드 없는 고정 주소) + link_daily(store_*). no-store. IP 접두당 30/분까지만 센다 — 넘어도 302(B7a).
+//  비콘·스토어 이동은 DB를 치지 않는다: LinkCounter가 메모리에 모아 15초마다 한 문장으로 쓴다(B7a, link-counter.ts).
 //  POST /m/{code}/report 신고(B5, 3-8). 웹 폼(x-www-form-urlencoded) → 303 감사 페이지 / 앱(JSON {reason}) → 204. 인증 없음, no-store.
 //                        같은 출처만(남의 사이트가 방문자 IP로 신고를 쏘게 하는 자동 제출 막기 — sameOriginPost), IP 접두(/64)당 5/시간(DB 앞).
 //                        신고자 키 접두는 IPv6 /48(reportKeyPrefix, B5 리뷰 H2).
@@ -12,15 +13,16 @@
 import { Body, Controller, Get, Header, HttpCode, Inject, Logger, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiExcludeController } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 import { CREATURE_CODE_RE, REPORT_PER_HOUR, REPORT_REASONS, reportRequestSchema, type ReportReason } from '@mong/contract';
 import { ClientIpService, rateLimitKey, reportKeyPrefix, type IpRequest } from '../common/client-ip';
-import { Clock, utcDay } from '../common/clock';
 import { RateLimiter } from '../common/rate-limiter';
 import type { Env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 import { OBJECT_STORE, pageDir, type ObjectStore } from '../storage/object-store';
 import { ReportService } from '../moderation/report.service';
+import { LinkCounter } from './link-counter';
 import { auxLine } from './m-copy';
 import { cspFor, renderGonePage, renderLivePage, renderReportedPage, type PageConfig } from './m-html';
 import type { PageMeta } from './page.service';
@@ -84,7 +86,7 @@ export class MController {
     private readonly prisma: PrismaService,
     private readonly ips: ClientIpService,
     private readonly limiter: RateLimiter,
-    private readonly clock: Clock,
+    private readonly counter: LinkCounter,
     private readonly reports: ReportService,
     @Inject(OBJECT_STORE) private readonly store: ObjectStore,
     config: ConfigService<Env, true>,
@@ -126,27 +128,27 @@ export class MController {
   @Post(':code/seen')
   @HttpCode(204)
   @Header('cache-control', 'no-store')
-  async seen(@Param('code') code: string, @Req() req: IpRequest): Promise<void> {
+  seen(@Param('code') code: string, @Req() req: IpRequest): void {
     const ip = rateLimitKey(this.ips.clientIp(req, 'web'));
     if (this.limiter.take([{ name: 'm_seen', key: ip, limit: M_LIMITS.seenPerMin, windowMs: 60_000 }])) return;
-    try {
-      if (CREATURE_CODE_RE.test(code) && (await this.live(code))) await this.count(code, 'view');
-    } catch {
-      this.log.warn({ code: 'm_seen_dropped' }, '비콘 기록 실패(버림)');
-    }
+    // live 확인은 flush 문장이 한다(꺼진·없는 코드의 칸은 그때 버려진다)
+    if (CREATURE_CODE_RE.test(code)) this.counter.add(code, 'view');
   }
 
+  /**
+   * 스토어 이동(B7a, B7-report B4). 한도는 **세는 것만** 막는다 — 넘어도 사용자는 늘 스토어로 간다(CGNAT 한 IP를 많은 사람이 쓰는 입소문 순간에
+   * 설치하려던 사람이 'Too Many Requests'를 보지 않게). 전역 throttler(120/분)에서도 뺀다(@SkipThrottle) — 이 경로는 DB를 치지 않고
+   * 고정 주소 302만 내므로 /healthz처럼 홍수가 DB로 번지지 않는다. 남용 막기의 목적(퍼널 부풀리기·쓰기 증폭)은 그대로: IP 접두당 30/분만 세고,
+   * 쓰기는 15초마다 한 문장(link-counter.ts)이다. 302 Location은 코드 없는 고정 주소라 열린 리디렉트도 아니다.
+   */
   @Get(':code/get')
-  async get(@Param('code') code: string, @Query('p') p: string | undefined, @Req() req: IpRequest, @Res() reply: FastifyReply): Promise<void> {
+  @SkipThrottle()
+  get(@Param('code') code: string, @Query('p') p: string | undefined, @Req() req: IpRequest, @Res() reply: FastifyReply): void {
     const ip = rateLimitKey(this.ips.clientIp(req, 'web'));
-    // 퍼널 부풀리기·쓰기 증폭 막기(B3 리뷰 M1): IP 접두당 분당 한도, DB 앞에서
-    if (this.limiter.take([{ name: 'm_get', key: ip, limit: M_LIMITS.getPerMin, windowMs: 60_000 }])) return tooMany(reply);
     const ios = p === 'ios';
-    try {
-      if ((ios || p === 'android') && CREATURE_CODE_RE.test(code) && (await this.live(code))) await this.count(code, ios ? 'store_ios' : 'store_android');
-    } catch {
-      this.log.warn({ code: 'm_get_uncounted' }, '스토어 이동 기록 실패(이동은 그대로)');
-    }
+    // 퍼널 부풀리기 막기(B3 리뷰 M1): IP 접두당 분당 한도 — 넘으면 세지 않을 뿐 이동은 그대로
+    const counted = !this.limiter.take([{ name: 'm_get', key: ip, limit: M_LIMITS.getPerMin, windowMs: 60_000 }]);
+    if (counted && (ios || p === 'android') && CREATURE_CODE_RE.test(code)) this.counter.add(code, ios ? 'store_ios' : 'store_android');
     void reply.code(302).header('cache-control', 'no-store').header('location', ios ? this.cfg.storeIosUrl : this.cfg.storeAndroidUrl).send();
   }
 
@@ -213,14 +215,5 @@ export class MController {
         FROM app.creatures c JOIN app.public_pages p ON p.creature_id = c.id
        WHERE c.code = ${code} AND c.link_enabled AND NOT c.hidden AND p.state = 'live' AND p.path_prefix IS NOT NULL`;
     return r ?? null;
-  }
-
-  private async count(code: string, event: 'view' | 'store_ios' | 'store_android'): Promise<void> {
-    await this.prisma.$executeRaw`
-      INSERT INTO app.link_daily (day, code, event, count)
-      SELECT ${utcDay(this.clock.now())}::date, ${code}, ${event}::app.link_event, 1
-       WHERE EXISTS (SELECT 1 FROM app.creatures WHERE code = ${code})
-      ON CONFLICT (day, code, event) DO UPDATE SET count = app.link_daily.count + 1`;
-    // ↑ 조회와 쓰기 사이에 계정이 지워지면 행을 만들지 않는다(B3 리뷰 L8 — 지운 코드의 하루치 행)
   }
 }

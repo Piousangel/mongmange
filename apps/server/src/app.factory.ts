@@ -1,5 +1,5 @@
 // 앱 조립(main·e2e·openapi 스크립트가 같이 쓴다). listen은 하지 않는다.
-import { Module, type DynamicModule, type Type } from '@nestjs/common';
+import { Logger as NestLogger, Module, type DynamicModule, type Type } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -7,7 +7,10 @@ import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swag
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import type { Env } from './config/env';
+import { routeGroupOf } from './common/client-ip';
+import { GOOGLE_EDGE_RANGES } from './common/google-edge-ranges';
 import { genReqId, ROUTE_TEMPLATE } from './common/logging';
+import { checkRanges, WebEdgeCheck } from './common/web-edge';
 import { REPORT_PATH_RE } from './pages/m.controller';
 
 /**
@@ -61,6 +64,24 @@ export async function createApp(
     done(null, Object.fromEntries(new URLSearchParams(body.toString('utf8'))));
   });
   app.useLogger(app.get(Logger));
+  // `/m/**` 직접 호출 막기(B7a·B6 1안, web-edge.ts) — 레이트 리밋·DB 앞(onRequest). 앱 API(api 그룹)에는 걸지 않는다(앱이 *.run.app 직접 사용)
+  const config0 = app.get<ConfigService<Env, true>>(ConfigService);
+  const edgeLog = new NestLogger('WebEdge');
+  const edgeMode = config0.get('WEB_EDGE_CHECK', { infer: true });
+  // off(개발)에서는 대역을 쓰지 않으므로 검사도 하지 않는다(B7a 리뷰 L5). log·enforce에서 깨졌으면 부팅 거부
+  const stale = edgeMode === 'off' ? null : checkRanges(GOOGLE_EDGE_RANGES, Date.now());
+  if (stale) edgeLog.warn({ code: 'web_edge_ranges_stale' }, stale);
+  const edge = new WebEdgeCheck(edgeMode, (o, m) => edgeLog.warn(o, m));
+  if (edgeMode !== 'off') {
+    fastify.addHook('onRequest', async (request, reply) => {
+      // 판정은 **Fastify가 실제로 고른 라우트**로(B7a 리뷰 H1): 원본 경로 문자열은 `/%6D/…`처럼 인코딩하면 `/m/`로 시작하지 않는데
+      // 라우터는 디코드해 `/m/:code` 핸들러로 보냈다. 맞는 라우트가 없으면(404) 검사할 것이 없다
+      if (routeGroupOf(request.routeOptions?.url) !== 'web') return;
+      if (!edge.allow(request.headers['x-forwarded-for'])) {
+        await reply.code(403).header('cache-control', 'no-store').type('text/plain; charset=utf-8').send('Forbidden');
+      }
+    });
+  }
   app.enableShutdownHooks();
   const config = app.get<ConfigService<Env, true>>(ConfigService);
   if (config.get('OPENAPI_UI', { infer: true })) {

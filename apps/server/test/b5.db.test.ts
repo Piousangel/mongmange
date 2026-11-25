@@ -702,6 +702,9 @@ describe('운영자 계정 삭제 요청 — 요청 → 72시간 대기(앱 알�
     await publish(u.d);
     const { creature } = await pageOf(u.userId);
     await viaWeb(http().post(`/m/${u.code}/seen`), freshIp()).expect(204);
+    // 비콘은 메모리 합산(B7a) — link_daily 행이 생긴 상태에서 삭제 연쇄를 본다
+    const { LinkCounter } = await import('../src/pages/link-counter');
+    expect(await app.get(LinkCounter).drain(10_000)).toBe(true);
     const [res] = await snippet<{ request_account_deletion: string }>('08-delete-account.sql', u.code);
     expect(res!.request_account_deletion).toMatch(/^scheduled/);
     await expect(snippet('08-delete-account.sql', u.code)).rejects.toThrow(/이미 삭제 대기/);

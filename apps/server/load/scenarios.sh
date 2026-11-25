@@ -17,6 +17,8 @@ guard() {
   if awk "BEGIN{exit !($l > 100)}"; then echo "load $l > 100 — 멈춥니다"; exit 1; fi
 }
 H() { curl -s -o /dev/null -w "%{http_code}" -H "x-forwarded-for: $1, 35.191.0.1" "${@:2}"; }
+# 비콘·스토어 이동은 인스턴스 메모리에 모았다가 15초마다 한 문장으로 쓴다(B7a, src/pages/link-counter.ts) → DB 합계는 그 뒤에 본다
+settle() { sleep 17; }
 want=" ${*:-1 2 3 4 5} "
 
 if [[ $want == *" 1 "* ]]; then
@@ -25,10 +27,10 @@ if [[ $want == *" 1 "* ]]; then
   guard; node run.mjs --url "$API/m/$LIVE" --mode closed --conc 40 --sec 15 --ip unique --label m-live-ceiling
   q "delete from app.link_daily"
   guard; node run.mjs --url "$API/m/$LIVE/seen" --method POST --rps 60 --sec 20 --ip unique --label seen-60rps
-  echo "link_daily: $(q "select event||'='||count from app.link_daily")  (보낸 수와 같아야 함)"
+  settle; echo "link_daily: $(q "select event||'='||count from app.link_daily")  (보낸 수와 같아야 함)"
   q "delete from app.link_daily"
   guard; node run.mjs --url "$API/m/$LIVE/seen" --method POST --mode closed --conc 40 --sec 15 --ip unique --label seen-ceiling
-  echo "link_daily: $(q "select event||'='||count from app.link_daily")"
+  settle; echo "link_daily: $(q "select event||'='||count from app.link_daily")"
 fi
 
 if [[ $want == *" 2 "* ]]; then
@@ -38,17 +40,18 @@ if [[ $want == *" 2 "* ]]; then
   node run.mjs --url "$CDN/m/$LIVE" --rps 60 --sec 60 --ip unique --label L1-html-via-cdn & P1=$!
   node run.mjs --url "$API/m/$LIVE/seen" --method POST --rps 60 --sec 60 --ip unique --label L1-seen & P2=$!
   node run.mjs --url "$API/m/$LIVE/get?p=ios" --rps 3 --sec 60 --ip unique --label L1-get & P3=$!
-  wait $P1 $P2 $P3
+  wait $P1 $P2 $P3; settle
   echo "cdn: $(curl -s "$CDN/__stats")"; echo "link_daily: $(q "select string_agg(event||'='||count, ' ') from app.link_daily")"
   kill $CDNPID
 fi
 
 if [[ $want == *" 3 "* ]]; then
-  echo "## 3. 레이트 리밋 경계(한 IP) — 기대: page 60·gone 30·get 30 뒤 429, seen은 30 뒤 조용히 버림(204), 전역 120"
+  echo "## 3. 레이트 리밋 경계(한 IP) — 기대: page 60·gone 30 뒤 429, seen 30·get 30 뒤 세지 않음(204·302 그대로, B7a), 전역 120(429 no-store)"
   q "delete from app.link_daily"
   echo "page  : $(for i in $(seq 70); do H 10.9.0.1 "$API/m/$LIVE"; echo; done | sort | uniq -c | xargs)"
   echo "gone  : $(for i in $(seq 40); do H 10.9.0.2 "$API/m/$GONE"; echo; done | sort | uniq -c | xargs)"
-  echo "seen  : $(for i in $(seq 40); do H 10.9.0.3 -X POST "$API/m/$LIVE/seen"; echo; done | sort | uniq -c | xargs)  DB=$(q "select count from app.link_daily where event='view'")"
+  echo "seen  : $(for i in $(seq 40); do H 10.9.0.3 -X POST "$API/m/$LIVE/seen"; echo; done | sort | uniq -c | xargs)"
+  settle; echo "seen DB=$(q "select count from app.link_daily where event='view'")"
   echo "get   : $(for i in $(seq 40); do H 10.9.0.4 "$API/m/$LIVE/get?p=ios"; echo; done | sort | uniq -c | xargs)"
   for i in $(seq 60); do H 10.9.0.5 "$API/m/$LIVE" >/dev/null; done
   for i in $(seq 30); do H 10.9.0.5 -X POST "$API/m/$LIVE/seen" >/dev/null; H 10.9.0.5 "$API/m/$LIVE/get?p=ios" >/dev/null; done
@@ -64,7 +67,7 @@ if [[ $want == *" 4 "* ]]; then
   done
   q "delete from app.link_daily"; curl -s "$CTRL/set?delay=300" >/dev/null
   node run.mjs --url "$API/m/$LIVE/seen" --method POST --rps 60 --sec 20 --ip unique --timeout 15000 --label seen-dbdelay-300ms
-  curl -s "$CTRL/set?delay=0" >/dev/null; echo "link_daily view = $(q "select coalesce(sum(count),0) from app.link_daily")"; sleep 5
+  curl -s "$CTRL/set?delay=0" >/dev/null; settle; echo "link_daily view = $(q "select coalesce(sum(count),0) from app.link_daily")"; sleep 5
   echo "### 데운 풀에서 DB 응답 15초 멈춤(블랙홀)"
   (sleep 5; curl -s "$CTRL/set?hold=1" >/dev/null; sleep 15; curl -s "$CTRL/set?hold=0" >/dev/null) &
   node run.mjs --url "$API/m/$LIVE" --rps 60 --sec 25 --ip unique --timeout 60000 --label m-live-warm-pool-hold-15s; wait

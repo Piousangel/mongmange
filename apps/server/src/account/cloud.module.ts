@@ -6,6 +6,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CDN_INVALIDATOR, CdnPurgeQueue, CountingInvalidator } from '../cdn/cdn-purge';
 import type { Env } from '../config/env';
+import { LinkCounter } from '../pages/link-counter';
 import { MController } from '../pages/m.controller';
 import { PageController } from '../pages/page.controller';
 import { PageService } from '../pages/page.service';
@@ -61,6 +62,8 @@ import { RecoveryPepper } from './recovery-pepper';
     { provide: CDN_INVALIDATOR, useClass: CountingInvalidator },
     CdnPurgeQueue,
     PageService,
+    // B7a 링크 퍼널 메모리 합산(비콘·스토어 이동 → 15초마다 한 문장)
+    LinkCounter,
     // B5 안전 장치: 신고(/m/{code}/report)·운영 정기 작업(cron moderation)
     ReportService,
     ModerationService,

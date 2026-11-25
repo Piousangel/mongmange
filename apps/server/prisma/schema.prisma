@@ -324,6 +324,16 @@ model LinkDaily {
   @@schema("app")
 }
 
+/// 링크 퍼널 메모리 합산 묶음의 '한 번만 반영' 표지(B7a). 무작위 id·시각뿐, 2일 뒤 flush 문장이 지운다(apps/server/src/pages/link-counter.ts)
+model LinkFlush {
+  id String   @id @db.Uuid
+  at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([at])
+  @@map("link_flush")
+  @@schema("app")
+}
+
 /// 코드 없는 링크 퍼널 합계
 model LinkFunnelDaily {
   day   DateTime  @db.Date

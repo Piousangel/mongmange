@@ -87,6 +87,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // 키를 err가 아닌 exception으로 — pino err 직렬화기(종류·메시지만)가 스택을 지우지 않게
       this.log.error({ exception: { type: e.name, message: e.message, stack: e.stack }, status }, '처리하지 못한 오류');
     }
+    // 429는 캐시 금지(B7a, B7-report B5): /m/{code}에서 전역 throttler 429가 나와도 CDN이 다른 방문자에게 퍼뜨리지 않게(정본 3-9 '429 no-store')
+    if (status === 429) httpAdapter.setHeader(ctx.getResponse(), 'cache-control', 'no-store');
     httpAdapter.reply(ctx.getResponse(), { ...body, requestId: req?.id }, status);
   }
 }

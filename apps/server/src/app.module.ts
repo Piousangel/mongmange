@@ -10,6 +10,8 @@ import { ClientIpService } from './common/client-ip';
 import { AllExceptionsFilter } from './common/http-exception.filter';
 import { loggerParams } from './common/logging';
 import { ClientIpThrottlerGuard } from './common/throttler.guard';
+import { BoundedThrottlerStorage } from './common/throttler-storage';
+import { ShutdownBudget } from './common/shutdown-budget';
 import { CloudModule } from './account/cloud.module';
 import { HealthModule } from './health/health.module';
 import { MetricsModule } from './metrics/metrics.module';
@@ -19,7 +21,7 @@ import { SavesModule } from './saves/saves.module';
 import { LocalStorageModule } from './storage/local-storage.module';
 
 @Global()
-@Module({ providers: [ClientIpService], exports: [ClientIpService] })
+@Module({ providers: [ClientIpService, ShutdownBudget], exports: [ClientIpService, ShutdownBudget] })
 class CommonModule {}
 
 @Module({
@@ -37,9 +39,11 @@ class CommonModule {}
     }),
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (c: ConfigService<Env, true>) => [
-        { name: 'default', ttl: 60_000, limit: c.get('RATE_LIMIT_PER_MIN', { infer: true }) },
-      ],
+      // 저장소는 상한 있는 LRU(B7a — 기본 메모리 저장소는 키 상한이 없어 서로 다른 IP 홍수로 OOM, B7-report B2)
+      useFactory: (c: ConfigService<Env, true>) => ({
+        throttlers: [{ name: 'default', ttl: 60_000, limit: c.get('RATE_LIMIT_PER_MIN', { infer: true }) }],
+        storage: new BoundedThrottlerStorage(c.get('RATE_LIMIT_MAX_KEYS', { infer: true })),
+      }),
     }),
     CommonModule,
     PrismaModule,
