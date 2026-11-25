@@ -17,6 +17,7 @@ import { InkList, InkSticks, KeptStick } from './InkSticks';
 import { NameTitle } from './NameTitle';
 import { inkPickerOpen } from '../game/look';
 import { DRINK_MS, NO_CUE, answerPose, type CueValue } from '../render/answer';
+import { inkstoneA11yActions } from '../game/v3Flow';
 
 const RM = PARAMS.rm;
 const TIDE_MS = RM ? 400 : 2400;
@@ -53,6 +54,8 @@ export interface V3Home {
   cue: (Omit<CueValue, 'at'> & { key: number }) | null;
   /** 벼루 탭(300ms 미만) */
   onInkstoneTap: () => void;
+  /** 스크린리더 두 번 탭·목록 보기 = 먹 갈기(길게 누르기 대신, 리뷰 H1) */
+  onGrindA11y: () => void;
 }
 /** 벼루 탭 판정(care-rituals 2-1: 300ms 미만) */
 const INKSTONE_TAP_MS = 300;
@@ -263,7 +266,8 @@ export function GameHome({
   const objW = Math.min(116, width * 0.3 - 4);
   const sleepy = !asleep && sim.canPutToSleep(state, now);
   // v3 제목은 짧게('n번째 밤', 이레 밤이면 '· 이레') — 세로 제목이 길어 안내 문장·몸에 닿지 않게
-  const v3Label = v3 ? (v3.complete ? t('v3.complete') : v3.ire ? t('v3.nightIre', { n: v3.night }) : t('v3.night', { n: v3.night })) : null;
+  // 이레 표기는 제목에 넣지 않고 낙관 아래 작은 표지로(세로 제목이 길어져 안내 한 줄·몸에 닿지 않게, 리뷰 M3·L6)
+  const v3Label = v3 ? (v3.complete ? t('v3.complete') : t('v3.night', { n: v3.night })) : null;
   const title = v3 ? v3Label! : (reveal === 'all' ? t('day.title', { day: dayName(state.dayIndex) }) : '');
   const bodyR = 0.75 * s * L.wpx;
 
@@ -275,7 +279,11 @@ export function GameHome({
   const titleAt = useRef({ x: width / 2, y: insets.top + height * 0.16 });
   // 제목 아래 끝: 안내 한 줄은 늘 그 아래에 놓는다(세로 제목 길이·글자 크기와 상관없이 겹침 0)
   const [titleBottom, setTitleBottom] = useState(0);
-  const lineTop = Math.max(height * 0.3, titleBottom + 16);
+  // 이레 표지(7·14·21·28)는 제목 바로 아래 작은 글자 — 안내 한 줄은 그 아래로
+  const showIre = !!v3?.ire && !v3.complete;
+  const [ireH, setIreH] = useState(0);
+  const below = titleBottom > 0 ? titleBottom + 16 + (showIre ? ireH + 6 : 0) : height * 0.3;
+  const lineTop = below;
   // 이름을 지은 순간: 몽망이가 세로 이름 쪽으로 고개를 돌려 바라본다(2-2 '부르기와 발견')
   const namedKey = naming?.name ? `${naming.name}|${state.name?.at ?? 0}` : '';
   const prevNamed = useRef(namedKey);
@@ -361,11 +369,19 @@ export function GameHome({
       actions.onGrindEnd(ms);
     },
   };
+  // 벼루 접근성 동작: 두 번 탭 = 먹 갈기, 동작 목록 = 벼루 시트
+  const inkstoneA11y = v3
+    ? {
+        accessibilityActions: inkstoneA11yActions({ grind: t('v3.inkstone.grind'), sheet: t('v3.inkstone.sheet') }),
+        onAccessibilityAction: (e: { nativeEvent: { actionName: string } }) => (e.nativeEvent.actionName === 'activate' ? v3.onGrindA11y() : v3.onInkstoneTap()),
+      }
+    : {};
   // 마시기: 먹 방울이 사물(붓·벼루)에서 몸으로 빨려 든다(1.2초)
   const drop = useDerivedValue(() => {
     const c = cue.value;
     const dt = clock.value - c.at;
-    if (c.kind === 0 || dt < 0 || dt >= DRINK_MS) return { x: -99, y: -99, r: 0, o: 0 };
+    // 모션 줄이기면 먹 방울이 날아가지 않는다(리뷰 L7)
+    if (RM || c.kind === 0 || dt < 0 || dt >= DRINK_MS) return { x: -99, y: -99, r: 0, o: 0 };
     const e = ease(dt / DRINK_MS);
     return { x: c.fromX + (ox - c.fromX) * e, y: c.fromY + (oy - c.fromY) * e - Math.sin(Math.PI * e) * L.wpx * 0.6, r: 9 * (1 - 0.65 * e), o: 0.85 * (1 - 0.3 * e) };
   });
@@ -463,7 +479,7 @@ export function GameHome({
               accessibilityRole="button"
               accessibilityLabel={o.a11y}
               accessibilityState={{ disabled: asleep }}
-              {...(i === 1 ? grindHandlers : {})}
+              {...(i === 1 ? { ...grindHandlers, ...inkstoneA11y } : {})}
               onPress={() => {
                 if (i === 0) onBrushPress();
                 if (i === 2) actions.onSleep();
@@ -490,7 +506,7 @@ export function GameHome({
               style={styles.listBtn}
               accessibilityRole="button"
               accessibilityLabel={o.a11y}
-              {...(i === 1 ? grindHandlers : {})}
+              {...(i === 1 ? { ...grindHandlers, ...inkstoneA11y } : {})}
               onPress={() => {
                 if (i === 0) onBrushPress();
                 if (i === 2) actions.onSleep();
@@ -539,6 +555,11 @@ export function GameHome({
         </Animated.View>
       )}
 
+      {showIre && !asleep && titleBottom > 0 && (
+        <KText style={[styles.ire, { top: titleBottom + 10, color: PALETTE.day.textSub }]} pointerEvents="none" testID="v3-ire-mark" serif="title" onLayout={(e) => setIreH(e.nativeEvent.layout.height)}>
+          {t('v3.ire', { n: v3!.ire! })}
+        </KText>
+      )}
       {asleep && (
         <>
           <KText style={[ui.line, { top: insets.top + height * 0.1, color: PALETTE.night.text, fontSize: 17, letterSpacing: track.serif(17) }]} pointerEvents="none" accessibilityRole="header" serif="title">
@@ -593,6 +614,7 @@ const styles = StyleSheet.create({
   list: { position: 'absolute', left: 16, right: 16, gap: 8 },
   listBtn: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 10, backgroundColor: 'rgba(43,42,40,0.07)' },
   listText: { fontFamily: SANS, fontSize: 15, color: PALETTE.day.text },
+  ire: { position: 'absolute', left: 0, right: 0, textAlign: 'center', fontFamily: SERIF, fontSize: 13, letterSpacing: track.serif(13) },
   seal: { position: 'absolute', right: 22, width: 30, height: 30, backgroundColor: PALETTE.day.accent, borderRadius: 3 },
   sealHit: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   nightLine: { position: 'absolute', left: 0, right: 0, top: '21%' },

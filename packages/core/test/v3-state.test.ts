@@ -172,11 +172,38 @@ describe('연적 = 재우기 → 밤 세기, 28밤 → 곁에 남음', () => {
     expect(w.state.sim.phase).toBe('awake');
     expect(v3.nightOf(w.state)).toBe(2);
   });
-  it('앱을 닫아 저절로 잔 밤은 세지 않는다(하루 걸러도 생애가 줄지 않음, D-03·D-07)', () => {
-    const r = day(fresh(), 0, '비', { sleep: false });
+  it('말도 연적도 없던 깸의 잠은 세지 않는다(하루 걸러도 생애가 줄지 않음, D-03·D-07)', () => {
+    const r = day(fresh(), 0, '비', { sleep: false, write: false });
     expect(r.state.sim.dayIndex).toBe(1);
     expect(r.state.v3.life.slept).toBe(0);
     expect(v3.nightOf(r.state)).toBe(1);
+  });
+  it('연적을 잊어도 한 마디를 쓴 깸은 다음 날 잠 하나로 센다(PM 11-25 M6) — 닷새 쓰면 밤 다섯, 말마다 다른 밤', () => {
+    let s = fresh();
+    for (let d = 0; d < 5; d++) s = day(s, d, '비', { sleep: false }).state;
+    expect(s.v3.life.slept).toBe(5);
+    expect(s.v3.words.map((w) => w.night)).toEqual([1, 2, 3, 4, 5]);
+    expect(v3.nightOf(s)).toBe(6);
+  });
+  it('연적으로 재우면 말이 없어도 바로 센다, 깸 하나에 밤은 최대 1', () => {
+    const r = day(fresh(), 0, '비', { write: false });
+    expect(r.state.v3.life.slept).toBe(1);
+    // 말 + 연적 = 여전히 1
+    const r2 = day(fresh(), 0, '비');
+    expect(r2.state.v3.life.slept).toBe(1);
+    expect(r2.effects.filter((e) => e.type === 'nightCounted')).toHaveLength(1);
+  });
+  it('여러 날 비운 뒤 한꺼번에 정산돼도 말을 쓴 깸의 잠만 센다', () => {
+    // 1일차에 쓰고 연적 없이 떠남 → 나흘 뒤 돌아옴(72h 상한 안에서 잠·깸이 여러 번)
+    const base = kst(11, 25, 20);
+    const r = play(fresh(), [
+      { type: 'grind', at: base, durationMs: 9000 },
+      { type: 'write', at: base + 60_000, word: word('비'), chars: 1, raw: handStroke(1) },
+      { type: 'appBackground', at: base + 120_000 },
+      { type: 'appForeground', at: base + 4 * 24 * H, tzOffsetMin: KST },
+    ]);
+    expect(r.state.sim.dayIndex).toBeGreaterThan(1);
+    expect(r.state.v3.life.slept).toBe(1);
   });
   it('1일차 → 28밤: 이레 7·14·21·28 자리, 28번째 아침에 완성, 그 뒤 성장만 멈춤', () => {
     let s = fresh();
@@ -296,6 +323,28 @@ describe('세이브 v3', () => {
     expect(v3.readSaveV3(kv).state).toBeNull();
     expect(kv.data[SAVE_KEYS.main]).toBe(v2raw);
     expect(kv.data[v3.V3_KEYS.archiveV2]).toBe(v2raw);
+  });
+  it('보관은 한 번만: 이미 보관한 v2 원문을 덮지 않는다(멱등)', () => {
+    const kv = memKV();
+    writeSave(kv, sim.createInitial(kst(11, 1, 9), KST, 3), kst(11, 1, 10));
+    const first = kv.data[SAVE_KEYS.main]!;
+    expect(v3.archiveV2(kv)).toBe(true);
+    // v2 본이 바뀌어도(옛 빌드로 더 놀았다 등) 보관본은 처음 것 그대로
+    writeSave(kv, sim.createInitial(kst(11, 2, 9), KST, 4), kst(11, 2, 10));
+    expect(kv.data[SAVE_KEYS.main]).not.toBe(first);
+    expect(v3.archiveV2(kv)).toBe(false);
+    v3.readSaveV3(kv);
+    expect(kv.data[v3.V3_KEYS.archiveV2]).toBe(first);
+    // v2가 없으면 보관하지 않는다
+    expect(v3.archiveV2(memKV())).toBe(false);
+  });
+  it('말이 가리키는 획이 없으면 손상으로 본다(strokeId 검증)', () => {
+    const s = day(fresh(), 0).state;
+    const json = v3.serializeV3(s, kst(11, 26, 9));
+    const id = s.v3.words[0]!.strokeId;
+    const broken = json.replace(`"strokeId":"${id}"`, '"strokeId":"s99-0"');
+    expect(broken).not.toBe(json);
+    expect(() => v3.parseV3(broken)).toThrow(/word/);
   });
   it('손상된 본 → 백업으로', () => {
     const kv = memKV();

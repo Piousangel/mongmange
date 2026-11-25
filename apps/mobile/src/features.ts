@@ -126,6 +126,8 @@ export function resolveFeature(dev: boolean | undefined, remote: boolean | undef
 }
 
 export function isOn(id: FeatureId): boolean {
+  // 새 컨셉 v3 세로 조각은 맡겨 두기와 아직 잇지 않았다: 둘이 함께 켜지면 옛 v2 본이 올라가므로 v3가 켜져 있으면 맡겨 두기를 끈다(리뷰 M5)
+  if (id === 'cloud' && isOn('conceptV3')) return false;
   return resolveFeature(overrides[id], isRemoteFeature(id) ? remoteLayer?.(id) : undefined, FEATURE_DEFAULTS[id]);
 }
 

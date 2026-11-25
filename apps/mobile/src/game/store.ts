@@ -370,8 +370,9 @@ export function devReboot() {
 
 /** 세이브·메타 초기화 → 설치 전(인트로부터, 설치는 다시 첫 탭에) */
 export function devReset() {
+  // 새 컨셉으로 돌 때는 v3 세이브만 지운다 — 옛 세이브(v2)는 그대로 둔다(리뷰 L3)
   if (v3Mode) v3.clearSaveV3(kv);
-  clearSave(kv);
+  else clearSave(kv);
   try {
     kv.remove(META_KEY);
   } catch {

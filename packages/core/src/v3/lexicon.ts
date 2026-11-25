@@ -315,17 +315,27 @@ function lev1(a: string, b: string): boolean {
 }
 
 // ── ⑦ 수단어 해시(평문 없음) ──
-const h16 = (s: string) => sha256Hex(C.hashPepper + s).slice(0, 16);
-function meansHit(vars: string[]): 'strong' | 'soft' | null {
+/** 수단어 해시 표. 기본 = rules-v0 `meansHashes`. 시험은 시험 전용 고추가루·해시를 넣어 이 경로를 직접 친다(평문 없이) */
+export interface MeansTable {
+  pepper: string;
+  strong: readonly string[];
+  soft: readonly string[];
+}
+/** 해시 한 칸: SHA-256(고추가루 + 낱말) 앞 16자 */
+export const meansHash = (pepper: string, s: string) => sha256Hex(pepper + s).slice(0, 16);
+function meansHit(vars: string[], table?: MeansTable): 'strong' | 'soft' | null {
   const R = rules();
+  const pepper = table?.pepper ?? C.hashPepper;
+  const S = table ? new Set(table.strong) : R.meansStrong;
+  const W = table ? new Set(table.soft) : R.meansSoft;
   let soft = false;
   for (const v of vars) {
     const a = [...v];
     for (let i = 0; i < a.length; i++)
       for (let n = 2; n <= 8 && i + n <= a.length; n++) {
-        const h = h16(a.slice(i, i + n).join(''));
-        if (R.meansStrong.has(h)) return 'strong';
-        if (R.meansSoft.has(h)) soft = true;
+        const h = meansHash(pepper, a.slice(i, i + n).join(''));
+        if (S.has(h)) return 'strong';
+        if (W.has(h)) soft = true;
       }
   }
   return soft ? 'soft' : null;
@@ -333,7 +343,7 @@ function meansHit(vars: string[]): 'strong' | 'soft' | null {
 
 export type CrisisLevel = 'strong' | 'soft' | 'none';
 
-function crisisCore(norm: string, raw: string): CrisisLevel {
+function crisisCore(norm: string, raw: string, means?: MeansTable): CrisisLevel {
   if (!norm) return 'none'; // 빈 입력은 어떤 위기 규칙에도 맞지 않는다(QA-3 R4-0)
   const R = rules();
   const ko = koVariants(norm);
@@ -352,7 +362,7 @@ function crisisCore(norm: string, raw: string): CrisisLevel {
   // ⑥ 초성 4자 이상
   if (C.ko.choseongStrong.some((c) => ko.base.includes(c))) return 'strong';
   // ⑦ 수단어 해시(strong 먼저)
-  const mh = meansHit([...ko.all, ...en.all]);
+  const mh = meansHit([...ko.all, ...en.all], means);
   if (mh === 'strong') return 'strong';
   // ⑧ en strong: 줄기·자리바꿈·가운데 글자 빠짐·구문쌍·경계
   if (C.en.strong.some((st) => en.all.some((v) => contains(v, st) || contains(v, dedupe(st))))) return 'strong';
@@ -423,7 +433,7 @@ export interface CrisisResult {
 }
 
 /** 위기 대조 ①~⑩(README 5절 · normalizationOrder) */
-export function crisisMatch(raw: string): CrisisResult {
+export function crisisMatch(raw: string, means?: MeansTable): CrisisResult {
   const pre = leetBang(raw.normalize('NFC').toLowerCase().replace(/＊/g, '*'));
   let norm = normalize(pre, true);
   let hadException = false;
@@ -438,7 +448,7 @@ export function crisisMatch(raw: string): CrisisResult {
       norm = norm.split(d).join('');
       campaign = true;
     }
-  const level = crisisCore(norm, raw);
+  const level = crisisCore(norm, raw, means);
   const clean = norm.split(WILD).join('');
   if (level === 'none' && campaign) return { level: 'soft', hadException, norm: clean };
   return { level, hadException, norm: clean };
@@ -537,8 +547,8 @@ export type Interpretation =
 const clampI = (n: number): Intensity => (n <= 1 ? 1 : n >= 3 ? 3 : 2) as Intensity;
 
 /** 낱말 하나 → 대답. 순서는 rules-v0 `order`(위기 → 이름 → 사전 → 과장 → 합성 분할 → 모르는 말) */
-export function interpretWord(raw: string, lang: LexLang, names: readonly string[] = []): Interpretation {
-  const c = crisisMatch(raw);
+export function interpretWord(raw: string, lang: LexLang, names: readonly string[] = [], means?: MeansTable): Interpretation {
+  const c = crisisMatch(raw, means);
   if (c.level !== 'none') return { kind: 'stay', level: c.level };
   const w = c.norm;
   if (!w) {

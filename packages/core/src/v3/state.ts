@@ -201,27 +201,39 @@ function validWord(w: WordInput): boolean {
   );
 }
 
-/** sim 효과를 보고 v3 블록을 고친다: 깸 = 밥 칸 비움·28번째 아침 완성, 연적 잠 = 밤 세기 */
+/**
+ * sim 효과를 보고 v3 블록을 고친다: 깸 = 밥 칸 비움·28번째 아침 완성, 잠 = 밤 세기.
+ * 밤 세기(PM 11-25 M6 판정): ① 연적으로 재운 잠은 바로 센다 ② 연적을 잊고 앱을 떠나 저절로 잔 잠도 **그 깸에 한 마디를 썼으면** 센다
+ * ③ 말도 연적도 없던 깸의 잠은 세지 않는다(하루 걸러도 생애가 줄지 않음) ④ 깸 하나에 밤은 최대 1.
+ */
 function follow(s: V3State, simEffects: SimEffect[], ev: V3Event, out: V3Effect[]): V3State {
   let v3 = s.v3;
-  for (const e of simEffects) {
+  const dayOfStroke = new Map(s.sim.strokes.map((x) => [x.id, x.day]));
+  const lastSlept = simEffects.map((e) => e.type).lastIndexOf('slept');
+  simEffects.forEach((e, i) => {
     if (e.type === 'woke') {
       v3 = { ...v3, meal: { ...v3.meal, spoons: 0, treats: 0 }, tonightCounted: false };
       if (v3.life.slept >= LIFE_NIGHTS && v3.life.final === null) {
         v3 = { ...v3, life: { ...v3.life, final: { night: LIFE_NIGHTS, at: e.at } } };
         out.push({ type: 'lifeComplete' });
       }
-    } else if (e.type === 'slept' && ev.type === 'putToSleep' && v3.life.final === null && v3.life.slept < LIFE_NIGHTS) {
-      const night = v3.life.slept + 1;
-      const snapshots = [...v3.life.snapshots];
-      if (night % IRE_NIGHTS === 0) {
-        snapshots[night / IRE_NIGHTS - 1] = { night, at: e.at };
-        out.push({ type: 'ireReached', ire: night / IRE_NIGHTS });
-      }
-      v3 = { ...v3, life: { ...v3.life, slept: night, snapshots }, tonightCounted: true };
-      out.push({ type: 'nightCounted', night });
+      return;
     }
-  }
+    if (e.type !== 'slept' || v3.tonightCounted || v3.life.final !== null || v3.life.slept >= LIFE_NIGHTS) return;
+    const wokeAfter = simEffects.slice(i + 1).filter((x) => x.type === 'woke').length;
+    const dropper = ev.type === 'putToSleep' && i === lastSlept && wokeAfter === 0;
+    const dayAtSleep = s.sim.dayIndex - wokeAfter;
+    const wrote = v3.words.some((w) => dayOfStroke.get(w.strokeId) === dayAtSleep);
+    if (!dropper && !wrote) return;
+    const night = v3.life.slept + 1;
+    const snapshots = [...v3.life.snapshots];
+    if (night % IRE_NIGHTS === 0) {
+      snapshots[night / IRE_NIGHTS - 1] = { night, at: e.at };
+      out.push({ type: 'ireReached', ire: night / IRE_NIGHTS });
+    }
+    v3 = { ...v3, life: { ...v3.life, slept: night, snapshots }, tonightCounted: true };
+    out.push({ type: 'nightCounted', night });
+  });
   return v3 === s.v3 ? s : { ...s, v3 };
 }
 

@@ -1,8 +1,13 @@
 // V7 최소판 — '마시고 3초 대답'(heart-grain 5-1). 마시기(먹 방울이 몸으로 빨려 듦 1.2초) → ① 따라 하기(1.5초) → ② 돌아오기(1.5초, 유저를 봄).
 // 기존 몸짓 재료만 쓴다: 고개(tilt)·뜀(hop)·눈(eyeB·eyeMix)·시선(gx·gy)·빗(angle·wobble)·번짐 고리(bleed). **몸 크기·비율(sx·sy·s)은 건드리지 않는다**(QA-3 R8·R9).
 // 밥 한 숟갈·작은 것(D-27)도 같은 마시기를 쓰고, 오물오물·^ ^·꾸벅으로 대답한다(부풂 없음, 숟갈 수에 따라 크기 같음 — R7).
-import { clamp01 } from './clock';
+// RN·reanimated를 불러오지 않는 순수 모듈(앱 시험이 직접 부른다) — clock.ts 대신 clamp01을 여기 둔다
 import { wobble } from './idle';
+
+function clamp01(t: number): number {
+  'worklet';
+  return Math.min(Math.max(t, 0), 1);
+}
 
 /** 대답 종류(공유값에 숫자로 싣는다) */
 export const CUE = {
@@ -17,8 +22,11 @@ export const CUE = {
   days: 8,
   unknown: 9,
   call: 10,
-  /** 곁 대답(위기 soft·strong) — 외로움의 '곁으로 오기'와 같은 계열, 6초 숨 맞추기 */
-  stay: 11,
+  /**
+   * 배고픔 낱말(home.in.meal): 기쁨 호 없이 제자리에서 유저를 본다(QA-3 R4-3).
+   * 곁 대답(위기)은 따로 두지 않는다 — 넓은 그물 가라앉음 대답과 같은 모양이라 위기 판정이 화면·소리로 드러나지 않는다(리뷰 M2)
+   */
+  look: 11,
   meal: 12,
   mealFull: 13,
   treat: 14,
@@ -43,13 +51,10 @@ export const NO_CUE: CueValue = { kind: 0, intensity: 2, net: false, fromX: 0, f
 export const DRINK_MS = 1200;
 export const ECHO_MS = 1500;
 export const BACK_MS = 1500;
-/** 곁 대답의 숨 맞추기(8초 주기 숨, 6초) */
-export const STAY_MS = 6000;
 
 export function cueLength(kind: number): number {
   'worklet';
   if (kind === CUE.none) return 0;
-  if (kind === CUE.stay) return DRINK_MS + STAY_MS;
   return DRINK_MS + ECHO_MS + BACK_MS;
 }
 
@@ -82,11 +87,6 @@ export function answerPose(c: CueValue, dt: number, rm: boolean): AnswerPose {
   if (dt < DRINK_MS) return { ...REST, drop, gx: 0, gy: 0.15 * (1 - dt / DRINK_MS) };
   const A = c.intensity <= 1 ? 0.6 : c.intensity >= 3 ? 1 : 0.8;
   const t = dt - DRINK_MS;
-  if (c.kind === CUE.stay) {
-    // 곁으로 와서 붙어 앉고(1.5초), 남은 시간은 느린 숨(8초 주기)으로 함께 숨 쉰다. 고유한 큰 연출 없음
-    const k = clamp01(t / 1500) * clamp01((STAY_MS - t) / 600);
-    return { ...REST, settle: rm ? 0 : 0.06 * k, gy: 0.18 * k, eyeB: 'sleepy', eyeMix: 0.35 * k, breathMs: 8000, combAngle: -4 * k };
-  }
   const echo = t < ECHO_MS;
   const e = echo ? t / ECHO_MS : 1;
   const env = echo ? Math.sin(Math.PI * e) : 0;
@@ -139,12 +139,17 @@ export function answerPose(c: CueValue, dt: number, rm: boolean): AnswerPose {
       // 갸웃 한 번, 빗 끝이 물음표처럼 말림
       p = { ...p, tilt: 0.12 * env, combAngle: 10 * env, combWobble: echo ? 6 * wobble(t, 2, 2) : 0, eyeB: 'surprised', eyeMix: 0.4 * env };
       break;
+    case CUE.look:
+      // 배고픔 낱말: 기쁨 호 없이 제자리에서 유저를 본다(R4-3). 눈은 뜬 그대로
+      p = { ...p, gy: (p.gy ?? 0) + 0.15 * env };
+      break;
     case CUE.call:
       p = { ...p, tilt: 0.07 * env, eyeB: 'surprised', eyeMix: 0.5 * env, combWobble: echo ? 8 * wobble(t, 3.2, 2.2) : 0 };
       break;
     case CUE.meal:
       // 맑은 먹: 오물오물 두 번 → 유저를 봄(몸 부풂 없음)
-      p = { ...p, gy: (p.gy ?? 0) + (echo ? 0.3 * Math.abs(Math.sin(2 * Math.PI * e)) : 0), eyeB: 'joy', eyeMix: 0.5 * env };
+      // 1숟갈·2숟갈 반응 크기는 같다(QA-3 R7) — 눈 진폭을 mealFull과 맞춘다
+      p = { ...p, gy: (p.gy ?? 0) + (echo ? 0.3 * Math.abs(Math.sin(2 * Math.PI * e)) : 0), eyeB: 'joy', eyeMix: echo ? 1 : 1 - b };
       break;
     case CUE.mealFull:
       // 만족: 눈 기쁨 호 + 꾸벅(배와 무관). 크기는 meal과 같다

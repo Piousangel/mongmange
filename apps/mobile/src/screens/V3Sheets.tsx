@@ -4,7 +4,7 @@
 //    R8: 자동 고침·맞춤법 끔. 쓴 글자는 이 화면 밖으로 나가지 않는다 — 판정(core interpretWord) 직후 버리고 말결만 넘긴다.
 // ② 벼루 하위 시트(D-27 · care-rituals 2-1): 먹 갈기 안내 / 한 숟갈(먹을 한 칸 이상 갈았을 때) / 작은 것. 숫자·게이지 없음(QA-3 R7).
 import { PALETTE, v3 } from '@mong/core';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { t, getLocale } from '../i18n';
 import { BottomSheet } from '../ui/BottomSheet';
@@ -18,6 +18,10 @@ export interface WordPick {
 /** 한 마디 시트. 확정하면 판정 결과(말결)와 글자 수만 돌려준다 */
 export function WordSheet({ visible, ink, names, onPick, onClose }: { visible: boolean; ink: number; names: string[]; onPick: (p: WordPick) => void; onClose: () => void }) {
   const [raw, setRaw] = useState('');
+  // 시트가 숨겨지면(닫기·잠·아침·앱 전환) 확정하지 않은 글자를 바로 버린다(리뷰 H2)
+  useEffect(() => {
+    if (!visible) setRaw('');
+  }, [visible]);
   const chars = v3.wordChars(raw);
   const over = chars > ink;
   const ok = chars >= 1 && !over;

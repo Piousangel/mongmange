@@ -31,6 +31,7 @@ import { boot, dispatch, getSnapshot, getV3, goBackground, goForeground, install
 import { InkstoneSheet, WordSheet, type WordPick } from '../screens/V3Sheets';
 import { CUE } from '../render/answer';
 import type { V3Home } from '../screens/GameHome';
+import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, wordSheetClose, wordSheetOnAppState, type V3Cue } from './v3Flow';
 import { rejectText } from './text';
 import { requestReview } from './review';
 import { createReviewAsker } from './reviewPolicy';
@@ -42,17 +43,6 @@ import { useLocale } from '../i18n/react';
 const TICK_MS = 20_000;
 /** v3: 한 마디가 몸에 붙은 뒤 홈으로(씻기 창 없음 — V8) */
 const V3_RETURN_MS = 700;
-type V3Cue = NonNullable<V3Home['cue']>;
-
-/** 판정 → 대답 신호(V7 최소판). 곁 대답은 외로움의 '곁으로 오기' 계열, 넓은 그물은 돌아오기가 곁으로 */
-function cueOf(a: v3.Interpretation, fromX: number, fromY: number, key: number): V3Cue {
-  const base = { intensity: 2, net: false, fromX, fromY, key };
-  if (a.kind === 'stay') return { ...base, kind: CUE.stay };
-  if (a.kind === 'call') return { ...base, kind: CUE.call };
-  if (a.kind === 'unknown') return { ...base, kind: CUE.unknown };
-  const fam = v3.familyOf(a.sense);
-  return { ...base, kind: fam ? CUE[fam] : CUE.unknown, intensity: a.intensity, net: a.net };
-}
 /** 획을 받은 뒤 낮 홈으로 돌아가기까지(씻기 창 + 여유) */
 const STROKE_RETURN_MS = sim.WASH_WINDOW_MS + 600;
 /** 재우기 뒤 알림 사전 문구: 조수(2400ms) + 첫 밤 안심 문구(3400ms)가 끝난 다음 */
@@ -110,7 +100,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const [mode, setMode] = useState<'home' | 'stroke'>('home');
   // ── 새 컨셉 v3(플래그 conceptV3로 부팅했을 때만 snap.v3가 있다) ──
   const v3On = !!snap.v3;
-  const [wordOpen, setWordOpen] = useState(false);
+  // 한 마디 시트: 앱이 앞에서 벗어나거나 시트가 닫히면 입력칸을 새로 만든다(쓴 글자를 남기지 않음, 리뷰 H2)
+  const [wordSheet, setWordSheet] = useState(WORD_SHEET_INITIAL);
   const [inkSheetOpen, setInkSheetOpen] = useState(false);
   /** 판정이 끝난 한 마디(글자는 이미 버림) — 붓 한 획을 기다린다. 메모리에만 */
   const pendingWord = useRef<WordPick | null>(null);
@@ -160,6 +151,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   // ── 앱 앞/뒤 전환 → sim. 백그라운드는 sim에 알린 뒤 저장(store). 돌아오면 엔진이 환경음을 되살린다 ──
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => {
+      setWordSheet((cur) => wordSheetOnAppState(cur, st));
       if (st === 'active') {
         goForeground();
         reviewAsker.onActive();
@@ -196,7 +188,8 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
               if (pick) {
                 const w = layout(width, height);
                 setCue(cueOf(pick.interpretation, width * 0.5, w.objectsY, ++cueSeq.current)); // v3 붓 = 가운데 칸
-                if (pick.interpretation.kind === 'stay') AccessibilityInfo.announceForAccessibility(t('v3.stay.a11y'));
+                // 모든 대답에 같은 알림 한 줄(곁 대답만 다르면 위기 판정이 들린다, 리뷰 M2)
+                AccessibilityInfo.announceForAccessibility(t('v3.answer.a11y'));
               }
               if (st.strokesTotal === 1) later(() => flash(t('v3.line.firstWord'), 4000), 4400);
               break;
@@ -387,6 +380,11 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
     };
   }, [kind, developed]);
 
+  // 낮 홈이 아니게 되면(잠·아침) 열려 있던 한 마디 시트를 닫고 입력칸을 새로 만든다(다음 날 어제 글자가 다시 보이지 않게, 리뷰 H2)
+  useEffect(() => {
+    if (kind !== 'day' && kind !== 'stroke') setWordSheet((cur) => (cur.open ? wordSheetClose(cur) : cur));
+  }, [kind]);
+
   // 첫 밤 안심 문구(한 번): 밤 화면에 들어가면 표시하고 기록
   const soothe = kind === 'night' && !meta.firstNightShown;
   useEffect(() => {
@@ -419,6 +417,14 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const toW = (x: number, y: number) => ({ x: (x - L.cx) / L.wpx, y: (y - L.oyFor(coreScale(state?.strokesTotal ?? 0), look.shape.core.h)) / L.wpx });
 
   const full = state && snap.v3 ? { sim: state, v3: snap.v3 } : null;
+  /** 스크린리더·목록 보기·시트의 먹 갈기: 한 번에 6칸 */
+  const grindForA11y = () => {
+    sound.play('inkGrind');
+    later(() => sound.stop('inkGrind'), 700, { flushOnUnmount: true });
+    dispatch({ type: 'grind', durationMs: A11Y_GRIND_MS });
+    const f = getV3();
+    if (f) AccessibilityInfo.announceForAccessibility(t('v3.word.ink', { n: v3.inkCells(f) }));
+  };
   const v3Home: V3Home | null = full
     ? {
         night: v3.nightOf(full),
@@ -427,6 +433,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
         ink: v3.inkCells(full),
         cue,
         onInkstoneTap: () => setInkSheetOpen(true),
+        onGrindA11y: () => grindForA11y(),
       }
     : null;
 
@@ -554,7 +561,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             if (block === 'noInk') flash(t('v3.line.noInk'), 4000);
             else if (block === 'done') flash(t('v3.line.done'), 4000);
             else if (block === 'used') flash(t('v3.line.used'), 4000);
-            else if (!block) setWordOpen(true);
+            else if (!block) setWordSheet((cur) => ({ ...cur, open: true }));
           },
           onBrushBlocked: () => flash(t('line.brushBlocked'), 4000),
           onGrindStart: () => sound.play('inkGrind'),
@@ -606,13 +613,14 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
       {full && (
         <>
           <WordSheet
-            visible={wordOpen && kind === 'day'}
+            key={wordSheet.key}
+            visible={wordSheet.open && kind === 'day'}
             ink={v3.inkCells(full)}
             names={state?.name?.text ? [state.name.text] : []}
-            onClose={() => setWordOpen(false)}
+            onClose={() => setWordSheet(wordSheetClose)}
             onPick={(p) => {
               pendingWord.current = p;
-              setWordOpen(false);
+              setWordSheet(wordSheetClose);
               setMode('stroke');
               later(() => flash(t('v3.word.strokePrompt'), 3600), 300);
             }}
@@ -622,8 +630,9 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
             sheet={v3.mealSheet(full)}
             onClose={() => setInkSheetOpen(false)}
             onGrind={() => {
+              // 시트의 '먹 갈기'는 실제로 간다(길게 누르기를 못 해도 한 마디까지, 리뷰 H1)
               setInkSheetOpen(false);
-              flash(t('v3.inkstone.grindHint'), 3600);
+              grindForA11y();
             }}
             onSpoon={() => {
               setInkSheetOpen(false);
@@ -636,6 +645,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           />
         </>
       )}
+      {wordSheet.cover && <View style={[StyleSheet.absoluteFill, { backgroundColor: PALETTE.day.bg, zIndex: 100 }]} pointerEvents="none" testID="v3-privacy-cover" />}
       {notifPrompt && kind === 'night' && (
         <View style={[styles.prompt, { bottom: insets.bottom + 28 }]} accessibilityViewIsModal testID="notif-prompt">
           <KText style={styles.promptText}>{t('notif.ask')}</KText>

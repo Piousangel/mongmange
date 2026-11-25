@@ -83,6 +83,26 @@ describe('위기 대조·사전 = 평가기 v0.4와 같은 판정', () => {
   });
 });
 
+describe('⑦ 수단어 해시 경로(시험 전용 고추가루·해시 — 평문 수단어 없음)', () => {
+  // 사전·위기 줄기 어디에도 없는 무의미 낱말로 경로만 친다
+  const table = (strong: string[], soft: string[]): v3.MeansTable => ({ pepper: 'test-pepper:', strong: strong.map((w) => v3.meansHash('test-pepper:', w)), soft: soft.map((w) => v3.meansHash('test-pepper:', w)) });
+  it('기본 표에서는 무의미 낱말이 걸리지 않는다', () => {
+    expect(v3.crisisMatch('qzvx').level).toBe('none');
+    expect(v3.crisisMatch('뷁퓌').level).toBe('none');
+  });
+  it('strong 해시 → strong, 앞뒤에 글자가 붙어도(2~8자 부분 문자열)', () => {
+    const t = table(['qzvx'], []);
+    expect(v3.crisisMatch('qzvx', t).level).toBe('strong');
+    expect(v3.crisisMatch('aaqzvxbb', t).level).toBe('strong');
+    expect(v3.interpretWord('qzvx', 'en', [], t)).toEqual({ kind: 'stay', level: 'strong' });
+  });
+  it('soft 해시 → soft, strong이 soft보다 먼저', () => {
+    expect(v3.crisisMatch('뷁퓌', table([], ['뷁퓌'])).level).toBe('soft');
+    expect(v3.crisisMatch('뷁퓌qzvx', table(['qzvx'], ['뷁퓌'])).level).toBe('strong');
+    expect(v3.crisisMatch('qzvx', table([], [])).level).toBe('none');
+  });
+});
+
 describe('대답 종류와 저장값', () => {
   it('낱말 → 말결(같은 말 = 같은 결)', () => {
     const a = v3.interpretWord('행복해', 'ko');
