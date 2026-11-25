@@ -734,11 +734,7 @@ export async function shrink(seed: number, acts: Act[], rule: Violation['rule'])
  * 다른 결함을 계속 찾는다. 결함이 고쳐지면 c13-sync-property.test.ts의 it.fails 재현이 '통과'로 바뀌어 빨개진다 → 그때 여기서 지운다.
  */
 export const KNOWN_DEFECTS: ReadonlyArray<{ id: string; what: string; match: (v: Violation) => boolean }> = [
-  {
-    id: 'D1',
-    what: "되돌리기(맞바꾸기)로 preRestore 칸에 들어간 본(서버·다른 칸 어디에도 없음)을 다음 '서버 본으로 이어 가기'(takeServer)의 keepPreRestore가 덮어 잃는다",
-    match: (v) => v.rule === '①유실' && /있던 곳: dev:[A-Z]:pre$/.test(v.msg) && v.settled.some((x) => /:takeServer:synced$/.test(x)),
-  },
+  // D1(preRestore 칸 덮어쓰기)은 고쳤다 — tasks.ts putPreRestore(덮기 전에 parked로 옮김, 가득이면 멈춤). 재현은 c13-sync-property.test.ts 'D1(고침)'
 ];
 
 export function splitKnown(vs: readonly Violation[]): { known: Record<string, number>; unknown: Violation[] } {

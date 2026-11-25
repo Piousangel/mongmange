@@ -14,7 +14,7 @@ import { isFuture, sim, type KV } from '@mong/core';
 import { passGate } from './ageGate';
 import { readToken, subOf, type ApiResult, type CloudApi, type CloudAuth, type Failure } from './api';
 import type { ChooseNote, SaveSide, ServerPick, Task, TaskResult, Why } from './model';
-import { clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
+import { clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, PARKED_SLOTS, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
 
 export interface LocalSave {
   /** 기기에 저장된 본 원문(core SAVE_KEYS.main 그대로 — 같은 본이면 같은 sha). 없으면 null */
@@ -296,6 +296,28 @@ async function takeParked(d: TaskDeps, slot: string): Promise<TaskResult> {
   return { r: 'synced' };
 }
 
+/**
+ * preRestore 칸에 새 본을 넣을 때 칸의 **다른 본을 덮지 않는다**(C13 D1 — 되돌리기로 칸에 들어간 키운 본은 서버·다른 칸 어디에도 없을 수 있다).
+ * 칸에 다른 본이 있으면 먼저 parked 칸으로 옮기고(같은 본이 이미 parked에 있으면 그대로), parked가 가득이면 멈춘다('칸 비우기' 안내).
+ * 칸 쓰기 경로 전부의 원칙: keepPreRestore(여기 하나 + 되돌리기의 맞바꾸기·원상 복구)·addParked(덮지 않음, 가득이면 full)·
+ * setParked(맞바꾸기·원상 복구·사용자 비우기)·dropPreRestore(사용자 비우기) — 말없이 덮는 길은 이 함수를 지나지 않는 takeServer뿐이었다.
+ */
+function preRestoreBlocked(d: TaskDeps, raw: string): boolean {
+  const pre = readPreRestore(d.kv, d.now());
+  if (!pre || pre.raw === raw) return false;
+  const list = readParkedList(d.kv, d.now());
+  return !list.some((p) => p.raw === pre.raw) && list.length >= PARKED_SLOTS;
+}
+function putPreRestore(d: TaskDeps, raw: string): TaskResult | null {
+  const pre = readPreRestore(d.kv, d.now());
+  if (pre && pre.raw !== raw) {
+    const moved = addParked(d.kv, pre.raw, d.now());
+    if (moved === 'full') return { r: 'parkFull' };
+    if (moved === 'io') return fail('device');
+  }
+  return keepPreRestore(d.kv, raw, d.now()) ? null : fail('device');
+}
+
 /** 서버 본으로 이어 가기(위 머리말 ①~⑤) */
 async function takeServer(d: TaskDeps, pick: ServerPick): Promise<TaskResult> {
   const r = await d.api.getSave();
@@ -310,11 +332,14 @@ async function takeServer(d: TaskDeps, pick: ServerPick): Promise<TaskResult> {
   }
   const localRaw = d.local.raw();
   if (localRaw !== null) {
+    // preRestore 칸을 덮기 전에 자리부터 본다(D1): 칸에 다른 본이 있고 parked가 가득이면 아무것도 바꾸지 않고 멈춘다
+    if (preRestoreBlocked(d, localRaw)) return { r: 'parkFull' };
     const c = await d.api.addConflict(localRaw, iso(savedAtOf(localRaw) ?? d.now()));
     if (c.kind !== 'ok') return (await common(d, c)) ?? fail('server');
     // 올리는 동안 게임이 저장한 본이 있으면 그 본은 어디에도 없다 → 바꾸지 않고 다시 나란히
     if (d.local.raw() !== localRaw) return { r: 'localChanged', why: 'conflict' };
-    if (!keepPreRestore(d.kv, localRaw, d.now())) return fail('device');
+    const kept = putPreRestore(d, localRaw);
+    if (kept !== null) return kept;
   }
   if (!d.local.adopt(next)) return fail('device');
   const rec = readRecord(d.kv) ?? FRESH_RECORD;

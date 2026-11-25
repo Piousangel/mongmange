@@ -5,7 +5,7 @@
 import { SAVE_KEYS } from '@mong/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { CloudEvent } from '../src/cloud/model';
-import { PRE_RESTORE_KEY, readRecord } from '../src/cloud/record';
+import { PARKED_KEY, PRE_RESTORE_KEY, readRecord } from '../src/cloud/record';
 import { apply, createWorld, disposeWorld, genActs, keyOf, runActs, shrink, splitKnown, type Act, type Violation, type World } from './support/c13World';
 
 const RUNS = Number(process.env.C13_RUNS ?? 500);
@@ -99,7 +99,7 @@ describe('C13 고정 사건 열(변이를 잡던 줄인 재현)', () => {
     });
 });
 
-describe('C13 알려진 운영 결함 재현(고치면 이 시험이 빨개진다 → it.fails를 it으로 바꾸고 KNOWN_DEFECTS에서 지운다)', () => {
+describe('C13 운영 결함 재현(고친 결함은 it으로 고정 — 새 결함은 it.fails로 적고 KNOWN_DEFECTS에 넣는다)', () => {
   afterEach(() => disposeWorld());
 
   async function ev(w: World, i: number, e: CloudEvent) {
@@ -107,7 +107,7 @@ describe('C13 알려진 운영 결함 재현(고치면 이 시험이 빨개진�
   }
 
   // D1 — 시드 58(사건 80개, 줄인 열 15개)에서 처음 찾음. 아래는 같은 흐름을 화면 사건으로 그대로 적은 것
-  it.fails('D1: 되돌리기로 preRestore 칸에 들어간 본을 다음 takeServer가 덮어 잃는다', async () => {
+  it('D1(고침): 되돌리기로 preRestore 칸에 들어간 본은 다음 takeServer가 덮기 전에 parked 칸으로 옮긴다', async () => {
     const w = createWorld(58, 2);
     // B: 켜기 → 글귀
     await ev(w, 1, { e: 'start', purpose: 'enable' });
@@ -141,9 +141,14 @@ describe('C13 알려진 운영 결함 재현(고치면 이 시험이 빨개진�
     await ev(w, 0, { e: 'pick', side: 'server' });
     await ev(w, 0, { e: 'confirmPick' });
     await ev(w, 0, { e: 'confirmPick' });
-    // S'는 어디에도 없다: 기기 본(S), preRestore(되돌리기 전 A 본), 서버 본(S), 서버 conflict 칸(A 본 두 번)
-    const everywhere = [w.devs[0]!, w.devs[1]!].flatMap((d) => [d.kv.getString(SAVE_KEYS.main), JSON.parse(d.kv.getString(PRE_RESTORE_KEY) ?? 'null')?.raw]).concat(w.srv.dump().flatMap((u) => [u.save?.body, ...u.conflicts.map((c) => c.body)]));
-    expect(everywhere.filter((x): x is string => !!x).map(keyOf)).toContain(keyOf(grown)); // ← 지금은 여기서 실패(결함)
+    // S'는 덮이기 전에 parked 칸으로 옮겨졌다(기기 본·preRestore·parked·서버 본·서버 conflict 칸 어디든 있어야 한다)
+    const everywhere = [w.devs[0]!, w.devs[1]!].flatMap((d) => [
+      d.kv.getString(SAVE_KEYS.main),
+      JSON.parse(d.kv.getString(PRE_RESTORE_KEY) ?? 'null')?.raw,
+      ...(JSON.parse(d.kv.getString(PARKED_KEY) ?? '[]') as Array<{ raw?: string }>).map((p) => p.raw),
+    ]).concat(w.srv.dump().flatMap((u) => [u.save?.body, ...u.conflicts.map((c) => c.body)]));
+    expect(everywhere.filter((x): x is string => !!x).map(keyOf)).toContain(keyOf(grown));
+    expect((JSON.parse(w.devs[0]!.kv.getString(PARKED_KEY) ?? '[]') as Array<{ raw: string }>).map((p) => p.raw)).toContain(grown);
     expect(w.violations.filter((v) => v.rule === '①유실')).toEqual([]);
   });
 });

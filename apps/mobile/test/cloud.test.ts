@@ -924,6 +924,47 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(a.kv.getString(PRE_RESTORE_KEY)).toBeUndefined();
   });
 
+  it('[C13 D1] 서버 본으로 바꿀 때 preRestore 칸의 다른 본은 덮기 전에 parked로 옮기고, parked가 가득이면 아무것도 바꾸지 않고 멈춘다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    await srv.putFromElsewhere('A', mong(9, 5));
+    const mine = mong(1, 1);
+    a.kv.set(SAVE_KEYS.main, mine);
+    const grown = mong(7, 7); // 되돌리기로 칸에 들어간, 서버 어디에도 없는 본
+    keepPreRestore(a.kv, grown, T - 1000);
+    for (let i = 0; i < PARKED_SLOTS; i++) addParked(a.kv, mong(60 + i, i), T - i);
+    const cmp = (await runTask({ t: 'fetch', why: 'conflict' }, a.deps)) as { pick: { rev: number; sha: string } };
+    const before = srv.log.length;
+    expect(await runTask({ t: 'takeServer', server: cmp.pick }, a.deps)).toEqual({ r: 'parkFull' });
+    expect(srv.log.length).toBe(before + 1); // getSave만(서버 conflict 칸에 올리지도 않음)
+    expect(readPreRestore(a.kv, T)!.raw).toBe(grown);
+    expect(a.kv.getString(SAVE_KEYS.main)).toBe(mine);
+    expect(a.adopted).toHaveLength(0);
+    // 한 칸 비우면 이어서: grown은 parked로, mine은 preRestore로
+    await runTask({ t: 'dropParked', slot: readParkedList(a.kv, T)[0]!.id }, a.deps);
+    expect(await runTask({ t: 'takeServer', server: cmp.pick }, a.deps)).toEqual({ r: 'synced' });
+    expect(readParkedList(a.kv, T).map((p) => p.raw)).toContain(grown);
+    expect(readPreRestore(a.kv, T)!.raw).toBe(mine);
+  });
+
+  it('[C13 D1] preRestore 칸에 같은 본이 있거나 칸의 본이 이미 parked에 있으면 칸을 더 쓰지 않는다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1));
+    await runTask({ t: 'enable' }, a.deps);
+    await srv.putFromElsewhere('A', mong(9, 5));
+    const mine = mong(1, 1);
+    a.kv.set(SAVE_KEYS.main, mine);
+    const grown = mong(7, 7);
+    keepPreRestore(a.kv, grown, T - 1000);
+    addParked(a.kv, grown, T - 500);
+    for (let i = 0; i < PARKED_SLOTS - 1; i++) addParked(a.kv, mong(60 + i, i), T - i);
+    const cmp = (await runTask({ t: 'fetch', why: 'conflict' }, a.deps)) as { pick: { rev: number; sha: string } };
+    expect(await runTask({ t: 'takeServer', server: cmp.pick }, a.deps)).toEqual({ r: 'synced' });
+    expect(readParkedList(a.kv, T)).toHaveLength(PARKED_SLOTS);
+    expect(readPreRestore(a.kv, T)!.raw).toBe(mine);
+  });
+
   it('[재리뷰 4 S4] 칸이 가득 차면 한 칸을 비우는 길(확인 한 번)이 있고, 비운 뒤 이 기기를 다시 고를 수 있다', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1, 4));
