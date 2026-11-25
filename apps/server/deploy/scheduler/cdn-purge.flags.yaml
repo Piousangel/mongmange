@@ -1,0 +1,12 @@
+# Cloud Scheduler 잡 cdn-purge — 1분마다. 근거: DECISIONS 'B3 구현 결정' 캐시·무효화(1분 묶음, 남은 요청은 Scheduler cdn-purge), cron.controller.ts.
+# 지금 서버 구현은 무효화 횟수만 센다(Firebase 릴리스 호출은 B6 코드 몫 — README 6절). 그래도 잡은 먼저 두어 대기 행이 쌓이지 않게 한다.
+# 재시도 0 — 1분 뒤 다음 실행.
+--schedule: '* * * * *'
+--time-zone: 'Asia/Seoul'
+--uri: 'https://mong-api-${PROJECT_NUMBER}.asia-northeast3.run.app/internal/cron/cdn-purge'
+--http-method: 'POST'
+--oidc-service-account-email: 'mong-scheduler@${PROJECT_ID}.iam.gserviceaccount.com'
+--oidc-token-audience: 'https://mong-api-${PROJECT_NUMBER}.asia-northeast3.run.app'
+--attempt-deadline: '60s'
+--max-retry-attempts: 0
+--description: 'mong-api every 1 min: batched /m CDN invalidation (B3)'

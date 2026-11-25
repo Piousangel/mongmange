@@ -1,0 +1,12 @@
+# Cloud Scheduler 잡 moderation — 5분마다. 근거: architecture.md 0-3 B5 행(B6 체크 'Scheduler moderation 5분마다'), cron.controller.ts.
+# 신고 창 7일 만료·격리 30일 기본 확정·운영자 삭제 요청(72시간 대기)·복원/이름 가리기 파일 일·SLA 알림.
+# 재시도 0 — 5분 뒤 다음 실행이 같은 일을 다시 본다(밀린 일은 DB 대기 행에 남는다).
+--schedule: '*/5 * * * *'
+--time-zone: 'Asia/Seoul'
+--uri: 'https://mong-api-${PROJECT_NUMBER}.asia-northeast3.run.app/internal/cron/moderation'
+--http-method: 'POST'
+--oidc-service-account-email: 'mong-scheduler@${PROJECT_ID}.iam.gserviceaccount.com'
+--oidc-token-audience: 'https://mong-api-${PROJECT_NUMBER}.asia-northeast3.run.app'
+--attempt-deadline: '180s'
+--max-retry-attempts: 0
+--description: 'mong-api every 5 min: report windows, quarantine expiry, operator deletions (B5)'

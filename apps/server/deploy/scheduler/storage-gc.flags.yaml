@@ -1,0 +1,17 @@
+# Cloud Scheduler 잡 storage-gc — `gcloud scheduler jobs create|update http storage-gc --location=asia-northeast3 --flags-file=<채운 사본>`.
+# 근거: architecture.md 2-4 'Cloud Scheduler' 행(B6 설정값), cron.controller.ts(`storage-gc` = 대기열 + 2년 미사용 정리, 500은 대기열 실패에만).
+# 매일 04:30 KST. attemptDeadline 300초(대기열 약 200건 + 정리 예산 60초 + 여유), 재시도 2번·10분부터·두 배 1번(10분 → 20분).
+# 재시도는 대기열만 다시 돈다 — 정리는 하루 1회 날짜 잠금이라 0.
+# OIDC audience는 CRON_AUDIENCE와 **정확히 같은 문자열**(서비스 URL, 경로 없음). 비우면 aud에 경로가 붙어 늘 404(B2 리뷰 I2).
+--schedule: '30 4 * * *'
+--time-zone: 'Asia/Seoul'
+--uri: 'https://mong-api-${PROJECT_NUMBER}.asia-northeast3.run.app/internal/cron/storage-gc'
+--http-method: 'POST'
+--oidc-service-account-email: 'mong-scheduler@${PROJECT_ID}.iam.gserviceaccount.com'
+--oidc-token-audience: 'https://mong-api-${PROJECT_NUMBER}.asia-northeast3.run.app'
+--attempt-deadline: '300s'
+--max-retry-attempts: 2
+--min-backoff: '600s'
+--max-backoff: '1200s'
+--max-doublings: 1
+--description: 'mong-api daily: storage/auth delete queue + 2y inactive sweep (architecture 2-4)'

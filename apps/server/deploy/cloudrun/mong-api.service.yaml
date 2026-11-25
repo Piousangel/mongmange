@@ -1,0 +1,122 @@
+# Cloud Run 서비스 mong-api (서울) — `deploy.sh deploy`가 ${…} 자리를 채워 `gcloud run services replace`로 올린다.
+# 근거: architecture.md 2-3(설정값)·2-4(Scheduler 행: 요청 timeout 300초 이상)·6-4(비밀·운영 필수값), B7-report 5절(권장 설정), DECISIONS 'B6 배포 준비'.
+# 비밀값은 Secret Manager 이름만 적는다(값은 오너가 직접 넣는다 — b6-owner-guide.md 10단계).
+#
+# 값마다 까닭(바꾸면 deploy.sh check의 기대값도 함께 바꾼다):
+#   containerConcurrency 40 — B7 3-1: 동시 40에서 p95 39ms(HTML)·134ms(비콘). DB 풀이 5라 더 올리면 풀 대기만 길어진다
+#   minScale ${MIN_INSTANCES} — 소프트런칭 0, 정식 출시 주 1(`deploy.sh deploy --launch-week`). 링크 HTML은 CDN이 콜드 스타트를 가린다
+#   maxScale 3 — 비용·DB 연결 상한(풀 5 × 3 = 15, Supavisor 한도 안)
+#   timeoutSeconds 300 — B7은 60초를 권했지만 storage-gc(attemptDeadline 300초)가 같은 서비스로 오므로 300(architecture 2-4).
+#                        B7이 걱정한 '멈춘 연결이 슬롯을 5분 잡는 일'은 B7a의 DB_QUERY_TIMEOUT_MS(6초)가 먼저 끊는다
+#   memory 1Gi — B7 B2(서로 다른 IP 홍수 OOM). B7a의 상한 있는 리밋 저장소가 배포·재시험(시나리오 5)된 뒤 512Mi로 내린다
+#   ingress all — 앱 API가 *.run.app에 직접 오고(architecture 2-1), Firebase Hosting rewrite(/m/**·ota)도 공개 run.app으로 온다.
+#                 'internal-and-cloud-load-balancing'으로 좁히면 둘 다 끊긴다 → run.app 직접 호출 차단은 인그레스로 할 수 없다(README 4절)
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: mong-api
+  labels:
+    cloud.googleapis.com/location: asia-northeast3
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      labels:
+        app: mong-api
+      annotations:
+        autoscaling.knative.dev/minScale: '${MIN_INSTANCES}'
+        autoscaling.knative.dev/maxScale: '3'
+        # 요청 기반 과금(요청 밖에서는 CPU를 거의 주지 않는다 — B7 1절 4)
+        run.googleapis.com/cpu-throttling: 'true'
+        run.googleapis.com/startup-cpu-boost: 'true'
+    spec:
+      containerConcurrency: 40
+      timeoutSeconds: 300
+      serviceAccountName: mong-api-run@${PROJECT_ID}.iam.gserviceaccount.com
+      containers:
+        - name: api
+          # 태그가 아니라 다이제스트로 고정 — 같은 이미지를 스테이징·운영에 승격한다(architecture 6-4)
+          image: asia-northeast3-docker.pkg.dev/${PROJECT_ID}/mong/mong-api@${IMAGE_DIGEST}
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: APP_VERSION
+              value: '${APP_VERSION}'
+            - name: LOG_LEVEL
+              value: info
+            # 믿을 프록시 수 — 실측 전 시작값(B6 체크 'XFF 실측'). 실측 뒤 고치고, 그 전에는 REPORT_AUTO_HIDE를 켜지 않는다(출시 차단 조건)
+            - name: TRUSTED_PROXY_HOPS_API
+              value: '${HOPS_API}'
+            - name: TRUSTED_PROXY_HOPS_WEB
+              value: '${HOPS_WEB}'
+            - name: TRUSTED_PROXY_HOPS_OTA
+              value: '${HOPS_OTA}'
+            - name: REPORT_AUTO_HIDE
+              value: 'false'
+            # Scheduler OIDC: aud = 서비스 URL 전체(경로 없음). 결정적 주소 https://mong-api-<프로젝트 번호>.asia-northeast3.run.app
+            - name: CRON_AUDIENCE
+              value: 'https://mong-api-${PROJECT_NUMBER}.asia-northeast3.run.app'
+            - name: CRON_SA_EMAIL
+              value: mong-scheduler@${PROJECT_ID}.iam.gserviceaccount.com
+            - name: SUPABASE_URL
+              value: '${SUPABASE_URL}'
+            # Supabase Storage 어댑터가 서버에 생기기 전까지 none(링크 API 503 — 설계대로). README 6절
+            - name: STORAGE_DRIVER
+              value: none
+            - name: METRIC_APP_VERSIONS
+              value: '${METRIC_APP_VERSIONS}'
+            - name: DB_POOL_MAX
+              value: '5'
+            - name: DB_CONNECT_TIMEOUT_MS
+              value: '1500'
+            - name: DB_STATEMENT_TIMEOUT_MS
+              value: '5000'
+            - name: DB_QUERY_TIMEOUT_MS
+              value: '6000'
+            # 비밀값 — Secret Manager(서울 보관), 값은 오너만
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: DATABASE_URL
+                  key: latest
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: SUPABASE_SERVICE_ROLE_KEY
+                  key: latest
+            - name: RECOVERY_PEPPER
+              valueFrom:
+                secretKeyRef:
+                  name: RECOVERY_PEPPER
+                  key: latest
+            - name: READY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: READY_TOKEN
+                  key: latest
+          # DB를 보지 않는 /healthz만(B7 5절 '프로브'). 콜드 스타트 로컬 1.6초 → 여유 30초
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 15
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+  traffic:
+    - percent: 100
+      latestRevision: true
