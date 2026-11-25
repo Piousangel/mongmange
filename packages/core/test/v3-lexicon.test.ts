@@ -103,6 +103,30 @@ describe('⑦ 수단어 해시 경로(시험 전용 고추가루·해시 — 평
   });
 });
 
+describe('배고픔 표지(QA-3 R4-3, v3 리뷰 2차 L-a)', () => {
+  // 배고픔 낱말만 표지를 단다 — 음식·맛 낱말은 기쁨을 그대로 둔다(좋은/나쁜 음식 구분 강화 방지, care-rituals 2-5)
+  it('배고픔 낱말(배고파·꼬르륵·hungry·starving·hangry)은 hunger', () => {
+    for (const [w, lang] of [['배고파', 'ko'], ['배고프다', 'ko'], ['꼬르륵', 'ko'], ['hungry', 'en'], ['starving', 'en'], ['hangry', 'en']] as const)
+      expect(v3.interpretWord(w, lang), w).toMatchObject({ kind: 'sense', sense: 'home.in.meal', hunger: true });
+  });
+  it('과장(배고파죽겠다)도 배고픔 표지를 지닌다', () => {
+    expect(v3.interpretWord('배고파죽겠다', 'ko')).toMatchObject({ kind: 'sense', sense: 'home.in.meal', intensity: 3, hunger: true });
+  });
+  it('음식·맛 낱말(밥·치킨·맛있어·yummy·pizza)에는 표지가 없다', () => {
+    for (const [w, lang] of [['밥', 'ko'], ['치킨', 'ko'], ['맛있어', 'ko'], ['맛있어죽겠다', 'ko'], ['yummy', 'en'], ['pizza', 'en'], ['food', 'en']] as const) {
+      const a = v3.interpretWord(w, lang);
+      expect(a, w).toMatchObject({ kind: 'sense', sense: 'home.in.meal' });
+      expect(a, w).not.toHaveProperty('hunger');
+    }
+  });
+  it('사전에서 hunger 표지는 home.in.meal 항목에만, 저장값에는 들어가지 않는다', () => {
+    const tagged = [KO_DOC, EN_DOC].flatMap((f) => (f as { entries: { id: string; sense: string; flags: string[] }[] }).entries.filter((e) => e.flags.includes('hunger')));
+    expect(tagged.map((e) => e.id).sort()).toEqual(['en.0121', 'ko.0172']);
+    for (const e of tagged) expect(e.sense).toBe('home.in.meal');
+    expect(v3.storedWordOf(v3.interpretWord('배고파', 'ko'))).toEqual({ sense: 'home.in.meal', intensity: 2 });
+  });
+});
+
 describe('대답 종류와 저장값', () => {
   it('낱말 → 말결(같은 말 = 같은 결)', () => {
     const a = v3.interpretWord('행복해', 'ko');

@@ -6,7 +6,7 @@ import { SAVE_KEYS, sim, v3, writeSave, type KV, type RawPoint } from '@mong/cor
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { isOn, setFeature } from '../src/features';
 import { __configureForTest, adoptState, boot, devReset, devRestartV3, dispatch, getSnapshot, getV3, install } from '../src/game/store';
-import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, inkstoneA11yActions, wordSheetClose, wordSheetOnAppState } from '../src/game/v3Flow';
+import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, inkstoneA11yActions, sheetGrindMode, sheetGrindStep, wordSheetClose, wordSheetOnAppState } from '../src/game/v3Flow';
 import { CUE, answerPose, cueLength } from '../src/render/answer';
 
 const KST_NOON = Date.UTC(2026, 10, 25, 3, 0);
@@ -123,8 +123,19 @@ describe('대답 신호', () => {
       expect(eyesOver(c, false).has('joy')).toBe(false);
       expect(eyesOver(c, true).has('joy')).toBe(false);
     }
-    // hungry(영어)도 같은 결
+    // hungry(영어)·과장도 같은 결
     expect(cueOf(v3.interpretWord('hungry', 'en'), 0, 0, 1).kind).toBe(CUE.look);
+    expect(cueOf(v3.interpretWord('starving', 'en'), 0, 0, 1).kind).toBe(CUE.look);
+    expect(cueOf(v3.interpretWord('배고파죽겠다', 'ko'), 0, 0, 1).kind).toBe(CUE.look);
+  });
+  it('음식·맛 낱말(밥·치킨·맛있어·yummy)은 기쁨을 유지한다(care-rituals 2-5 R4-3, 리뷰 2차 L-a)', () => {
+    for (const [w, lang] of [['밥', 'ko'], ['치킨', 'ko'], ['맛있어', 'ko'], ['맛있어죽겠다', 'ko'], ['yummy', 'en'], ['pizza', 'en']] as const) {
+      const a = v3.interpretWord(w, lang);
+      expect(a, w).toMatchObject({ kind: 'sense', sense: 'home.in.meal' });
+      const c = cueOf(a, 0, 0, 1);
+      expect(c.kind, w).toBe(CUE.home);
+      expect(eyesOver(c, false).has('joy'), w).toBe(true);
+    }
   });
   it('곁 대답은 넓은 그물 가라앉음 대답과 같은 모양 — 위기만의 몸짓·길이가 없다(M2)', () => {
     const stay = cueOf({ kind: 'stay', level: 'strong' }, 5, 6, 1);
@@ -145,15 +156,21 @@ describe('대답 신호', () => {
 });
 
 describe('확정하지 않은 글자를 남기지 않는다(H2)', () => {
-  it('앱이 앞에서 벗어나면(inactive·background) 시트를 닫고 입력칸을 새로 만들고, 열려 있었으면 가림막', () => {
+  it('일시 비활성(inactive: 제어 센터·알림 끌어내리기)은 쓰던 글자를 두고 가림막만, background에서만 버린다(리뷰 2차 L-b)', () => {
     const open = { ...WORD_SHEET_INITIAL, open: true };
-    for (const st of ['inactive', 'background']) {
-      const n = wordSheetOnAppState(open, st);
-      expect(n).toEqual({ open: false, key: 1, cover: true });
-      // 돌아오면 가림막만 내리고 시트는 닫힌 채(어제 글자가 다시 열리지 않음)
-      expect(wordSheetOnAppState(n, 'active')).toEqual({ open: false, key: 1, cover: false });
-    }
+    const ina = wordSheetOnAppState(open, 'inactive');
+    expect(ina).toEqual({ open: true, key: 0, cover: true });
+    // inactive에서 돌아오면 가림막만 내리고 같은 입력칸(key 그대로)
+    expect(wordSheetOnAppState(ina, 'active')).toEqual({ open: true, key: 0, cover: false });
+    // 앱 전환기(iOS: inactive → background), Android(바로 background), 알 수 없는 상태 → 버린다
+    for (const from of [ina, open])
+      for (const st of ['background', 'unknown']) {
+        const n = wordSheetOnAppState(from, st);
+        expect(n).toEqual({ open: false, key: 1, cover: true });
+        expect(wordSheetOnAppState(n, 'active')).toEqual({ open: false, key: 1, cover: false });
+      }
     // 닫혀 있었으면 가림막 없음
+    expect(wordSheetOnAppState(WORD_SHEET_INITIAL, 'inactive')).toEqual(WORD_SHEET_INITIAL);
     expect(wordSheetOnAppState(WORD_SHEET_INITIAL, 'background').cover).toBe(false);
     expect(wordSheetClose(open)).toEqual({ open: false, key: 1, cover: false });
   });
@@ -162,7 +179,50 @@ describe('확정하지 않은 글자를 남기지 않는다(H2)', () => {
     expect(app).toMatch(/AppState\.addEventListener\('change', \(st\) => \{\s*setWordSheet\(\(cur\) => wordSheetOnAppState\(cur, st\)\)/);
     expect(app).toContain('key={wordSheet.key}');
     expect(app).toContain('testID="v3-privacy-cover"');
+    // 시트(Modal)는 앱 화면 위 창이라 바깥 가림막이 덮지 못한다 — 시트 안에도 가림막(BottomSheet overlay)
+    expect(app).toContain('covered={wordSheet.cover}');
     const sheet = readFileSync(path.join(__dirname, '../src/screens/V3Sheets.tsx'), 'utf8');
     expect(sheet).toMatch(/if \(!visible\) setRaw\(''\)/);
+    expect(sheet).toMatch(/overlay=\{covered \?/);
+    expect(sheet).toContain('testID="v3-word-cover"');
+  });
+});
+
+describe('벼루 시트 먹 갈기(리뷰 2차 L-d)', () => {
+  it('스크린리더는 한 번에 6칸(H1), 보는 사용자는 눌러 시작·눌러 멈춤', () => {
+    expect(sheetGrindMode(true)).toBe('all');
+    expect(sheetGrindMode(false)).toBe('flow');
+  });
+  it('시트 갈기는 길게 누르기와 같은 속도로 칸이 차오르고, 6칸에서 저절로 멈춘다(그 위 보상 없음)', () => {
+    expect(sheetGrindStep(0, 0)).toEqual({ cells: 0, addMs: 0, done: false });
+    for (const ms of [1, 1499, 1500, 3000, 6000, 7499]) {
+      const st = sheetGrindStep(0, ms);
+      expect(st.cells).toBe(v3.inkCellsOfMs(ms));
+      expect(st.addMs).toBe(ms);
+      expect(st.done).toBe(false);
+    }
+    expect(sheetGrindStep(0, 1500).cells).toBe(2);
+    expect(sheetGrindStep(0, A11Y_GRIND_MS)).toEqual({ cells: v3.WORD_MAX_CHARS, addMs: A11Y_GRIND_MS, done: true });
+    expect(sheetGrindStep(0, 99_999)).toEqual({ cells: v3.WORD_MAX_CHARS, addMs: A11Y_GRIND_MS, done: true });
+    // 이미 간 먹에 이어서 — 넘치는 만큼은 넘기지 않는다
+    expect(sheetGrindStep(3000, 99_999)).toEqual({ cells: v3.WORD_MAX_CHARS, addMs: A11Y_GRIND_MS - 3000, done: true });
+    expect(sheetGrindStep(3000, 1500).cells).toBe(4);
+    expect(sheetGrindStep(A11Y_GRIND_MS, 10)).toEqual({ cells: v3.WORD_MAX_CHARS, addMs: 0, done: true });
+  });
+  it('중간에 멈춰도 간 만큼은 남는다(D-03) — 시트에서 멈춘 양을 store에 넘기면 그 칸 수', () => {
+    boot();
+    install({ x: 0, y: 0 });
+    t += 1000;
+    dispatch({ type: 'grind', durationMs: sheetGrindStep(0, 3200).addMs });
+    expect(v3.inkCells(getV3()!)).toBe(3);
+    t += 1000;
+    dispatch({ type: 'grind', durationMs: sheetGrindStep(getV3()!.sim.ledger.grindMs, 99_999).addMs });
+    expect(v3.inkCells(getV3()!)).toBe(v3.WORD_MAX_CHARS);
+  });
+  it('앱은 스크린리더 여부로 시트 갈기 방식을 고른다', () => {
+    const app = readFileSync(path.join(__dirname, '../src/game/GameApp.tsx'), 'utf8');
+    expect(app).toContain('grindMode={sheetGrindMode(screenReader)}');
+    const sheet = readFileSync(path.join(__dirname, '../src/screens/V3Sheets.tsx'), 'utf8');
+    expect(sheet).toContain('sheetGrindStep(');
   });
 });

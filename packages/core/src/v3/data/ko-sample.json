@@ -2993,7 +2993,9 @@
    ],
    "sense": "home.in.meal",
    "intensity": 2,
-   "flags": [],
+   "flags": [
+    "hunger"
+   ],
    "pos": "adj",
    "source": "hand-v0",
    "review": {

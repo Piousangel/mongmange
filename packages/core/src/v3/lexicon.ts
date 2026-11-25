@@ -539,7 +539,7 @@ export type Intensity = 1 | 2 | 3;
  * 쓴 글자는 결과에 담지 않는다(R8: 문자열은 판정 직후 버린다).
  */
 export type Interpretation =
-  | { kind: 'sense'; sense: string; intensity: Intensity; net: boolean }
+  | { kind: 'sense'; sense: string; intensity: Intensity; net: boolean; hunger?: true }
   | { kind: 'stay'; level: 'strong' | 'soft' }
   | { kind: 'call' }
   | { kind: 'unknown' };
@@ -590,7 +590,9 @@ function senseOf(e: LexEntry, boost: number): Interpretation {
   if (e.flags.includes('profane') && i > 2) i = 2; // 욕설 강도 상한 2
   if (e.sense === 'x.call') return { kind: 'call' };
   if (!SENSE_IDS.includes(e.sense)) return { kind: 'unknown' };
-  return { kind: 'sense', sense: e.sense, intensity: i, net: NET_SENSES.includes(e.sense) };
+  const out: Interpretation = { kind: 'sense', sense: e.sense, intensity: i, net: NET_SENSES.includes(e.sense) };
+  // 배고픔 표지(사전 flags 'hunger'): 대답만 바꾼다(기쁨 호 없음, QA-3 R4-3). 결·강도·저장값은 그대로
+  return e.flags.includes('hunger') ? { ...out, hunger: true } : out;
 }
 
 // ── 말결 48 + 특수 2(저장 가능) ──

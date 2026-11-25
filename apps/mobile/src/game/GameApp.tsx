@@ -33,7 +33,7 @@ import { boot, dispatch, getSnapshot, getV3, goBackground, goForeground, install
 import { InkstoneSheet, WordSheet, type WordPick } from '../screens/V3Sheets';
 import { CUE } from '../render/answer';
 import type { V3Home } from '../screens/GameHome';
-import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, wordSheetClose, wordSheetOnAppState, type V3Cue } from './v3Flow';
+import { A11Y_GRIND_MS, WORD_SHEET_INITIAL, cueOf, sheetGrindMode, wordSheetClose, wordSheetOnAppState, type V3Cue } from './v3Flow';
 import { rejectText } from './text';
 import { requestReview } from './review';
 import { createReviewAsker } from './reviewPolicy';
@@ -423,7 +423,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
   const toW = (x: number, y: number) => ({ x: (x - L.cx) / L.wpx, y: (y - L.oyFor(coreScale(state?.strokesTotal ?? 0), look.shape.core.h)) / L.wpx });
 
   const full = state && snap.v3 ? { sim: state, v3: snap.v3 } : null;
-  /** 스크린리더·목록 보기·시트의 먹 갈기: 한 번에 6칸 */
+  /** 스크린리더·목록 보기·스크린리더가 켜진 벼루 시트의 먹 갈기: 한 번에 6칸(H1) */
   const grindForA11y = () => {
     sound.play('inkGrind');
     later(() => sound.stop('inkGrind'), 700, { flushOnUnmount: true });
@@ -621,6 +621,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           <WordSheet
             key={wordSheet.key}
             visible={wordSheet.open && kind === 'day'}
+            covered={wordSheet.cover}
             ink={v3.inkCells(full)}
             names={state?.name?.text ? [state.name.text] : []}
             onClose={() => setWordSheet(wordSheetClose)}
@@ -634,11 +635,19 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
           <InkstoneSheet
             visible={inkSheetOpen && kind === 'day'}
             sheet={v3.mealSheet(full)}
+            grindMode={sheetGrindMode(screenReader)}
+            grindMs={full.sim.ledger.grindMs}
             onClose={() => setInkSheetOpen(false)}
-            onGrind={() => {
-              // 시트의 '먹 갈기'는 실제로 간다(길게 누르기를 못 해도 한 마디까지, 리뷰 H1)
+            onGrindAll={() => {
+              // 스크린리더: 시트의 '먹 갈기'는 한 번에 6칸(길게 누르기를 못 해도 한 마디까지, 리뷰 H1)
               setInkSheetOpen(false);
               grindForA11y();
+            }}
+            // 보는 사용자: 눌러 시작·눌러 멈춤, 길게 누르기와 같은 속도로 칸이 차오른다(리뷰 2차 L-d). 시트는 열린 채라 이어서 한 숟갈을 뜰 수 있다
+            onGrindStart={() => sound.play('inkGrind')}
+            onGrindEnd={(ms) => {
+              sound.stop('inkGrind');
+              if (ms > 0) dispatch({ type: 'grind', durationMs: ms });
             }}
             onSpoon={() => {
               setInkSheetOpen(false);

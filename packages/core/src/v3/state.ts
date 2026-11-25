@@ -152,7 +152,11 @@ export function ireOf(s: V3State): number {
 
 /** 먹 양 = 그날 쓸 수 있는 글자 수(0 = 아직 안 갊, 1~6) */
 export function inkCells(s: V3State): number {
-  const ms = s.sim.ledger.grindMs;
+  return inkCellsOfMs(s.sim.ledger.grindMs);
+}
+
+/** 간 시간(ms) → 먹 칸 수: 갈기 시작에 1칸, INK_CELL_MS마다 +1, 상한 6. 앱의 시트 갈기 진행 표시도 이 식을 쓴다 */
+export function inkCellsOfMs(ms: number): number {
   if (!(ms > 0)) return 0;
   return Math.min(WORD_MAX_CHARS, 1 + Math.floor(ms / INK_CELL_MS));
 }
