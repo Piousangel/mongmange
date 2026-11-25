@@ -1,7 +1,7 @@
 // 64px 흑백 구별 틀(dreams-30days 1-2)의 기계 쪽 도구 — 시험 전용. 사람 3명 시험(오답 쌍 3쌍 이하)이 관문이고,
 // 이 틀은 그 전에 같은 시트를 기계로 한 번 거르는 앞단이다(형상이 들어온 모티프만 대상).
 // 형상 = 스키마 1 `paths`(SVG 경로, 그림 좌표 0..100 정사각). 선 굵기 `w`도 같은 좌표 단위.
-import { flattenMotifPath, type MotifPathData } from '../src/index';
+import { flattenMotifPath, isClosedLine, type MotifFieldOp, type MotifPathData } from '../src/index';
 
 export const THUMB_PX = 64;
 const VIEW = 100;
@@ -21,8 +21,55 @@ function segDist(px: number, py: number, a: Pt, b: Pt): number {
 }
 
 /** 64×64 흑백 썸네일(0 = 종이, 1 = 먹). 칸마다 2×2 표본 평균 + 3×3 상자 흐림(작은 크기에서 눈이 보는 해상도) */
-export function rasterize(paths: readonly MotifPathData[], px = THUMB_PX): Float64Array {
-  const lines = paths.flatMap((p) => flattenPath(p.d).map((pts) => ({ pts, half: Math.max(p.w, 0.6) / 2, ink: LAYER_INK[p.layer] })));
+/** 점이 닫힌 꺾은선 안인가(짝홀 규칙) */
+function inside(X: number, Y: number, poly: readonly Pt[]): boolean {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i]!;
+    const [xj, yj] = poly[j]!;
+    if (yi > Y !== yj > Y && X < ((xj - xi) * (Y - yi)) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+
+/**
+ * 64px 흑백 썸네일. C14b v2: 닫힌 담묵 경로 = 칠한 면(카드 렌더와 같음), 장 조작의 먹 방울 = 그 농도로 칠한 원,
+ * 맑은 방울(비움) = 둘레에 밀려난 띠(담묵 테), 끌기·빗질 = 끌린 띠 한 줄(담묵 — 들어올림·누름은 혹 모양, 선 창은 그 길이만큼,
+ * 창 없는 빗질은 그림을 가로지르는 줄). 장 조작은 띠가 있어야 보이므로 '그 자리를 지나는 띠 하나'로 기록한다
+ */
+export function rasterize(paths: readonly MotifPathData[], px = THUMB_PX, field: readonly MotifFieldOp[] = []): Float64Array {
+  const lines = paths.flatMap((p) => flattenPath(p.d).map((pts) => ({ pts, half: Math.max(p.w, 0.6) / 2, ink: LAYER_INK[p.layer], fill: p.layer === 'wash' && isClosedLine(pts) })));
+  for (const f of field) {
+    if (f.k !== 'drop') continue;
+    const ring: Pt[] = Array.from({ length: 33 }, (_, i) => [f.x + Math.cos((i / 32) * 2 * Math.PI) * f.r, f.y + Math.sin((i / 32) * 2 * Math.PI) * f.r] as Pt);
+    lines.push(f.ink > 0 ? { pts: ring, half: 0.3, ink: Math.min(1, f.ink * 1.4), fill: true } : { pts: ring, half: 0.8, ink: LAYER_INK.wash, fill: false });
+  }
+  for (const f of field) {
+    if (f.k !== 'tine') continue;
+    const L = Math.hypot(f.dx, f.dy) || 1;
+    const ux = f.dx / L;
+    const uy = f.dy / L;
+    let pts: Pt[];
+    if (f.gauss) {
+      pts = Array.from({ length: 25 }, (_, i) => {
+        const t = -2.5 * f.lambda + (5 * f.lambda * i) / 24;
+        const g = Math.exp(-(t * t) / (2 * f.lambda * f.lambda));
+        return [f.x - uy * t + f.dx * g, f.y + ux * t + f.dy * g] as Pt;
+      });
+    } else {
+      const h = f.len ? f.len / 2 : 60;
+      pts = [[f.x - ux * h, f.y - uy * h], [f.x + ux * h + f.dx, f.y + uy * h + f.dy]];
+    }
+    lines.push({ pts, half: 0.9, ink: LAYER_INK.wash, fill: false });
+  }
+  // 상자 미리 거르기(빠르게): 선마다 굵기만큼 넓힌 경계 상자
+  const boxes = lines.map((l) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of l.pts) {
+      x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+    }
+    return [x0 - l.half, y0 - l.half, x1 + l.half, y1 + l.half] as const;
+  });
   const g = new Float64Array(px * px);
   const cell = VIEW / px;
   for (let y = 0; y < px; y++)
@@ -32,8 +79,15 @@ export function rasterize(paths: readonly MotifPathData[], px = THUMB_PX): Float
         const X = (x + sx) * cell;
         const Y = (y + sy) * cell;
         let v = 0;
-        for (const l of lines) {
+        for (let li = 0; li < lines.length; li++) {
+          const l = lines[li]!;
           if (v >= l.ink) continue;
+          const bx = boxes[li]!;
+          if (X < bx[0] || X > bx[2] || Y < bx[1] || Y > bx[3]) continue;
+          if (l.fill && inside(X, Y, l.pts)) {
+            v = l.ink;
+            continue;
+          }
           for (let k = 1; k < l.pts.length; k++) {
             if (segDist(X, Y, l.pts[k - 1]!, l.pts[k]!) <= l.half) {
               v = l.ink;
@@ -77,8 +131,8 @@ export function thumbDistance(a: Float64Array, b: Float64Array): number {
 export const CONFUSABLE_BELOW = 0.02;
 export const MAX_CONFUSABLE_PAIRS = 3;
 
-export function confusablePairs(items: readonly { id: string; paths: readonly MotifPathData[] }[], below = CONFUSABLE_BELOW): [string, string, number][] {
-  const th = items.map((x) => rasterize(x.paths));
+export function confusablePairs(items: readonly { id: string; paths: readonly MotifPathData[]; field?: readonly MotifFieldOp[] }[], below = CONFUSABLE_BELOW): [string, string, number][] {
+  const th = items.map((x) => rasterize(x.paths, THUMB_PX, x.field));
   const out: [string, string, number][] = [];
   for (let i = 0; i < items.length; i++)
     for (let j = i + 1; j < items.length; j++) {

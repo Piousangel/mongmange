@@ -2,7 +2,12 @@
 // 64px 구별은 motif-distinct.test.ts, 앱 렌더 픽셀은 apps/mobile test/skia/dream-motif-ink.test.tsx.
 import { describe, expect, it } from 'vitest';
 import {
+  BRUSH,
   MOTIF_INK_COMPOSITION,
+  MOTIF_INK_MAX,
+  brushProfile,
+  isClosedLine,
+  pathSeed,
   RING_OFF,
   SEAT_MAX,
   buildDreamScene,
@@ -94,17 +99,79 @@ describe('붓 리본 — 결정성(D-13)', () => {
     expect(hash(got)).toBe(RIBBON_SNAPSHOT);
   });
 
-  it('붓 폭: 돈필(시작이 끝보다 굵다)·수필(끝이 가늘다), 층 순서 = 담묵 → 먹 → 금', () => {
-    const layers = motifInkLayers([{ d: 'M10 50 L90 50', w: 4, layer: 'ink' }]);
-    const rb = layers[0]!.ribbons[0]!;
-    // 앞 4n개 = 점마다 [왼쪽 x,y, 오른쪽 x,y], 그 뒤 = 둥근 캡 둘(중심 + 9점씩 = 20점)
-    const n = (rb.positions.length - 40) / 4;
-    const width = (i: number) => Math.hypot(rb.positions[4 * i]! - rb.positions[4 * i + 2]!, rb.positions[4 * i + 1]! - rb.positions[4 * i + 3]!);
-    expect(width(0)).toBeCloseTo(4 * 0.72, 6);
-    expect(width(Math.floor(n / 2))).toBeCloseTo(4, 1);
-    expect(width(n - 1)).toBeCloseTo(4 * 0.38, 6);
-    const order = motifInkLayers(sim.motifById('far-with.star-bridge')!.paths).map((l) => l.layer);
+  it('붓 폭(7-6 ③ 굵기 한 가지 금지): 돈필 0.55 → 배 1.15 → 수필 0.25, 곡선에서 얇아짐 — 담묵은 덜 빠진다', () => {
+    expect(brushProfile(0)).toBeCloseTo(BRUSH.head, 9);
+    expect(brushProfile(BRUSH.bellyAt)).toBeCloseTo(BRUSH.belly, 9);
+    expect(brushProfile(1)).toBeCloseTo(BRUSH.tailMin, 9);
+    // 가장 굵은 곳 / 가장 가는 곳 ≥ 4배 — 균일한 모노라인이 아니다
+    const ws = Array.from({ length: 101 }, (_, i) => brushProfile(i / 100));
+    expect(Math.max(...ws) / Math.min(...ws)).toBeGreaterThanOrEqual(4);
+  });
+
+  it('비백: 긴 먹 획은 끝에서 가닥으로 갈라지고, 가닥 무늬는 경로 해시로 결정된다(같은 경로 = 같은 갈라짐, 다른 경로 = 다름)', () => {
+    const one = (d: string) => motifInkLayers([{ d, w: 4, layer: 'ink' }])[0]!;
+    const a = one('M10 50 L90 50');
+    expect(a.ribbons.length).toBeGreaterThan(BRUSH.lanes); // 가닥 5 + 끊긴 조각
+    expect(one('M10 50 L90 50')).toEqual(a);
+    expect(hash(one('M10 50 L90 51').ribbons.map((r) => r.positions.length))).not.toBe(hash(a.ribbons.map((r) => r.positions.length)));
+    // 가닥 끝(x 최댓값)이 서로 다르다 = 끝이 갈라진다. 가운데 가닥만 끝까지 간다
+    const ends = a.ribbons.map((r) => Math.max(...r.positions.filter((_, i) => i % 2 === 0)));
+    expect(new Set(ends.map((x) => Math.round(x))).size).toBeGreaterThanOrEqual(3);
+    expect(Math.max(...ends)).toBeGreaterThan(89);
+    // 담묵·점은 갈라지지 않는다
+    expect(motifInkLayers([{ d: 'M10 50 L90 50', w: 4, layer: 'wash' }])[0]!.ribbons).toHaveLength(1);
+    expect(pathSeed('M10 50 L90 50', 4)).toBe(pathSeed('M10 50 L90 50', 4));
+  });
+
+  it('번짐 한 겹 = 같은 획 폭 1.6배, 담묵 닫힌 경로 = 면(외곽선 획이 아니라 칠 + 젖은 테)', () => {
+    const l = motifInkLayers([{ d: 'M10 50 L90 50', w: 4, layer: 'ink' }])[0]!;
+    expect(l.bleed).toHaveLength(1);
+    const width0 = (r: { positions: number[] }) => Math.hypot(r.positions[0]! - r.positions[2]!, r.positions[1]! - r.positions[3]!);
+    expect(width0(l.bleed[0]!)).toBeCloseTo(4 * BRUSH.head * 1.6, 6);
+    const f = motifInkLayers([{ d: 'M10 10 L60 10 L60 60 Z', w: 2, layer: 'wash' }])[0]!;
+    expect(f.faces).toHaveLength(1);
+    expect(f.ribbons).toHaveLength(0);
+    const order = motifInkLayers(sim.motifById('far-with.star-bridge')!.paths).map((x) => x.layer);
     expect(order).toEqual(['wash', 'ink', 'gold']);
+  });
+});
+
+describe('아트 바이블 7-6 꿈 모티프 그리는 법 — 기계로 잡는 규칙', () => {
+  it('② 먹 농도 위계: 모티프 먹 상한은 몸 먹의 0.70~0.75(순흑은 몽망이 몸만), 장 조작의 먹 방울도 그 아래', () => {
+    expect(MOTIF_INK_MAX).toBeGreaterThanOrEqual(0.7);
+    expect(MOTIF_INK_MAX).toBeLessThanOrEqual(0.75);
+    for (const m of NEW) for (const f of m.field ?? []) if (f.k === 'drop') expect(f.ink, m.id).toBeLessThanOrEqual(MOTIF_INK_MAX);
+  });
+
+  it('④ 닫힌 기하 도형 금지: 먹·금 경로는 하나도 닫히지 않는다(닫힌 모양은 담묵 면만) — 닫힌 먹 경로 비율 0', () => {
+    for (const m of NEW)
+      for (const p of m.paths) {
+        if (p.layer === 'wash') continue;
+        for (const l of flattenMotifPath(p.d)) expect(isClosedLine(l), `${m.id} ${p.d}`).toBe(false);
+      }
+  });
+
+  it('① 표현 순서·⑤ 장의 반응 의무: 모든 모티프가 장 조작(field)을 1개 이상 갖고, 장 또는 담묵 면이 있다(획만으로 된 모티프 없음)', () => {
+    for (const m of NEW) {
+      expect((m.field ?? []).length, m.id).toBeGreaterThan(0);
+      // 장 조작은 그림 안(그림 상자 0..100)에 건다 — 형상 곁에서 띠가 반응한다
+      for (const f of m.field!) expect(f.x >= 0 && f.x <= 100 && f.y >= 0 && f.y <= 100, m.id).toBe(true);
+    }
+  });
+
+  it('⑧ 규칙 간격 점열·같은 크기 반복 도장 금지: 점이 3개 이상인 모티프는 점 크기가 여러 가지이고 이웃 간격이 고르지 않다', () => {
+    for (const m of NEW) {
+      const dots = m.paths.flatMap((p) => flattenMotifPath(p.d).filter((l) => l.length === 2 && Math.hypot(l[1]![0] - l[0]![0], l[1]![1] - l[0]![1]) < 0.5).map((l) => ({ x: l[0]![0], y: l[0]![1], w: p.w })));
+      if (dots.length < 3) continue;
+      expect(new Set(dots.map((d) => d.w)).size, m.id).toBeGreaterThanOrEqual(2);
+      const gaps = dots.slice(1).map((d, i) => Math.hypot(d.x - dots[i]!.x, d.y - dots[i]!.y));
+      const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+      const cv = Math.sqrt(gaps.reduce((a, b) => a + (b - mean) ** 2, 0) / gaps.length) / mean;
+      expect(cv, m.id).toBeGreaterThan(0.15);
+    }
+    // 기러기: ㅅ자 크기가 여러 가지(원근), 앞(먹)과 뒤(담묵) 두 농담
+    const geese = sim.motifById('far-with.geese')!;
+    expect(new Set(geese.paths.map((p) => p.layer))).toEqual(new Set(['ink', 'wash']));
   });
 });
 
@@ -135,16 +202,24 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
       }
   });
 
-  it('소리 없는 눈은 먹 대신 맑은 물방울(금 없음) 12개, 곁 방울 모티프는 friend(맑은 자리 없음 — 두 눈 읽힘 금지)', () => {
+  it('장 조작은 결 뒤·몽망이 자리 앞에 그대로 들어가고(자르기 0), 소리 없는 눈은 먹 대신 맑은 물방울 12개, 곁 방울은 맑은 자리 없음', () => {
+    for (const m of NEW) {
+      const sc = buildDreamScene({ card: card(m.id), strokes: day7Records() });
+      const seatAt = sc.post.findIndex((o) => o.k === 'drop' && o.seat);
+      expect(sc.trimmed, m.id).toBe(0);
+      const kinds = sc.post.slice(0, seatAt).map((o) => o.k).join(',');
+      expect(kinds.endsWith(m.field!.map((f) => f.k).join(',')), m.id).toBe(true);
+    }
     const snow = buildDreamScene({ card: card('center.snow'), strokes: day7Records() });
     expect(snow.motifInk).toBeUndefined();
     const seatAt = snow.post.findIndex((o) => o.k === 'drop' && o.seat);
-    const clear = snow.post.slice(seatAt + 1).filter((o) => o.k === 'drop' && o.ink === 0 && !o.gold);
+    const clear = snow.post.slice(0, seatAt).filter((o) => o.k === 'drop' && o.ink === 0 && !o.gold);
     expect(clear).toHaveLength(12);
     for (const id of ['near-with.umbrella', 'far-with.star-bridge', 'far-with.stepping-stones']) {
       const sc = buildDreamScene({ card: card(id), strokes: day7Records() });
       expect(sc.friend, id).not.toBeNull();
-      expect(sc.post.filter((o) => o.k === 'drop' && o.ink === 0 && !o.seat), id).toEqual([]);
+      const seatAt = sc.post.findIndex((o) => o.k === 'drop' && o.seat);
+      expect(sc.post.slice(seatAt + 1).filter((o) => o.k === 'drop' && o.ink === 0), id).toEqual([]);
     }
   });
 
@@ -164,5 +239,5 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
   });
 });
 
-const RIBBON_SNAPSHOT = '6e45662b';
-const SCENE_SNAPSHOT = 'e437a63e';
+const RIBBON_SNAPSHOT = '4b37ae98';
+const SCENE_SNAPSHOT = 'f2096838';

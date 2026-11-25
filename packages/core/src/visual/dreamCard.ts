@@ -18,7 +18,7 @@ import { isMoonMotifId, moonMotifUsable } from '../moon/motifs';
 import { rngNext } from '../sim/rng';
 import type { DreamCard } from '../sim/types';
 import { coreScale } from './bodySpec';
-import { flattenMotifPath, motifInkPlacement, motifInkPoint, type DreamMotifInk } from './motifInk';
+import { motifInkPlacement, motifInkPoint, type DreamMotifInk } from './motifInk';
 
 export type DreamAspect = '4:5' | '9:16';
 
@@ -48,7 +48,7 @@ export interface DreamSeg {
 
 /** 물 위에 그린 그릇·이불(마블링 위에 얹는 형상). 좌표 = c0 기준 */
 export interface DreamVessel {
-  kind: 'quilt' | 'cup';
+  kind: 'quilt' | 'cup' | 'window';
   x: number;
   y: number;
   /** 폭·높이(카드 폭 단위) */
@@ -419,27 +419,28 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
   let motifInk: DreamMotifInk | undefined;
   if (inkDef && inkPlace) {
     const box = { ...inkPlace.box, flip: inkPlace.flip };
-    if (inkDef.water === 'clear') {
-      // 소리 없는 눈: 점마다 고리 없는 맑은 물방울 한 겹(몽망이 자리 뒤 — 마지막 좌표 그대로)
-      for (const p of inkDef.paths) {
-        const at = flattenMotifPath(p.d)[0]?.[0];
-        if (!at) continue;
-        const q = motifInkPoint(box, at[0], at[1]);
-        final.push({ k: 'drop', x: q.x, y: q.y, r: (p.w / 200) * box.size, ink: 0 });
-      }
-    } else {
-      motifInk = { ...box, paths: inkDef.paths };
+    // ① 장: 모티프 조작을 결 뒤·몽망이 자리 앞(late)에 건다. 자리는 몽망이 자리 방울이 밀어내기 전 자리(P)로 되짚는다
+    const k = box.size / 100;
+    const fl = box.flip ? -1 : 1;
+    for (const f of inkDef.field ?? []) {
+      const q = motifInkPoint(box, f.x, f.y);
+      const at = P(q.x, q.y);
+      if (f.k === 'drop') late.push({ k: 'drop', x: at.x, y: at.y, r: f.r * k, ink: f.ink });
+      else if (f.k === 'tine') late.push({ k: 'tine', x: at.x, y: at.y, dx: f.dx * k * fl, dy: f.dy * k, lambda: f.lambda * k, len: (f.len ?? 0) * k, gauss: f.gauss || undefined });
+      else late.push({ k: 'curl', x: at.x, y: at.y, angle: f.angle * fl, radius: f.radius * k });
     }
+    // ②·③ 면·획(소리 없는 눈은 그리지 않는다 — 경로는 기록)
+    if (inkDef.water !== 'clear') motifInk = { ...box, paths: inkDef.paths };
     if (inkDef.friend) {
       const [fx, fy, fr] = inkDef.friend;
       const q = motifInkPoint(box, fx, fy);
-      // 다른 방울은 물 위에 그대로 앉힌다 — 맑은 자리(흰 테)를 두면 몽망이 자리와 나란한 '두 눈'으로 읽힌다(1-1 눈동자 금지)
+      // 다른 방울은 물 위에 그대로 앉힌다 — 맑은 자리(흰 테)를 두면 몽망이 자리와 나란한 '두 눈'으로 읽힌다(1-1 눈동자 금지).
       // 구도 c에서 그림 끝이 인화 밖으로 나가도 다른 방울은 인화 안(0.85R)에 남긴다 — 잘린 형상 위에 뜬 방울 금지
       const px = q.x + anchor.x;
       const py = q.y + anchor.y;
       const d = Math.hypot(px, py);
-      const k = d > 0.85 * R ? (0.85 * R) / d : 1;
-      friend = { x: px * k - anchor.x, y: py * k - anchor.y, r: fr };
+      const kk = d > 0.85 * R ? (0.85 * R) / d : 1;
+      friend = { x: px * kk - anchor.x, y: py * kk - anchor.y, r: fr };
     }
   } else switch (motif) {
     case 'near-alone.quilt': {
@@ -478,14 +479,12 @@ export function buildDreamScene({ card, strokes, aspect = '4:5', limits = DREAM_
         const o = (k - 1.5) * 0.028;
         post.push({ op: { k: 'tine', x: hx * 0.7 + (-hy / d) * o, y: hy * 0.7 + (hx / d) * o, dx: (-hx / d) * 0.04, dy: (-hy / d) * 0.04, lambda: 0.01, len: 0.09 }, p: 2 });
       }
+      // 창: 짙은 테 맑은 방울 넷(단추·신호등으로 읽힘 — C14b 아트 리뷰 17)을 버리고, 옅은 담묵 방울 하나가 띠를 밀어낸 자리 위에
+      // 담묵 면 창 네 칸 + 밝은 바탕 틈(그림 `window`)
       const wx = -side * 0.14;
       const wy = -0.19;
-      for (let k = 0; k < 4; k++) {
-        const x = wx + (k % 2 ? 0.047 : -0.047);
-        const y = wy + (k < 2 ? -0.047 : 0.047);
-        final.push({ k: 'drop', x, y, r: 0.016, ink: 0.8 });
-        final.push({ k: 'drop', x, y, r: 0.044, ink: 0 });
-      }
+      final.push({ k: 'drop', x: wx, y: wy, r: 0.085, ink: 0.16 });
+      vessels.push({ kind: 'window', x: wx, y: wy - 0.062, w: 0.124, h: 0.124, handle: 1, friend: false });
       calm = 0.6;
       break;
     }

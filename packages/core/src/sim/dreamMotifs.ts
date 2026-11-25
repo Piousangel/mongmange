@@ -4,6 +4,7 @@
 //   docs/design/content-v1/dreams-sim.mjs와 같은 결과를 내야 한다 — test/dream-rules.test.ts가 그 시뮬을 직접 불러 한 밤씩 대조한다.
 // - 난수: 한 밤에 균등값 u 하나(세이브 rng에서 뽑아 넘긴다). Math.random·시각 없음.
 import type { MotifPathData } from '../moon/motifs';
+import type { MotifFieldOp } from '../visual/motifInk';
 import { MOTIF_SHAPES } from './dreamMotifShapes';
 import type { AxisRecord, DreamCard } from './types';
 
@@ -28,11 +29,13 @@ export interface Motif {
    * (`test/motif-distinct.test.ts`)의 대상이 된다. 빌드 1의 10개는 빈 배열 — 마블링 조작으로 그린다
    */
   paths: readonly MotifPathData[];
+  /** 마블링 장 조작(그림 좌표, C14b v2 — 띠가 형상을 받아들임). `paths`가 있을 때만 */
+  field?: readonly MotifFieldOp[];
   /** 몽망이 자리(그림 좌표 0..100). `paths`가 있을 때만 */
   seat?: readonly [number, number];
   /** 곁의 다른 방울 [x, y, 몸 배율](그림 좌표). 눈 없는 방울 — '함께'는 나란함·맞댐으로만 */
   friend?: readonly [number, number, number];
-  /** 'clear' = 먹으로 그리지 않고 점마다 맑은 물방울을 떨군다(소리 없는 눈) */
+  /** 'clear' = 경로를 먹으로 그리지 않는다(소리 없는 눈 — 그림은 `field`의 맑은 방울) */
   water?: 'clear';
   /** 정본에 없어 개발이 쓴 초안 문구 슬롯(i18n 키 기준). 검수로 확정되면 지운다 — `motifBlockers`가 제품 출시를 막는다 */
   draft?: readonly ('ko.title' | 'ko.line' | 'ko.scene' | 'en.title' | 'en.line' | 'en.scene')[];
@@ -42,7 +45,7 @@ export interface Motif {
 const m = (id: string, zone: MotifZone, family: string, unlockAtCards: number): Motif => {
   const shape = MOTIF_SHAPES[id];
   if (unlockAtCards === 0 || !shape) return { id, zone, family, unlockAtCards, placeholder: unlockAtCards > 0, paths: [] };
-  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}) };
+  return { id, zone, family, unlockAtCards, placeholder: false, paths: shape.paths, field: shape.field, seat: shape.seat, ...(shape.friend ? { friend: shape.friend } : {}), ...(shape.water ? { water: shape.water } : {}) };
 };
 
 /**

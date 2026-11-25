@@ -84,8 +84,15 @@ export function flattenMotifPath(d: string, steps = 16): Pt[][] {
 const STEP = 0.9;
 /** 이 길이보다 짧은 획은 점(둥근 방울) */
 const DOT_LEN = 0.6;
-/** 붓 폭 곡선: 돈필(시작 눌림) → 몸 → 수필(끝 빠짐) */
-export const BRUSH = { head: 0.72, headLen: 0.16, tailStart: 0.7, tailMin: 0.38 } as const;
+/**
+ * 붓 폭 곡선(아트 리뷰 C14b 1·3절 — 굵기가 한 가지인 선 금지): 돈필(눌러 시작 0.55) → 배(0.4 지점 1.15로 부풂) → 수필(끝 0.25).
+ * 곡률이 큰 곳은 얇아진다(curveThin). 끝 tail 구간에는 비백(마른 붓 갈라짐)이 든다
+ */
+export const BRUSH = { head: 0.55, belly: 1.15, bellyAt: 0.4, tailMin: 0.25, curveThin: 0.35, dryFrom: 0.72, lanes: 5 } as const;
+/** 모티프 먹 농도 상한(몸 먹 = 1 대비, 아트 리뷰 2절 — 순흑은 몽망이 몸만). 렌더 층 알파가 이 값을 넘으면 시험이 실패한다 */
+export const MOTIF_INK_MAX = 0.72;
+/** 담묵 면의 젖은 테 폭(경로 굵기 w 배) */
+export const RIM_K = 2.2;
 
 function resample(pts: readonly Pt[]): { pts: Pt[]; len: number } {
   const acc: number[] = [0];
@@ -107,48 +114,167 @@ function resample(pts: readonly Pt[]): { pts: Pt[]; len: number } {
   return { pts: out, len: L };
 }
 
-/** 붓 폭 배율(0..1 길이 위치) */
+/** 붓 폭 배율(0..1 길이 위치) — 곡률 보정 전 */
 export function brushProfile(s: number): number {
-  const hk = Math.min(s / BRUSH.headLen, 1);
-  const head = BRUSH.head + (1 - BRUSH.head) * Math.sin((hk * Math.PI) / 2);
-  const tt = Math.max(0, (s - BRUSH.tailStart) / (1 - BRUSH.tailStart));
-  const tail = 1 - (1 - BRUSH.tailMin) * tt * tt * (3 - 2 * tt);
-  return head * tail;
+  const B = BRUSH;
+  if (s <= B.bellyAt) {
+    const t = s / B.bellyAt;
+    return B.head + (B.belly - B.head) * Math.sin((t * Math.PI) / 2);
+  }
+  const t = (s - B.bellyAt) / (1 - B.bellyAt);
+  return B.belly - (B.belly - B.tailMin) * t * t * (3 - 2 * t);
+}
+
+/** 경로 해시(FNV-1a) — 비백 무늬의 시드. 같은 경로 = 같은 갈라짐(D-13) */
+export function pathSeed(d: string, w: number): number {
+  let h = 2166136261;
+  const str = `${d}|${w}`;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619) >>> 0;
+  return h >>> 0;
+}
+const hash01 = (seed: number, a: number, b: number) => {
+  let x = (seed ^ Math.imul(a + 1, 0x9e3779b1) ^ Math.imul(b + 7, 0x85ebca77)) >>> 0;
+  x = Math.imul(x ^ (x >>> 15), 0x2c1b3c6d) >>> 0;
+  x = Math.imul(x ^ (x >>> 12), 0x297a2d39) >>> 0;
+  return ((x ^ (x >>> 15)) >>> 0) / 4294967296;
+};
+
+function normals(pts: readonly Pt[]): Pt[] {
+  return pts.map((_, i) => {
+    const a = pts[Math.max(0, i - 2)]!;
+    const b = pts[Math.min(pts.length - 1, i + 2)]!;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const l = Math.hypot(dx, dy) || 1;
+    return [-dy / l, dx / l] as Pt;
+  });
+}
+
+/** 점별 폭: 붓 곡선 × 곡률 얇아짐 */
+function strokeWidthsOf(pts: readonly Pt[], w: number, wash: boolean): number[] {
+  const n = pts.length;
+  return pts.map((p, k) => {
+    const s = k / (n - 1);
+    const a = pts[Math.max(0, k - 3)]!;
+    const b = pts[Math.min(n - 1, k + 3)]!;
+    const t1 = Math.atan2(p[1] - a[1], p[0] - a[0]);
+    const t2 = Math.atan2(b[1] - p[1], b[0] - p[0]);
+    let turn = Math.abs(t2 - t1);
+    if (turn > Math.PI) turn = 2 * Math.PI - turn;
+    const curve = 1 - BRUSH.curveThin * Math.min(1, turn / 1.2);
+    const prof = brushProfile(s);
+    return w * (wash ? 0.6 + 0.4 * prof : prof) * curve;
+  });
+}
+
+const raw = (pts: readonly Pt[]): RawPoint[] => pts.map(([x, y], k) => ({ x, y, t: k }));
+
+/**
+ * 비백: 획을 `lanes` 가닥으로 나눠, `dryFrom` 뒤에서 가닥마다(경로 해시 시드) 끊기고 일찍 끝나게 한다. 가운데 가닥은 끝까지 간다.
+ * 가닥은 서로 25% 겹쳐 앞부분은 한 획으로 보인다
+ */
+function dryLanes(pts: readonly Pt[], widths: readonly number[], seed: number): Ribbon[] {
+  const L = BRUSH.lanes;
+  const nm = normals(pts);
+  const n = pts.length;
+  const out: Ribbon[] = [];
+  for (let j = 0; j < L; j++) {
+    const c = -1 + (2 * (j + 0.5)) / L;
+    const centre = j === (L - 1) / 2;
+    const end = centre ? 1 : BRUSH.dryFrom + (1 - BRUSH.dryFrom) * (0.25 + 0.75 * hash01(seed, j, 0));
+    const gapAt = BRUSH.dryFrom + (end - BRUSH.dryFrom) * hash01(seed, j, 1);
+    const gapLen = centre ? 0 : 0.05 + 0.08 * hash01(seed, j, 2);
+    let cur: Pt[] = [];
+    let cw: number[] = [];
+    const flush = () => {
+      if (cur.length >= 2) out.push(buildRibbon(raw(cur), { widths: cw, roundStart: true, roundEnd: true }));
+      cur = [];
+      cw = [];
+    };
+    for (let k = 0; k < n; k++) {
+      const s = k / (n - 1);
+      if (s > end) break;
+      if (s > gapAt && s < gapAt + gapLen) {
+        flush();
+        continue;
+      }
+      const half = widths[k]! / 2;
+      cur.push([pts[k]![0] + nm[k]![0] * c * half, pts[k]![1] + nm[k]![1] * c * half]);
+      cw.push((widths[k]! / L) * 1.5);
+    }
+    flush();
+  }
+  return out;
+}
+
+/** 닫힌 경로인가(끝점이 시작점과 만남) — 닫힌 담묵 경로 = 면 */
+export function isClosedLine(line: readonly Pt[]): boolean {
+  const a = line[0]!;
+  const b = line[line.length - 1]!;
+  return line.length > 3 && Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.5;
 }
 
 export interface MotifInkLayer {
   layer: MotifPathData['layer'];
   /** 그림 좌표(0..100) 리본 묶음 — 한 층은 한 번에 그린다(겹친 곳이 진해지지 않게) */
   ribbons: Ribbon[];
+  /** 번짐 한 겹(같은 획 폭 1.6배, 아주 옅게 깐다 — 먹이 젖은 종이에 퍼짐) */
+  bleed: Ribbon[];
+  /** 담묵 면(닫힌 wash 경로): 외곽선 없이 칠하고, 테(rim)는 젖은 테로 조금 짙게. 면끼리 겹치면 더 짙다(접힌 그늘) */
+  faces: { poly: number[]; rim: Ribbon }[];
 }
 
-/** 경로 → 층별 붓 리본(층 순서 = 담묵 → 먹 → 금, 아래부터 칠한다) */
+/** 경로 → 층별 붓 리본·담묵 면(층 순서 = 담묵 → 먹 → 금, 아래부터 칠한다) */
 export function motifInkLayers(paths: readonly MotifPathData[]): MotifInkLayer[] {
   const order: MotifPathData['layer'][] = ['wash', 'ink', 'gold'];
   const out: MotifInkLayer[] = [];
   for (const layer of order) {
     const ribbons: Ribbon[] = [];
+    const bleed: Ribbon[] = [];
+    const faces: MotifInkLayer['faces'] = [];
     for (const p of paths) {
       if (p.layer !== layer) continue;
+      const seed = pathSeed(p.d, p.w);
       for (const line of flattenMotifPath(p.d)) {
-        const { pts } = resample(line);
-        if (pts.length === 1) {
-          ribbons.push(buildRibbon([{ x: pts[0]![0], y: pts[0]![1], t: 0 }], { widths: [p.w] }));
+        if (layer === 'wash' && isClosedLine(line)) {
+          const { pts } = resample(line);
+          // 젖은 테: 면 가장자리를 따라 w의 2.2배 폭 띠(렌더가 크게 흐려 선이 아니라 가장자리 고임으로 보이게)
+          faces.push({ poly: pts.flatMap(([x, y]) => [x, y]), rim: buildRibbon(raw(pts), { widths: pts.map(() => p.w * RIM_K), roundStart: true, roundEnd: true }) });
           continue;
         }
-        const raw: RawPoint[] = pts.map(([x, y], k) => ({ x, y, t: k }));
-        // 담묵은 번진 먹이라 수필이 짧다(끝이 덜 빠진다)
-        const widths = pts.map((_, k) => {
-          const s = k / (pts.length - 1);
-          return p.w * (layer === 'wash' ? 0.55 + 0.45 * brushProfile(s) : brushProfile(s));
-        });
-        ribbons.push(buildRibbon(raw, { widths, roundStart: true, roundEnd: true }));
+        const { pts } = resample(line);
+        if (pts.length === 1) {
+          ribbons.push(buildRibbon(raw(pts), { widths: [p.w] }));
+          continue;
+        }
+        const widths = strokeWidthsOf(pts, p.w, layer === 'wash');
+        if (layer === 'gold') {
+          ribbons.push(buildRibbon(raw(pts), { widths, roundStart: true, roundEnd: true }));
+          continue;
+        }
+        bleed.push(buildRibbon(raw(pts), { widths: widths.map((x) => x * 1.6), roundStart: true, roundEnd: true }));
+        // 먹 획만 비백(담묵은 젖은 획이라 갈라지지 않는다)
+        if (layer === 'ink' && pts.length >= 8) ribbons.push(...dryLanes(pts, widths, seed));
+        else ribbons.push(buildRibbon(raw(pts), { widths, roundStart: true, roundEnd: true }));
       }
     }
-    if (ribbons.length > 0) out.push({ layer, ribbons });
+    if (ribbons.length + faces.length > 0) out.push({ layer, ribbons, bleed, faces });
   }
   return out;
 }
+
+// ---------- 장 변형(마블링이 형상을 받아들이는 조작, 아트 리뷰 3절 ①) ----------
+
+/**
+ * 모티프가 마블링 장에 거는 조작(그림 좌표 0..100, 길이도 그림 단위). 카드 장면의 `late`(결 뒤·몽망이 자리 앞)에 들어간다.
+ * - drop: ink > 0 = 담묵 면 방울(띠가 밀려 둘레가 휜다), ink 0 = 비움(맑은 물, '남긴 흰 길'·눈)
+ * - tine: 끌기·빗질(직선 (x,y)를 따라 (dx,dy)만큼, lambda = 번짐 폭, len > 0 = 선 길이 창, gauss = 들어올림·누름)
+ * - curl: 한 점으로 감아 빨아들임
+ */
+export type MotifFieldOp =
+  | { k: 'drop'; x: number; y: number; r: number; ink: number }
+  | { k: 'tine'; x: number; y: number; dx: number; dy: number; lambda: number; len?: number; gauss?: boolean }
+  | { k: 'curl'; x: number; y: number; angle: number; radius: number };
 
 // ---------- 카드 위 자리 ----------
 

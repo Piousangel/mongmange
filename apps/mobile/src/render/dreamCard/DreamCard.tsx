@@ -41,6 +41,7 @@ import {
   type sim,
   sealOutlineOf,
   motifInkLayers,
+  MOTIF_INK_MAX,
   type MotifInkLayer,
 } from '@mong/core';
 import { useMemo } from 'react';
@@ -133,13 +134,15 @@ export interface DreamArt {
 
 export interface MotifInkArt {
   t: object[];
-  layers: { layer: MotifInkLayer['layer']; verts: Verts }[];
+  layers: { layer: MotifInkLayer['layer']; verts: Verts; bleed: Verts; faces: { path: SkPath; rim: Verts }[] }[];
   /** 인화 번짐(셰이더 fade와 같은 원: 반경 0.9 → 1.12배에서 사라짐) */
   fade: { cx: number; cy: number; r: number };
   /** 글 줄 위 경계(이 아래로는 그리지 않는다) */
   yLim: number;
-  /** 번짐 블러(그림 단위 — 상자 변의 0.6%, 장치 0.5px 하한) */
+  /** 번짐 블러(px — 상자 변의 0.6%, 장치 0.5px 하한) */
   bleed: number;
+  /** 그림 1단위 = px(transform 배율). 블러는 transform 안에서 그리므로 px 값을 이 값으로 나눠 넘긴다 */
+  unit: number;
 }
 
 /** 카드 그림 단위와 화면의 관계(썸네일 LOD·블러 하한). 기본 = 화면 Canvas(그림 단위 = pt) */
@@ -259,7 +262,12 @@ interface CupArt {
   glaze: ReturnType<typeof marbleUniforms>;
   friend: { t: { translateX: number }[] | object[]; geo: BodyGeo } | null;
 }
-type VesselArt = QuiltArt | CupArt;
+interface WindowArt {
+  kind: 'window';
+  /** 담묵 면 창 네 칸(밝은 바탕 틈을 사이에 둠, 가장자리 손으로 뜬 결) */
+  panes: SkPath[];
+}
+type VesselArt = QuiltArt | CupArt | WindowArt;
 
 /** 반 타원(위 = −1, 아래 = +1) 경로 점 */
 function halfEllipse(cx: number, cy: number, rx: number, ry: number, sign: 1 | -1, n = 32): number[] {
@@ -277,6 +285,18 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
   const top = c0.y + u(v.y);
   const w = u(v.w);
   const h = u(v.h);
+  if (v.kind === 'window') {
+    const g = w * 0.09;
+    const pw = (w - g) / 2;
+    const ph = (h - g) / 2;
+    const x0 = cx - w / 2;
+    const panes = [0, 1, 2, 3].map((k) => {
+      const px = x0 + (k % 2) * (pw + g);
+      const py = top + Math.floor(k / 2) * (ph + g);
+      return deckleRect(px, py, pw, ph, u(0.0022), u(0.004), (scene.seed + k * 13) & 0xffff);
+    });
+    return { kind: 'window', panes };
+  }
   if (v.kind === 'quilt') {
     // 누빔 이불: 물결진 윗단 + 둥근 아랫단, 마름모 바늘땀, 윗단 접힌 그늘
     const n = jitter(scene.seed + 9);
@@ -295,13 +315,28 @@ function vesselArt(v: DreamVessel, c0: { x: number; y: number }, W: number, scen
     pb.cubicTo(cx - w * 0.1, top + h * 1.04, cx - w * 0.46, top + h * 0.95, cx - w * 0.56, edge[1]! + h * 0.3);
     pb.cubicTo(cx - w * 0.58, edge[1]! + h * 0.12, cx - w * 0.52, edge[1]!, edge[0]!, edge[1]!);
     pb.close();
+    // 누빔 박음질: 비스듬한 두 방향 줄을 따라 짧은 땀(길이·간격·어긋남이 시드로 흔들림) — 격자 빗금은 라켓·그물로 읽혔다(C14b 아트 리뷰 16)
     const seams = Skia.PathBuilder.Make();
-    const k = u(0.034);
+    const k = u(0.056);
+    const sj = jitter(scene.seed + 31);
+    let st = 0;
     for (let d = -w; d <= w + h; d += k) {
-      seams.moveTo(cx - w / 2 + d, top - u(0.02));
-      seams.lineTo(cx - w / 2 + d - h * 1.2, top + h * 1.2);
-      seams.moveTo(cx - w / 2 + d - h * 1.2, top - u(0.02));
-      seams.lineTo(cx - w / 2 + d, top + h * 1.2);
+      for (const dir of [1, -1] as const) {
+        const x0 = dir === 1 ? cx - w / 2 + d : cx - w / 2 + d - h * 1.2;
+        const y0 = top - u(0.02);
+        const x1 = dir === 1 ? cx - w / 2 + d - h * 1.2 : cx - w / 2 + d;
+        const y1 = top + h * 1.2;
+        const L = Math.hypot(x1 - x0, y1 - y0);
+        for (let t = (0.5 + sj(st++)) * u(0.012); t < L; ) {
+          const len = u(0.007) * (1 + 0.6 * sj(st++));
+          const off = u(0.0016) * sj(st++ * 3);
+          const ax = x0 + ((x1 - x0) * t) / L + off;
+          const ay = y0 + ((y1 - y0) * t) / L;
+          seams.moveTo(ax, ay);
+          seams.lineTo(ax + ((x1 - x0) * len) / L, ay + ((y1 - y0) * len) / L);
+          t += len + u(0.012) * (1 + 0.8 * Math.abs(sj(st++)));
+        }
+      }
     }
     return { kind: 'quilt', path: pb.build(), seams: seams.build(), fold: polyPath(edge.map((v2, i) => (i % 2 ? v2 + u(0.008) : v2)), false) };
   }
@@ -381,10 +416,16 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   const motifInk: MotifInkArt | null = mi
     ? {
         t: [{ translateX: c0.x + u(mi.x) }, { translateY: c0.y + u(mi.y) }, { scale: u(mi.size) / 100 }, ...(mi.flip ? [{ translateX: 100 }, { scaleX: -1 }] : [])],
-        layers: motifInkLayers(mi.paths).map((l) => ({ layer: l.layer, verts: toVerts(l.ribbons) })),
+        layers: motifInkLayers(mi.paths).map((l) => ({
+          layer: l.layer,
+          verts: toVerts(l.ribbons),
+          bleed: toVerts(l.bleed),
+          faces: l.faces.map((f) => ({ path: polyPath(f.poly), rim: toVerts([f.rim]) })),
+        })),
         fade: { cx: fade[0], cy: fade[1], r: fade[2] * 1.12 },
         yLim,
         bleed: blurFloorPt(u(mi.size) * 0.006, opts.devicePerUnit ?? 1),
+        unit: u(mi.size) / 100,
       }
     : null;
   const night = Math.max(1, input.card.night);
@@ -418,12 +459,19 @@ export function makeDreamArt(input: DreamCardInput, aspect: DreamAspect, widthPx
   };
 }
 
-/** 붓 층 색·불투명도: 먹 = 몸 먹(그릇 테와 같은 0.8), 담묵 = 새 획 먹을 옅게, 금 = 머리카락 금점 */
-const INK_LAYER: Record<MotifInkLayer['layer'], { color: string; alpha: number }> = {
-  ink: { color: PALETTE.day.body, alpha: 0.8 },
+/**
+ * 붓 층 색·불투명도(아트 바이블 7-6 ②): 모티프 먹은 몸 먹의 MOTIF_INK_MAX(0.72) 이하 — 순흑은 몽망이 몸만. 담묵은 새 획 먹을 옅게,
+ * 금은 머리카락 금점. face = 담묵 면 칠(면마다 따로 칠해 겹친 곳이 짙다 = 접힌 그늘), rim = 젖은 테(면의 1.3배)
+ */
+export const INK_LAYER: Record<MotifInkLayer['layer'], { color: string; alpha: number }> = {
+  ink: { color: PALETTE.day.body, alpha: MOTIF_INK_MAX },
   wash: { color: PALETTE.day.strokeInk, alpha: 0.34 },
   gold: { color: GOLD_HEX, alpha: 0.95 },
 };
+/** 담묵 면: 칠 + 가장자리 덧칠(젖은 테 — 칠 위에 겹쳐 가장자리가 약 1.3배 짙다) */
+export const WASH_FACE = { fill: 0.5, rim: 0.18 } as const;
+/** 번짐 한 겹(폭 1.6배 리본) 불투명도 */
+export const INK_BLEED = 0.12;
 const layerPaints = new Map<number, ReturnType<typeof Skia.Paint>>();
 function alphaPaint(a: number) {
   let p = layerPaints.get(a);
@@ -436,23 +484,41 @@ function alphaPaint(a: number) {
 }
 
 /**
- * C14b 붓 형상: 층마다 한 번에 칠하고(겹친 곳이 진해지지 않게 레이어 알파), 먹 층 아래에는 같은 획을 흐리게 한 번 더(한지 번짐).
- * 마블링 위·몽망이 아래. 인화 바깥은 셰이더와 같은 원으로 지우고 글 줄 위에서 자른다
+ * C14b 붓 형상(② 면·③ 획 — ① 장 변형은 마블링 셰이더가 그린다). 아래부터: 담묵 면(외곽선 없이 칠 + 젖은 테) → 번짐 한 겹 →
+ * 획(층마다 한 번에 칠해 겹친 곳이 진해지지 않게 레이어 알파, 먹 획 끝은 비백 가닥). 마블링 위·몽망이 아래.
+ * 인화 바깥은 셰이더와 같은 원으로 지우고 글 줄 위에서 자른다
  */
 export function MotifInkArtView({ ink, W }: { ink: MotifInkArt; W: number }) {
   const { fade } = ink;
+  const bl = (k: number) => (ink.bleed * k) / ink.unit;
   return (
     <Group clip={{ x: 0, y: 0, width: W, height: ink.yLim }}>
       <Group layer>
-        {ink.layers.map(({ layer, verts }) => {
+        {ink.layers.map(({ layer, verts, bleed, faces }) => {
           const st = INK_LAYER[layer];
           return (
             <Group key={layer}>
+              {faces.length > 0 && (
+                <Group transform={ink.t as never}>
+                  {faces.map((f, k) => (
+                    <Group key={k}>
+                      <Path path={f.path} color={st.color} opacity={WASH_FACE.fill}>
+                        <BlurMask blur={bl(1.5)} style="normal" />
+                      </Path>
+                      <Group layer={alphaPaint(WASH_FACE.rim)}>
+                        <Vertices vertices={f.rim.vertices} indices={f.rim.indices} mode="triangles" color={st.color}>
+                          <BlurMask blur={bl(3)} style="normal" />
+                        </Vertices>
+                      </Group>
+                    </Group>
+                  ))}
+                </Group>
+              )}
               {layer !== 'gold' && (
-                <Group layer={alphaPaint(st.alpha * 0.35)}>
+                <Group layer={alphaPaint(INK_BLEED)}>
                   <Group transform={ink.t as never}>
-                    <Vertices vertices={verts.vertices} indices={verts.indices} mode="triangles" color={st.color}>
-                      <BlurMask blur={ink.bleed * 2.5} style="normal" />
+                    <Vertices vertices={bleed.vertices} indices={bleed.indices} mode="triangles" color={st.color}>
+                      <BlurMask blur={bl(2)} style="normal" />
                     </Vertices>
                   </Group>
                 </Group>
@@ -460,7 +526,7 @@ export function MotifInkArtView({ ink, W }: { ink: MotifInkArt; W: number }) {
               <Group layer={alphaPaint(st.alpha)}>
                 <Group transform={ink.t as never}>
                   <Vertices vertices={verts.vertices} indices={verts.indices} mode="triangles" color={st.color}>
-                    {layer !== 'gold' && <BlurMask blur={ink.bleed * 0.5} style="normal" />}
+                    {layer !== 'gold' && <BlurMask blur={bl(0.35)} style="normal" />}
                   </Vertices>
                 </Group>
               </Group>
@@ -556,16 +622,30 @@ export function DreamCardArt({ art }: { art: DreamArt }) {
               <Path path={v.frontRim} style="stroke" strokeWidth={lw * 1.3} color={PALETTE.day.body} opacity={0.85} />
               <Path path={v.handle} style="stroke" strokeWidth={W * 0.007} strokeCap="round" color={PALETTE.day.body} opacity={0.8} />
             </Group>
+          ) : v.kind === 'window' ? (
+            <Group key={`w${i}`}>
+              {v.panes.map((pane, k) => (
+                <Group key={k}>
+                  <Path path={pane} color={PALETTE.day.strokeInk} opacity={0.26} />
+                  <Path path={pane} style="stroke" strokeWidth={W * 0.0022} color={PALETTE.day.strokeInk} opacity={0.3}>
+                    <BlurMask blur={art.blur.fold} style="normal" />
+                  </Path>
+                </Group>
+              ))}
+            </Group>
           ) : (
             <Group key={`q${i}`}>
               <Path path={v.path} color="#EAE1CF" />
               <Group clip={v.path}>
-                <Path path={v.seams} style="stroke" strokeWidth={W * 0.0014} color={PALETTE.day.inkFaded} opacity={0.85} />
+                <Path path={v.seams} style="stroke" strokeWidth={W * 0.0013} strokeCap="round" color={PALETTE.day.wash} opacity={0.75} />
                 <Path path={v.fold} style="stroke" strokeWidth={W * 0.006} color={PALETTE.day.wash} opacity={0.6}>
                   <BlurMask blur={art.blur.fold} style="normal" />
                 </Path>
               </Group>
-              <Path path={v.path} style="stroke" strokeWidth={lw} color={PALETTE.day.body} opacity={0.7} />
+              {/* 이불 가장자리는 짙은 테가 아니라 번진 담묵 — 마블링 띠로 이어진다 */}
+              <Path path={v.path} style="stroke" strokeWidth={lw * 1.6} color={PALETTE.day.strokeInk} opacity={0.4}>
+                <BlurMask blur={art.blur.fold} style="normal" />
+              </Path>
             </Group>
           ),
         )}

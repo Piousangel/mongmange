@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { BUNDLED_MOON_MOTIFS, sim, type MotifPathData } from '../src/index';
 import { CONFUSABLE_BELOW, MAX_CONFUSABLE_PAIRS, THUMB_PX, confusablePairs, contactSheet, flattenPath, rasterize, thumbDistance } from './motif-raster';
 
-const shapedMotifs = () => sim.MOTIFS.filter((m) => m.paths.length > 0).map((m) => ({ id: m.id, paths: m.paths }));
+const shapedMotifs = () => sim.MOTIFS.filter((m) => m.paths.length > 0).map((m) => ({ id: m.id, paths: m.paths, field: m.field ?? [] }));
 const shapedMoons = () => BUNDLED_MOON_MOTIFS.filter((m) => m.paths.length > 0).map((m) => ({ id: m.id, paths: m.paths }));
 
 describe('형상이 들어온 모티프 — 64px 시트에서 헷갈리는 쌍 3쌍 이하', () => {
