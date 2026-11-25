@@ -28,14 +28,14 @@ The only information this test build sends to our server or to other companies i
 - The cloud provider (Google Cloud Run) creates an access log for each request with the IP address, User-Agent, request path, time and similar details, but we have set things up so that we do not receive or keep these logs. We may receive them briefly only while investigating an outage, and anything received then is deleted after at most 7 days. Our own server records (app logs and error logs) are kept for 7 days and do not include IP addresses or User-Agents.
 - We have not turned on the feature that sends Firebase Hosting's request logs for update requests to our logs, so we do not receive them. Any records Google keeps itself to run the service follow Google's policy.
 - A downloaded update is applied the next time the App starts fresh; it never changes while you are using the App.
-- **Purpose and legal basis**: to provide the test build and deliver bug fixes (performance of contract, Korea's Personal Information Protection Act, Article 15(1)(4); to the extent that does not apply, our legitimate interest in security and bug fixes, Article 15(1)(6)). Because this does not rely on consent, it works the same way regardless of age.
+- **Purpose and legal basis**: to provide the test build and deliver bug fixes (performance of our agreement for your use of the App, Korea's Personal Information Protection Act, Article 15(1)(4)). Counting IP addresses briefly in memory to block excessive requests is for our legitimate interest in running the service safely (Article 15(1)(6)). Because this does not rely on consent, it works the same way regardless of age.
 
 ### 1-2. Handwriting recognition (every tester)
 
 - Your word of the day is read **on your device** by Google's ML Kit Digital Ink Recognition. The first time you write, the App downloads a recognition model for your language (about 20 MB) from Google's servers, which uses your IP address.
 - **Your handwriting (strokes) and the recognition result are not sent to Google or to us.** If the model cannot be downloaded, you can type instead.
 - While it works, the handwriting recognition feature sends Google diagnostic data: device information (manufacturer, model, operating system version and build, available ML hardware accelerators), app information (package name and app version), per-installation identifiers, performance metrics (such as latency), feature configuration, the configured recognition language, input and output size, feature version, event type, and error codes. Google uses this data for ML Kit diagnostics and usage analytics. We do not receive or see it. Details are in Google's ML Kit data disclosure (https://developers.google.com/ml-kit/android-data-disclosure).
-- **Purpose and legal basis**: downloading the recognition model is needed to provide handwriting (performance of contract, Article 15(1)(4) of the same Act; to the extent that does not apply, legitimate interest, Article 15(1)(6)). Whether Google's direct receipt of the ML Kit diagnostics counts as processing on our behalf or as a disclosure to a third party is still being confirmed; we will update this policy accordingly.
+- **Purpose and legal basis**: downloading the recognition model is needed to provide handwriting (performance of our agreement for your use of the App, Article 15(1)(4) of the same Act). The ML Kit diagnostic data is not something we receive or hand to anyone: Google collects it directly from your device through its own component inside the App and uses it for its own purposes (diagnostics and usage analytics). So it is not processing on our behalf, and Google handles it under its own policies.
 
 ## 2. Information stored only on your device
 
@@ -76,7 +76,7 @@ Electronic files are deleted so they cannot be recovered.
 
 ## 6. Service providers and international transfers
 
-We use the following providers. Because they are foreign companies or use facilities abroad, we also disclose them as international transfers. These transfers are outsourcing and storage needed to provide the test build and run the test, made after disclosing the items below, under Article 28-8(1)3 of Korea's Personal Information Protection Act.
+We use the following providers. Because they are foreign companies or use facilities abroad, we also disclose them as international transfers. These transfers are outsourcing and storage needed to provide the test build and run the test, made after disclosing the items below, under Article 28-8(1)3 of Korea's Personal Information Protection Act. The ML Kit row, however, is not information we outsource or hand over but information Google collects directly through a component inside the App, so it is not a transfer by us on that basis; because the information goes abroad, we list it with the same items.
 
 | Recipient (contact) | Country | Items | When and how | Purpose | Retention |
 |---|---|---|---|---|---|
@@ -88,12 +88,12 @@ We use the following providers. Because they are foreign companies or use facili
 | Google LLC — Gmail | United States (company) | Email address, message content | When you email us; TLS | Sending test information, handling questions | Deleted 30 days after the official launch |
 
 - How to refuse and its effect: update checks and handwriting recognition are needed for the test build to work and cannot be refused separately. If you do not want them, leave the test and uninstall the App. If you do not send an email asking to join, none is processed.
-- Handwriting recognition diagnostics are sent directly to Google by the Google ML Kit component inside the App; they are not data we receive and pass on.
+- Handwriting recognition diagnostics are sent directly to Google by the Google ML Kit component inside the App. We do not receive or see them, so we do not provide them to Google; and because Google also uses them for its own purposes (usage analytics), we do not list them as processing on our behalf either. Because we put this component in the App, we disclose the recipient, items, purpose and retention in the table above and in 1-2.
 
 ## 7. Children under 14
 
 - Only people aged 14 or older can ask to join the test, and features that create an account and usage statistics are not turned on in the test build.
-- The update checks and handwriting recognition in section 1 are needed for the App to work and are sent regardless of age.
+- The update checks in 1-1 and the recognition model download in 1-2 rely on performing our agreement for your use of the App, not on consent, so they work the same way regardless of age. Handwriting recognition diagnostics are collected by Google directly through a component inside the App (section 6).
 - If we learn that we received a test request email from a child under 14, we delete it without delay.
 
 ## 8. Your rights and how to use them
