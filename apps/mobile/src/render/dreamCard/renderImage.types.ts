@@ -11,10 +11,14 @@ export interface DreamCardImageOptions {
   theme?: 'day' | 'night';
 }
 
+/** 밤 판 보조 줄·날 점 색(8차) */
+export const NIGHT_SUB_TEXT = '#CBC4B8';
+
 /** 밤 판 글 색: 낮 글 토큰 → 밤 글 토큰(아트 바이블 4절) */
 export function cardTextColor(c: string, theme: 'day' | 'night' = 'day'): string {
   if (theme === 'day') return c;
-  return c === '#6B625A' ? '#A8A196' : '#E9E2D2';
+  // 8차(3차 블라인드: 밤 보조 줄 대비가 낮음): 보조 줄 = 밝은 쪽으로 한 단계(밤 바탕·마블링 밝은 띠 위에서 4.5:1 이상 — 시험)
+  return c === '#6B625A' ? NIGHT_SUB_TEXT : '#E9E2D2';
 }
 
 export interface DreamCardImage {

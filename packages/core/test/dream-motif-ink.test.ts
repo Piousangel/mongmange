@@ -101,16 +101,16 @@ describe('형상 데이터 구조(스키마 1 paths와 같은 꼴)', () => {
 });
 
 describe('4차 혼합안 — 사물 한 겹 래스터 자리', () => {
-  it('래스터는 사물형 5장(+ 기존 창가 손은 앱 그릇)에만, 상자는 그림 안, keep은 있는 경로 번호이고 먹 획만(장 쪽 획)', () => {
+  it('래스터는 사물형 8장(+ 빌드 1의 창가 손·이불·찻잔·찻잔 둘은 앱 그릇)에만, 상자는 그림 안, keep은 있는 경로 번호이고 금이 아닌 장 쪽 그림(획·문판)', () => {
     const rs = NEW.filter((m) => m.raster).map((m) => m.id).sort();
-    expect(rs).toEqual(['far-alone.kite', 'far-alone.paper-boat', 'near-with.letter', 'near-with.palm', 'near-with.umbrella']);
+    expect(rs).toEqual(['far-alone.kite', 'far-alone.paper-boat', 'far-with.stepping-stones', 'near-alone.inkstone', 'near-alone.washing-line', 'near-with.letter', 'near-with.palm', 'near-with.umbrella']);
     for (const m of NEW) {
       if (!m.raster) continue;
       const [x, y, w, h] = m.raster.box;
       expect(x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= 100 && y + h <= 100, m.id).toBe(true);
       for (const k of m.raster.keep) {
         expect(m.paths[k], m.id).toBeDefined();
-        expect(m.paths[k]!.layer, m.id).toBe('ink');
+        expect(m.paths[k]!.layer, m.id).not.toBe('gold');
       }
       // 장 조작은 래스터여도 코드(장의 반응)
       expect((m.field ?? []).length, m.id).toBeGreaterThan(0);
@@ -181,7 +181,8 @@ describe('2차 블라인드 반영(7차) — 기계 규칙', () => {
       }
   });
 
-  it('사물 크기 하한(64px에서 사라지지 않게): 새 15모티프의 사물(경로 + 장의 방울 + 래스터 상자) 경계가 그림 좌표 45 이상·넓이 900 이상(잎은 몸보다 크지 않게라 900이 하한)', () => {
+  it('사물 크기 하한(8차 — 블라인드 3회 모두 64px에서 사라짐): 새 15모티프의 사물(경로 + 장의 방울 + 래스터 상자) 경계 × 상자 배율(zoom)이 7차 하한의 1.3배(긴 변 58.5 이상·넓이 1521 이상), 사물 먹은 한 단계 진하게', () => {
+    expect(WASH_FACE.toneBase).toBeGreaterThanOrEqual(0.36);
     for (const m of NEW) {
       let x0 = 100, y0 = 100, x1 = 0, y1 = 0;
       const add = (x: number, y: number, r = 0) => {
@@ -197,8 +198,10 @@ describe('2차 블라인드 반영(7차) — 기계 규칙', () => {
         add(bx, by);
         add(bx + bw, by + bh);
       }
-      expect(Math.max(x1 - x0, y1 - y0), m.id).toBeGreaterThanOrEqual(45);
-      expect((x1 - x0) * (y1 - y0), m.id).toBeGreaterThanOrEqual(900);
+      const z = m.zoom ?? 1;
+      expect(z, m.id).toBeLessThanOrEqual(1.5);
+      expect(Math.max(x1 - x0, y1 - y0) * z, m.id).toBeGreaterThanOrEqual(45 * 1.3);
+      expect((x1 - x0) * (y1 - y0) * z * z, m.id).toBeGreaterThanOrEqual(900 * 1.3 * 1.3);
     }
   });
 
@@ -231,15 +234,26 @@ describe('그림 판(artRev, 5차·6차 코드 리뷰 H1·M-2)', () => {
     for (const m of build1) expect('artRev' in buildDreamScene({ card: card(m.id), strokes: day7Records() }), m.id).toBe(false);
   });
 
+  // 판 r 장면 = 그 판 번호를 단 카드(artRev: r)로 25모티프 × 구도 3 × 비율 2를 다시 계산한 해시(코드 확인 3차 낮음 — 형상 보관만으로는
+  // 장면 코드 갈래(판 1 갈래를 판 2가 같이 쓰는 곳)의 변경을 못 잡는다). 판 0 = 판 번호 없는 빌드 1 카드
+  const revScenes = (r: number) =>
+    r === 0
+      ? rev0Scenes()
+      : hash(sim.MOTIFS.flatMap((m) => (['4:5', '9:16'] as const).flatMap((aspect) => ([0, 1, 2] as const).map((composition) => buildDreamScene({ card: card(m.id, { composition, artRev: r }), strokes: day7Records(), aspect })))));
+
+  it('판마다 장면 해시를 artRev: r 카드로 다시 계산해 기록과 같다(0..지금 판) — 닫힌 판 장면이 바뀌면 실패, 열린 판만 값을 갱신한다', () => {
+    for (let r = 0; r <= sim.DREAM_ART_REV; r++) expect(revScenes(r), `판 ${r}`).toBe(SCENE_SNAPSHOT_BY_REV[r]);
+  }, 30000);
+
   it('지난 판 장면 해시를 모두 남긴다(0..지금 판), 지금 판의 형상 데이터 해시가 기록과 같다(형상을 바꾸면 판을 올려야 함)', () => {
     for (let r = 0; r <= sim.DREAM_ART_REV; r++) expect(SCENE_SNAPSHOT_BY_REV[r], `판 ${r}`).toBeDefined();
-    const shapes = NEW.map((m) => ({ id: m.id, paths: m.paths, field: m.field, seat: m.seat, friend: m.friend, water: m.water, raster: m.raster }));
+    const shapes = NEW.map((m) => ({ id: m.id, paths: m.paths, field: m.field, seat: m.seat, friend: m.friend, water: m.water, raster: m.raster, zoom: m.zoom }));
     expect(hash(shapes)).toBe(SHAPE_SNAPSHOT_BY_REV[sim.DREAM_ART_REV]);
   });
 
   it('판 보관(2차 ①): 판마다 형상 보관이 있고, 열린 판이면 지금 형상과 같다 — 닫힌 판은 보관·해시가 바뀌면 실패', () => {
     for (let r = 1; r <= sim.DREAM_ART_REV; r++) expect(ART_REV_SHAPES_ARCHIVE[r], `판 ${r}`).toBeDefined();
-    const now = Object.fromEntries(NEW.map((m) => [m.id, { paths: m.paths, field: m.field, seat: m.seat, ...(m.friend ? { friend: m.friend } : {}), ...(m.water ? { water: m.water } : {}), ...(m.raster ? { raster: m.raster } : {}) }]));
+    const now = Object.fromEntries(NEW.map((m) => [m.id, { paths: m.paths, field: m.field, seat: m.seat, ...(m.friend ? { friend: m.friend } : {}), ...(m.water ? { water: m.water } : {}), ...(m.raster ? { raster: m.raster } : {}), ...(m.zoom ? { zoom: m.zoom } : {}) }]));
     expect(JSON.parse(JSON.stringify(ART_REV_SHAPES_ARCHIVE[sim.DREAM_ART_REV]))).toEqual(JSON.parse(JSON.stringify(now)));
     // 지난 판 카드는 보관 형상으로(지금은 판 1뿐이라 같은 값) — motifForRev 경로가 장면에 쓰인다
     expect(sim.motifForRev('far-alone.kite', 1)!.paths).toEqual(ART_REV_SHAPES_ARCHIVE[1]!['far-alone.kite']!.paths);
@@ -259,7 +273,7 @@ describe('그림 판(artRev, 5차)', () => {
     expect(Object.keys(SCENE_SNAPSHOT_BY_REV).map(Number)).toContain(sim.DREAM_ART_REV);
     for (let r = 1; r <= sim.DREAM_ART_REV; r++) expect(sim.ART_REV_RASTERS[r], `판 ${r}`).toBeDefined();
     const now = NEW.filter((m) => m.raster).map((m) => m.id);
-    expect([...sim.ART_REV_RASTERS[sim.DREAM_ART_REV]!].sort()).toEqual([...now, 'near-with.window-hand'].sort());
+    expect([...sim.ART_REV_RASTERS[sim.DREAM_ART_REV]!].sort()).toEqual([...now, 'near-with.window-hand', 'near-alone.quilt', 'near-alone.teacup', 'near-with.teacup-two'].sort());
   });
 
   it('카드 판: 판 번호 없는 빌드 1 카드 = 판 0(빌드 1 그림), 없는 새 모티프 카드 = 1, 이행은 새 모티프 카드에만 1을 적고 두 번 돌려도 같다', () => {
@@ -416,9 +430,9 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
       for (const { aspect, composition, sc } of scenes(m.id)) {
         const R = dreamCardLayout(aspect).print.r;
         expect(Math.hypot(sc.anchor.x, sc.anchor.y), `${m.id} ${aspect} ${composition}`).toBeLessThanOrEqual(SEAT_MAX * R + 1e-9);
-        const p = motifInkPlacement(m.seat!, composition, R);
+        const p = motifInkPlacement(m.seat!, composition, R, m.zoom ?? 1);
         expect(p.flip).toBe(composition === 1);
-        expect(p.box.size).toBeCloseTo(MOTIF_INK_COMPOSITION[composition]!.size * R, 9);
+        expect(p.box.size).toBeCloseTo(MOTIF_INK_COMPOSITION[composition]!.size * R * (m.zoom ?? 1), 9);
         expect(p.box.x <= 0 && p.box.x + p.box.size >= 0 && p.box.y <= 0 && p.box.y + p.box.size >= 0, m.id).toBe(true);
         if (m.water !== 'clear') expect(sc.motifInk, m.id).toEqual({ ...p.box, flip: p.flip, paths: m.paths, ...(m.raster ? { raster: m.raster } : {}) });
       }
@@ -464,19 +478,14 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
   it('빌드 1의 10개 장면에는 붓 형상 키 자체가 없다(장면 해시 그대로)', () => {
     for (const m of sim.MOTIFS.filter((x) => x.unlockAtCards === 0)) expect('motifInk' in buildDreamScene({ card: card(m.id), strokes: day7Records() }), m.id).toBe(false);
   });
-
-  it('새 15개 장면 해시 고정(구도 a, 4:5) — 형상·자리·고리가 바뀌면 실패: 의도한 변경이면 값을 갱신하고 docs/app/c14b 시트를 다시 본다', () => {
-    const got = Object.fromEntries(NEW.map((m) => [m.id, hash(buildDreamScene({ card: card(m.id), strokes: day7Records() }))]));
-    expect(hash(got)).toBe(SCENE_SNAPSHOT);
-  });
 });
 
-const RIBBON_SNAPSHOT = 'fc4a1acc';
+const RIBBON_SNAPSHOT = '8be47887';
 /**
  * 판(artRev)마다 장면 해시(코드 리뷰 M-2). 판 0 = 빌드 1의 10모티프 × 구도 3 × 비율 2 장면(main과 같음 — 판 번호 없는 카드),
- * 판 1 = 새 15모티프(구도 a, 4:5). **지난 판 값은 지우지 않는다** — 형상·장면 규칙을 바꾸면 판을 올리고 그 판을 더한다
+ * 판 r ≥ 1 = 25모티프 전부를 `artRev: r` 카드로(구도 3 × 비율 2 — 빌드 1 모티프의 판 갈래 포함, 8차). **지난 판 값은 지우지 않는다** —
+ * 닫힌 판(OPEN_ART_REV가 아닌 판)의 장면을 바꾸는 코드는 시험이 막는다. 새 그림은 판을 올리고 `rev >= 새 판` 갈래로 더한다
  */
-const SCENE_SNAPSHOT_BY_REV: Record<number, string> = { 0: '4eeaf729', 1: '13877512' };
-const SCENE_SNAPSHOT = SCENE_SNAPSHOT_BY_REV[sim.DREAM_ART_REV]!;
+const SCENE_SNAPSHOT_BY_REV: Record<number, string> = { 0: '4eeaf729', 1: 'f0a074a9' };
 /** 판마다 형상 데이터 해시(경로·장·자리·래스터 상자·가림). 형상을 바꾸고 판을 안 올리면 실패 */
-const SHAPE_SNAPSHOT_BY_REV: Record<number, string> = { 1: 'b234c697' };
+const SHAPE_SNAPSHOT_BY_REV: Record<number, string> = { 1: '3fd2b756' };

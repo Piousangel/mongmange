@@ -255,9 +255,19 @@ describe('4차 혼합안 — 사물 한 겹 래스터 에셋(번들 예산·먹 
     expect(all).toBeLessThanOrEqual(2 * 1024 * 1024);
   });
 
-  it('가림 농도: 불투명 사물(편지·종이배·창) 0.85, 비치는 사물(연·우산) 0.3~0.5, 손 그림자 0.3', () => {
+  it('가림 농도: 불투명 사물(편지·종이배·창·벼루·징검다리·한지) 0.85, 비치는 사물(연·우산) 0.3~0.5, 손 그림자 0.3, 래스터 그릇(이불·찻잔) 0.9', () => {
     const cover = Object.fromEntries(core.sim.MOTIFS.filter((m) => m.raster).map((m) => [m.id, m.raster!.cover]));
-    expect(cover).toEqual({ 'near-with.letter': 0.85, 'near-with.palm': 0.3, 'near-with.umbrella': 0.45, 'far-alone.paper-boat': 0.85, 'far-alone.kite': 0.4 });
+    expect(cover).toEqual({
+      'near-with.letter': 0.85,
+      'near-with.palm': 0.3,
+      'near-with.umbrella': 0.45,
+      'far-alone.paper-boat': 0.85,
+      'far-alone.kite': 0.4,
+      'near-alone.inkstone': 0.85,
+      'far-with.stepping-stones': 0.85,
+      'near-alone.washing-line': 0.85,
+    });
+    for (const v of Object.values(DC.VESSEL_RASTER)) expect(v.cover).toBe(0.9);
     expect(DC.WINDOW_COVER).toBe(0.85);
     expect(DC.COVER_PAPER).toBe(core.PALETTE.day.bg);
   });
@@ -372,7 +382,7 @@ describe.skipIf(!process.env.RENDER_HEAVY)('판 0 = 빌드 1 그림 그대로 �
 });
 
 describe('밤 판(7차 — 2차 블라인드: 실제 밤 카드에서 몽망이·사물 대비)', () => {
-  it('밤 카드 6장: 몽망이 몸이 둘레 밤 물보다 밝게 서고(휘도 차 30 이상), 사물 래스터 자리에 밝은 먹이 있다', async () => {
+  it('밤 카드(8차 — 3차 블라인드: 몸이 베이지로 뒤집혀 정체성이 깨짐): 래스터 사물 12장 모두 몸은 검은 먹(밤 바탕보다 어둡게), 둘레에 달빛 테(밤 바탕보다 확실히 밝음), 사물 자리에 밝은 먹', async () => {
     loadRasters(true);
     const lum = (a: Uint8Array, p: number) => 0.299 * a[p]! + 0.587 * a[p + 1]! + 0.114 * a[p + 2]!;
     const bg = (() => {
@@ -382,8 +392,18 @@ describe('밤 판(7차 — 2차 블라인드: 실제 밤 카드에서 몽망이�
     for (const id of MR.MOTIF_RASTER_IDS) {
       const shot = await shootCard(card(id, { artRev: 1 }), { width: 200, theme: 'night' });
       const { art } = shot;
-      const p = (Math.round(art.c0.y) * shot.w + Math.round(art.c0.x)) * 4;
-      expect(lum(shot.rgba, p) - bg, `${id} 몸`).toBeGreaterThan(30);
+      // 몸 윗부분(눈 위 — 이불·찻잔 래스터는 몸 아래를 덮는다) = 검은 먹
+      const p = (Math.round(art.c0.y - art.scene.body.w * art.W * 0.28) * shot.w + Math.round(art.c0.x)) * 4;
+      expect(lum(shot.rgba, p), `${id} 몸`).toBeLessThan(bg);
+      // 달빛 테: 몸 가장자리 둘레(몸 폭의 0.4~0.62 반경 고리)에서 가장 밝은 픽셀이 밤 바탕보다 60 이상 밝다
+      const wpx = art.scene.body.w * art.W;
+      let rim = 0;
+      for (let y = Math.floor(art.c0.y - wpx); y <= art.c0.y + wpx; y++)
+        for (let x = Math.floor(art.c0.x - wpx); x <= art.c0.x + wpx; x++) {
+          const d = Math.hypot(x - art.c0.x, y - art.c0.y) / wpx;
+          if (d >= 0.4 && d <= 0.62 && x >= 0 && y >= 0 && x < shot.w) rim = Math.max(rim, lum(shot.rgba, (y * shot.w + x) * 4));
+        }
+      expect(rim - bg, `${id} 달빛 테`).toBeGreaterThan(60);
       // 사물이 있는 판 1 자리(창가 손은 그릇 래스터, 나머지는 붓 층 래스터)에서 가장 밝은 픽셀이 밤 바탕보다 확실히 밝다
       let max = 0;
       for (let q = 0; q < shot.rgba.length; q += 4) max = Math.max(max, lum(shot.rgba, q));
@@ -450,19 +470,19 @@ describe.skipIf(!process.env.RENDER_HEAVY)('카드 64pt — 기존 10 + 새 15�
 
 // 붓 리본·층 색·번짐이 바뀌면 실패: 의도한 변경이면 값을 갱신하고 docs/app/c14b 시트를 다시 본다(C14B_DUMP=<폴더>로 PNG)
 const INK_SNAPSHOT: Record<string, string> = {
-  'near-alone.inkstone': '3dca459d',
-  'near-alone.washing-line': '1304c470',
-  'near-alone.sprout': 'c808f4d5',
-  'near-with.umbrella': 'da6fbc06',
-  'near-with.letter': '7838f54f',
-  'near-with.palm': 'bb43e9a8',
-  'far-alone.paper-boat': '413c5a15',
-  'far-alone.kite': 'f6a11f2b',
-  'far-alone.path': 'ea1f19f1',
-  'far-with.geese': '4912bb55',
-  'far-with.star-bridge': '8169f61f',
-  'far-with.stepping-stones': 'ac7994bd',
-  'center.leaf': 'a7cf74ab',
-  'center.snow': '20d3d1e2',
+  'near-alone.inkstone': '19085c9c',
+  'near-alone.washing-line': '618b9403',
+  'near-alone.sprout': '101af2b0',
+  'near-with.umbrella': '665266a2',
+  'near-with.letter': '297a6a9d',
+  'near-with.palm': 'c3cfffe9',
+  'far-alone.paper-boat': '15e778f2',
+  'far-alone.kite': '74a02ddd',
+  'far-alone.path': '550c6729',
+  'far-with.geese': '8877454d',
+  'far-with.star-bridge': '30de01db',
+  'far-with.stepping-stones': 'e20afb81',
+  'center.leaf': '0d01b385',
+  'center.snow': '48fcba9a',
   'center.wind': '62fc72e3',
 };
