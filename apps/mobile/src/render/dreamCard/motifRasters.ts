@@ -25,7 +25,6 @@ const sources = (): Readonly<Record<number, Readonly<Record<string, readonly [nu
     'far-alone.kite': [require('../../../assets/motifs/r1/far-alone.kite.webp'), require('../../../assets/motifs/r1/far-alone.kite.mask.webp')],
     'near-with.umbrella': [require('../../../assets/motifs/r1/near-with.umbrella.webp'), require('../../../assets/motifs/r1/near-with.umbrella.mask.webp')],
     'far-alone.paper-boat': [require('../../../assets/motifs/r1/far-alone.paper-boat.webp'), require('../../../assets/motifs/r1/far-alone.paper-boat.mask.webp')],
-    'near-with.palm': [require('../../../assets/motifs/r1/near-with.palm.webp'), require('../../../assets/motifs/r1/near-with.palm.mask.webp')],
     'near-with.window-hand': [require('../../../assets/motifs/r1/near-with.window-hand.webp'), require('../../../assets/motifs/r1/near-with.window-hand.mask.webp')],
     'near-alone.quilt': [require('../../../assets/motifs/r1/near-alone.quilt.webp'), require('../../../assets/motifs/r1/near-alone.quilt.mask.webp')],
     'near-alone.teacup': [require('../../../assets/motifs/r1/near-alone.teacup.webp'), require('../../../assets/motifs/r1/near-alone.teacup.mask.webp')],

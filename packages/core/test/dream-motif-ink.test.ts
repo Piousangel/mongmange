@@ -101,9 +101,9 @@ describe('형상 데이터 구조(스키마 1 paths와 같은 꼴)', () => {
 });
 
 describe('4차 혼합안 — 사물 한 겹 래스터 자리', () => {
-  it('래스터는 사물형 8장(+ 빌드 1의 창가 손·이불·찻잔·찻잔 둘은 앱 그릇)에만, 상자는 그림 안, keep은 있는 경로 번호이고 금이 아닌 장 쪽 그림(획·문판)', () => {
+  it('래스터는 사물형 7장(+ 빌드 1의 창가 손·이불·찻잔·찻잔 둘은 앱 그릇)에만 — 9차: 손바닥은 판 1에서 손을 그리지 않는 코드판(잎에 고인 물), 상자는 그림 안, keep은 있는 경로 번호이고 금이 아닌 장 쪽 그림(획·문판)', () => {
     const rs = NEW.filter((m) => m.raster).map((m) => m.id).sort();
-    expect(rs).toEqual(['far-alone.kite', 'far-alone.paper-boat', 'far-with.stepping-stones', 'near-alone.inkstone', 'near-alone.washing-line', 'near-with.letter', 'near-with.palm', 'near-with.umbrella']);
+    expect(rs).toEqual(['far-alone.kite', 'far-alone.paper-boat', 'far-with.stepping-stones', 'near-alone.inkstone', 'near-alone.washing-line', 'near-with.letter', 'near-with.umbrella']);
     for (const m of NEW) {
       if (!m.raster) continue;
       const [x, y, w, h] = m.raster.box;
@@ -167,6 +167,15 @@ describe('2차 블라인드 반영(7차) — 기계 규칙', () => {
       const b = companionBlob(seed);
       expect(companionBlob(seed)).toEqual(b);
       expect(roundness(b), String(seed)).toBeLessThan(COMPANION_ROUNDNESS_MAX);
+      // 9차: 몽망이(둥근 몸)와 다른 꼴 — 세로로 길고(높이 ≥ 폭 1.15배) 위가 뾰족하다(꼭대기 근처 폭이 가운데 폭의 35% 이하)
+      const xs = b.filter((_, i) => i % 2 === 0);
+      const ys = b.filter((_, i) => i % 2 === 1);
+      const W = Math.max(...xs) - Math.min(...xs);
+      const H = Math.max(...ys) - Math.min(...ys);
+      expect(H / W, `${seed} 세로로 긴 물방울`).toBeGreaterThanOrEqual(1.15);
+      const top = Math.min(...ys);
+      const nearTop = xs.filter((_, i) => ys[i]! < top + H * 0.12);
+      expect(Math.max(...nearTop) - Math.min(...nearTop), `${seed} 뾰족한 위`).toBeLessThanOrEqual(W * 0.35);
     }
     // 원형도 잣대 자체: 원 ≈ 1
     const circle = Array.from({ length: 96 }, (_, i) => [Math.cos((i / 48) * Math.PI), Math.sin((i / 48) * Math.PI)]).flat();
@@ -480,12 +489,12 @@ describe('카드 위 자리(구도 a·b·c × 비율 2)', () => {
   });
 });
 
-const RIBBON_SNAPSHOT = '8be47887';
+const RIBBON_SNAPSHOT = 'd84c4db4';
 /**
  * 판(artRev)마다 장면 해시(코드 리뷰 M-2). 판 0 = 빌드 1의 10모티프 × 구도 3 × 비율 2 장면(main과 같음 — 판 번호 없는 카드),
  * 판 r ≥ 1 = 25모티프 전부를 `artRev: r` 카드로(구도 3 × 비율 2 — 빌드 1 모티프의 판 갈래 포함, 8차). **지난 판 값은 지우지 않는다** —
  * 닫힌 판(OPEN_ART_REV가 아닌 판)의 장면을 바꾸는 코드는 시험이 막는다. 새 그림은 판을 올리고 `rev >= 새 판` 갈래로 더한다
  */
-const SCENE_SNAPSHOT_BY_REV: Record<number, string> = { 0: '4eeaf729', 1: 'f0a074a9' };
+const SCENE_SNAPSHOT_BY_REV: Record<number, string> = { 0: '4eeaf729', 1: '7414e0db' };
 /** 판마다 형상 데이터 해시(경로·장·자리·래스터 상자·가림). 형상을 바꾸고 판을 안 올리면 실패 */
-const SHAPE_SNAPSHOT_BY_REV: Record<number, string> = { 1: '3fd2b756' };
+const SHAPE_SNAPSHOT_BY_REV: Record<number, string> = { 1: 'ea8c80f8' };

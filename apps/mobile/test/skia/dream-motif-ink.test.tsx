@@ -255,11 +255,10 @@ describe('4차 혼합안 — 사물 한 겹 래스터 에셋(번들 예산·먹 
     expect(all).toBeLessThanOrEqual(2 * 1024 * 1024);
   });
 
-  it('가림 농도: 불투명 사물(편지·종이배·창·벼루·징검다리·한지) 0.85, 비치는 사물(연·우산) 0.3~0.5, 손 그림자 0.3, 래스터 그릇(이불·찻잔) 0.9', () => {
+  it('가림 농도: 불투명 사물(편지·종이배·창·벼루·징검다리·한지) 0.85, 비치는 사물(연·우산) 0.3~0.5, 래스터 그릇(이불·찻잔) 0.9', () => {
     const cover = Object.fromEntries(core.sim.MOTIFS.filter((m) => m.raster).map((m) => [m.id, m.raster!.cover]));
     expect(cover).toEqual({
       'near-with.letter': 0.85,
-      'near-with.palm': 0.3,
       'near-with.umbrella': 0.45,
       'far-alone.paper-boat': 0.85,
       'far-alone.kite': 0.4,
@@ -381,6 +380,40 @@ describe.skipIf(!process.env.RENDER_HEAVY)('판 0 = 빌드 1 그림 그대로 �
   }, 900000);
 });
 
+describe('몽망이 후광 공통 규칙(9차 — 4차 블라인드: 카드마다 있다 없다 함)', () => {
+  it('판 1 카드 25모티프 × 낮·밤 모두 후광이 있고(같은 BODY_HALO 반경·농도), 판 0 낮 카드는 빌드 1 그대로 없다', () => {
+    loadRasters(true);
+    expect(DC.BODY_HALO.r).toBeGreaterThan(DC.BODY_HALO.inner);
+    for (const m of core.sim.MOTIFS) {
+      for (const theme of ['day', 'night'] as const) {
+        const art = DC.makeDreamArt({ card: card(m.id, { artRev: 1 }), strokes: core.day7Records() }, '4:5', 200, 1, { devicePerUnit: 1, theme });
+        expect(art.halo, `${m.id} ${theme}`).toBe(true);
+      }
+    }
+    for (const m of core.sim.MOTIFS.filter((x) => x.unlockAtCards === 0)) expect(DC.makeDreamArt({ card: card(m.id), strokes: core.day7Records() }, '4:5', 200, 1, { devicePerUnit: 1 }).halo, m.id).toBe(false);
+  });
+});
+
+describe('곁 존재(9차 — 4차 블라인드: 회색 몽망이 복제로 읽힘)', () => {
+  it('판 1 카드 25모티프 × 구도 3: 곁 방울(장면 곁·잔 속 곁)은 빗(머리 획)이 0이고 눈이 없으며 몽망이와 다른 꼴(붓 방울)로 그린다', () => {
+    loadRasters(true);
+    let seen = 0;
+    for (const m of core.sim.MOTIFS)
+      for (const composition of [0, 1, 2] as const) {
+        const art = DC.makeDreamArt({ card: card(m.id, { artRev: 1, composition }), strokes: core.day7Records() }, '4:5', 200, 1, { devicePerUnit: 1 });
+        const friends = [art.friend, ...art.vessels.map((v) => ('friend' in v ? v.friend : null))].filter((f): f is NonNullable<typeof f> => !!f);
+        for (const f of friends) {
+          seen++;
+          // 빗 0가닥 = 빈 꼭짓점 묶음(퇴화 삼각형 하나 — toVerts의 빈 값)
+          expect(f.geo.combs.vertices.every((v) => v.x === 0 && v.y === 0), `${m.id} ${composition} 빗`).toBe(true);
+          expect(f.blob, `${m.id} ${composition} 붓 방울 꼴`).not.toBeNull();
+          if ('eyes' in f) expect(f.eyes, `${m.id} 눈`).toBe(false);
+        }
+      }
+    expect(seen).toBeGreaterThan(10);
+  });
+});
+
 describe('밤 판(7차 — 2차 블라인드: 실제 밤 카드에서 몽망이·사물 대비)', () => {
   it('밤 카드(8차 — 3차 블라인드: 몸이 베이지로 뒤집혀 정체성이 깨짐): 래스터 사물 12장 모두 몸은 검은 먹(밤 바탕보다 어둡게), 둘레에 달빛 테(밤 바탕보다 확실히 밝음), 사물 자리에 밝은 먹', async () => {
     loadRasters(true);
@@ -403,7 +436,8 @@ describe('밤 판(7차 — 2차 블라인드: 실제 밤 카드에서 몽망이�
           const d = Math.hypot(x - art.c0.x, y - art.c0.y) / wpx;
           if (d >= 0.4 && d <= 0.62 && x >= 0 && y >= 0 && x < shot.w) rim = Math.max(rim, lum(shot.rgba, (y * shot.w + x) * 4));
         }
-      expect(rim - bg, `${id} 달빛 테`).toBeGreaterThan(60);
+      // 9차(4차 블라인드: 밤 몸이 묻힘 — 3·4차 되풀이): 테를 강화 — 60 → 120
+      expect(rim - bg, `${id} 달빛 테`).toBeGreaterThan(120);
       // 사물이 있는 판 1 자리(창가 손은 그릇 래스터, 나머지는 붓 층 래스터)에서 가장 밝은 픽셀이 밤 바탕보다 확실히 밝다
       let max = 0;
       for (let q = 0; q < shot.rgba.length; q += 4) max = Math.max(max, lum(shot.rgba, q));
@@ -474,8 +508,8 @@ const INK_SNAPSHOT: Record<string, string> = {
   'near-alone.washing-line': '618b9403',
   'near-alone.sprout': '101af2b0',
   'near-with.umbrella': '665266a2',
-  'near-with.letter': '297a6a9d',
-  'near-with.palm': 'c3cfffe9',
+  'near-with.letter': '98f2389c',
+  'near-with.palm': '6cc33dbd',
   'far-alone.paper-boat': '15e778f2',
   'far-alone.kite': '74a02ddd',
   'far-alone.path': '550c6729',

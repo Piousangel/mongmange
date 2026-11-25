@@ -43,8 +43,8 @@ const isMoon = (id: string): id is MoonId => MOON_IDS.has(id);
  * 판별 문구(8차, PM): 판 1 그림이 바뀌어 뜻이 달라진 모티프는 판 1 카드에만 다른 문구를 쓴다. 판 0 카드(빌드 1에서 받은 카드)는
  * 옛 문구 그대로(시험 고정). 모티프 id는 그대로(맡겨 두기·핑 호환)
  */
-const REV1_TEXT: ReadonlySet<MotifId> = new Set<MotifId>(['near-with.window-hand']);
-type Rev1Id = 'near-with.window-hand';
+const REV1_TEXT: ReadonlySet<MotifId> = new Set<MotifId>(['near-with.window-hand', 'near-with.palm']);
+type Rev1Id = 'near-with.window-hand' | 'near-with.palm';
 const rev1 = (id: MotifId, rev: number): id is Rev1Id => rev >= 1 && REV1_TEXT.has(id);
 
 /** 꿈 모티프 이름(시 문구). rev = 카드의 그림 판(`sim.dreamArtRevOf`, 기본 0). 모르는 id는 null(원격 모티프는 파일의 text.title — 원격 연결 때) */
