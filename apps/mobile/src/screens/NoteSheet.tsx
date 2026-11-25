@@ -52,7 +52,7 @@ export function NoteSheet({
   /** M2 이름 짓기·바꾸기(플래그 naming): 노트를 닫고 이름 짓기 창을 연다. 없으면 이름 줄·이름표 줄을 그리지 않는다 */
   onName?: () => void;
   /** C12 맡겨 두기(플래그 cloud + 서버·로그인 포트): 노트를 닫고 맡겨 두기 시트를 연다. 없으면 절을 그리지 않는다 */
-  cloud?: { state: 'on' | 'off' | 'paused' | 'attention'; open: () => void; /** 바꾸기 전 몽망이로 되돌리기(30일, 리뷰 H1). 기한 날짜 표기·열기 */ revert: { until: string; open: () => void } | null; /** '이 기기'를 골라 기기 칸(30일)에 따로 둔 몽망이들 다시 고르기 */ parked: { id: string; until: string; open: () => void }[]; /** 확인하지 못한 지우기가 남았을 때 웹 삭제 안내(인장 코드) — 지워졌다는 확인 전까지 늘 남긴다 */ oldNote: string | null };
+  cloud?: { state: 'on' | 'off' | 'paused' | 'attention'; open: () => void; /** 바꾸기 전 몽망이로 되돌리기(30일, 리뷰 H1). 기한 날짜 표기·열기 */ revert: { until: string; expired: boolean; open: () => void } | null; /** '이 기기'를 골라 기기 칸(30일)에 따로 둔 몽망이들 다시 고르기 */ parked: { id: string; until: string; expired: boolean; open: () => void }[]; /** 확인하지 못한 지우기가 남았을 때 웹 삭제 안내(인장 코드) — 지워졌다는 확인 전까지 늘 남긴다 */ oldNote: string | null };
 }) {
   const look = useMongLook(state);
   const inkFlag = useFeature('inkChoice');
@@ -143,15 +143,15 @@ export function NoteSheet({
             </KText>
           )}
           {cloud.parked.map((p, i) => (
-            <Pressable key={p.id} style={[styles.row, styles.rowWrap]} onPress={p.open} accessibilityRole="button" accessibilityLabel={t('note.cloud.parked.a11y', { date: p.until })} testID={i === 0 ? 'note-cloud-parked' : `note-cloud-parked-${i}`}>
+            <Pressable key={p.id} style={[styles.row, styles.rowWrap]} onPress={p.open} accessibilityRole="button" accessibilityLabel={p.expired ? t('note.cloud.parked.a11yExpired') : t('note.cloud.parked.a11y', { date: p.until })} testID={i === 0 ? 'note-cloud-parked' : `note-cloud-parked-${i}`}>
               <KText style={styles.rowText}>{t('note.cloud.parked')}</KText>
-              <KText style={[styles.rowText, styles.rowValue]}>{t('note.cloud.revert.until', { date: p.until })}</KText>
+              <KText style={[styles.rowText, styles.rowValue]}>{p.expired ? t('note.cloud.expired') : t('note.cloud.revert.until', { date: p.until })}</KText>
             </Pressable>
           ))}
           {cloud.revert && (
-            <Pressable style={[styles.row, styles.rowWrap]} onPress={cloud.revert.open} accessibilityRole="button" accessibilityLabel={t('note.cloud.revert.a11y', { date: cloud.revert.until })} testID="note-cloud-revert">
+            <Pressable style={[styles.row, styles.rowWrap]} onPress={cloud.revert.open} accessibilityRole="button" accessibilityLabel={cloud.revert.expired ? t('note.cloud.revert.a11yExpired') : t('note.cloud.revert.a11y', { date: cloud.revert.until })} testID="note-cloud-revert">
               <KText style={styles.rowText}>{t('note.cloud.revert')}</KText>
-              <KText style={[styles.rowText, styles.rowValue]}>{t('note.cloud.revert.until', { date: cloud.revert.until })}</KText>
+              <KText style={[styles.rowText, styles.rowValue]}>{cloud.revert.expired ? t('note.cloud.expired') : t('note.cloud.revert.until', { date: cloud.revert.until })}</KText>
             </Pressable>
           )}
         </>

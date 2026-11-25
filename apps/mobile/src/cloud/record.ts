@@ -73,7 +73,7 @@ export function writeRecord(kv: KV, rec: CloudRecord | null): boolean {
 // 쓰는 길은 keepPreRestore 하나뿐(tasks.ts takeServer), 지우는 길은 되돌리기 성공뿐(기한이 지나면 읽히지 않는다).
 
 export const PRE_RESTORE_KEY = 'mong.cloud.preRestore';
-/** 되돌릴 수 있는 기간(일) — 서버 conflict 칸과 같은 30일 */
+/** 이 기간(일)이 지나면 '만료됨'으로 표시만 한다(재리뷰 5 V4·V5 PM 결정: 기기 칸은 자동으로 지우지 않는다 — 시계 조작 경로 0). 비우기는 사용자가 직접 */
 export const PRE_RESTORE_DAYS = 30;
 
 export interface PreRestore {
@@ -81,6 +81,8 @@ export interface PreRestore {
   at: number;
   /** 바꾸기 직전 이 기기 세이브 원문 그대로 */
   raw: string;
+  /** 30일이 지났다(표시용 — 지우지 않는다) */
+  expired: boolean;
 }
 
 export function readPreRestore(kv: KV, now: number): PreRestore | null {
@@ -94,8 +96,7 @@ export function readPreRestore(kv: KV, now: number): PreRestore | null {
   try {
     const o = JSON.parse(s) as Partial<PreRestore>;
     if (typeof o.at !== 'number' || typeof o.raw !== 'string') return null;
-    if (now - o.at > PRE_RESTORE_DAYS * 86_400_000) return null;
-    return { at: o.at, raw: o.raw };
+    return { at: o.at, raw: o.raw, expired: !live(o.at, now, PRE_RESTORE_DAYS) };
   } catch {
     return null;
   }
@@ -104,7 +105,7 @@ export function readPreRestore(kv: KV, now: number): PreRestore | null {
 /** 복원 한 번에 한 번 쓴다. 쓰고 다시 읽어 확인하지 못하면 false(그러면 바꾸지 않는다) */
 export function keepPreRestore(kv: KV, raw: string, at: number): boolean {
   try {
-    const v = JSON.stringify({ at, raw } satisfies PreRestore);
+    const v = JSON.stringify({ at, raw });
     kv.set(PRE_RESTORE_KEY, v);
     return kv.getString(PRE_RESTORE_KEY) === v;
   } catch {
@@ -112,11 +113,13 @@ export function keepPreRestore(kv: KV, raw: string, at: number): boolean {
   }
 }
 
-export function dropPreRestore(kv: KV): void {
+/** 사용자가 '이 칸 비우기'로 직접 비울 때만 부른다(자동 삭제 없음) */
+export function dropPreRestore(kv: KV): boolean {
   try {
     kv.remove(PRE_RESTORE_KEY);
+    return kv.getString(PRE_RESTORE_KEY) === undefined;
   } catch {
-    /* 기한이 지나면 읽히지 않는다 */
+    return false;
   }
 }
 
@@ -124,7 +127,8 @@ export function dropPreRestore(kv: KV): void {
 // 나란히 고르기에서 '이 기기'를 골라 밀려난 서버 본(되찾기·has_creature 맥락)을 **기기 안에** 30일 둔다.
 // 서버 conflict 칸은 최대 3벌이라 30일 전에 밀려날 수 있으므로, 30일 약속은 기기 사본으로 지킨다(서버 칸은 덤).
 // 칸은 PARKED_SLOTS개. 새로 둘 때 앞선 본을 **덮지 않는다** — 다 찼으면 'full'을 돌려주고 고르기 자체를 멈춘다(말없이 사라지는 경로 0).
-// 기한(30일)이 지난 원문은 pruneSlots가 지운다(최소 보관). 앱을 지우면 기기 칸도 함께 사라진다(문구가 알린다).
+// **자동으로 지우지 않는다**(재리뷰 5 V4·V5 PM 결정): 30일이 지나면 '만료됨'으로 표시만 하고, 비우기는 사용자가 '이 칸 비우기'로 직접 한다.
+// 그래서 시계를 어떻게 돌려도 칸이 사라지지 않는다. 앱을 지우면 기기 칸도 함께 사라진다(문구가 알린다).
 export const PARKED_KEY = 'mong.cloud.parked';
 export const PARKED_DAYS = 30;
 export const PARKED_SLOTS = 3;
@@ -133,9 +137,9 @@ export interface Parked {
   id: string;
   at: number;
   raw: string;
-  /** 기한이 지난 것을 처음 본 시각(시계 조작에 견디는 2단계 삭제 — 재리뷰 4 S3) */
-  expiredSeenAt?: number;
 }
+/** 읽을 때 붙이는 표시: 30일이 지났다(지우지 않는다) */
+export type ParkedView = Parked & { expired: boolean };
 
 const live = (at: number, now: number, days: number) => now - at <= days * 86_400_000;
 
@@ -149,9 +153,7 @@ function readAllParked(kv: KV): Parked[] {
     return arr.flatMap((x, n) => {
       const e = x as Partial<Parked>;
       if (typeof e.at !== 'number' || typeof e.raw !== 'string') return [];
-      const p: Parked = { id: typeof e.id === 'string' ? e.id : `p${e.at}-${n}`, at: e.at, raw: e.raw };
-      if (typeof e.expiredSeenAt === 'number') p.expiredSeenAt = e.expiredSeenAt;
-      return [p];
+      return [{ id: typeof e.id === 'string' ? e.id : `p${e.at}-${n}`, at: e.at, raw: e.raw }];
     });
   } catch {
     return [];
@@ -172,23 +174,22 @@ function writeAllParked(kv: KV, list: Parked[]): boolean {
   }
 }
 
-/** 기한 안의 칸들(최근 것이 앞) */
-export function readParkedList(kv: KV, now: number): Parked[] {
+/** 모든 칸(최근 것이 앞), 30일이 지난 칸은 expired 표시 */
+export function readParkedList(kv: KV, now: number): ParkedView[] {
   return readAllParked(kv)
-    .filter((p) => live(p.at, now, PARKED_DAYS))
+    .map((p) => ({ ...p, expired: !live(p.at, now, PARKED_DAYS) }))
     .sort((a, b) => b.at - a.at);
 }
-export function readParkedOne(kv: KV, id: string, now: number): Parked | null {
+export function readParkedOne(kv: KV, id: string, now: number): ParkedView | null {
   return readParkedList(kv, now).find((p) => p.id === id) ?? null;
 }
 
 /** 새 칸에 둔다. 같은 원문이 이미 있으면 그대로 ok, 칸이 다 찼으면 'full'(아무것도 쓰지 않음), 쓰기 실패면 'io' */
 export function addParked(kv: KV, raw: string, now: number): 'ok' | 'full' | 'io' {
-  // 기한이 지난 칸도 그대로 둔다(지우는 길은 pruneSlots의 2단계 하나뿐 — 시계 조작으로 사라지지 않게, 재리뷰 4 S3)
+  // 만료된 칸도 칸을 차지한다(지우는 길은 사용자의 '이 칸 비우기' 하나뿐)
   const all = readAllParked(kv);
-  const list = readParkedList(kv, now);
-  if (list.some((p) => p.raw === raw)) return 'ok';
-  if (list.length >= PARKED_SLOTS) return 'full';
+  if (all.some((p) => p.raw === raw)) return 'ok';
+  if (all.length >= PARKED_SLOTS) return 'full';
   let id = `p${now}`;
   for (let n = 1; all.some((p) => p.id === id); n++) id = `p${now}-${n}`;
   return writeAllParked(kv, [{ id, at: now, raw }, ...all]) ? 'ok' : 'io';
@@ -199,70 +200,6 @@ export function setParked(kv: KV, id: string, raw: string | null, at: number): b
   const all = readAllParked(kv);
   const next = raw === null ? all.filter((p) => p.id !== id) : all.map((p): Parked => (p.id === id ? { id, at, raw } : p));
   return writeAllParked(kv, next);
-}
-
-// ── 기한 지난 칸 정리: 시계 조작에 견디는 2단계(재리뷰 4 S3) ──
-// 시계 변화만으로는 어떤 칸도 영구히 지워지지 않게 한다.
-//  ① 지금까지 본 가장 늦은 시각(maxSeenAt)보다 now가 CLOCK_JUMP_DAYS 넘게 뛰었거나, 뒤로 갔으면 그 실행에서는 아무것도 지우지 않는다.
-//  ② 기한이 지난 칸은 먼저 '만료됨'(expiredSeenAt)만 표시하고(읽기에서는 이미 숨겨짐), 하루 이상 지난 뒤의 실행에서 다시 만료로 확인되면 그때 지운다.
-//  ③ 시계를 되돌려 기한 안이 되면 '만료됨' 표시를 지운다(다시 보인다).
-export const CLOCK_KEY = 'mong.cloud.clock';
-export const CLOCK_JUMP_DAYS = 2;
-const DAY = 86_400_000;
-
-function readMaxSeen(kv: KV): number | null {
-  try {
-    const v = Number(kv.getString(CLOCK_KEY));
-    return Number.isFinite(v) && v > 0 ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-/** 기한이 지난 parked·preRestore 원문을 2단계로 지운다(최소 보관). 실패해도 던지지 않는다 */
-export function pruneSlots(kv: KV, now: number): void {
-  const max = readMaxSeen(kv);
-  const jumped = max !== null && (now - max > CLOCK_JUMP_DAYS * DAY || now < max);
-  try {
-    if (max === null || now > max) kv.set(CLOCK_KEY, String(now));
-  } catch {
-    /* 기록 못 하면 다음에 다시 */
-  }
-  // parked
-  const all = readAllParked(kv);
-  let changed = false;
-  const next: Parked[] = [];
-  for (const p of all) {
-    if (live(p.at, now, PARKED_DAYS)) {
-      if (p.expiredSeenAt !== undefined) {
-        const { expiredSeenAt: _x, ...rest } = p;
-        next.push(rest);
-        changed = true;
-      } else next.push(p);
-    } else if (jumped) next.push(p);
-    else if (p.expiredSeenAt === undefined) {
-      next.push({ ...p, expiredSeenAt: now });
-      changed = true;
-    } else if (now - p.expiredSeenAt >= DAY) changed = true; // 두 번째 확인 → 지움
-    else next.push(p);
-  }
-  if (changed) writeAllParked(kv, next);
-  // preRestore
-  try {
-    const s = kv.getString(PRE_RESTORE_KEY);
-    if (!s) return;
-    const o = JSON.parse(s) as { at?: unknown; raw?: unknown; expiredSeenAt?: unknown };
-    if (typeof o.at !== 'number' || typeof o.raw !== 'string') return;
-    const seen = typeof o.expiredSeenAt === 'number' ? o.expiredSeenAt : undefined;
-    if (live(o.at, now, PRE_RESTORE_DAYS)) {
-      if (seen !== undefined) kv.set(PRE_RESTORE_KEY, JSON.stringify({ at: o.at, raw: o.raw }));
-    } else if (!jumped) {
-      if (seen === undefined) kv.set(PRE_RESTORE_KEY, JSON.stringify({ at: o.at, raw: o.raw, expiredSeenAt: now }));
-      else if (now - seen >= DAY) kv.remove(PRE_RESTORE_KEY);
-    }
-  } catch {
-    /* 무시 */
-  }
 }
 
 // ── 확인하지 못한 지우기(리뷰 재리뷰 2 M-a) ──

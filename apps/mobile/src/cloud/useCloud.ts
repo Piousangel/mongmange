@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ageStatus, judgeAge, recordAge, type AgeInput, type AgeInputError, checkAgeInput } from './ageGate';
 import { ageEvents, deleteToken, initialView, reduce, startEvents, type CloudEvent, type Purpose, type View } from './model';
-import { pruneSlots, readPreRestore, readRecord, readUnconfirmedDelete, writeRecord } from './record';
+import { readPreRestore, readRecord, readUnconfirmedDelete, writeRecord } from './record';
 import { markCodeConfirmed, runTask, sideOf, type TaskDeps } from './tasks';
 
 /** 이보다 오래 걸리면 '서버가 조금 느려요'를 보인다(ms) */
@@ -83,7 +83,6 @@ export function useCloud(deps: TaskDeps | null, opts: { initial?: View; tzOffset
     (entry?: CloudEntry) => {
       const cur = ref.current;
       if (cur.v === 'busy' || cur.v === 'code' || !deps) return;
-      pruneSlots(deps.kv, deps.now());
       const init = initialView(readRecord(deps.kv));
       if (entry === 'revert') {
         // 맞바꾸기 확인에 두 몽망이(지금·바꾸기 전)를 나란히

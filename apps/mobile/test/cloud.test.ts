@@ -5,10 +5,10 @@ import { AGE_GATE_VERSION } from '@mong/contract';
 import { SAVE_KEYS, sim, type KV } from '@mong/core';
 import { describe, expect, it } from 'vitest';
 import { AGE_KEY, ageStatus, checkAgeInput, judgeAge, recordAge } from '../src/cloud/ageGate';
-import { classify, createCloudApi } from '../src/cloud/api';
+import { classify, createCloudApi, decodeBase64Url, subOf } from '../src/cloud/api';
 import { createFakeServer } from '../src/cloud/fakeServer';
 import { closable, deleteToken, initialView, reduce, startEvents, tailMatches, type CloudEvent, type SaveSide, type View } from '../src/cloud/model';
-import { addParked, CLOCK_KEY, CLOUD_KEY, keepPreRestore, markUnconfirmedDelete, PARKED_KEY, PARKED_SLOTS, PRE_RESTORE_KEY, readParkedList, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete } from '../src/cloud/record';
+import { addParked, UNCONFIRMED_DELETE_KEY as UNCONFIRMED_KEY, CLOUD_KEY, keepPreRestore, markUnconfirmedDelete, PARKED_KEY, PARKED_SLOTS, PRE_RESTORE_KEY, readParkedList, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete } from '../src/cloud/record';
 import { markCodeConfirmed, runTask, uploadShapeOk, type TaskDeps } from '../src/cloud/tasks';
 
 const sha = async (s: string) => createHash('sha256').update(s, 'utf8').digest('hex');
@@ -421,6 +421,46 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(readRecord(a.kv)!.state).toBe('deleting');
   });
 
+  it('[재리뷰 5 V3] 예전 계정 안내 뒤 같은 몽망이를 글귀로 되찾으면 표시를 지운다(지금 쓰는 계정을 지우라고 권하지 않음), 다른 몽망이면 남긴다', async () => {
+    const srv = createFakeServer(sha);
+    const a = device(srv, 'A', mong(1, 3));
+    const en = (await runTask({ t: 'enable' }, a.deps)) as { code: string };
+    const rec = readRecord(a.kv)!;
+    // 백업으로 옮긴 새 폰: 기록만 오고 로그인 없음 → 예전 계정 안내
+    const b = device(srv, 'B', a.kv.getString(SAVE_KEYS.main)!);
+    b.kv.set(CLOUD_KEY, a.kv.getString(CLOUD_KEY)!);
+    b.kv.set(SAVE_KEYS.main, mong(1, 4));
+    expect(await runTask({ t: 'sync' }, b.deps)).toEqual({ r: 'orphaned' });
+    expect(readUnconfirmedDelete(b.kv)).toMatchObject({ creature: rec.creature, reason: 'orphan' });
+    // 다른 몽망이(Z)를 되찾으면 표시는 그대로
+    const z = device(srv, 'Z', mong(9, 9));
+    const zEn = (await runTask({ t: 'enable' }, z.deps)) as { code: string };
+    const c = device(srv, 'C', mong(2));
+    c.kv.set(UNCONFIRMED_KEY, b.kv.getString(UNCONFIRMED_KEY)!);
+    expect(await runTask({ t: 'recover', code: zEn.code, target: null }, c.deps)).toMatchObject({ r: 'recovered' });
+    expect(readUnconfirmedDelete(c.kv)).not.toBeNull();
+    // 같은 몽망이를 되찾으면 표시를 지운다(되찾기로 sub는 바뀌므로 계정은 인장 코드로 본다)
+    expect(await runTask({ t: 'recover', code: en.code, target: null }, b.deps)).toMatchObject({ r: 'recovered' });
+    expect(readUnconfirmedDelete(b.kv)).toBeNull();
+  });
+
+  it('[재리뷰 5] JWT sub 디코드는 atob 없이 순수 JS(base64url·패딩 없음·UTF-8)', () => {
+    const g = globalThis as { atob?: unknown };
+    const saved = g.atob;
+    g.atob = undefined;
+    try {
+      const payload = Buffer.from(JSON.stringify({ sub: '8f1c2d3e-몽-✓', role: 'authenticated' }), 'utf8').toString('base64url');
+      expect(subOf(`h.${payload}.s`)).toBe('8f1c2d3e-몽-✓');
+      expect(decodeBase64Url(Buffer.from('a?b>c', 'utf8').toString('base64url'))).toBe('a?b>c');
+      expect(decodeBase64Url(Buffer.from('a?b>c', 'utf8').toString('base64'))).toBe('a?b>c');
+      expect(decodeBase64Url('a$b')).toBeNull();
+      expect(subOf('nodots')).toBeNull();
+      expect(subOf(`h.${Buffer.from('{"x":1}').toString('base64url')}.s`)).toBeNull();
+    } finally {
+      g.atob = saved;
+    }
+  });
+
   it('[B2b] replay인데 대상 인장 코드가 다르면 정상 되찾기로 보지 않고 나란히, 기존 기록은 덮지 않는다', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1, 4));
@@ -481,7 +521,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(srv.peek('B')!.conflicts.map((c) => c.body)).toContain(xBody);
     expect(readParked(b.kv, T)!.raw).toBe(xBody);
     expect(readParked(b.kv, T + 29 * 86_400_000)).not.toBeNull();
-    expect(readParked(b.kv, T + 31 * 86_400_000)).toBeNull();
+    expect(readParked(b.kv, T + 31 * 86_400_000)!.expired).toBe(true); // 30일이 지나면 만료됨 표시만(지우지 않는다)
     // 공방 노트 → 다시 나란히 → 되찾은 본 고름(맞바꾸기: 지금 본은 parked 칸으로)
     const slot = readParked(b.kv, T)!.id;
     expect(reduce({ v: 'on' }, { e: 'openParked', slot })).toEqual({ v: 'busy', task: { t: 'fetch', why: 'parked', slot }, slow: false });
@@ -706,11 +746,11 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     keepPreRestore(a.kv, before, T - 1000);
     const failing = { ...a.deps, local: { ...a.deps.local, adopt: () => false } };
     expect(await runTask({ t: 'revert' }, failing)).toEqual({ r: 'failed', failure: 'device' });
-    expect(readPreRestore(a.kv, T)).toEqual({ at: T - 1000, raw: before });
+    expect(readPreRestore(a.kv, T)).toEqual({ at: T - 1000, raw: before, expired: false });
     expect(a.kv.getString(SAVE_KEYS.main)).toBe(cur);
     a.kv.set(PARKED_KEY, JSON.stringify([{ id: 'p1', at: T - 2000, raw: before }]));
     expect(await runTask({ t: 'takeParked', slot: 'p1' }, failing)).toEqual({ r: 'failed', failure: 'device' });
-    expect(readParked(a.kv, T)).toEqual({ id: 'p1', at: T - 2000, raw: before });
+    expect(readParked(a.kv, T)).toEqual({ id: 'p1', at: T - 2000, raw: before, expired: false });
     expect(a.kv.getString(SAVE_KEYS.main)).toBe(cur);
   });
 
@@ -767,50 +807,56 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(readParkedList(b.kv, T).map((p) => p.raw)).toContain(first);
   });
 
-  it('[재리뷰 4 S3·Z5] 기한 지난 칸은 먼저 만료 표시만, 하루 넘게 지난 다음 실행에서 다시 확인되면 그때 지운다(parked·preRestore 둘 다)', async () => {
+  it('[재리뷰 5 V4·V5] 기기 칸은 자동으로 지우지 않는다: 시계를 하루씩 33번·한 번에 40일 앞당겨도 원문은 그대로, 30일이 지나면 만료됨 표시만', async () => {
     const srv = createFakeServer(sha);
     const a = device(srv, 'A', mong(1));
     let now = T;
     const deps = { ...a.deps, now: () => now };
-    a.kv.set(CLOCK_KEY, String(T - 3_600_000));
-    addParked(a.kv, mong(3, 3), T - 31 * 86_400_000);
-    addParked(a.kv, mong(4, 4), T - 1000);
-    keepPreRestore(a.kv, mong(5, 5), T - 31 * 86_400_000);
+    addParked(a.kv, mong(3, 3), T - 1000);
+    addParked(a.kv, mong(4, 4), T - 2000);
+    keepPreRestore(a.kv, mong(5, 5), T - 3000);
+    const parkedRaw = a.kv.getString(PARKED_KEY);
+    const preRaw = a.kv.getString(PRE_RESTORE_KEY);
+    for (let k = 1; k <= 33; k++) {
+      now = T + k * 86_400_000;
+      await runTask({ t: 'sync' }, deps);
+    }
+    now = T + 73 * 86_400_000;
     await runTask({ t: 'sync' }, deps);
-    // 1단계: 숨김(읽기에는 안 보임) + 원문은 남음
-    expect(JSON.parse(a.kv.getString(PARKED_KEY)!)).toHaveLength(2);
-    expect(readParkedList(a.kv, now)).toHaveLength(1);
-    expect(a.kv.getString(PRE_RESTORE_KEY)).toBeDefined();
-    now = T + 86_400_000 + 1;
     await runTask({ t: 'sync' }, deps);
-    // 2단계: 지움
-    expect(JSON.parse(a.kv.getString(PARKED_KEY)!).map((p: { raw: string }) => p.raw)).toEqual([mong(4, 4)]);
-    expect(a.kv.getString(PRE_RESTORE_KEY)).toBeUndefined();
+    expect(a.kv.getString(PARKED_KEY)).toBe(parkedRaw);
+    expect(a.kv.getString(PRE_RESTORE_KEY)).toBe(preRaw);
+    expect(readParkedList(a.kv, now).map((p) => p.expired)).toEqual([true, true]);
+    expect(readPreRestore(a.kv, now)!.expired).toBe(true);
+    expect(readParkedList(a.kv, T).map((p) => p.expired)).toEqual([false, false]);
+    expect(readPreRestore(a.kv, T)!.expired).toBe(false);
   });
 
-  it('[재리뷰 4 S3] 시계를 앞으로 크게 돌려도(같은 날 몇 번 실행) 아무 칸도 지워지지 않고, 되돌리면 다시 보인다. 뒤로 돌린 실행도 지우지 않는다', async () => {
+  it('[재리뷰 5] 만료된 칸도 고르거나 되돌릴 수 있고, 비우기는 사용자가 직접(확인 한 번) — parked·preRestore', async () => {
     const srv = createFakeServer(sha);
-    const a = device(srv, 'A', mong(1));
-    let now = T;
-    const deps = { ...a.deps, now: () => now };
-    for (let i = 0; i < 3; i++) addParked(a.kv, mong(10 + i, i), T - 10 * 86_400_000 + i);
-    keepPreRestore(a.kv, mong(20, 2), T - 10 * 86_400_000);
-    await runTask({ t: 'sync' }, deps); // 지금 시각을 본다
-    now = T + 31 * 86_400_000; // 앞으로 31일
-    for (let k = 0; k < 3; k++) await runTask({ t: 'sync' }, deps);
-    expect(JSON.parse(a.kv.getString(PARKED_KEY)!)).toHaveLength(3);
-    expect(a.kv.getString(PRE_RESTORE_KEY)).toBeDefined();
-    now = T; // 되돌림
-    await runTask({ t: 'sync' }, deps);
-    expect(readParkedList(a.kv, now)).toHaveLength(3);
-    expect(readPreRestore(a.kv, now)).not.toBeNull();
-    expect(JSON.parse(a.kv.getString(PARKED_KEY)!).some((p: { expiredSeenAt?: number }) => p.expiredSeenAt !== undefined)).toBe(false);
-    // 뒤로 간 시각(지금까지 본 가장 늦은 시각보다 이전)에서는 기한이 지났어도 지우지 않는다
-    now = T - 40 * 86_400_000 + 1;
-    addParked(a.kv, mong(30, 3), T - 80 * 86_400_000);
-    a.kv.set(PARKED_KEY, JSON.stringify([...JSON.parse(a.kv.getString(PARKED_KEY)!), { id: 'old', at: T - 80 * 86_400_000, raw: 'x', expiredSeenAt: T - 79 * 86_400_000 }]));
-    await runTask({ t: 'sync' }, deps);
-    expect(JSON.parse(a.kv.getString(PARKED_KEY)!).some((p: { id: string }) => p.id === 'old')).toBe(true);
+    const a = device(srv, 'A', mong(1, 2));
+    const later = T + 40 * 86_400_000;
+    const deps = { ...a.deps, now: () => later };
+    addParked(a.kv, mong(3, 3), T);
+    keepPreRestore(a.kv, mong(5, 5), T);
+    const slot = readParkedList(a.kv, later)[0]!;
+    expect(slot.expired).toBe(true);
+    const cmp = await runTask({ t: 'fetch', why: 'parked', slot: slot.id }, deps);
+    expect(cmp).toMatchObject({ r: 'compare', why: 'parked', pick: { slot: slot.id } });
+    const v = reduce({ v: 'busy', task: { t: 'fetch', why: 'parked', slot: slot.id }, slow: false }, { e: 'done', result: cmp });
+    const ask = reduce(v, { e: 'askDropParked', slot: slot.id });
+    expect(ask).toEqual({ v: 'dropParkedConfirm', slot: slot.id, back: 'on' });
+    expect(reduce(ask, { e: 'back' })).toEqual({ v: 'on' });
+    expect(await runTask({ t: 'dropParked', slot: slot.id }, deps)).toEqual({ r: 'parkedDropped' });
+    expect(a.kv.getString(PARKED_KEY)).toBeUndefined();
+    const rv: View = { v: 'revertConfirm', back: 'on', now: null, before: null };
+    const askPre = reduce(rv, { e: 'askDropPre' });
+    expect(askPre).toEqual({ v: 'dropPreConfirm', back: 'on' });
+    expect(reduce(askPre, { e: 'confirmDropPre' })).toEqual({ v: 'busy', task: { t: 'dropPre' }, slow: false });
+    expect(reduce(askPre, { e: 'back' })).toEqual({ v: 'on' });
+    expect(await runTask({ t: 'revert' }, deps)).toEqual({ r: 'reverted' }); // 만료돼도 되돌릴 수 있다
+    expect(await runTask({ t: 'dropPre' }, deps)).toEqual({ r: 'parkedDropped' });
+    expect(a.kv.getString(PRE_RESTORE_KEY)).toBeUndefined();
   });
 
   it('[재리뷰 4 S4] 칸이 가득 차면 한 칸을 비우는 길(확인 한 번)이 있고, 비운 뒤 이 기기를 다시 고를 수 있다', async () => {
@@ -824,7 +870,7 @@ describe('작업(가짜 서버, 실제 계약 흐름)', () => {
     expect(await runTask({ t: 'keepLocal', server: cmp.pick, why: 'restore', park: true }, b.deps)).toEqual({ r: 'parkFull' });
     const slot = readParkedList(b.kv, T)[2]!.id;
     const v = run({ v: 'parkFull' }, { e: 'askDropParked', slot });
-    expect(v).toEqual({ v: 'dropParkedConfirm', slot });
+    expect(v).toEqual({ v: 'dropParkedConfirm', slot, back: 'parkFull' });
     expect(reduce(v, { e: 'back' })).toEqual({ v: 'parkFull' });
     expect(reduce(v, { e: 'confirmDropParked' })).toEqual({ v: 'busy', task: { t: 'dropParked', slot }, slow: false });
     expect(await runTask({ t: 'dropParked', slot }, b.deps)).toEqual({ r: 'parkedDropped' });

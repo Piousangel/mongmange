@@ -23,7 +23,7 @@ import { Portrait } from './NameTag';
 const C = PALETTE.day;
 
 /** 기록 밖의 기기 칸 상태(그릴 때마다 읽는다): parked = 다시 고를 수 있는 본들(칸 id·기한), unconfirmed = 확인하지 못한 지우기(인장 코드) */
-export type CloudExtra = { parked: { id: string; until: number }[]; unconfirmed: { creature: string | null; abandoned: boolean; reason: 'delete' | 'orphan' } | null };
+export type CloudExtra = { parked: { id: string; until: number; expired: boolean }[]; unconfirmed: { creature: string | null; abandoned: boolean; reason: 'delete' | 'orphan' } | null };
 const NO_EXTRA: CloudExtra = { parked: [], unconfirmed: null };
 
 export function CloudSheet({ visible, onClose, cloud, record, entry, extra = NO_EXTRA }: { visible: boolean; onClose: () => void; cloud: CloudController; record: CloudRecord | null; entry?: CloudEntry; extra?: CloudExtra }) {
@@ -49,7 +49,7 @@ export function CloudSheetHost({ visible, onClose, deps, initial, entry, tzOffse
   const cloud = useCloud(deps, { initial, tzOffsetMin });
   const record = readRecord(deps.kv);
   const extra: CloudExtra = {
-    parked: readParkedList(deps.kv, deps.now()).map((p) => ({ id: p.id, until: p.at + PARKED_DAYS * 86_400_000 })),
+    parked: readParkedList(deps.kv, deps.now()).map((p) => ({ id: p.id, until: p.at + PARKED_DAYS * 86_400_000, expired: p.expired })),
     unconfirmed: readUnconfirmedDelete(deps.kv),
   };
   return <CloudSheet visible={visible} onClose={onClose} cloud={cloud} record={record} entry={entry} extra={extra} />;
@@ -141,6 +141,7 @@ export function busyKey(task: Task): BusyKey {
       return 'cloud.busy.takeServer';
     case 'abandonOld':
     case 'dropParked':
+    case 'dropPre':
       return 'cloud.busy.forget';
     case 'revert':
       return 'cloud.busy.revert';
@@ -224,7 +225,18 @@ function Body({ cloud, record, onClose, extra }: { cloud: CloudController; recor
           </View>
           <Actions>
             <Btn primary label={t('cloud.revert.yes')} onPress={() => send({ e: 'confirmRevert' })} testID="cloud-revert-yes" />
+            <Btn label={t('cloud.slot.drop')} onPress={() => send({ e: 'askDropPre' })} testID="cloud-revert-drop" />
             <Btn label={t('cloud.cancel')} onPress={() => send({ e: 'back' })} testID="cloud-revert-no" />
+          </Actions>
+        </>
+      );
+    case 'dropPreConfirm':
+      return (
+        <>
+          <P testID="cloud-pre-drop-confirm">{t('cloud.slot.dropConfirm')}</P>
+          <Actions>
+            <Btn primary danger label={t('cloud.parkFull.dropYes')} onPress={() => send({ e: 'confirmDropPre' })} testID="cloud-pre-drop-yes" />
+            <Btn label={t('cloud.cancel')} onPress={() => send({ e: 'back' })} />
           </Actions>
         </>
       );
@@ -269,7 +281,7 @@ function Body({ cloud, record, onClose, extra }: { cloud: CloudController; recor
         <>
           <P testID="cloud-park-full">{t('cloud.parkFull.body')}</P>
           {extra.parked.map((r, i) => (
-            <Row key={r.id} label={t('cloud.parkFull.drop', { date: savedDay(r.until) })} onPress={() => send({ e: 'askDropParked', slot: r.id })} testID={i === 0 ? 'cloud-park-drop' : `cloud-park-drop-${i}`} />
+            <Row key={r.id} label={r.expired ? t('cloud.parkFull.dropExpired') : t('cloud.parkFull.drop', { date: savedDay(r.until) })} onPress={() => send({ e: 'askDropParked', slot: r.id })} testID={i === 0 ? 'cloud-park-drop' : `cloud-park-drop-${i}`} />
           ))}
           <Actions>
             <Btn primary label={t('cloud.later')} onPress={() => send({ e: 'continue' })} testID="cloud-park-full-ok" />
@@ -647,6 +659,7 @@ function Choose({ view, cloud }: { view: Extract<CloudView, { v: 'choose' }>; cl
       ) : (
         <Actions>
           <Btn primary label={t('cloud.choose.next')} onPress={() => send({ e: 'confirmPick' })} disabled={view.picked === null} testID="cloud-choose-next" />
+          {view.why === 'parked' && view.pick.slot && <Btn label={t('cloud.slot.drop')} onPress={() => send({ e: 'askDropParked', slot: view.pick.slot! })} testID="cloud-parked-drop" />}
           <Btn label={t('cloud.choose.later')} onPress={() => send({ e: 'back' })} testID="cloud-choose-later" />
         </Actions>
       )}
@@ -714,7 +727,7 @@ function ParkedRows({ rows, cloud, testID }: { rows: CloudExtra['parked']; cloud
   return (
     <>
       {rows.map((r, i) => (
-        <Row key={r.id} label={t('cloud.on.parkedUntil', { date: savedDay(r.until) })} hint={t('cloud.parked.deviceOnly')} onPress={() => cloud.send({ e: 'openParked', slot: r.id })} strong testID={i === 0 ? testID : `${testID}-${i}`} />
+        <Row key={r.id} label={r.expired ? t('cloud.on.parkedExpired') : t('cloud.on.parkedUntil', { date: savedDay(r.until) })} hint={t('cloud.parked.deviceOnly')} onPress={() => cloud.send({ e: 'openParked', slot: r.id })} strong testID={i === 0 ? testID : `${testID}-${i}`} />
       ))}
     </>
   );

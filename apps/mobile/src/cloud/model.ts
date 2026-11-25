@@ -51,8 +51,10 @@ export type Task =
   | { t: 'retryForgotten'; then?: Purpose }
   /** 확인하지 못한 지우기 안내를 닫는다 = 옛 로그인 버리기('두고 새로 시작'과 같은 동작, 재리뷰 4 S1) */
   | { t: 'abandonOld' }
-  /** 가득 찬 parked 칸 하나 비우기(재리뷰 4 S4) */
+  /** parked 칸 하나 비우기(재리뷰 4 S4) — 자동 삭제가 없으므로 사용자가 직접(재리뷰 5) */
   | { t: 'dropParked'; slot: string }
+  /** 바꾸기 전 몽망이 칸 비우기(사용자가 직접) */
+  | { t: 'dropPre' }
   /** 서버 본으로 이어 간다(이 기기 본은 서버 conflict 칸 30일 + 기기 preRestore 칸) */
   | { t: 'takeServer'; server: ServerPick }
   | { t: 'sync' }
@@ -113,7 +115,8 @@ export type View =
   | { v: 'ended' }
   | { v: 'orphaned' }
   | { v: 'dismissOldConfirm'; back: 'intro' | 'on' }
-  | { v: 'dropParkedConfirm'; slot: string }
+  | { v: 'dropParkedConfirm'; slot: string; back: 'parkFull' | 'on' }
+  | { v: 'dropPreConfirm'; back: 'on' | 'intro' }
   /** 확인하지 못한 지우기가 남은 채 켜기·되찾기를 시작함 → 먼저 묻는다(재리뷰 3 Q3·Q6) */
   | { v: 'oldAccount'; purpose: Purpose }
   | { v: 'oldCleared'; purpose: Purpose }
@@ -130,6 +133,8 @@ export type CloudEvent =
   | { e: 'askDismissOld' }
   | { e: 'confirmDismissOld' }
   | { e: 'askDropParked'; slot: string }
+  | { e: 'askDropPre' }
+  | { e: 'confirmDropPre' }
   | { e: 'confirmDropParked' }
   | { e: 'skipOld' }
   | { e: 'proceedOld' }
@@ -276,7 +281,14 @@ export function reduce(view: View, ev: CloudEvent): View {
     case 'confirmDismissOld':
       return view.v === 'dismissOldConfirm' ? busy({ t: 'abandonOld' }) : view;
     case 'askDropParked':
-      return view.v === 'parkFull' ? { v: 'dropParkedConfirm', slot: ev.slot } : view;
+      if (view.v === 'parkFull') return { v: 'dropParkedConfirm', slot: ev.slot, back: 'parkFull' };
+      // 나란히 보던 parked 칸을 그 자리에서 비운다(만료된 칸 포함)
+      if (view.v === 'choose' && view.why === 'parked' && !view.confirming) return { v: 'dropParkedConfirm', slot: ev.slot, back: 'on' };
+      return view;
+    case 'askDropPre':
+      return view.v === 'revertConfirm' ? { v: 'dropPreConfirm', back: view.back } : view;
+    case 'confirmDropPre':
+      return view.v === 'dropPreConfirm' ? busy({ t: 'dropPre' }) : view;
     case 'confirmDropParked':
       return view.v === 'dropParkedConfirm' ? busy({ t: 'dropParked', slot: view.slot }) : view;
     case 'retryOld':
@@ -325,7 +337,9 @@ export function reduce(view: View, ev: CloudEvent): View {
         case 'dismissOldConfirm':
           return { v: view.back };
         case 'dropParkedConfirm':
-          return { v: 'parkFull' };
+          return { v: view.back };
+        case 'dropPreConfirm':
+          return { v: view.back };
         case 'revertConfirm':
           return { v: view.back };
         default:

@@ -119,10 +119,10 @@ describe('바꾸기 전으로 되돌리기(preRestore)', () => {
     }
   });
 
-  it('30일이 지나면 되돌리기 칸은 읽히지 않는다', () => {
+  it('30일이 지나면 되돌리기 칸은 만료됨 표시만(읽히고 지워지지 않는다 — 재리뷰 5 V4·V5)', () => {
     const kv = memKV();
     kv.set(PRE_RESTORE_KEY, JSON.stringify({ at: 0, raw: '{}' }));
-    expect(readPreRestore(kv, PRE_RESTORE_DAYS * 86_400_000)).not.toBeNull();
-    expect(readPreRestore(kv, PRE_RESTORE_DAYS * 86_400_000 + 1)).toBeNull();
+    expect(readPreRestore(kv, PRE_RESTORE_DAYS * 86_400_000)).toEqual({ at: 0, raw: '{}', expired: false });
+    expect(readPreRestore(kv, PRE_RESTORE_DAYS * 86_400_000 + 1)).toEqual({ at: 0, raw: '{}', expired: true });
   });
 });

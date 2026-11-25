@@ -195,6 +195,49 @@ export function createCloudApi(deps: CloudApiDeps): CloudApi {
   };
 }
 
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+/**
+ * base64url → UTF-8 문자열(순수 JS — Hermes의 atob 유무에 기대지 않는다, 재리뷰 5). 표준 base64('+','/','=')도 받는다.
+ * 틀린 글자가 있으면 null.
+ */
+export function decodeBase64Url(input: string): string | null {
+  const str = input.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const bytes: number[] = [];
+  let buf = 0;
+  let bits = 0;
+  for (const ch of str) {
+    const v = B64.indexOf(ch);
+    if (v < 0) return null;
+    buf = (buf << 6) | v;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((buf >> bits) & 0xff);
+    }
+  }
+  // UTF-8 → 문자열
+  let out = '';
+  for (let i = 0; i < bytes.length; ) {
+    const b = bytes[i]!;
+    let cp: number;
+    let n: number;
+    if (b < 0x80) [cp, n] = [b, 1];
+    else if (b >= 0xc0 && b < 0xe0) [cp, n] = [b & 0x1f, 2];
+    else if (b >= 0xe0 && b < 0xf0) [cp, n] = [b & 0x0f, 3];
+    else if (b >= 0xf0 && b < 0xf8) [cp, n] = [b & 0x07, 4];
+    else return null;
+    for (let k = 1; k < n; k++) {
+      const c = bytes[i + k];
+      if (c === undefined || (c & 0xc0) !== 0x80) return null;
+      cp = (cp << 6) | (c & 0x3f);
+    }
+    out += String.fromCodePoint(cp);
+    i += n;
+  }
+  return out;
+}
+
 /**
  * 접근 토큰(JWT)의 sub. 서명은 보지 않는다 — 서버가 보증한 토큰을 우리 기기 기록과 견주는 데만 쓴다(B2b 리뷰 H1:
  * 맡겨 두기를 켠 로그인과 지금 로그인이 같은지). 읽을 수 없으면 null(그러면 '지워짐'을 확정하지 않는다).
@@ -204,9 +247,8 @@ export function subOf(token: string | null): string | null {
   const part = token.split('.')[1];
   if (!part) return null;
   try {
-    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
-    const pad = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-    const json = typeof atob === 'function' ? atob(pad) : '';
+    const json = decodeBase64Url(part);
+    if (json === null) return null;
     const o = JSON.parse(json) as { sub?: unknown };
     return typeof o.sub === 'string' && o.sub.length > 0 ? o.sub : null;
   } catch {

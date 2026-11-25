@@ -14,7 +14,7 @@ import { isFuture, sim, type KV } from '@mong/core';
 import { passGate } from './ageGate';
 import { subOf, type ApiResult, type CloudApi, type CloudAuth, type Failure } from './api';
 import type { ChooseNote, SaveSide, ServerPick, Task, TaskResult, Why } from './model';
-import { clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, pruneSlots, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
+import { clearRecovering, clearUnconfirmedDelete, dropPreRestore, FRESH_RECORD, addParked, keepPreRestore, markRecovering, markUnconfirmedDelete, readParkedList, readParkedOne, setParked, readPreRestore, readRecord, readRecovering, readUnconfirmedDelete, writeRecord, type CloudRecord } from './record';
 
 export interface LocalSave {
   /** 기기에 저장된 본 원문(core SAVE_KEYS.main 그대로 — 같은 본이면 같은 sha). 없으면 null */
@@ -333,6 +333,17 @@ async function currentCreature(d: TaskDeps): Promise<string | null> {
   return b.kind === 'ok' ? b.value.code : null;
 }
 
+/**
+ * 되찾은 몽망이가 '예전 계정 남음' 표시의 그 몽망이면 표시를 지운다(재리뷰 5 V3 — 지금 쓰는 계정을 웹에서 지우라고 권하지 않게).
+ * 판정은 계정의 식별값인 인장 코드로 한다: 되찾기 응답의 creature.code는 서버가 그 글귀로 찾은 계정이고, 표시의 creature는 그 기기 기록의
+ * 계정이다. sub는 되찾기에서 바뀐다(옛 sub는 revoked, 새 sub가 붙음)라 같은 계정이어도 같지 않다 — 그래서 sub는 '같은 로그인'
+ * 확인(지워짐 확정)에만 쓰고, 계정이 같은지는 인장 코드로 본다. 표시에 인장 코드가 없으면 지우지 않는다(모를 때는 안내를 남김).
+ */
+function clearOldIfSame(d: TaskDeps, creature: string): void {
+  const m = readUnconfirmedDelete(d.kv);
+  if (m && m.creature !== null && m.creature === creature) clearUnconfirmedDelete(d.kv);
+}
+
 async function recover(d: TaskDeps, code: string, target: string | null): Promise<TaskResult> {
   // 인장 칸에 이 기기 몽망이의 코드를 넣었다면 되찾을 대상이 아니다(리뷰 재리뷰 2 M-c) — 서버를 부르기 전에 되돌려 준다
   const own = readRecord(d.kv)?.creature ?? null;
@@ -364,6 +375,7 @@ async function recover(d: TaskDeps, code: string, target: string | null): Promis
     if (cur !== null && want !== null && cur === want) {
       // 성공: 앞선 되찾기가 이미 끝났다. 평소 되찾기와 같이 나란히 고르기로 이어 간다(서버 본이 없으면 '이미 되찾음'으로 끝)
       clearRecovering(d.kv);
+      clearOldIfSame(d, cur);
       if (!readRecord(d.kv)) save(d, { ...FRESH_RECORD, conflict: true, creature: cur, sub: await currentSub(d) });
       const c = await fetchCompare(d, 'restore', { note: 'already' });
       return c.r === 'synced' ? { r: 'already' } : c;
@@ -382,11 +394,13 @@ async function recover(d: TaskDeps, code: string, target: string | null): Promis
       return fetchCompare(d, 'conflict', { note: 'hasCreature', keepRecord: true });
     }
     clearRecovering(d.kv);
+    clearOldIfSame(d, r.value.creature.code);
     // 기존 기록은 덮지 않는다(같은 되찾기의 첫 시도가 남긴 것일 수 있다)
     if (!readRecord(d.kv)) save(d, { ...FRESH_RECORD, conflict: r.value.save !== null, creature: r.value.creature.code, sub: await currentSub(d) });
     return { r: 'recovered', code: r.value.newCode, then: r.value.save !== null ? 'restore' : 'on' };
   }
   clearRecovering(d.kv);
+  clearOldIfSame(d, r.value.creature.code);
   // 서버 본이 있으면 고르기 전까지 올리지 않는다(conflict 표시). 글귀는 아직 확인 전
   save(d, { ...FRESH_RECORD, conflict: r.value.save !== null, creature: r.value.creature.code, sub: await currentSub(d) });
   return { r: 'recovered', code: r.value.newCode, then: r.value.save !== null ? 'restore' : 'on' };
@@ -479,8 +493,6 @@ async function revert(d: TaskDeps): Promise<TaskResult> {
 const NEEDS_LOGIN: ReadonlySet<Task['t']> = new Set(['fetch', 'keepLocal', 'takeServer', 'sync', 'reissue', 'delete', 'deleteCheck']);
 
 export async function runTask(task: Task, d: TaskDeps): Promise<TaskResult> {
-  // 기한이 지난 기기 칸 원문은 작업 때마다 먼저 치운다(최소 보관)
-  pruneSlots(d.kv, d.now());
   try {
     // 기록은 있는데 로그인이 없다(백업으로 옮긴 새 폰 — 세션은 백업에서 빠짐, 3-3 ④): 그 맡겨 두기에 이 기기로는 닿을 수 없다 → 예전 계정 안내
     if (NEEDS_LOGIN.has(task.t) && readRecord(d.kv)?.state === 'on' && !(await d.auth.token().catch(() => null))) return await orphan(d);
@@ -515,6 +527,8 @@ export async function runTask(task: Task, d: TaskDeps): Promise<TaskResult> {
       case 'abandonOld':
         await abandonOld(d);
         return { r: 'abandoned' };
+      case 'dropPre':
+        return dropPreRestore(d.kv) ? { r: 'parkedDropped' } : fail('device');
       case 'dropParked':
         return setParked(d.kv, task.slot, null, d.now()) ? { r: 'parkedDropped' } : fail('device');
       case 'takeParked':

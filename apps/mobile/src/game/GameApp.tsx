@@ -555,6 +555,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
                   parked: readParkedList(kv, nowT).map((p) => ({
                     id: p.id,
                     until: bornDate(p.at + PARKED_DAYS * 86_400_000, tzOffsetNow()),
+                    expired: p.expired,
                     open: () => {
                       setNoteOpen(false);
                       setCloudOpen(`parked:${p.id}`);
@@ -565,6 +566,7 @@ export function GameApp({ onSpike }: { onSpike: (screen: string) => void }) {
                     if (!pre) return null;
                     return {
                       until: bornDate(pre.at + PRE_RESTORE_DAYS * 86_400_000, tzOffsetNow()),
+                      expired: pre.expired,
                       open: () => {
                         setNoteOpen(false);
                         setCloudOpen('revert');
