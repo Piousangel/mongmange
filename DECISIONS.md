@@ -713,6 +713,7 @@
   - N2: `gateRemoteFlag`가 undefined가 아닌 false를 내는 것을 번들 true 경우로 고정(`resolveFeature` 순수 함수로 층 합치기). `sendAll` 끝의 동의 재확인은 마지막 await 뒤라 동의가 바뀔 틈이 없는 죽은 줄이라 지웠다(요청 뒤 확인이 같은 일을 한다).
   - C10b 맞물림: **충족**(C11 재리뷰 2 확인) — C10b 92116a6의 `withSessionBackupExclusion.js`가 최종 산출물 검증 뒤 `extra.mongSessionBackupExcluded = true`를 쓰고 c10b-backup 시험이 고정, nativeFlags와 이름·타입·조건 일치. 12-12 리허설에서 빌드 산출물 `expoConfig.extra` 값 한 번 확인.
   - 증거: `pnpm verify` 7단계 통과, cloud 72·net-auth·net-features 18 등 통과. 변이 6개(가드가 못 받음도 orphan·어댑터가 갱신 실패를 none·no_account 뒤 확인 실패를 orphan·못 받음이면 signup·던짐을 none·cloud 문 undefined) 모두 잡힘, 복원 cmp 일치.
+- **[C11c — 통계 켜기 화면 동의 고지·앱 이름 상수·삭제 메뉴 이름 11-25]** `MetricsSheet` 토글 위에 제15조 제2항 네 가지(목적·항목·90일 뒤 월 합계(본문 글씨)·불이익 없음) + IP 주소·서울 운영자 서버·언제든 끄기(법률 v2 8절 C1~C4, 처리방침 3-1·6·8절과 같은 사실 — K38은 커밋 해시로 일치), en.ts 글자 `Mongmangi` 52곳 → `${M}`(ko '몽망이'는 고정 이름·조사 때문에 예외로 명시, `test/i18n-brand.test.ts`), 앱 메뉴 `Erase what we keep` → 웹·처리방침 정본 `Delete what’s kept on the server`(맡겨 두기 erase 계열 동사 20곳도 delete로).
 
 ## 2026-11-25 오너 결정 — ML Kit 연령·열람 화면 (법률 v2 뒤)
 

@@ -49,7 +49,8 @@ for (const lang of ['ko', 'en']) {
       const name = `${lang}-fs${fs * 100}-${nv}`;
       const { ctx, page } = await open(`nv=${nv}&lang=${lang}&fs=${fs}`);
       await page.screenshot({ path: path.join(OUT, `${name}.png`) });
-      log.push({ shot: name, ...(await overflow(page)) });
+      const consent = nv.startsWith('metrics-') && nv !== 'metrics-age' ? { consent: await page.locator('[data-testid="metrics-consent"] div[dir="auto"]').count() } : {};
+      log.push({ shot: name, ...(await overflow(page)), ...consent });
       console.log(JSON.stringify(log.at(-1)));
       await ctx.close();
     }
@@ -58,10 +59,23 @@ for (const lang of ['ko', 'en']) {
 
 // 좁은 폭(320) × 200%
 for (const lang of ['ko', 'en']) {
-  for (const nv of ['metrics-age', 'link-live', 'link-report']) {
+  for (const nv of ['metrics-age', 'metrics-off', 'link-live', 'link-report']) {
     const { ctx, page } = await open(`nv=${nv}&lang=${lang}&fs=2`, { width: 320, height: 640 });
     await page.screenshot({ path: path.join(OUT, `${lang}-w320-fs200-${nv}.png`) });
     log.push({ shot: `${lang}-w320-fs200-${nv}`, ...(await overflow(page)) });
+    if (nv === 'metrics-off') {
+      // 고지가 길어 한 화면을 넘는다 → 시트를 스크롤해 고지 끝 문단과 토글까지 닿는지(C11c 법률 v2 8절 C4)
+      const reach = {};
+      for (const id of ['metrics-consent', 'metrics-toggle-row']) {
+        const el = page.locator(`[data-testid="${id}"]`).first();
+        await el.evaluate((n) => n.scrollIntoView({ block: 'end' }));
+        await sleep(300);
+        const box = await el.boundingBox();
+        reach[id] = !!box && box.y + box.height <= 640 + 1 && box.y + box.height > 0;
+      }
+      await page.screenshot({ path: path.join(OUT, `${lang}-w320-fs200-${nv}-scrolled.png`) });
+      log.push({ shot: `${lang}-w320-fs200-${nv}-scrolled`, reach, ...(await overflow(page)) });
+    }
     console.log(JSON.stringify(log.at(-1)));
     await ctx.close();
   }

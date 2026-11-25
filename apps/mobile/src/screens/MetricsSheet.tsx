@@ -1,6 +1,6 @@
 // '이용 통계 보내기' 시트(C11 — 처리방침 1·3-1·4, K1·K25). 공방 노트 행에서 연다.
 // 갈래 = net/gate.ts MetricsSetting: needAge(연령 확인 화면 — 맡겨 두기와 같은 AgeForm·같은 기록) / under(켤 수 없음) / off·on(토글).
-// 토글은 지금 판 연령 확인 통과자에게만 보이고 기본 꺼짐이다. 끄면 기기에 모아 둔 통계도 지운다(gate.setMetricsOn).
+// 토글은 지금 판 연령 확인 통과자에게만 보이고 기본 꺼짐이다. 토글 위에 동의 고지 네 가지(목적·항목·보유 기간·불이익 없음 — C11c, K38)를 둔다. 끄면 기기에 모아 둔 통계도 지운다(gate.setMetricsOn).
 // 공방 노트에 이 행을 거는 것은 METRICS_SETTING_CONNECTED(지금 false — PM 결정)가 정한다. 확인판: ?screen=net(NetBoard).
 import { PALETTE } from '@mong/core';
 import type { KV } from '@mong/core';
@@ -56,9 +56,17 @@ export function MetricsSheet({
         </>
       ) : (
         <>
-          <P>{t('metrics.what')}</P>
-          <P sub>{t('metrics.never')}</P>
-          <P sub>{t('metrics.default')}</P>
+          {/* 동의 고지(개인정보 보호법 제15조 제2항 네 가지 + IP·보내는 곳·언제든 끄기 — 처리방침 3-1·6·8, K38, 법률 v2 8절). 토글보다 먼저 보인다 */}
+          <View testID="metrics-consent">
+            <P>{t('metrics.purpose')}</P>
+            <P sub>{t('metrics.what')}</P>
+            <P sub>{t('metrics.never')}</P>
+            <P sub>{t('metrics.ip')}</P>
+            {/* 보유 기간은 '중요한 내용'(시행령 제17조 제3항 제3호) — 본문 글씨로 보인다(법률 v2 8절 C2) */}
+            <P>{t('metrics.keep')}</P>
+            <P sub>{t('metrics.noPenalty')}</P>
+            <P sub>{t('metrics.default')}</P>
+          </View>
           {setting.kind === 'under' ? (
             <KText style={styles.under} accessibilityLiveRegion="polite" testID="metrics-under">
               {t('metrics.under')}
