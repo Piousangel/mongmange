@@ -109,3 +109,4 @@
 
 - 9차(11-25): `leafwater`(잎에 고인 물)·`letterdoor`(문지방 아래 편지) 생성은 Gemini 크레딧 소진(402)으로 0장 — 재시도 1회도 402. 생성물 없음.
 - 공유 루프 v1 시안(11-25, 마케팅·기획 TF): `docs/design/share/2026-11-25-share-loop/mock/gen.mjs`(gemini-3.1-flash-image, 아침 꿈·이레 폭·두루마리 각 최대 3안 계획)은 첫 호출에서 **402 크레딧 소진 → 0장, 즉시 중단**(`mock/gen-log.txt`). 생성물 없음. 대신 시안 캡처 7장(`mock/card-{morning,ire,scroll}.png`·`preview-360.png`·`preview-hidden-360.png`·`landing-360.png`·`landing-after-360.png`)은 팀 작성 HTML이 판 1 손질본(`apps/mobile/assets/motifs/r1`, 위 표의 기존 기록분)을 배치한 합성이다 — **탐색**(앱·스토어·마케팅 사용 금지).
+- 기획 회의 2차 의제 3 대표 시안(11-26, 기획실): `docs/design/meetings/2026-11-26-planning-2/exp/gen/gen.mjs`(gemini-3.1-flash-image 1K, 텍스트만 입력, 장마다 1안·재시도 0) — `style-window`·`style-inkstone`·`style-letter` 3장(`exp/gen/*.png`, 프롬프트 `*.prompt.txt`, 호출 기록 `log.txt`). **탐색**(앱·스토어·마케팅 사용 금지). 이를 얹은 비교 캡처 `exp/strip-style.png`와 실험 스트립 `exp/strip-*.png`(나눔손글씨 붓 글리프 일부 + 판 1 조각 `near-with.umbrella`·`teacup-two` 배치, 팀 작성 캔버스)도 **탐색**.

@@ -1,0 +1,192 @@
+<!doctype html>
+<!-- 기획 회의 2차 실험 스트립(6초 영상 대신 5프레임). 시작 2026-11-26 — 탐색 전용, 앱 에셋 아님.
+     ?s=body  : 몸 4획 보강안(바깥 A 꼬리 + 속 D 보강)
+     ?s=board : 인장판 네 칸(몸 아래 낙관 자리)
+     ?s=dutA  : 덧말 (가) 현상 연출 + 자막
+     ?s=dutB  : 덧말 (나) 누르면 출처
+     ?s=style : 의제 3 대표 시안(지금 언어 셋 대 담묵 번짐 기준 언어)
+     두 몸 스트립은 1·2·3프레임 연출이 같고, 획이 닿는 자리만 다르다. 자막은 넣지 않았다(그림만으로 읽히는지 잼). -->
+<html><head><meta charset="utf-8"><style>body{margin:0;background:#EFE8DA}canvas{display:block}</style></head><body><canvas id="c"></canvas><script>
+const Q = new URLSearchParams(location.search), S = Q.get('s') || 'body';
+const PAPER = '#EFE8DA', INK = '#1E1B18', GOLD = '#B8944A', GS = 'rgba(214,180,104,', RED = '#B0432E';
+const FONT = '"Nanum Brush Script"';
+function mix(a, b, t) { const pa = [1,3,5].map((i) => parseInt(a.slice(i, i + 2), 16)), pb = [1,3,5].map((i) => parseInt(b.slice(i, i + 2), 16)); return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+const STROKE_INK = mix(INK, PAPER, .32);
+function rng(seed) { let a = seed | 0 || 1; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function curve(x0, y0, x1, y1, bend, n = 24) { const mx = (x0 + x1) / 2 - (y1 - y0) * bend, my = (y0 + y1) / 2 + (x1 - x0) * bend; const o = []; for (let i = 0; i <= n; i++) { const t = i / n; o.push([(1 - t) ** 2 * x0 + 2 * (1 - t) * t * mx + t * t * x1, (1 - t) ** 2 * y0 + 2 * (1 - t) * t * my + t * t * y1]); } return o; }
+function wash(g, x, y, rx, ry, color, a) { const R = Math.max(rx, ry); const gr = g.createRadialGradient(x, y, 0, x, y, R); gr.addColorStop(0, color); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.save(); g.globalAlpha = a; g.translate(x, y); g.scale(rx / R, ry / R); g.translate(-x, -y); g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, 6.29); g.fill(); g.restore(); }
+function brush(g, pts, w0, color, alpha, dry = .25) {
+  const n = pts.length, L = [], R = [];
+  for (let i = 0; i < n; i++) { const t = i / (n - 1), a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)]; const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI / 2; const w = w0 * (.3 + .7 * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.15 + .05)), .55)) * (t > .85 ? (1 - (t - .85) * 2.6) : 1); L.push([pts[i][0] + Math.cos(ang) * w / 2, pts[i][1] + Math.sin(ang) * w / 2]); R.push([pts[i][0] - Math.cos(ang) * w / 2, pts[i][1] - Math.sin(ang) * w / 2]); }
+  const cut = Math.floor(n * (1 - dry)); g.save(); g.globalAlpha = alpha; g.fillStyle = color; g.beginPath(); for (let i = 0; i <= cut; i++) g.lineTo(L[i][0], L[i][1]); for (let i = cut; i >= 0; i--) g.lineTo(R[i][0], R[i][1]); g.closePath(); g.fill();
+  g.strokeStyle = color; g.lineCap = 'round'; for (let k = 0; k < 4; k++) { const f = .15 + k * .23; g.lineWidth = w0 * .16 * (1 - k * .15); g.beginPath(); for (let i = cut; i < n; i++) { const x = L[i][0] + (R[i][0] - L[i][0]) * f, y = L[i][1] + (R[i][1] - L[i][1]) * f; i === cut ? g.moveTo(x, y) : g.lineTo(x, y); } g.globalAlpha = alpha * (k % 2 ? .6 : .9); g.stroke(); } g.restore();
+}
+function bodyPath(g, W) { const H = W / 1.25; g.beginPath(); g.moveTo(-.35 * W, 0); g.lineTo(.35 * W, 0); g.bezierCurveTo(.52 * W, 0, .54 * W, -.55 * H, .4 * W, -.82 * H); g.bezierCurveTo(.3 * W, -.98 * H, .15 * W, -1.0 * H, .03 * W, -1.0 * H); g.bezierCurveTo(-.25 * W, -1.0 * H, -.5 * W, -.8 * H, -.52 * W, -.45 * H); g.bezierCurveTo(-.53 * W, -.15 * H, -.5 * W, 0, -.35 * W, 0); g.closePath(); }
+
+// ── 유저 글씨에서 한 획 떼어 내기(나눔손글씨 붓 글리프의 오른쪽 ㅣ 또는 아래 ㅡ 덩어리) ──
+const GLY = {};
+function glyphStroke(ch, part) {
+  const key = ch + part; if (GLY[key]) return GLY[key];
+  const c = document.createElement('canvas'); c.width = c.height = 300; const g = c.getContext('2d');
+  g.font = `240px ${FONT}`; g.textBaseline = 'middle'; g.textAlign = 'center'; g.fillStyle = '#000'; g.fillText(ch, 150, 150);
+  const d = g.getImageData(0, 0, 300, 300).data; const on = (x, y) => d[(y * 300 + x) * 4 + 3] > 60;
+  const col = (x) => { for (let y = 0; y < 300; y++) if (on(x, y)) return true; return false; };
+  const row = (y) => { for (let x = 0; x < 300; x++) if (on(x, y)) return true; return false; };
+  let x0 = 0, x1 = 299, y0 = 0, y1 = 299;
+  if (part === 'right') { x1 = 299; while (x1 > 0 && !col(x1)) x1--; x0 = x1; while (x0 > 0 && col(x0)) x0--; }
+  else { y1 = 299; while (y1 > 0 && !row(y1)) y1--; y0 = y1; while (y0 > 0 && row(y0)) y0--; }
+  if (part === 'right') { y0 = 0; while (y0 < 299 && !(() => { for (let x = x0; x <= x1; x++) if (on(x, y0)) return true; return false; })()) y0++; y1 = 299; while (y1 > 0 && !(() => { for (let x = x0; x <= x1; x++) if (on(x, y1)) return true; return false; })()) y1--; }
+  else { x0 = 0; while (x0 < 299 && !(() => { for (let y = y0; y <= y1; y++) if (on(x0, y)) return true; return false; })()) x0++; x1 = 299; while (x1 > 0 && !(() => { for (let y = y0; y <= y1; y++) if (on(x1, y)) return true; return false; })()) x1--; }
+  const w = x1 - x0 + 1, h = y1 - y0 + 1; const o = document.createElement('canvas');
+  // 긴 축을 가로로 눕혀 둔다
+  if (part === 'right') { o.width = h; o.height = w; const og = o.getContext('2d'); og.translate(0, w); og.rotate(-Math.PI / 2); og.drawImage(c, x0, y0, w, h, 0, 0, w, h); }
+  else { o.width = w; o.height = h; o.getContext('2d').drawImage(c, x0, y0, w, h, 0, 0, w, h); }
+  return (GLY[key] = { cv: o, box: [x0, y0, w, h] });
+}
+const tintC = new Map();
+function tint(cv, color) { const k = cv.__id + color; if (!cv.__id) cv.__id = Math.random(); if (tintC.has(cv.__id + color)) return tintC.get(cv.__id + color); const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const g = c.getContext('2d'); g.drawImage(cv, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height); tintC.set(cv.__id + color, c); return c; }
+// 획 그리기: 긴 축 길이 len, 각 ang, 가운데 (x,y)
+function putStroke(g, st, x, y, len, ang, color, alpha = 1, thick = 1) { const cv = st.cv; const s = len / cv.width; g.save(); g.translate(x, y); g.rotate(ang); g.globalAlpha = alpha; g.drawImage(tint(cv, color), -len / 2, -cv.height * s * thick / 2, len, cv.height * s * thick); g.restore(); }
+
+// 네 이레의 획(이레마다 유저가 고른 글씨의 한 획)
+const WEEKS = [['비', 'right'], ['으', 'bottom'], ['이', 'right'], ['니', 'right']];
+// 몸 자리(몸 좌표: 바닥 가운데 원점, W 몸 너비) — 보강안: 획 몸통은 몸 속(밝은 윤 먹), 꼬리는 몸 밖 종이 위(담묵)
+const SLOT = [{ x: -.45, y: -.3, len: .44, ang: -1.25 }, { x: .3, y: -.07, len: .32, ang: -.12 }, { x: -.2, y: -.62, len: .38, ang: -.3 }, { x: .47, y: -.17, len: .26, ang: -1.45 }];
+const IN_INK = '#9d9283';
+function drawMong(g, x, y, W, o = {}) {
+  const { pose = 'sleep', strokes = 0, fresh = -1, wet = 0, look = 0, board = false, boardN = 0, freshBoard = -1 } = o; const H = W / 1.25;
+  g.save(); g.translate(x, y);
+  wash(g, 0, 0, .65 * W, .09 * W, 'rgba(30,27,24,.5)', .5);
+  // 몸 밖 꼬리(담묵) — 몸 뒤에 그림
+  const strokesAt = (clipInside, color) => { for (let k = 0; k < strokes; k++) { const s = SLOT[k], st = glyphStroke(...WEEKS[k]); g.save(); if (k === fresh && wet) putStroke(g, st, s.x * W, s.y * W, s.len * W * 1.04, s.ang, GOLD, .7 * wet, 1.5); putStroke(g, st, s.x * W, s.y * W, s.len * W, s.ang, clipInside ? (k === fresh && wet ? mix(IN_INK, '#E9D3A0', wet * .6) : IN_INK) : STROKE_INK, 1, 1.0); g.restore(); } };
+  strokesAt(false);
+  g.save(); bodyPath(g, W); g.fillStyle = INK; g.shadowColor = 'rgba(0,0,0,.25)'; g.shadowBlur = 3; g.fill(); g.restore();
+  g.save(); bodyPath(g, W); g.clip(); strokesAt(true); g.restore();
+  for (const [l, i] of [[1, 0], [.9, 1], [.75, 2]]) { const rx = .3 * W, ry = -.93 * H + i * .085 * W; brush(g, [[rx, ry], [rx + .1 * W * l, ry - .02 * W], [rx + .2 * W * l, ry - .01 * W]], .06 * W, INK, 1, .18); }
+  const ey = -.38 * H, ex = .21 * W; g.fillStyle = PAPER; g.strokeStyle = PAPER; g.lineWidth = Math.max(1, .035 * W); g.lineCap = 'round';
+  for (const sx of [-1, 1]) { if (pose === 'sleep') { g.beginPath(); g.arc(sx * ex, ey - .01 * W, .06 * W, .25, Math.PI - .25); g.stroke(); } else { g.beginPath(); g.arc(sx * ex + look * .04 * W, ey, .08 * W, 0, 6.29); g.fill(); } }
+  if (board) drawBoard(g, .5 * W, -.02 * W, .46 * W, boardN, freshBoard, wet);
+  g.restore();
+}
+// 인장판: 몸 오른쪽 아래 낙관 자리, 2×2 칸, 인주 테두리, 칸마다 그 이레의 한 획(인주)
+const BOARD_ANG = [-.15, .1, -.2, .05];
+function drawBoard(g, x, y, S, n, fresh, wet) {
+  g.save(); g.translate(x, y - S); g.fillStyle = '#F6F1E6'; g.fillRect(0, 0, S, S); g.strokeStyle = RED; g.lineWidth = Math.max(1, S * .05); g.strokeRect(0, 0, S, S);
+  g.lineWidth = Math.max(.6, S * .02); g.beginPath(); g.moveTo(S / 2, S * .08); g.lineTo(S / 2, S * .92); g.moveTo(S * .08, S / 2); g.lineTo(S * .92, S / 2); g.stroke();
+  for (let k = 0; k < n; k++) { const cx = (k % 2 ? .75 : .25) * S, cy = (k < 2 ? .25 : .75) * S; if (k === fresh && wet) wash(g, cx, cy, S * .35, S * .35, GS + '1)', .6 * wet); putStroke(g, glyphStroke(...WEEKS[k]), cx, cy, S * .4, BOARD_ANG[k] + (WEEKS[k][1] === 'right' ? -Math.PI / 2 : 0), RED, 1, 1.3); }
+  g.restore();
+}
+
+// ── 꿈 바탕(마블링 띠 + 흰 물길) ──
+function scene(g, W, H, seed = 3) {
+  const r = rng(seed); g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 9; i++) { const y0 = H * (.08 + i * .1), amp = 6 + r() * 14, ph = r() * 6, a = .05 + r() * .07; g.save(); g.globalAlpha = a; g.fillStyle = mix(INK, PAPER, .45 + r() * .3); g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 6) g.lineTo(x, y0 + Math.sin(x / W * 5 + ph) * amp + Math.sin(x / W * 11 + ph * 2) * amp * .3); g.lineTo(W, H); g.closePath(); g.fill(); g.restore(); }
+  g.save(); g.globalAlpha = .55; g.strokeStyle = '#F7F3EA'; g.lineCap = 'round'; for (let k = 0; k < 2; k++) { g.lineWidth = k ? 6 : 16; g.globalAlpha = k ? .8 : .35; g.beginPath(); for (let t = 0; t <= 1.001; t += .02) { const x = W * (.62 - .25 * Math.sin(t * 3.4 + .6) * (1 - t * .3)), y = H * (.02 + t * .8); t ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); } g.restore();
+  const vg = g.createRadialGradient(W / 2, H * .45, W * .3, W / 2, H * .5, W * .85); vg.addColorStop(0, 'rgba(239,232,218,0)'); vg.addColorStop(1, 'rgba(239,232,218,.85)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+}
+function ripples(g, x, y, R, u, seed) { for (let i = 0; i < 3; i++) { const uu = Math.max(0, u - i * .14); if (!uu) continue; const rw = rng(seed + i); const ph = [rw() * 6, rw() * 6]; g.save(); g.globalAlpha = .55 * (1 - uu); g.strokeStyle = i === 1 ? GOLD : mix(INK, PAPER, .25); g.lineWidth = 5 * (1 - uu) + 1; g.beginPath(); for (let q = 0; q <= 72; q++) { const a = q / 72 * 6.29; const k = 1 + .09 * Math.sin(a * 3 + ph[0]) + .05 * Math.sin(a * 5 + ph[1]); const X = x + Math.cos(a) * R * (.5 + uu * 2.4) * k, Y = y + Math.sin(a) * R * (.25 + uu * 1.2) * k; q ? g.lineTo(X, Y) : g.moveTo(X, Y); } g.stroke(); g.restore(); } }
+function dust(g, x, y, R, n, seed, a = .8) { const r = rng(seed); for (let i = 0; i < n; i++) { const an = r() * 6.28, d = R * (.3 + r() * .9); g.globalAlpha = a * (.4 + r() * .6); g.fillStyle = '#E2C27C'; g.beginPath(); g.arc(x + Math.cos(an) * d, y + Math.sin(an) * d * .8, .8 + r() * 1.8, 0, 6.29); g.fill(); } g.globalAlpha = 1; }
+
+// ── 프레임 ──
+const FW = 300, FH = 375, GAP = 14, PAD = 16, LBL = 26;
+function frameWeek(g) { // 화첩: 이번 이레 일곱 밤의 글씨 — 고른 한 획에 빛
+  g.fillStyle = PAPER; g.fillRect(0, 0, FW, FH); g.fillStyle = '#F6F1E6'; g.fillRect(18, 30, FW - 36, FH - 60); g.strokeStyle = mix(INK, PAPER, .75); g.lineWidth = 1; g.strokeRect(18, 30, FW - 36, FH - 60);
+  const words = ['바다', '졸려', '비', '친구', '노래', '고마워', '봄'];
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  words.forEach((w, i) => { const cx = 18 + (FW - 36) * (i < 4 ? (i + .5) / 4 : (i - 4 + .5) / 3 * 1) , cy = i < 4 ? 120 : 245; const xx = i < 4 ? cx : 18 + (FW - 36) * ((i - 4 + .5) / 3); g.fillStyle = mix(INK, PAPER, .5); g.font = '11px "Apple SD Gothic Neo"'; g.fillText(`${i + 1}밤`, xx, cy - 52);
+    if (w === '비') { // 고른 획: 오른쪽 ㅣ에 금빛 번짐
+      wash(g, xx + 14, cy, 22, 44, GS + '1)', .75); }
+    g.fillStyle = w === '비' ? INK : mix(INK, PAPER, .35); g.font = `${w.length > 2 ? 28 : w.length > 1 ? 34 : 48}px ${FONT}`; g.fillText(w, xx, cy); });
+}
+function frameLift(g, body, t) { // t: 0 들림 1 날아감
+  scene(g, FW, FH, 5); const mx = FW * .5, my = FH * .86, MW = 92;
+  g.save(); g.globalAlpha = .35; g.fillStyle = PAPER; g.fillRect(0, 0, FW, FH); g.restore();
+  drawMong(g, mx, my, MW, { pose: 'sleep', board: !body, boardN: 0 });
+  const st = glyphStroke(...WEEKS[0]);
+  const tgt = body ? [mx + SLOT[0].x * MW, my + SLOT[0].y * MW, SLOT[0].len * MW, SLOT[0].ang] : [mx + .5 * MW + .25 * .46 * MW, my - .02 * MW - .46 * MW + .25 * .46 * MW, .46 * MW * .4, BOARD_ANG[0]];
+  if (t === 0) { dust(g, FW / 2, FH * .36, 70, 26, 9); putStroke(g, st, FW / 2, FH * .36, 170, -Math.PI / 2 + .12, INK, 1, 1); }
+  else { const px = FW * .5 + (tgt[0] - FW * .5) * .62, py = FH * .36 + (tgt[1] - FH * .36) * .62 - 30; for (let i = 1; i <= 4; i++) putStroke(g, st, FW * .5 + (px - FW * .5) * (i / 5) , FH * .36 + (py - FH * .36) * (i / 5) - 12 * Math.sin(i / 5 * 3.1), 140 - i * 15, -Math.PI / 2 + .12 + (tgt[3] + Math.PI / 2) * i / 5, mix(INK, PAPER, .8), .25, 1); putStroke(g, st, px, py, 70, tgt[3] * .8 - .3, INK, 1, 1); dust(g, px, py, 30, 12, 4, .6); }
+}
+function frameHit(g, body) {
+  scene(g, FW, FH, 5); const mx = FW * .5, my = FH * .86, MW = 92;
+  const hx = body ? mx + SLOT[0].x * MW : mx + .5 * MW + .12 * MW, hy = body ? my + SLOT[0].y * MW : my - .25 * MW;
+  ripples(g, hx, hy, 40, .45, 21);
+  drawMong(g, mx, my, MW, { pose: 'open', look: body ? -1 : 1, strokes: body ? 1 : 0, fresh: 0, wet: .8, board: !body, boardN: 1, freshBoard: 0 });
+  dust(g, hx, hy, 42, 14, 7, .7);
+}
+function framePortrait(g, body, Wd = FW, Hd = FH, MW = 150, plain = false) {
+  g.fillStyle = PAPER; g.fillRect(0, 0, Wd, Hd); if (!plain) { wash(g, Wd / 2, Hd * .6, Wd * .45, Hd * .3, 'rgba(200,190,172,1)', .35); }
+  drawMong(g, Wd / 2 - (body ? 0 : MW * .18), Hd * .74, MW, { pose: 'open', strokes: body ? 4 : 0, board: !body, boardN: 4 });
+  // 이름 인장(D-14, 두 안 공통): 오른쪽 아래 작은 붉은 네모
+  if (!plain) { g.fillStyle = RED; g.globalAlpha = .9; g.fillRect(Wd - 34, Hd - 46, 16, 16); g.globalAlpha = 1; }
+}
+function thumbPanel(g, body, w, h) {
+  g.fillStyle = PAPER; g.fillRect(0, 0, w, h);
+  const mk = (n) => { const c = document.createElement('canvas'); c.width = c.height = 64; const cg = c.getContext('2d'); cg.fillStyle = PAPER; cg.fillRect(0, 0, 64, 64); drawMong(cg, body ? 32 : 26, 56, 38, { pose: 'open', strokes: body ? n : 0, board: !body, boardN: n }); return c; };
+  g.drawImage(mk(0), (w - 64) / 2, 70); g.drawImage(mk(4), (w - 64) / 2, 230);
+  g.fillStyle = mix(INK, PAPER, .45); g.font = '11px "Apple SD Gothic Neo"'; g.textAlign = 'center'; g.fillText('첫날 (64px)', w / 2, 150); g.fillText('28번째 아침 (64px)', w / 2, 310);
+}
+
+// 덧말
+const IMG = {}; const PIECE_DIR = '../../../dream/2026-11-25-dream-compose-v2/prototype/pieces/';
+function loadImg(id) { return new Promise((ok) => { const im = new Image(); im.onload = () => { IMG[id] = im; ok(); }; im.onerror = () => ok(); im.src = PIECE_DIR + id + '.webp'; }); }
+function piece(g, id, x, y, size, alpha, color = INK) { const im = IMG[id]; if (!im) return; const s = size / Math.max(im.width, im.height), w = im.width * s, h = im.height * s; const mk = IMG[id + '.mask']; g.save(); if (mk) { g.globalAlpha = .85 * alpha; g.drawImage(tint(mk, PAPER), x - w / 2, y - h / 2, w, h); } g.globalAlpha = alpha; g.drawImage(tint(im, color), x - w / 2, y - h / 2, w, h); g.restore(); }
+function lantern(g, x, y, s, a) { g.save(); g.globalAlpha = a; wash(g, x, y, s * .9, s * .9, GS + '1)', .55); g.fillStyle = '#F7EEDB'; g.beginPath(); g.ellipse(x, y, s * .32, s * .4, 0, 0, 6.29); g.fill(); wash(g, x, y + s * .05, s * .28, s * .3, 'rgba(236,190,110,1)', .7);
+  brush(g, curve(x - s * .3, y - s * .1, x - s * .26, y + s * .25, -.15, 14), 2.2, mix(INK, PAPER, .3), .8, .3); brush(g, curve(x + s * .3, y - s * .12, x + s * .27, y + s * .24, .15, 14), 2.2, mix(INK, PAPER, .3), .8, .3);
+  for (const k of [-.18, 0, .18]) brush(g, curve(x - s * .3, y + k * s * 1.6, x + s * .3, y + k * s * 1.6, .08, 14), 1, mix(INK, PAPER, .55), .5, .2);
+  g.fillStyle = mix(INK, PAPER, .2); g.fillRect(x - s * .13, y - s * .47, s * .26, s * .08); g.fillRect(x - s * .1, y + s * .4, s * .2, s * .07); brush(g, [[x, y - s * .48], [x + 1, y - s * .7]], 1.4, mix(INK, PAPER, .3), .7, .2); g.restore(); }
+const A_ = [92, 175], B_ = [222, 218], C_ = [158, 92];
+function dutBase(g, aA, aB) { scene(g, FW, FH, 8); drawMong(g, FW * .52, FH * .9, 70, { pose: 'sleep' }); if (aA) piece(g, 'near-with.umbrella', ...A_, 112, aA); if (aB) piece(g, 'near-with.teacup-two', ...B_, 88, aB, mix(INK, PAPER, .35)); }
+function threads(g, u, back = false) { for (const S of [A_, B_]) { const pts = curve(S[0], S[1], C_[0], C_[1], S === A_ ? -.18 : .18, 30); const n = Math.max(2, Math.round(pts.length * u)); const seg = back ? pts.slice(pts.length - n) : pts.slice(0, n); g.save(); g.strokeStyle = GOLD; g.globalAlpha = .85; g.lineWidth = 1.5; g.lineCap = 'round'; g.beginPath(); seg.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); const tip = back ? seg[0] : seg[seg.length - 1]; wash(g, tip[0], tip[1], 9, 9, GS + '1)', .9); g.restore(); } }
+function caption(g, text) { g.save(); g.fillStyle = 'rgba(246,241,230,.92)'; g.fillRect(14, FH - 44, FW - 28, 30); g.fillStyle = mix(INK, PAPER, .15); g.font = '13px "Apple SD Gothic Neo"'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, FW / 2, FH - 29); g.restore(); }
+function finger(g, x, y) { g.save(); g.globalAlpha = .35; g.fillStyle = '#7a6f63'; g.beginPath(); g.ellipse(x + 14, y + 40, 18, 34, -.35, 0, 6.29); g.fill(); g.globalAlpha = .6; g.strokeStyle = '#7a6f63'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 14, 0, 6.29); g.stroke(); g.restore(); }
+const DUT = {
+  dutA: [
+    (g) => { dutBase(g, .55, 0); ripples(g, ...A_, 30, .5, 3); },
+    (g) => { dutBase(g, 1, .5); },
+    (g) => { dutBase(g, 1, .5); threads(g, .55); },
+    (g) => { dutBase(g, 1, .5); threads(g, 1); g.fillStyle = INK; g.globalAlpha = .8; g.beginPath(); g.arc(C_[0], C_[1] - 4, 4, 0, 6.29); g.fill(); g.globalAlpha = 1; ripples(g, ...C_, 22, .35, 5); lantern(g, ...C_, 64, .5); },
+    (g) => { dutBase(g, 1, .5); threads(g, 1); lantern(g, ...C_, 64, .9); caption(g, '몽망이의 꿈이 ‘등불’을 덧붙였어요'); },
+  ],
+  dutB: [
+    (g) => { dutBase(g, 1, .5); lantern(g, ...C_, 64, .9); },
+    (g) => { dutBase(g, 1, .5); lantern(g, ...C_, 64, 1); wash(g, ...C_, 40, 40, GS + '1)', .4); finger(g, C_[0] + 4, C_[1] + 6); },
+    (g) => { dutBase(g, 1, .5); lantern(g, ...C_, 64, 1); threads(g, .6, true); },
+    (g) => { dutBase(g, 1, .5); lantern(g, ...C_, 64, 1); threads(g, 1, true); wash(g, ...A_, 50, 50, GS + '1)', .35); wash(g, ...B_, 42, 42, GS + '1)', .35); g.save(); g.fillStyle = 'rgba(246,241,230,.9)'; g.fillRect(C_[0] - 62, C_[1] - 62, 124, 22); g.fillStyle = mix(INK, PAPER, .15); g.font = '13px "Apple SD Gothic Neo"'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('비 · 친구 → 등불', C_[0], C_[1] - 51); g.restore(); },
+    (g) => { dutBase(g, 1, .5); g.save(); g.globalAlpha = .45; threads(g, 1); g.restore(); lantern(g, ...C_, 64, .9); },
+  ],
+};
+
+
+// ── 의제 3 대표 시안: 왼쪽 = 지금(사진 질감 래스터·코드 선·금점), 오른쪽 = 기준 언어(담묵 번짐, Gemini 견본 3장을 같은 장 위에) ──
+function loadAny(src) { return new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; }); }
+function soft(im, size) { const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); g.drawImage(im, 0, 0, size, size); g.globalCompositeOperation = 'destination-in'; const gr = g.createRadialGradient(size / 2, size / 2, size * .3, size / 2, size / 2, size * .5); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, size, size); return c; }
+async function styleSheet(cv, g) {
+  const PW = 420, PH = 525; cv.width = PAD * 3 + PW * 2; cv.height = PAD * 2 + PH + 34; g.fillStyle = '#E4DCCB'; g.fillRect(0, 0, cv.width, cv.height);
+  const before = await loadAny('../../../dream/2026-11-25-dream-compose-v2/captures/card-s64-night-12.png');
+  const [win, ink, let_] = await Promise.all(['style-window', 'style-inkstone', 'style-letter'].map((n) => loadAny(`gen/${n}.png`)));
+  g.save(); g.translate(PAD, PAD); if (before) g.drawImage(before, 0, 0, PW, PH); g.restore();
+  g.save(); g.translate(PAD * 2 + PW, PAD); g.beginPath(); g.rect(0, 0, PW, PH); g.clip(); scene(g, PW, PH, 12);
+  const put = (im, x, y, s, a) => { if (!im) return; g.save(); g.globalAlpha = a; g.globalCompositeOperation = 'multiply'; g.drawImage(soft(im, s), x - s / 2, y - s / 2, s, s); g.restore(); };
+  put(ink, PW * .28, PH * .62, 170, .55); put(let_, PW * .74, PH * .5, 170, .5); put(win, PW * .5, PH * .3, 260, 1);
+  for (const [sx, sy] of [[PW * .28, PH * .6], [PW * .74, PH * .48]]) brush(g, curve(sx, sy, PW * .5, PH * .36, .14, 30), 1.3, GOLD, .55, .2);
+  drawMong(g, PW * .5, PH * .9, 92, { pose: 'sleep' }); g.restore();
+  g.fillStyle = mix(INK, PAPER, .3); g.font = '14px "Apple SD Gothic Neo"'; g.textAlign = 'center';
+  g.fillText('지금 — 사진 질감 창 · 코드 선 · 금점이 섞임', PAD + PW / 2, PAD + PH + 24); g.fillText('기준 언어 — 담묵 번짐 하나(외곽선 0 · 농담 셋 · 금은 실로만)', PAD * 2 + PW * 1.5, PAD + PH + 24);
+}
+async function main() {
+  await document.fonts.load(`240px ${FONT}`); await document.fonts.load('13px "Apple SD Gothic Neo"');
+  await Promise.all(['near-with.umbrella', 'near-with.umbrella.mask', 'near-with.teacup-two', 'near-with.teacup-two.mask'].map(loadImg));
+  const cv = document.getElementById('c'); const g = cv.getContext('2d');
+  if (S === 'style') { await styleSheet(cv, g); window.__ready = true; return; }
+  let frames, thumb = false;
+  if (S === 'body' || S === 'board') { const body = S === 'body'; frames = [frameWeek, (x) => frameLift(x, body, 0), (x) => frameLift(x, body, 1), (x) => frameHit(x, body), (x) => framePortrait(x, body)]; thumb = body ? 'b' : 'p'; }
+  else frames = DUT[S];
+  const TW = 150; cv.width = PAD * 2 + frames.length * FW + (frames.length - 1) * GAP + (thumb ? GAP + TW : 0); cv.height = PAD * 2 + FH + LBL;
+  g.fillStyle = '#E4DCCB'; g.fillRect(0, 0, cv.width, cv.height);
+  frames.forEach((f, i) => { const x = PAD + i * (FW + GAP); g.save(); g.translate(x, PAD); g.beginPath(); g.rect(0, 0, FW, FH); g.clip(); f(g); g.restore(); g.fillStyle = mix(INK, PAPER, .35); g.font = '14px "Apple SD Gothic Neo"'; g.textAlign = 'center'; g.fillText(String(i + 1), x + FW / 2, PAD + FH + 19); });
+  if (thumb) { const x = PAD + frames.length * (FW + GAP); g.save(); g.translate(x, PAD); thumbPanel(g, thumb === 'b', TW, FH); g.restore(); }
+  window.__ready = true;
+}
+main();
+</script></body></html>
